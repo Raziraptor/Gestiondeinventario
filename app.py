@@ -70,9 +70,18 @@ def save_picture(form_picture):
 basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 app.jinja_env.add_extension('jinja2.ext.do')
-app.config['SECRET_KEY'] = 'tu_llave_secreta_muy_segura' # Cambia esto
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'inventario.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# --- LÓGICA DE BASE DE DATOS MEJORADA ---
+# Busca una 'DATABASE_URL' en las variables de entorno (para producción)
+db_url = os.environ.get('DATABASE_URL')
+
+if db_url:
+    # Si estamos en producción (DigitalOcean), usa PostgreSQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+else:
+    # Si estamos en local, usa el archivo sqlite
+    print("ADVERTENCIA: No se encontró DATABASE_URL. Usando SQLite local.")
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'inventario.db')
+# --- FIN DE LA LÓGICA ---
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limite de 16MB para las imágenes
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
