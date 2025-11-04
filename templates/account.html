@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Actualizar Datos de la Cuenta</h2>
+                </div>
+                <div class="card-body">
+                    
+                    <div class="text-center mb-3">
+                        <img src="{{ image_url }}" alt="Foto de Perfil" 
+                             class="rounded-circle" style="width: 125px; height: 125px; object-fit: cover;">
+                    </div>
+                    
+                    {% if current_user.image_file != 'default.jpg' %}
+                    <div class="text-center mb-3">
+                        <form action="{{ url_for('delete_picture') }}" method="POST" 
+                              onsubmit="return confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> Eliminar Foto
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                    <form method="POST" action="" enctype="multipart/form-data">
+                        {{ form_account.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form_account.username.label(class="form-label") }}
+                            {% if form_account.username.errors %}
+                                {{ form_account.username(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form_account.username.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form_account.username(class="form-control") }}
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_account.email.label(class="form-label") }}
+                            {% if form_account.email.errors %}
+                                {{ form_account.email(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form_account.email.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form_account.email(class="form-control") }}
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_account.picture.label(class="form-label") }}
+                            {{ form_account.picture(class="form-control") }}
+                            {% if form_account.picture.errors %}
+                                <div class="text-danger mt-1">
+                                    <small>
+                                    {% for error in form_account.picture.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            {{ form_account.submit_account(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Cambiar Contraseña</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="">
+                        {{ form_password.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form_password.old_password.label(class="form-label") }}
+                            {{ form_password.old_password(class="form-control") }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form_password.password.label(class="form-label") }}
+                            {{ form_password.password(class="form-control") }}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form_password.confirm_password.label(class="form-label") }}
+                            {% if form_password.confirm_password.errors %}
+                                {{ form_password.confirm_password(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form_password.confirm_password.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form_password.confirm_password(class="form-control") }}
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            {{ form_password.submit_password(class="btn btn-warning") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

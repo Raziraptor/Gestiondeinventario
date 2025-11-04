@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    <hr>
+    
+    <form method="POST" action="{{ request.path }}">
+        <div class="row g-3">
+            
+            <div class="col-md-8">
+                <label for="descripcion" class="form-label">Descripción del Gasto</label>
+                <input type="text" class="form-control" id="descripcion" name="descripcion" required>
+            </div>
+            
+            <div class="col-md-4">
+                <label for="fecha" class="form-label">Fecha del Gasto</label>
+                <input type="date" class="form-control" id="fecha_gasto" name="fecha" value="{{ now.strftime('%Y-%m-%d') if now else '' }}" required>
+            </div>
+
+            <div class="col-md-4">
+                <label for="monto" class="form-label">Monto</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" step="0.01" class="form-control" id="monto_gasto" name="monto" placeholder="0.00" required>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <label for="categoria" class="form-label">Categoría</label>
+                <input type="text" class="form-control" id="categoria" name="categoria" placeholder="Ej: Operativo, Logística...">
+            </div>
+
+            <div class="col-md-4">
+                <label for="orden_compra_id" class="form-label">Asociar a Orden de Compra (Opcional)</label>
+                <select class="form-select" id="select_oc" name="orden_compra_id">
+                    <option value="">-- Ninguna --</option>
+                    
+                    {% for oc in ordenes %}
+                        {% set fecha_rec = oc.fecha_recepcion.strftime('%Y-%m-%d') if oc.fecha_recepcion else '' %}
+                        <option value="{{ oc.id }}" 
+                                data-total="{{ '%.2f'|format(oc.costo_total) }}"
+                                data-fecha="{{ fecha_rec }}">
+                            OC #{{ oc.id }} ({{ oc.proveedor.nombre }}) - Total: ${{ "%.2f"|format(oc.costo_total) }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Gasto</button>
+                <a href="{{ url_for('lista_gastos') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </div>
+    </form>
+
+
+    <script>
+        // Espera a que la página cargue
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // 1. Obtenemos los elementos del formulario
+            const selectOC = document.getElementById('select_oc');
+            const inputMonto = document.getElementById('monto_gasto');
+            const inputFecha = document.getElementById('fecha_gasto');
+            
+            // Guardamos la fecha de hoy (por si deseleccionan)
+            const fechaDeHoy = "{{ now.strftime('%Y-%m-%d') }}";
+
+            // 2. Escuchamos el evento 'change' en el dropdown
+            selectOC.addEventListener('change', function() {
+                
+                // 3. Obtenemos la opción seleccionada
+                const seleccionada = this.options[this.selectedIndex];
+                
+                if (this.value === "") {
+                    // Si seleccionan "Ninguna"
+                    inputMonto.value = ''; // Limpia el monto
+                    inputFecha.value = fechaDeHoy; // Restablece la fecha a hoy
+                } else {
+                    // Si seleccionan una OC
+                    
+                    // 4. Obtenemos los datos guardados en 'data-...'
+                    const total = seleccionada.getAttribute('data-total');
+                    const fecha = seleccionada.getAttribute('data-fecha');
+                    
+                    // 5. Rellenamos los campos
+                    inputMonto.value = total;
+                    
+                    if (fecha) {
+                        // Si la OC tiene fecha de recepción, la usamos
+                        inputFecha.value = fecha;
+                    } else {
+                        // Si no (ej. 'borrador'), usamos la fecha de hoy
+                        inputFecha.value = fechaDeHoy;
+                    }
+                }
+            });
+        });
+    </script>
+
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    <hr>
+    
+    <form method="POST" action="{{ request.path }}">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="nombre" class="form-label">Nombre del Proveedor</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" required>
+            </div>
+            <div class="col-md-6">
+                <label for="contacto_email" class="form-label">Email de Contacto</label>
+                <input type="email" class="form-control" id="contacto_email" name="contacto_email">
+            </div>
+            
+            <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Proveedor</button>
+                <a href="{{ url_for('lista_proveedores') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </div>
+    </form>
+{% endblock %}

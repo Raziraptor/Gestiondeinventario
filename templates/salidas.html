@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Salidas{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Historial de Salidas</h2>
+        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger">
+            <i class="bi bi-box-arrow-up"></i> Registrar Nueva Salida
+        </a>
+    </div>
+
+    <div class="card bg-light mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('historial_salidas') }}" class="row g-3 align-items-end">
+                
+                <div class="col-md-5">
+                    <label for="mes" class="form-label">Mes</label>
+                    <select id="mes" name="mes" class="form-select">
+                        {% for num, nombre in meses_lista %}
+                            <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="ano" class="form-label">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control" value="{{ ano_seleccionado }}" min="2020" max="2050">
+                </div>
+                
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-filter"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% for salida in salidas %}
+    <div class="card mb-3">
+        
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Salida #{{ salida.id }}</strong>
+                <br>
+                <small>Fecha: {{ salida.fecha.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+            <h4>
+                {% if salida.estado == 'cancelada' %}
+                    <span class="badge bg-secondary">Cancelada</span>
+                {% else %}
+                    <span class="badge bg-danger">Completada</span>
+                {% endif %}
+            </h4>
+        </div>
+        
+        <div class="card-body">
+            <h5 class="card-title">Motivo: {{ salida.motivo }}</h5>
+            
+            <p class="card-text text-muted mb-2">
+                <small>Creada por: <i class="bi bi-person"></i> {{ salida.creador.username }}</small>
+            </p>
+
+            <h6 class="card-subtitle mb-2">Productos Incluidos:</h6>
+            <ul class="list-group list-group-flush">
+                
+                {% for mov in salida.movimientos %}
+                    {% if loop.index <= 3 %}
+                    <li class="list-group-item py-1 px-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-danger rounded-pill me-2">
+                                {{ mov.cantidad | abs }}
+                            </span>
+                            {{ mov.producto.nombre }}
+                        </div>
+                        <small class="text-muted">SKU: {{ mov.producto.codigo }}</small>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if (salida.movimientos | length) > 3 %}
+                    <li class="list-group-item py-1 px-0 text-muted">
+                        ... y {{ (salida.movimientos | length) - 3 }} producto(s) más.
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <div class="card-footer text-end">
+            <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-eye"></i> Ver Detalle
+            </a>
+            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-outline-danger" title="Imprimir PDF" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+            {% if salida.estado != 'cancelada' %}
+            <form action="{{ url_for('cancelar_salida', id=salida.id) }}" method="POST" style="display: inline;" 
+                  onsubmit="return confirm('¿Estás seguro? Esta acción cancelará la salida y DEVOLVERÁ el stock al inventario.');">
+                <button type="submit" class="btn btn-warning" title="Cancelar Salida">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="alert alert-info">
+        No se encontraron salidas para <strong>{{ meses_lista[mes_seleccionado-1][1] }} de {{ ano_seleccionado }}</strong>.
+    </div>
+    {% endfor %}
+
+{% endblock %}

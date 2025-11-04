@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ titulo }}</h2>
+        <div>
+            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-danger" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF
+            </a>
+
+            {% if orden.estado == 'borrador' %}
+                <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Editar Orden
+                </a>
+                
+                <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;" 
+                      onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden?');">
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-x-circle"></i> Cancelar Orden
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver al Listado
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center 
+                    {% if orden.estado == 'recibida' %}bg-success text-white
+                    {% elif orden.estado == 'enviada' %}bg-info text-dark
+                    {% else %}bg-light{% endif %}">
+            <div>
+                <strong>Proveedor: {{ orden.proveedor.nombre }}</strong>
+                <br>
+                <small>Creada: {{ orden.fecha_creacion.strftime('%Y-%m-%d') }}</small>
+            </div>
+            <div class="card-header ...">
+                <h4>
+                    Estado: <span class="badge 
+                                    {% if orden.estado == 'recibida' %}bg-success text-white
+                                    {% elif orden.estado == 'enviada' %}bg-info text-dark
+                                    {% elif orden.estado == 'cancelada' %}bg-secondary
+                                    {% else %}bg-warning text-dark{% endif %}">
+                        {{ orden.estado.capitalize() }}
+                    </span>
+                </h4>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Creada por:</strong>
+                    <i class="bi bi-person"></i> {{ orden.creador.username }}
+                </div>
+                {% if orden.estado == 'cancelada' and orden.cancelado_por %}
+                <div class="col-md-6">
+                    <strong>Cancelada por:</strong>
+                    <i class="bi bi-person-x"></i> {{ orden.cancelado_por.username }}
+                </div>
+                {% endif %}
+            </div>
+            <h5 class="card-title">Detalles de la Orden</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unit. (Est.)</th>
+                        <th>Subtotal (Est.)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detalle in orden.detalles %}
+                    <tr>
+                        <td>{{ detalle.producto.nombre }}</td>
+                        <td>{{ detalle.cantidad_solicitada }}</td>
+                        <td>${{ "%.2f"|format(detalle.costo_unitario_estimado) }}</td>
+                        <td>${{ "%.2f"|format(detalle.subtotal) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-group-divider">
+                        <td colspan="3" class="text-end"><strong>Total Estimado:</strong></td>
+                        <td><strong>${{ "%.2f"|format(orden.costo_total) }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer text-end">
+            {% if orden.estado == 'borrador' %}
+            <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-info">Marcar como "Enviada"</button>
+            </form>
+            {% elif orden.estado == 'enviada' %}
+            <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-success">Marcar como "Recibida" (Actualizar Stock)</button>
+            </form>
+            {% elif orden.estado == 'recibida' %}
+            <span class="text-success">Recibida el {{ orden.fecha_recepcion.strftime('%Y-%m-%d') }}</span>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

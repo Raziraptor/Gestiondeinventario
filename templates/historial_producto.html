@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de {{ producto.nombre }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2>Historial de Movimientos</h2>
+            <h4 class="text-muted">{{ producto.nombre }} (SKU: {{ producto.codigo }})</h4>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <div class="card bg-light mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Resumen de Inventario</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Stock Actual:</strong>
+                    <h3 class="text-primary">{{ producto.cantidad_stock }}</h3>
+                </div>
+                <div class="col-md-4">
+                    <strong>Stock Mínimo:</strong>
+                    <h3>{{ producto.stock_minimo }}</h3>
+                </div>
+                <div class="col-md-4">
+                    <strong>Stock Máximo:</strong>
+                    <h3>{{ producto.stock_maximo }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            Movimientos Registrados
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Cantidad</th>
+                        <th>Motivo / Referencia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mov in movimientos %}
+                    <tr>
+                        <td>{{ mov.fecha.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if mov.tipo == 'entrada' %}
+                                <span class="badge bg-success">Entrada</span>
+                            {% elif mov.tipo == 'salida' %}
+                                <span class="badge bg-danger">Salida</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ mov.tipo.capitalize() }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if mov.cantidad > 0 %}
+                                <strong class="text-success">+{{ mov.cantidad }}</strong>
+                            {% else %}
+                                <strong class="text-danger">{{ mov.cantidad }}</strong>
+                            {% endif %}
+                        </td>
+                        <td>{{ mov.motivo }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">
+                            No hay movimientos registrados para este producto.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
