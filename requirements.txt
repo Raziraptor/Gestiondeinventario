@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+qrcode[pil]
+reportlab
+openpyxl
+Flask-Login
+Flask-WTF
+email_validator
+Flask-Mail
+psycopg2-binary
