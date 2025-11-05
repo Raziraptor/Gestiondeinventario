@@ -1932,65 +1932,7 @@ def asignar_usuario(user_id):
         flash(f'Error al actualizar el usuario: {e}', 'danger')
 
     return redirect(url_for('super_admin'))
-
-# ==============================================================================
-# 9. RUTAS DE INICIALIZACIÓN (TEMPORALES - ¡BORRAR DESPUÉS!)
-# ==============================================================================
-# Esta clave debe ser larga y difícil de adivinar.
-# Úsala como: /admin/init-db?secret=tu-clave-aqui
-ADMIN_SECRET_KEY = 'Raee.285308320190101' 
-
-@app.route('/admin/init-db')
-def init_db_route():
-    """
-    Ruta secreta para crear las tablas de la BD.
-    ¡BORRAR DESPUÉS DE USAR!
-    """
-    secret = request.args.get('secret')
-    if secret != ADMIN_SECRET_KEY:
-        flash('Acceso no autorizado.', 'danger')
-        return redirect(url_for('index'))
     
-    try:
-        db.create_all()
-        print("¡Base de datos y tablas creadas exitosamente!")
-        flash('¡Base de datos y tablas creadas exitosamente!', 'success')
-    except Exception as e:
-        flash(f'Error al crear la BD: {e}', 'danger')
-        
-    return redirect(url_for('index'))
-
-@app.route('/admin/make-super-admin')
-def make_super_admin_route():
-    """
-    Ruta secreta para hacer a un usuario Super Admin.
-    Uso: /admin/make-super-admin?username=RazielAdmin&secret=l4r4z12002
-    ¡BORRAR DESPUÉS DE USAR!
-    """
-    secret = request.args.get('secret')
-    username = request.args.get('username')
-    
-    if secret != ADMIN_SECRET_KEY:
-        flash('Acceso no autorizado.', 'danger')
-        return redirect(url_for('index'))
-        
-    if not username:
-        flash('Error: Debes proveer un ?username=...', 'danger')
-        return redirect(url_for('index'))
-
-    user = User.query.filter_by(username=username).first()
-    if user:
-        user.rol = 'super_admin'
-        user.organizacion_id = None
-        db.session.commit()
-        print(f"¡Éxito! El usuario '{username}' ahora es Super Admin.")
-        flash(f"¡Éxito! El usuario '{username}' ahora es Super Admin.", 'success')
-    else:
-        print(f"Error: No se encontró al usuario '{username}'.")
-        flash(f"Error: No se encontró al usuario '{username}'.", 'danger')
-        
-    return redirect(url_for('index'))
-
 # --- Inicialización ---
 if __name__ == '__main__':
     # Crea la base de datos y las tablas si no existen
@@ -1998,3 +1940,4 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
