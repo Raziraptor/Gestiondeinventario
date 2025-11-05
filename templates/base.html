@@ -90,6 +90,30 @@
                                     </li>
                                 </ul>
                             </li>
+                            <li class="nav-item dropdown">
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            
+                            <li><a class="dropdown-item" href="#">DEBUG ROL: '{{ current_user.rol }}'</a></li>
+                            {% if current_user.rol == 'super_admin' %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('super_admin') }}">
+                                    <i class="bi bi-shield-lock"></i> Super Admin Panel
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('account') }}">
+                                    <i class="bi bi-gear"></i> Configuración de Cuenta
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                    <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
+                                </a>
+                            </li>
+                        </ul>
+                        </li>
                         {% endif %}
                         </ul>
                 {% endif %}

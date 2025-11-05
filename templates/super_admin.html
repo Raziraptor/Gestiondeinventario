@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    <p class="text-muted">Gestión de Organizaciones y Asignación de Usuarios.</p>
+    <hr>
+
+    <div class="row g-4">
+        
+        <div class="col-md-5">
+            <h3>Organizaciones</h3>
+            
+            <div class="card bg-light mb-3">
+                <div class="card-header">Crear Nueva Organización</div>
+                <div class="card-body">
+                    <form action="{{ url_for('nueva_organizacion') }}" method="POST">
+                        <label for="nombre" class="form-label">Nombre de la Organización</label>
+                        <input type="text" class="form-control mb-2" id="nombre" name="nombre" required>
+                        <button type="submit" class="btn btn-primary">Crear</button>
+                    </form>
+                </div>
+            </div>
+            
+            <ul class="list-group">
+                {% for org in organizaciones %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ org.nombre }}
+                    <span class="badge bg-primary rounded-pill">{{ org.usuarios | length }} usuario(s)</span>
+                </li>
+                {% else %}
+                <li class="list-group-item">No hay organizaciones creadas.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="col-md-7">
+            <h3>Usuarios</h3>
+            <div class="card">
+                <div class="card-body table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th>Email</th>
+                                <th>Organización</th>
+                                <th>Rol</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in usuarios %}
+                            <tr>
+                                <form action="{{ url_for('asignar_usuario', user_id=user.id) }}" method="POST">
+                                    <td class="align-middle">
+                                        <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
+                                             class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                        {{ user.username }}
+                                    </td>
+                                    <td class="align-middle">{{ user.email }}</td>
+                                    
+                                    <td class="align-middle">
+                                        <select class="form-select form-select-sm" name="organizacion_id">
+                                            <option value="0">-- Ninguna --</option>
+                                            {% for org in organizaciones %}
+                                            <option value="{{ org.id }}" 
+                                                    {% if user.organizacion_id == org.id %}selected{% endif %}>
+                                                {{ org.nombre }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    
+                                    <td class="align-middle">
+                                        <select class="form-select form-select-sm" name="rol">
+                                            <option value="user" {% if user.rol == 'user' %}selected{% endif %}>Usuario</option>
+                                            <option value="admin" {% if user.rol == 'admin' %}selected{% endif %}>Admin</option>
+                                            <option value="super_admin" {% if user.rol == 'super_admin' %}selected{% endif %}>Super Admin</option>
+                                        </select>
+                                    </td>
+                                    
+                                    <td class="align-middle">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                    </td>
+                                </form>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
