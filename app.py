@@ -721,8 +721,8 @@ def nuevo_producto():
                 codigo=request.form['codigo'],
                 categoria_id=request.form.get('categoria_id') or None,
                 cantidad_stock=int(request.form['cantidad_stock']),
-                stock_minimo=int(request.form.get('stock_minimo']),
-                stock_maximo=int(request.form.get('stock_maximo')),
+                stock_minimo=int(request.form['stock_minimo']),
+                stock_maximo=int(request.form['stock_maximo']),
                 precio_unitario=float(request.form['precio_unitario']),
                 imagen_url=imagen_filename,
                 proveedor_id=request.form.get('proveedor_id') or None,
@@ -1622,7 +1622,7 @@ def cancelar_orden(id):
     return redirect(url_for('lista_ordenes'))
 
 # =============================================
-# NUEVAS RUTAS PARA OC DE PROYECTO
+# RUTAS PARA OC DE PROYECTO
 # =============================================
 
 @app.route('/proyectos-oc')
@@ -1727,6 +1727,7 @@ def nuevo_proyecto_oc():
 @login_required
 @check_permission('perm_create_oc_proyecto')
 def generar_proyecto_oc_pdf(id):
+    """ Genera un PDF para una OC de Proyecto. """
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     
     buffer = io.BytesIO()
