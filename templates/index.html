@@ -57,9 +57,6 @@
         <!-- OCs Standard -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
         <div class="col-lg-3 col-md-4 col-sm-6">
-            <!-- ======================== -->
-            <!-- CORRECCIÓN DEL ERROR AQUÍ -->
-            <!-- ======================== -->
             <a href="{{ url_for('lista_ordenes') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
                     <i class="bi bi-receipt card-icon text-success"></i>
@@ -195,3 +192,4 @@
     {% endif %}
 
 {% endblock %}
+
