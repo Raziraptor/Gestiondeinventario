@@ -1,31 +1,14 @@
---- Núcleo de Flask y Servidor ---
-
 Flask
 gunicorn
-
---- Extensiones de Flask ---
-
 Flask-SQLAlchemy
 Flask-Login
 Flask-WTF
 Flask-Mail
-
---- Base de Datos ---
-
 psycopg2-binary
-
---- Herramientas de Formularios y Tokens ---
-
 email_validator
 itsdangerous
-
---- Utilidades (Imágenes, Comandos) ---
-
 Pillow
 qrcode[pil]
 click
-
---- Reportes (Excel y PDF) ---
-
 openpyxl
 reportlab
