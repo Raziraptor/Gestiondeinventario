@@ -9,9 +9,28 @@
             <h5 class="text-muted">Proyecto: {{ proyecto_oc.nombre_proyecto }}</h5>
             <small>Fecha: {{ proyecto_oc.fecha_creacion.strftime('%Y-%m-%d') }}</small>
         </div>
-        <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Volver al Listado
-        </a>
+        <div>
+            <!-- ======================== -->
+            <!-- BOTONES DE ACCIÓN AÑADIDOS -->
+            <!-- ======================== -->
+            <a href="{{ url_for('generar_proyecto_oc_pdf', id=proyecto_oc.id) }}" class="btn btn-danger" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF
+            </a>
+            
+            {% if proyecto_oc.estado == 'borrador' %}
+            <form action="{{ url_for('cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" style="display: inline;" 
+                  onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta OC de Proyecto?');">
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-x-circle"></i> Cancelar OC
+                </button>
+            </form>
+            {% endif %}
+            <!-- ======================== -->
+
+            <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver al Listado
+            </a>
+        </div>
     </div>
 
     <div class="card mb-3">
@@ -70,7 +89,7 @@
             </table>
         </div>
         <div class="card-footer text-end">
-            <!-- Aquí irán los botones de Editar/Cancelar/Enviar -->
+            <!-- Pie de página (si se necesitan más acciones) -->
         </div>
     </div>
 {% endblock %}
