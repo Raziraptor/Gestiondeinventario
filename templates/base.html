@@ -52,17 +52,12 @@
                         <!-- Solo se muestra si NO estamos en el index -->
                         {% if request.endpoint != 'index' %}
                             <li class="nav-item">
-                                <!-- ======================== -->
-                                <!-- CORRECCIÓN: Enlace a 'dashboard' -->
-                                <!-- ======================== -->
                                 <a class="nav-link" href="{{ url_for('dashboard') }}">
                                     <i class="bi bi-grid-fill"></i> Dashboard
                                 </a>
                             </li>
                             
-                            <!-- ======================== -->
                             <!-- Dropdown de GESTIÓN (CON PERMISOS) -->
-                            <!-- ======================== -->
                             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="dropdownGestion" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -83,9 +78,7 @@
                             </li>
                             {% endif %}
 
-                            <!-- ======================== -->
                             <!-- Dropdown de OPERACIONES (CON PERMISOS) -->
-                            <!-- ======================== -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="dropdownOperaciones" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-gear-wide-connected"></i> Operaciones
@@ -93,6 +86,9 @@
                                 <ul class="dropdown-menu" aria-labelledby="dropdownOperaciones">
                                     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
                                     <li>
+                                        <!-- ======================== -->
+                                        <!-- CORRECCIÓN 1 -->
+                                        <!-- ======================== -->
                                         <a class="dropdown-item" href="{{ url_for('lista_ordenes') }}">
                                             <i class="bi bi-receipt"></i> Órdenes de Compra
                                         </a>
@@ -100,7 +96,10 @@
                                     {% endif %}
                                     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for('proyectos_oc_lista') }}">
+                                        <!-- ======================== -->
+                                        <!-- CORRECCIÓN 2 -->
+                                        <!-- ======================== -->
+                                        <a class="dropdown-item" href="{{ url_for('lista_proyectos_oc') }}">
                                             <i class="bi bi-clipboard-data"></i> OC de Proyectos
                                         </a>
                                     </li>
@@ -148,17 +147,11 @@
                                 ¡Hola, {{ current_user.username }}!
                             </a>
                             
-                            <!-- ============================================= -->
-                            <!-- BLOQUE DE MENÚ DE USUARIO CORREGIDO -->
-                            <!-- ============================================= -->
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 
-                                <!-- (Línea de depuración eliminada) -->
-
-                                <!-- Enlace de Super Admin / Admin -->
+                                <!-- Enlace de Admin Panel (Super o Admin) -->
                                 {% if current_user.rol in ['super_admin', 'admin'] %}
                                 <li>
-                                    <!-- El 'super_admin' va a su panel, el 'admin' al suyo -->
                                     {% if current_user.rol == 'super_admin' %}
                                     <a class="dropdown-item" href="{{ url_for('super_admin') }}">
                                         <i class="bi bi-shield-lock"></i> Super Admin Panel
@@ -186,9 +179,6 @@
                                     </a>
                                 </li>
                             </ul>
-                            <!-- ============================================= -->
-                            <!-- FIN DEL BLOQUE CORREGIDO -->
-                            <!-- ============================================= -->
                         </li>
                     {% else %}
                         <!-- Si NO está logueado -->
@@ -228,6 +218,3 @@
 </body>
 
 </html>
-
-
-
