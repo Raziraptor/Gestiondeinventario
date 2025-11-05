@@ -1,16 +1,43 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard - Inventario{% endblock %}
+{% block title %}Inicio - Gestor de Inventario{% endblock %}
 
 {% block content %}
 
+    <!-- ============================================= -->
+    <!-- MENÚ PRINCIPAL (RECUADROS) -->
+    <!-- ============================================= -->
     <h2 class="mb-3">Menú Principal</h2>
     <div class="row g-3 mb-4">
+        
+        <!-- ======================== -->
+        <!-- NUEVO: Dashboard de Inventario -->
+        <!-- ======================== -->
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <a href="{{ url_for('dashboard') }}" class="dashboard-card card text-dark">
+                <div class="card-body">
+                    <i class="bi bi-grid-fill card-icon text-primary"></i>
+                    <h5 class="card-title">Dashboard</h5>
+                </div>
+            </a>
+        </div>
+        
+        <!-- ======================== -->
+        <!-- NUEVO: Agregar Producto -->
+        <!-- ======================== -->
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <a href="{{ url_for('nuevo_producto') }}" class="dashboard-card card text-dark">
+                <div class="card-body">
+                    <i class="bi bi-plus-circle card-icon text-success"></i>
+                    <h5 class="card-title">Agregar Producto</h5>
+                </div>
+            </a>
+        </div>
         
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_categorias') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
-                    <i class="bi bi-tags card-icon text-primary"></i>
+                    <i class="bi bi-tags card-icon text-secondary"></i>
                     <h5 class="card-title">Categorías</h5>
                 </div>
             </a>
@@ -52,10 +79,13 @@
             </a>
         </div>
         
-        </div>
+    </div>
     
     <hr class="mb-4">
 
+    <!-- ============================================= -->
+    <!-- SECCIÓN DE ALERTAS (La mantenemos aquí) -->
+    <!-- ============================================= -->
     {% if alertas_agrupadas %}
     <div class="alert alert-warning">
         <h4 class="alert-heading">¡Alertas de Stock!</h4>
@@ -78,6 +108,8 @@
                         {% set pending_info = pending_map.get(alerta.id) %}
                         
                         {% if pending_info %}
+                            <!-- CASO A: Ya hay una OC en 'borrador' O 'enviada' -->
+                            
                             {% if context.pending_oc_id == 0 %}
                                 {% do context.update({'pending_oc_id': pending_info.orden_id}) %}
                             {% endif %}
@@ -89,7 +121,6 @@
                             {% else %}
                                 {% set badge_class = 'bg-primary text-white' %}
                                 {% set badge_text = 'Enviada' %}
-                                
                                 {% set alert_message = 'ya fue enviada (OC #' ~ pending_info.orden_id ~ ') y está pendiente de recepción.' %}
                             {% endif %}
                             
@@ -103,6 +134,7 @@
                                 </small>
                             </li>
                         {% else %}
+                            <!-- CASO B: No hay OC, mostrar el checkbox -->
                             {% do context.update({'hay_productos': true}) %}
                             
                             <li class="list-group-item">
@@ -136,169 +168,4 @@
     </div>
     {% endif %}
 
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Inventario General</h2>
-        <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Agregar Producto
-        </a>
-    </div>
-    
-    <div class="card bg-light mb-4">
-        <div class="card-header">
-            <i class="bi bi-search"></i> Filtros y Búsqueda
-        </div>
-        <div class="card-body">
-            <div classs="row g-3">
-                <div class="col-md-12 mb-3">
-                    <label for="filtro_busqueda" class="form-label">Buscar por Nombre o SKU</label>
-                    <input type="text" class="form-control" id="filtro_busqueda" 
-                           placeholder="Escribe para buscar (ej. 'Tornillo' o 'SKU-001')...">
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-2">
-                        <label for="filtro_categoria" class="form-label">Filtrar por Categoría</label>
-                        <select class="form-select" id="filtro_categoria">
-                            <option value="0">-- Todas las Categorías --</option>
-                            {% for cat in categorias %}
-                            <option value="{{ cat.id }}">{{ cat.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-2">
-                        <label for="filtro_proveedor" class="form-label">Filtrar por Proveedor</label>
-                        <select class="form-select" id="filtro_proveedor">
-                            <option value="0">-- Todos los Proveedores --</option>
-                            {% for prov in proveedores %}
-                            <option value="{{ prov.id }}">{{ prov.nombre }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            Lista de Productos
-        </div>
-        <div class="card-body table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>Imagen</th>
-                        <th>Código (SKU)</th>
-                        <th>Nombre</th>
-                        <th>Categoría</th>
-                        <th>Proveedor</th>
-                        <th>Stock Actual</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tabla_productos_cuerpo">
-                    {% for producto in productos %}
-                    <tr class="fila-producto"
-                        data-categoria-id="{{ producto.categoria_id or '0' }}"
-                        data-proveedor-id="{{ producto.proveedor_id or '0' }}">
-                        
-                        <td class="text-center align-middle" style="width: 70px;">
-                            {% if producto.imagen_url %}
-                                <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" 
-                                     alt="{{ producto.nombre }}" 
-                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-                            {% else %}
-                                <i class="bi bi-box-seam text-muted" style="font-size: 2rem;"></i>
-                            {% endif %}
-                        </td>
-                        <td>{{ producto.codigo }}</td>
-                        <td><strong>{{ producto.nombre }}</strong></td>
-                        <td>
-                            {% if producto.categoria %}
-                                <span class="badge bg-secondary">{{ producto.categoria.nombre }}</span>
-                            {% else %}
-                                <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if producto.proveedor %}
-                                {{ producto.proveedor.nombre }}
-                            {% else %}
-                                <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td><strong>{{ producto.cantidad_stock }}</strong></td>
-                        <td>
-                            {% if producto.estado_stock == 'bajo' %}
-                                <span class="badge bg-danger">Bajo Stock</span>
-                            {% elif producto.estado_stock == 'exceso' %}
-                                <span class="badge bg-info">Exceso</span>
-                            {% else %}
-                                <span class="badge bg-success">OK</span>
-                            {% endif %}
-                        </td>
-                        <td style="width: 1%; white-space: nowrap;">
-                            <div class="btn-group btn-group-sm" role="group" aria-label="Acciones de producto">
-                                <a href="{{ url_for('editar_producto', id=producto.id) }}" class="btn btn-secondary" title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="{{ url_for('generar_etiqueta', id=producto.id) }}" class="btn btn-info" title="Imprimir Etiqueta" target="_blank">
-                                    <i class="bi bi-printer"></i>
-                                </a>
-                                <a href="{{ url_for('historial_producto', id=producto.id) }}" class="btn btn-outline-secondary" title="Ver Historial">
-                                    <i class="bi bi-clipboard-data"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="8" class="text-center">No hay productos registrados.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // ... (Tu script de filtrado en vivo de 'index.html' va aquí) ...
-            const filtroBusqueda = document.getElementById('filtro_busqueda');
-            const filtroCategoria = document.getElementById('filtro_categoria');
-            const filtroProveedor = document.getElementById('filtro_proveedor');
-            const tablaCuerpo = document.getElementById('tabla_productos_cuerpo');
-            const filas = tablaCuerpo.getElementsByClassName('fila-producto');
-
-            function filtrarTabla() {
-                const textoBusqueda = filtroBusqueda.value.toLowerCase();
-                const idCategoria = filtroCategoria.value;
-                const idProveedor = filtroProveedor.value;
-
-                for (let fila of filas) {
-                    const textoFila = fila.textContent.toLowerCase(); 
-                    const catIdFila = fila.dataset.categoriaId;
-                    const provIdFila = fila.dataset.proveedorId;
-
-                    let mostrar = true; 
-                    if (textoBusqueda && !textoFila.includes(textoBusqueda)) {
-                        mostrar = false;
-                    }
-                    if (idCategoria !== '0' && catIdFila !== idCategoria) {
-                        mostrar = false;
-                    }
-                    if (idProveedor !== '0' && provIdFila !== idProveedor) {
-                        mostrar = false;
-                    }
-                    fila.style.display = mostrar ? '' : 'none';
-                }
-            }
-
-            filtroBusqueda.addEventListener('keyup', filtrarTabla);
-            filtroCategoria.addEventListener('change', filtrarTabla);
-            filtroProveedor.addEventListener('change', filtrarTabla);
-        });
-    </script>
 {% endblock %}
