@@ -1723,6 +1723,99 @@ def nuevo_proyecto_oc():
                            productos=productos_lista,
                            proveedores=proveedores)
 
+# ========================
+# NUEVA RUTA DE EDICIÓN
+# ========================
+@app.route('/proyecto-oc/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_create_oc_proyecto')
+def editar_proyecto_oc(id):
+    """ Formulario para editar una OC de Proyecto. """
+    
+    proyecto_oc = get_item_or_404(ProyectoOC, id)
+    org_id = proyecto_oc.organizacion_id
+
+    # --- CHEQUEO DE ESTADO ---
+    if proyecto_oc.estado != 'borrador':
+        flash('Solo se pueden editar Órdenes de Proyecto en estado "Borrador".', 'warning')
+        return redirect(url_for('ver_proyecto_oc', id=id))
+
+    # --- LÓGICA POST (Guardar Cambios) ---
+    if request.method == 'POST':
+        try:
+            # 1. Actualizar el nombre del proyecto
+            proyecto_oc.nombre_proyecto = request.form.get('nombre_proyecto')
+            
+            # 2. "Nuke and Pave": Borrar detalles antiguos
+            ProyectoOCDetalle.query.filter_by(proyecto_oc_id=id).delete()
+            
+            # 3. Copiar/Pegar la lógica de 'nuevo_proyecto_oc' para crear detalles
+            tipos = request.form.getlist('tipo_item[]')
+            productos_existentes_ids = request.form.getlist('producto_id_existente[]') 
+            productos_nuevos = request.form.getlist('producto_nuevo_descripcion[]')
+            cantidades = request.form.getlist('cantidad[]')
+            costos = request.form.getlist('costo[]')
+            proveedores_sugeridos = request.form.getlist('proveedor_sugerido[]')
+
+            for i in range(len(tipos)):
+                if not cantidades[i] or not costos[i]:
+                    continue 
+
+                detalle = ProyectoOCDetalle(
+                    proyecto_oc_id=id, # <-- Usar el ID existente
+                    cantidad=int(cantidades[i]),
+                    costo_unitario=float(costos[i]),
+                    proveedor_sugerido=proveedores_sugeridos[i]
+                )
+                
+                if tipos[i] == 'existente':
+                    detalle.producto_id = int(productos_existentes_ids[i])
+                else: 
+                    detalle.descripcion_nuevo = productos_nuevos[i]
+                
+                db.session.add(detalle)
+
+            db.session.commit()
+            flash(f'OC de Proyecto #{proyecto_oc.id} actualizada.', 'success')
+            return redirect(url_for('ver_proyecto_oc', id=id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar la OC de Proyecto: {e}', 'danger')
+            return redirect(url_for('editar_proyecto_oc', id=id))
+    
+    # --- LÓGICA GET (Mostrar Formulario Relleno) ---
+    
+    # Preparamos los dropdowns (igual que en 'nuevo')
+    productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
+    productos_lista = []
+    for p in productos_query:
+        productos_lista.append({
+            'id': p.id, 'nombre': p.nombre, 'codigo': p.codigo, 
+            'precio_unitario': p.precio_unitario
+        })
+        
+    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+    
+    # Preparamos los detalles existentes para el JavaScript
+    detalles_json = []
+    for d in proyecto_oc.detalles:
+        detalles_json.append({
+            'tipo': 'existente' if d.producto_id else 'nuevo',
+            'producto_id': d.producto_id,
+            'descripcion_nuevo': d.descripcion_nuevo,
+            'cantidad': d.cantidad,
+            'costo_unitario': d.costo_unitario,
+            'proveedor_sugerido': d.proveedor_sugerido
+        })
+    
+    return render_template('proyecto_oc_form.html', 
+                           titulo=f"Editar OC de Proyecto #{proyecto_oc.id}",
+                           productos=productos_lista,
+                           proveedores=proveedores,
+                           proyecto_oc=proyecto_oc,        # <-- Pasamos la OC
+                           detalles_json=detalles_json) # <-- Pasamos los detalles
+
 @app.route('/proyecto-oc/<int:id>/pdf')
 @login_required
 @check_permission('perm_create_oc_proyecto')
@@ -2353,3 +2446,4 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
