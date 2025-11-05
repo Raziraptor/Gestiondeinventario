@@ -93,7 +93,7 @@
                                 <ul class="dropdown-menu" aria-labelledby="dropdownOperaciones">
                                     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_ordenes') }}">
+                                        <a class="dropdown-item" href="{{ url_for('ordenes') }}">
                                             <i class="bi bi-receipt"></i> Órdenes de Compra
                                         </a>
                                     </li>
@@ -228,4 +228,5 @@
 </body>
 
 </html>
+
 
