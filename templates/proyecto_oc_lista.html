@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ titulo }}</h2>
+        <a href="{{ url_for('nuevo_proyecto_oc') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Crear OC de Proyecto
+        </a>
+    </div>
+    
+    {% for poc in proyectos_oc %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center
+                    {% if poc.estado == 'borrador' %}bg-warning text-dark
+                    {% else %}bg-light{% endif %}">
+            <div>
+                <strong>Proyecto: {{ poc.nombre_proyecto }}</strong> (OC #{{ poc.id }})
+                <br>
+                <small>Fecha: {{ poc.fecha_creacion.strftime('%Y-%m-%d') }}</small>
+            </div>
+            <h4>
+                <span class="badge 
+                              {% if poc.estado == 'borrador' %}bg-warning text-dark
+                              {% else %}bg-secondary{% endif %}">
+                    {{ poc.estado.capitalize() }}
+                </span>
+            </h4>
+        </div>
+        <div class="card-body">
+            <p class="card-text text-muted mb-2">
+                <small>Creada por: <i class="bi bi-person"></i> {{ poc.creador.username }}</small>
+            </p>
+            <h6 class="card-subtitle mb-2">Items:</h6>
+            <ul class="list-group list-group-flush">
+                {% for detalle in poc.detalles %}
+                    {% if loop.index <= 3 %}
+                    <li class="list-group-item py-1 px-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-secondary rounded-pill me-2">{{ detalle.cantidad }}</span>
+                            {{ detalle.descripcion }}
+                        </div>
+                        <small class="text-muted">
+                            {{ detalle.proveedor_sugerido }} - ${{ "%.2f"|format(detalle.subtotal) }}
+                        </small>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                {% if (poc.detalles | length) > 3 %}
+                <li class="list-group-item py-1 px-0 text-muted">
+                    ... y {{ (poc.detalles | length) - 3 }} item(s) más.
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="card-footer text-end d-flex justify-content-between align-items-center">
+            <strong>Total Estimado: ${{ "%.2f"|format(poc.costo_total) }}</strong>
+            <div>
+                <a href="{{ url_for('ver_proyecto_oc', id=poc.id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-eye"></i> Ver Detalle
+                </a>
+                <!-- Aquí irán los botones de Editar/Cancelar/Enviar -->
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No hay Órdenes de Compra de Proyectos registradas.
+    </div>
+    {% endfor %}
+
+{% endblock %}
