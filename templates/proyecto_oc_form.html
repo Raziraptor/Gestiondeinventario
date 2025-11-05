@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    <hr>
+    
+    <form method="POST" action="{{ url_for('nuevo_proyecto_oc') }}">
+        
+        <!-- 1. NOMBRE DEL PROYECTO -->
+        <div class="mb-3 col-md-6">
+            <label for="nombre_proyecto" class="form-label">Nombre del Proyecto</label>
+            <input type="text" class="form-control" id="nombre_proyecto" name="nombre_proyecto" required>
+        </div>
+        
+        <hr>
+        
+        <!-- 2. LÍNEAS DE ITEMS DINÁMICAS -->
+        <h4>Items</h4>
+        <div id="lineas_items_container">
+            <!-- La primera línea se añade con JS -->
+        </div>
+        
+        <button type="button" id="btn_add_item" class="btn btn-info mt-2">
+            <i class="bi bi-plus-circle"></i> Añadir Item
+        </button>
+        
+        <!-- 3. ACCIONES DEL FORMULARIO -->
+        <hr class="my-4">
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Guardar OC de Proyecto</button>
+            <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+
+    <!-- ============================================= -->
+    <!-- PLANTILLA JS (oculta) PARA NUEVAS LÍNEAS -->
+    <!-- ============================================= -->
+    <template id="plantilla_linea">
+        <div class="row g-3 mb-3 p-2 border rounded bg-light item-linea">
+            <!-- Columna 1: Tipo y Selección -->
+            <div class="col-md-5">
+                <!-- Tipo de Item (Radio) -->
+                <div class="mb-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_existente_X" value="existente" checked>
+                        <label class="form-check-label" for="tipo_existente_X">Producto Existente</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_nuevo_X" value="nuevo">
+                        <label class="form-check-label" for="tipo_nuevo_X">Producto Nuevo</label>
+                    </div>
+                    <!-- 'name' dinámico para el radio group -->
+                    <input type="hidden" class="tipo-item-hidden" name="tipo_item[]" value="existente">
+                </div>
+                
+                <!-- Selector de Producto Existente (visible por defecto) -->
+                <div class="control-existente">
+                    <label class="form-label">Producto del Inventario</label>
+                    <select name="producto_id_existente[]" class="form-select producto-select">
+                        <option value="0">-- Selecciona un producto --</option>
+                        {% for p in productos %}
+                            <option value="{{ p.id }}" data-precio="{{ p.precio_unitario }}">
+                                {{ p.nombre }} (SKU: {{ p.codigo }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Input de Producto Nuevo (oculto por defecto) -->
+                <div class="control-nuevo" style="display: none;">
+                    <label class="form-label">Descripción del Producto Nuevo</label>
+                    <input type="text" name="producto_nuevo_descripcion[]" class="form-control" disabled>
+                    <!-- Añadimos un select vacío para mantener el orden de los arrays en el form -->
+                    <select name="producto_id_existente[]" class="form-select" style="display: none;" disabled>
+                        <option value="0"></option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Columna 2: Proveedor (con Datalist) -->
+            <div class="col-md-3">
+                <label class="form-label">Proveedor (Existente o Nuevo)</label>
+                <input class="form-control" list="datalistProveedores" name="proveedor_sugerido[]" placeholder="Escribe o selecciona...">
+            </div>
+            
+            <!-- Columna 3: Cantidad y Costo -->
+            <div class="col-md-4">
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" name="cantidad[]" class="form-control" value="1" min="1" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Costo Unitario</label>
+                        <input type="number" name="costo[]" class="form-control costo-input" value="0.00" step="0.01" min="0" required>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botón Eliminar -->
+            <div class="col-12 text-end">
+                <button type="button" class="btn btn-sm btn-danger" onclick="eliminarLinea(this)">
+                    <i class="bi bi-trash"></i> Eliminar Línea
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- DATALIST (oculto) para Proveedores -->
+    <datalist id="datalistProveedores">
+        {% for prov in proveedores %}
+            <option value="{{ prov.nombre }}">
+        {% endfor %}
+    </datalist>
+
+    <!-- ============================================= -->
+    <!-- JAVASCRIPT PARA EL FORMULARIO DINÁMICO -->
+    <!-- ============================================= -->
+    <script>
+        // Contador global para asegurar IDs/Names únicos
+        let lineaCounter = 0;
+
+        // Función global para eliminar línea
+        function eliminarLinea(boton) {
+            boton.closest('.item-linea').remove();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const contenedor = document.getElementById('lineas_items_container');
+            const plantilla = document.getElementById('plantilla_linea');
+            
+            function anadirNuevaLinea() {
+                lineaCounter++;
+                const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
+
+                // --- 1. Actualizar IDs y 'name' de radios para que sean únicos ---
+                nuevaLinea.querySelector('#tipo_existente_X').id = `tipo_existente_${lineaCounter}`;
+                nuevaLinea.querySelector('label[for="tipo_existente_X"]').htmlFor = `tipo_existente_${lineaCounter}`;
+                nuevaLinea.querySelector('#tipo_nuevo_X').id = `tipo_nuevo_${lineaCounter}`;
+                nuevaLinea.querySelector('label[for="tipo_nuevo_X"]').htmlFor = `tipo_nuevo_${lineaCounter}`;
+                
+                const radioName = `tipo_item_group_${lineaCounter}`;
+                nuevaLinea.querySelectorAll('.tipo-item').forEach(radio => {
+                    radio.name = radioName;
+                });
+                
+                // --- 2. Referencias a los controles ---
+                const radios = nuevaLinea.querySelectorAll('.tipo-item');
+                const tipoHidden = nuevaLinea.querySelector('.tipo-item-hidden');
+                const divExistente = nuevaLinea.querySelector('.control-existente');
+                const divNuevo = nuevaLinea.querySelector('.control-nuevo');
+                const selectExistente = divExistente.querySelector('select');
+                const inputNuevo = divNuevo.querySelector('input');
+                const selectPlaceholder = divNuevo.querySelector('select'); // El select vacío
+                const inputCosto = nuevaLinea.querySelector('.costo-input');
+
+                // --- 3. Lógica de cambio de Tipo (Existente vs Nuevo) ---
+                radios.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        tipoHidden.value = this.value; // Actualiza el 'name' principal
+                        if (this.value === 'existente') {
+                            // Mostrar controles de 'Existente'
+                            divExistente.style.display = 'block';
+                            selectExistente.disabled = false;
+                            
+                            // Ocultar controles de 'Nuevo'
+                            divNuevo.style.display = 'none';
+                            inputNuevo.disabled = true;
+                            selectPlaceholder.disabled = true;
+
+                            // Auto-rellenar precio
+                            const precio = selectExistente.options[selectExistente.selectedIndex].dataset.precio || 0;
+                            inputCosto.value = parseFloat(precio).toFixed(2);
+                            inputCosto.readOnly = true;
+
+                        } else if (this.value === 'nuevo') {
+                            // Ocultar controles de 'Existente'
+                            divExistente.style.display = 'none';
+                            selectExistente.disabled = true;
+                            
+                            // Mostrar controles de 'Nuevo'
+                            divNuevo.style.display = 'block';
+                            inputNuevo.disabled = false;
+                            selectPlaceholder.disabled = false; // Habilitamos el placeholder vacío
+
+                            // Limpiar y habilitar precio
+                            inputCosto.value = '0.00';
+                            inputCosto.readOnly = false;
+                        }
+                    });
+                });
+                
+                // --- 4. Lógica de auto-rellenar costo al cambiar producto ---
+                selectExistente.addEventListener('change', function() {
+                    const precio = this.options[this.selectedIndex].dataset.precio || 0;
+                    inputCosto.value = parseFloat(precio).toFixed(2);
+                    inputCosto.readOnly = true;
+                });
+
+                // Añadimos la nueva línea al contenedor
+                contenedor.appendChild(nuevaLinea);
+            }
+
+            // Asignar la función al botón
+            document.getElementById('btn_add_item').addEventListener('click', anadirNuevaLinea);
+            
+            // Cargar la primera línea automáticamente
+            anadirNuevaLinea();
+        });
+    </script>
+{% endblock %}
