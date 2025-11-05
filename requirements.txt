@@ -7,4 +7,3 @@ Flask-Login
 Flask-WTF
 email_validator
 Flask-Mail
-psycopg2-binary
