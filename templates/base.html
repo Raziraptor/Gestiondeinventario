@@ -28,6 +28,10 @@
             font-size: 3rem; /* Icono grande */
             margin-bottom: 0.5rem;
         }
+        /* Color nuevo para OC Proyecto */
+        .card-icon.text-purple {
+            color: #6f42c1 !important;
+        }
     </style>
 </head>
 <body>
@@ -49,12 +53,17 @@
                         {% if request.endpoint != 'index' %}
                             <li class="nav-item">
                                 <!-- ======================== -->
-                                <!-- CORRECCIÓN 1: Enlace a 'dashboard' -->
+                                <!-- CORRECCIÓN: Enlace a 'dashboard' -->
                                 <!-- ======================== -->
                                 <a class="nav-link" href="{{ url_for('dashboard') }}">
                                     <i class="bi bi-grid-fill"></i> Dashboard
                                 </a>
                             </li>
+                            
+                            <!-- ======================== -->
+                            <!-- Dropdown de GESTIÓN (CON PERMISOS) -->
+                            <!-- ======================== -->
+                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="dropdownGestion" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-folder2-open"></i> Gestión
@@ -72,42 +81,57 @@
                                     </li>
                                 </ul>
                             </li>
+                            {% endif %}
+
+                            <!-- ======================== -->
+                            <!-- Dropdown de OPERACIONES (CON PERMISOS) -->
+                            <!-- ======================== -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="dropdownOperaciones" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-gear-wide-connected"></i> Operaciones
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownOperaciones">
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('lista_ordenes') }}">
                                             <i class="bi bi-receipt"></i> Órdenes de Compra
                                         </a>
                                     </li>
+                                    {% endif %}
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('lista_proyectos_oc') }}">
                                             <i class="bi bi-clipboard-data"></i> OC de Proyectos
                                         </a>
                                     </li>
-                                    <li>
+                                    {% endif %}
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('historial_salidas') }}">
                                             <i class="bi bi-box-arrow-right"></i> Historial de Salidas
                                         </a>
                                     </li>
+                                    {% endif %}
+                                    
+                                    <!-- Divisor lógico -->
+                                    {% if (current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas) and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos) %}
                                     <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('lista_gastos') }}">
                                             <i class="bi bi-cash-coin"></i> Control de Gastos
                                         </a>
                                     </li>
+                                    {% endif %}
                                 </ul>
                             </li>
                         {% endif %}
                     </ul>
                 {% endif %}
 
-                <!-- ======================== -->
-                <!-- CORRECCIÓN 2: Menú de Usuario (movido al lugar correcto) -->
-                <!-- ======================== -->
+                <!-- 2. MENÚ DE LA DERECHA (USUARIO) -->
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     {% if current_user.is_authenticated %}
                         <!-- Si está logueado -->
@@ -123,17 +147,27 @@
                                 
                                 ¡Hola, {{ current_user.username }}!
                             </a>
+                            
+                            <!-- ============================================= -->
+                            <!-- BLOQUE DE MENÚ DE USUARIO CORREGIDO -->
+                            <!-- ============================================= -->
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 
-                                <!-- (Tu línea de depuración temporal si aún la necesitas) -->
-                                <!-- <li><a class="dropdown-item" href="#">DEBUG ROL: '{{ current_user.rol }}'</a></li> -->
+                                <!-- (Línea de depuración eliminada) -->
 
-                                <!-- Enlace de Super Admin -->
-                                {% if current_user.rol == 'super_admin' %}
+                                <!-- Enlace de Super Admin / Admin -->
+                                {% if current_user.rol in ['super_admin', 'admin'] %}
                                 <li>
+                                    <!-- El 'super_admin' va a su panel, el 'admin' al suyo -->
+                                    {% if current_user.rol == 'super_admin' %}
                                     <a class="dropdown-item" href="{{ url_for('super_admin') }}">
                                         <i class="bi bi-shield-lock"></i> Super Admin Panel
                                     </a>
+                                    {% else %}
+                                    <a class="dropdown-item" href="{{ url_for('admin_panel') }}">
+                                        <i class="bi bi-people-fill"></i> Panel de Admin
+                                    </a>
+                                    {% endif %}
                                 </li>
                                 {% endif %}
                                 
@@ -152,6 +186,9 @@
                                     </a>
                                 </li>
                             </ul>
+                            <!-- ============================================= -->
+                            <!-- FIN DEL BLOQUE CORREGIDO -->
+                            <!-- ============================================= -->
                         </li>
                     {% else %}
                         <!-- Si NO está logueado -->
@@ -189,5 +226,5 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
 
+</html>
