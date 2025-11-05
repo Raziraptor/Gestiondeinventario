@@ -51,31 +51,27 @@
                         <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_nuevo_X" value="nuevo">
                         <label class="form-check-label" for="tipo_nuevo_X">Producto Nuevo</label>
                     </div>
-                    <!-- 'name' dinámico para el radio group -->
                     <input type="hidden" class="tipo-item-hidden" name="tipo_item[]" value="existente">
                 </div>
                 
-                <!-- Selector de Producto Existente (visible por defecto) -->
+                <!-- ======================== -->
+                <!-- CAMBIO A INPUT CON DATALIST -->
+                <!-- ======================== -->
                 <div class="control-existente">
                     <label class="form-label">Producto del Inventario</label>
-                    <select name="producto_id_existente[]" class="form-select producto-select">
-                        <option value="0">-- Selecciona un producto --</option>
-                        {% for p in productos %}
-                            <option value="{{ p.id }}" data-precio="{{ p.precio_unitario }}">
-                                {{ p.nombre }} (SKU: {{ p.codigo }})
-                            </option>
-                        {% endfor %}
-                    </select>
+                    <!-- 1. El Input para buscar -->
+                    <input class="form-control producto-search" list="datalistProductos" name="producto_nombre_existente[]" placeholder="Escribe para buscar..." autocomplete="off" required>
+                    <!-- 2. El Input oculto para enviar el ID -->
+                    <input type="hidden" class="producto-id-hidden" name="producto_id_existente[]" value="0">
                 </div>
+                <!-- ======================== -->
                 
                 <!-- Input de Producto Nuevo (oculto por defecto) -->
                 <div class="control-nuevo" style="display: none;">
                     <label class="form-label">Descripción del Producto Nuevo</label>
                     <input type="text" name="producto_nuevo_descripcion[]" class="form-control" disabled>
-                    <!-- Añadimos un select vacío para mantener el orden de los arrays en el form -->
-                    <select name="producto_id_existente[]" class="form-select" style="display: none;" disabled>
-                        <option value="0"></option>
-                    </select>
+                    <!-- 3. Un input oculto (deshabilitado) para mantener el array del form alineado -->
+                    <input type="hidden" name="producto_id_existente[]" value="0" disabled>
                 </div>
             </div>
             
@@ -108,19 +104,32 @@
         </div>
     </template>
 
-    <!-- DATALIST (oculto) para Proveedores -->
+    <!-- DATALIST (global) para Proveedores -->
     <datalist id="datalistProveedores">
         {% for prov in proveedores %}
             <option value="{{ prov.nombre }}">
         {% endfor %}
     </datalist>
+    
+    <!-- DATALIST (global) para Productos -->
+    <datalist id="datalistProductos">
+        {% for p in productos %}
+            <option value="{{ p.nombre }} (SKU: {{ p.codigo }})">
+        {% endfor %}
+    </datalist>
 
     <!-- ============================================= -->
-    <!-- JAVASCRIPT PARA EL FORMULARIO DINÁMICO -->
+    <!-- JAVASCRIPT MODIFICADO PARA BÚSQUEDA -->
     <!-- ============================================= -->
     <script>
         // Contador global para asegurar IDs/Names únicos
         let lineaCounter = 0;
+        
+        // Ponemos los productos en un mapa de JS para búsqueda rápida
+        const productosMap = new Map();
+        {% for p in productos %}
+            productosMap.set("{{ p.nombre }} (SKU: {{ p.codigo }})", { id: {{ p.id }}, precio: {{ p.precio_unitario }} });
+        {% endfor %}
 
         // Función global para eliminar línea
         function eliminarLinea(boton) {
@@ -135,79 +144,91 @@
                 lineaCounter++;
                 const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
 
-                // --- 1. Actualizar IDs y 'name' de radios para que sean únicos ---
+                // --- 1. Actualizar IDs y 'name' de radios ---
                 nuevaLinea.querySelector('#tipo_existente_X').id = `tipo_existente_${lineaCounter}`;
                 nuevaLinea.querySelector('label[for="tipo_existente_X"]').htmlFor = `tipo_existente_${lineaCounter}`;
                 nuevaLinea.querySelector('#tipo_nuevo_X').id = `tipo_nuevo_${lineaCounter}`;
                 nuevaLinea.querySelector('label[for="tipo_nuevo_X"]').htmlFor = `tipo_nuevo_${lineaCounter}`;
                 
                 const radioName = `tipo_item_group_${lineaCounter}`;
-                nuevaLinea.querySelectorAll('.tipo-item').forEach(radio => {
-                    radio.name = radioName;
-                });
+                nuevaLinea.querySelectorAll('.tipo-item').forEach(radio => radio.name = radioName);
                 
                 // --- 2. Referencias a los controles ---
                 const radios = nuevaLinea.querySelectorAll('.tipo-item');
                 const tipoHidden = nuevaLinea.querySelector('.tipo-item-hidden');
                 const divExistente = nuevaLinea.querySelector('.control-existente');
                 const divNuevo = nuevaLinea.querySelector('.control-nuevo');
-                const selectExistente = divExistente.querySelector('select');
+                
+                const inputExistente = divExistente.querySelector('.producto-search');
+                const inputExistenteId = divExistente.querySelector('.producto-id-hidden');
+                
                 const inputNuevo = divNuevo.querySelector('input');
-                const selectPlaceholder = divNuevo.querySelector('select'); // El select vacío
+                const inputNuevoId = divNuevo.querySelector('input[type="hidden"]'); // El input oculto deshabilitado
+                
                 const inputCosto = nuevaLinea.querySelector('.costo-input');
 
                 // --- 3. Lógica de cambio de Tipo (Existente vs Nuevo) ---
                 radios.forEach(radio => {
                     radio.addEventListener('change', function() {
-                        tipoHidden.value = this.value; // Actualiza el 'name' principal
+                        tipoHidden.value = this.value;
                         if (this.value === 'existente') {
-                            // Mostrar controles de 'Existente'
                             divExistente.style.display = 'block';
-                            selectExistente.disabled = false;
+                            inputExistente.disabled = false;
+                            inputExistenteId.disabled = false;
                             
-                            // Ocultar controles de 'Nuevo'
                             divNuevo.style.display = 'none';
                             inputNuevo.disabled = true;
-                            selectPlaceholder.disabled = true;
+                            inputNuevoId.disabled = true;
 
-                            // Auto-rellenar precio
-                            const precio = selectExistente.options[selectExistente.selectedIndex].dataset.precio || 0;
-                            inputCosto.value = parseFloat(precio).toFixed(2);
-                            inputCosto.readOnly = true;
-
-                        } else if (this.value === 'nuevo') {
-                            // Ocultar controles de 'Existente'
-                            divExistente.style.display = 'none';
-                            selectExistente.disabled = true;
+                            // Auto-rellenar precio si ya hay algo
+                            buscarProducto(inputExistente.value);
                             
-                            // Mostrar controles de 'Nuevo'
+                        } else if (this.value === 'nuevo') {
+                            divExistente.style.display = 'none';
+                            inputExistente.disabled = true;
+                            inputExistenteId.disabled = true;
+                            
                             divNuevo.style.display = 'block';
                             inputNuevo.disabled = false;
-                            selectPlaceholder.disabled = false; // Habilitamos el placeholder vacío
+                            inputNuevoId.disabled = false;
 
-                            // Limpiar y habilitar precio
                             inputCosto.value = '0.00';
                             inputCosto.readOnly = false;
+                            inputExistenteId.value = '0';
                         }
                     });
                 });
                 
-                // --- 4. Lógica de auto-rellenar costo al cambiar producto ---
-                selectExistente.addEventListener('change', function() {
-                    const precio = this.options[this.selectedIndex].dataset.precio || 0;
-                    inputCosto.value = parseFloat(precio).toFixed(2);
-                    inputCosto.readOnly = true;
+                // --- 4. Lógica de búsqueda y auto-rellenado ---
+                function buscarProducto(valor) {
+                    const producto = productosMap.get(valor);
+                    if (producto) {
+                        // Encontrado: Rellenar ID y Costo
+                        inputExistenteId.value = producto.id;
+                        inputCosto.value = parseFloat(producto.precio).toFixed(2);
+                        inputCosto.readOnly = true;
+                    } else {
+                        // No encontrado: Limpiar ID (el costo se queda editable)
+                        inputExistenteId.value = '0';
+                        // (Opcional: puedes forzar el costo a 0 si quieres)
+                        // inputCosto.value = '0.00'; 
+                        inputCosto.readOnly = false;
+                    }
+                }
+                
+                // Usamos 'input' para que se active al escribir O al seleccionar del datalist
+                inputExistente.addEventListener('input', function() {
+                    buscarProducto(this.value);
                 });
+                
+                // Llamada inicial para auto-rellenar el costo (si el producto '0' tiene precio)
+                buscarProducto(inputExistente.value);
 
-                // Añadimos la nueva línea al contenedor
                 contenedor.appendChild(nuevaLinea);
             }
 
-            // Asignar la función al botón
             document.getElementById('btn_add_item').addEventListener('click', anadirNuevaLinea);
-            
-            // Cargar la primera línea automáticamente
-            anadirNuevaLinea();
+            anadirNuevaLinea(); // Cargar la primera línea automáticamente
         });
     </script>
 {% endblock %}
