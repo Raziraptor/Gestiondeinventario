@@ -529,6 +529,79 @@ def index():
                            proveedores=proveedores,
                            pending_map=pending_map)
 
+@app.route('/dashboard')
+@login_required
+@check_org_permission
+def dashboard():
+    """ 
+    Página del Dashboard de Inventario (Filtros y Tabla).
+    Reutiliza la misma lógica que el index.
+    """
+    
+    # --- MULTIUSUARIO: Lógica de Filtro Base ---
+    if current_user.rol == 'super_admin':
+        productos = Producto.query.all()
+        categorias = Categoria.query.all()
+        proveedores = Proveedor.query.all()
+        query_pendientes = db.session.query(
+            OrdenCompraDetalle.producto_id, 
+            OrdenCompra.id, 
+            User.username,
+            OrdenCompra.estado
+        ).join(
+            OrdenCompra, OrdenCompraDetalle.orden_id == OrdenCompra.id
+        ).join(
+            User, OrdenCompra.creador_id == User.id
+        ).filter(
+            OrdenCompra.estado.in_(['borrador', 'enviada'])
+        )
+    else:
+        org_id = current_user.organizacion_id
+        productos = Producto.query.filter_by(organizacion_id=org_id).all()
+        categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
+        proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
+        query_pendientes = db.session.query(
+            OrdenCompraDetalle.producto_id, 
+            OrdenCompra.id, 
+            User.username,
+            OrdenCompra.estado
+        ).join(
+            OrdenCompra, OrdenCompraDetalle.orden_id == OrdenCompra.id
+        ).join(
+            User, OrdenCompra.creador_id == User.id
+        ).filter(
+            OrdenCompra.estado.in_(['borrador', 'enviada']),
+            OrdenCompra.organizacion_id == org_id
+        )
+    # --- Fin Lógica de Filtro Base ---
+
+    alertas_crudas = [p for p in productos if p.estado_stock == 'bajo']
+    alertas_agrupadas = defaultdict(list)
+    proveedor_desconocido = Proveedor(id=0, nombre="Proveedor no asignado")
+
+    for alerta in alertas_crudas:
+        if alerta.proveedor:
+            alertas_agrupadas[alerta.proveedor.nombre].append(alerta)
+        else:
+            alertas_agrupadas[proveedor_desconocido.nombre].append(alerta)
+            
+    ordenes_pendientes = query_pendientes.all()
+    pending_map = {} 
+    for prod_id, orden_id, username, estado in ordenes_pendientes:
+        pending_map[prod_id] = {
+            'orden_id': orden_id, 
+            'username': username,
+            'estado': estado
+        }
+
+    # --- CAMBIO CLAVE: Renderiza el nuevo template 'dashboard.html' ---
+    return render_template('dashboard.html', 
+                           productos=productos, 
+                           alertas_agrupadas=alertas_agrupadas,
+                           categorias=categorias,
+                           proveedores=proveedores,
+                           pending_map=pending_map)
+
 # --- Rutas de Productos ---
 
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
@@ -1940,4 +2013,5 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
