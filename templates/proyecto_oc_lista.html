@@ -5,9 +5,6 @@
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>{{ titulo }}</h2>
-        <!-- ======================== -->
-        <!-- AQUÍ ESTÁ LA CORRECCIÓN -->
-        <!-- ======================== -->
         <a href="{{ url_for('nuevo_proyecto_oc') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> Crear OC de Proyecto
         </a>
@@ -26,7 +23,8 @@
             <h4>
                 <span class="badge 
                               {% if poc.estado == 'borrador' %}bg-warning text-dark
-                              {% else %}bg-secondary{% endif %}">
+                              {% elif poc.estado == 'cancelada' %}bg-secondary
+                              {% else %}bg-success text-white{% endif %}">
                     {{ poc.estado.capitalize() }}
                 </span>
             </h4>
@@ -59,12 +57,31 @@
         </div>
         <div class="card-footer text-end d-flex justify-content-between align-items-center">
             <strong>Total Estimado: ${{ "%.2f"|format(poc.costo_total) }}</strong>
-            <div>
-                <a href="{{ url_for('ver_proyecto_oc', id=poc.id) }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-eye"></i> Ver Detalle
+            
+            <!-- ======================== -->
+            <!-- BLOQUE DE BOTONES MODIFICADO -->
+            <!-- ======================== -->
+            <div class="btn-group btn-group-sm" role="group">
+                <a href="{{ url_for('ver_proyecto_oc', id=poc.id) }}" class="btn btn-outline-secondary" title="Ver Detalle">
+                    <i class="bi bi-eye"></i>
                 </a>
-                <!-- Aquí irán los botones de Editar/Cancelar/Enviar -->
+                
+                <!-- NUEVO BOTÓN PDF AÑADIDO -->
+                <a href="{{ url_for('generar_proyecto_oc_pdf', id=poc.id) }}" class="btn btn-outline-danger" title="Imprimir PDF" target="_blank">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+                
+                {% if poc.estado == 'borrador' %}
+                <form action="{{ url_for('cancelar_proyecto_oc', id=poc.id) }}" method="POST" style="display: inline;" 
+                      onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta OC de Proyecto?');">
+                    <button type="submit" class="btn btn-warning" title="Cancelar OC">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </form>
+                {% endif %}
             </div>
+            <!-- ======================== -->
+
         </div>
     </div>
     {% else %}
