@@ -5,14 +5,13 @@
 {% block content %}
 
     <!-- ============================================= -->
-    <!-- MENÚ PRINCIPAL (RECUADROS) -->
+    <!-- MENÚ PRINCIPAL (RECUADROS CON PERMISOS) -->
     <!-- ============================================= -->
     <h2 class="mb-3">Menú Principal</h2>
     <div class="row g-3 mb-4">
         
-        <!-- ======================== -->
-        <!-- NUEVO: Dashboard de Inventario -->
-        <!-- ======================== -->
+        <!-- Dashboard -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('dashboard') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
@@ -21,10 +20,10 @@
                 </div>
             </a>
         </div>
+        {% endif %}
         
-        <!-- ======================== -->
-        <!-- NUEVO: Agregar Producto -->
-        <!-- ======================== -->
+        <!-- Agregar Producto -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('nuevo_producto') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
@@ -33,7 +32,10 @@
                 </div>
             </a>
         </div>
+        {% endif %}
         
+        <!-- Categorías y Proveedores (Gestión) -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_categorias') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
@@ -42,7 +44,6 @@
                 </div>
             </a>
         </div>
-        
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_proveedores') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
@@ -51,16 +52,37 @@
                 </div>
             </a>
         </div>
+        {% endif %}
         
+        <!-- OCs Standard -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
         <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('ordenes') }}" class="dashboard-card card text-dark">
+            <!-- ======================== -->
+            <!-- CORRECCIÓN DEL ERROR AQUÍ -->
+            <!-- ======================== -->
+            <a href="{{ url_for('lista_ordenes') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
                     <i class="bi bi-receipt card-icon text-success"></i>
                     <h5 class="card-title">Órdenes de Compra</h5>
                 </div>
             </a>
         </div>
+        {% endif %}
 
+        <!-- OCs Proyecto -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <a href="{{ url_for('lista_proyectos_oc') }}" class="dashboard-card card text-dark">
+                <div class="card-body">
+                    <i class="bi bi-clipboard-data card-icon text-purple"></i>
+                    <h5 class="card-title">OC de Proyectos</h5>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Salidas -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('historial_salidas') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
@@ -69,7 +91,10 @@
                 </div>
             </a>
         </div>
+        {% endif %}
 
+        <!-- Gastos -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_gastos') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
@@ -78,13 +103,14 @@
                 </div>
             </a>
         </div>
+        {% endif %}
         
     </div>
     
     <hr class="mb-4">
 
     <!-- ============================================= -->
-    <!-- SECCIÓN DE ALERTAS (La mantenemos aquí) -->
+    <!-- SECCIÓN DE ALERTAS (sin cambios) -->
     <!-- ============================================= -->
     {% if alertas_agrupadas %}
     <div class="alert alert-warning">
@@ -169,4 +195,3 @@
     {% endif %}
 
 {% endblock %}
-
