@@ -53,6 +53,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
 # ==============================================================================
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
@@ -93,6 +94,7 @@ s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 # ==============================================================================
 # 3. COMANDOS CLI (Para Despliegue)
 # ==============================================================================
+
 @app.cli.command("create-db")
 @with_appcontext
 def create_db_command():
@@ -153,14 +155,9 @@ class User(db.Model, UserMixin):
     # Un 'admin' o 'super_admin' ignora estos permisos (puede hacerlo todo).
     # Un 'user' es controlado por estas banderas.
     
-    # Permiso para ver el inventario y módulos de gestión
     perm_view_dashboard = db.Column(db.Boolean, nullable=False, default=False)
     perm_view_management = db.Column(db.Boolean, nullable=False, default=False) # Ver Cat/Prov
-    
-    # Permiso para crear/editar productos, categorías, proveedores
-    perm_edit_management = db.Column(db.Boolean, nullable=False, default=False)
-    
-    # Permisos de Operaciones
+    perm_edit_management = db.Column(db.Boolean, nullable=False, default=False) # Editar Cat/Prov/Prod
     perm_create_oc_standard = db.Column(db.Boolean, nullable=False, default=False)
     perm_create_oc_proyecto = db.Column(db.Boolean, nullable=False, default=False)
     perm_do_salidas = db.Column(db.Boolean, nullable=False, default=False)
@@ -175,7 +172,6 @@ class User(db.Model, UserMixin):
     
     # --- AÑADIDO: Relación con Proyectos OC ---
     proyectos_oc_creados = db.relationship('ProyectoOC', foreign_keys='ProyectoOC.creador_id', backref='creador', lazy=True)
-
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -230,10 +226,9 @@ class OrdenCompra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.now)
     fecha_recepcion = db.Column(db.DateTime, nullable=True)
-    estado = db.Column(db.String(20), nullable=False, default='borrador') # borrador, enviada, recibida, cancelada
+    estado = db.Column(db.String(20), nullable=False, default='borrador')
     
     proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedor.id'), nullable=False)
-    proveedor = db.relationship('Proveedor', backref='ordenes_compra', lazy=True)
     
     detalles = db.relationship('OrdenCompraDetalle', backref='orden', lazy=True, cascade="all, delete-orphan")
     
@@ -276,12 +271,12 @@ class Salida(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
     motivo = db.Column(db.String(255), nullable=True)
-    estado = db.Column(db.String(20), nullable=False, default='completada') # completada, cancelada
+    estado = db.Column(db.String(20), nullable=False, default='completada')
     
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)    
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
-
+    
     movimientos = db.relationship('Movimiento', backref='salida', lazy=True, cascade="all, delete-orphan")
 
 class Movimiento(db.Model):
@@ -307,7 +302,7 @@ class ProyectoOC(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_proyecto = db.Column(db.String(255), nullable=False)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    estado = db.Column(db.String(20), nullable=False, default='borrador') # borrador, enviado, completado
+    estado = db.Column(db.String(20), nullable=False, default='borrador')
     
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
@@ -338,6 +333,7 @@ class ProyectoOCDetalle(db.Model):
         
     @property
     def descripcion(self):
+        """ Devuelve la descripción del producto, sea nuevo o existente. """
         if self.producto:
             return self.producto.nombre
         else:
@@ -346,6 +342,7 @@ class ProyectoOCDetalle(db.Model):
 # ==============================================================================
 # 5. CARGADOR DE USUARIO (FLASK-LOGIN)
 # ==============================================================================
+
 @login_manager.user_loader
 def load_user(user_id):
     """Callback para recargar el objeto User desde el ID de la sesión."""
@@ -630,7 +627,7 @@ def index():
 @app.route('/dashboard')
 @login_required
 @check_org_permission
-@check_permission('perm_view_dashboard') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_dashboard')
 def dashboard():
     """ 
     Página del Dashboard de Inventario (Filtros y Tabla).
@@ -706,7 +703,7 @@ def dashboard():
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
-@check_permission('perm_edit_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_edit_management')
 def nuevo_producto():
     """ Formulario para crear un nuevo producto (Multiusuario). """
     org_id = current_user.organizacion_id
@@ -773,7 +770,7 @@ def nuevo_producto():
 
 @app.route('/producto/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-@check_permission('perm_edit_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_edit_management')
 def editar_producto(id):
     """ Edita un producto (Multiusuario). """
     producto = get_item_or_404(Producto, id)
@@ -822,7 +819,7 @@ def editar_producto(id):
 
 @app.route('/producto/<int:id>/etiqueta')
 @login_required
-@check_permission('perm_view_dashboard') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_dashboard')
 def generar_etiqueta(id):
     """ Genera una etiqueta PDF (Multiusuario). """
     producto = get_item_or_404(Producto, id)
@@ -880,7 +877,7 @@ def generar_etiqueta(id):
 
 @app.route('/producto/<int:id>/historial')
 @login_required
-@check_permission('perm_view_dashboard') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_dashboard')
 def historial_producto(id):
     """ Muestra el Kardex (Multiusuario). """
     producto = get_item_or_404(Producto, id)
@@ -895,7 +892,7 @@ def historial_producto(id):
 @app.route('/categorias')
 @login_required
 @check_org_permission
-@check_permission('perm_view_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_management')
 def lista_categorias():
     """ Muestra la lista de categorías (Multiusuario). """
     if current_user.rol == 'super_admin':
@@ -907,7 +904,7 @@ def lista_categorias():
 @app.route('/categoria/nueva', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
-@check_permission('perm_edit_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_edit_management')
 def nueva_categoria():
     """ Formulario para crear una nueva categoría (Multiusuario). """
     if request.method == 'POST':
@@ -929,7 +926,7 @@ def nueva_categoria():
 
 @app.route('/categoria/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
-@check_permission('perm_edit_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_edit_management')
 def editar_categoria(id):
     """ Edita una categoría (Multiusuario). """
     categoria = get_item_or_404(Categoria, id)
@@ -951,7 +948,7 @@ def editar_categoria(id):
 
 @app.route('/categoria/eliminar/<int:id>', methods=['POST'])
 @login_required
-@check_permission('perm_edit_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_edit_management')
 def eliminar_categoria(id):
     """ Elimina una categoría (Multiusuario). """
     categoria_a_eliminar = get_item_or_404(Categoria, id)
@@ -979,7 +976,7 @@ def eliminar_categoria(id):
 @app.route('/proveedores')
 @login_required
 @check_org_permission
-@check_permission('perm_view_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_management')
 def lista_proveedores():
     """ Muestra la lista de proveedores (Multiusuario). """
     if current_user.rol == 'super_admin':
@@ -991,7 +988,7 @@ def lista_proveedores():
 @app.route('/proveedor/nuevo', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
-@check_permission('perm_edit_management') # <-- PERMISO AÑADIDO
+@check_permission('perm_edit_management')
 def nuevo_proveedor():
     """ Crea un nuevo proveedor (Multiusuario). """
     if request.method == 'POST':
@@ -1016,7 +1013,7 @@ def nuevo_proveedor():
 @app.route('/salidas')
 @login_required
 @check_org_permission
-@check_permission('perm_do_salidas') # <-- PERMISO AÑADIDO
+@check_permission('perm_do_salidas')
 def historial_salidas():
     """ Muestra el historial de Salidas (Multiusuario). """
     mes = request.args.get('mes', type=int)
@@ -1049,16 +1046,252 @@ def historial_salidas():
 
 @app.route('/salida/<int:id>')
 @login_required
-@check_permission('perm_do_salidas') # <-- PERMISO AÑADIDO
+@check_permission('perm_do_salidas')
 def ver_salida(id):
     """ Muestra el detalle de una Salida (Multiusuario). """
     salida = get_item_or_404(Salida, id)
     return render_template('salida_detalle.html', salida=salida)
 
+# --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
+
+@app.route('/ordenes')
+@login_required
+@check_org_permission
+@check_permission('perm_create_oc_standard')
+def lista_ordenes():
+    """ Muestra la lista de Órdenes de Compra (Multiusuario). """
+    mes = request.args.get('mes', type=int)
+    ano = request.args.get('ano', type=int)
+    prov_id = request.args.get('proveedor_id', type=int)
+    
+    ahora = datetime.now()
+    if not mes: mes = ahora.month
+    if not ano: ano = ahora.year
+
+    meses_lista = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'), 
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'), 
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+
+    if current_user.rol == 'super_admin':
+        proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
+        query = OrdenCompra.query
+    else:
+        org_id = current_user.organizacion_id
+        proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+        query = OrdenCompra.query.filter_by(organizacion_id=org_id)
+
+    query = query.filter(extract('month', OrdenCompra.fecha_creacion) == mes)
+    query = query.filter(extract('year', OrdenCompra.fecha_creacion) == ano)
+
+    if prov_id and prov_id != 0:
+        query = query.filter_by(proveedor_id=prov_id)
+
+    ordenes = query.order_by(OrdenCompra.fecha_creacion.desc()).all()
+    
+    return render_template('ordenes.html', 
+                           ordenes=ordenes,
+                           proveedores=proveedores,
+                           meses_lista=meses_lista,
+                           mes_seleccionado=mes,
+                           ano_seleccionado=ano,
+                           prov_seleccionado=prov_id or 0)
+
+@app.route('/orden/nueva', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_create_oc_standard')
+def nueva_orden():
+    """ Crea una OC automática (Multiusuario). """
+    try:
+        ids_productos_a_ordenar = request.form.getlist('producto_id')
+        if not ids_productos_a_ordenar:
+            flash('No se seleccionaron productos para la orden.', 'warning')
+            return redirect(url_for('index'))
+
+        productos = Producto.query.filter(Producto.id.in_(ids_productos_a_ordenar)).all()
+        
+        if current_user.rol != 'super_admin':
+            for p in productos:
+                if p.organizacion_id != current_user.organizacion_id:
+                    flash('Error: Intento de ordenar un producto no válido.', 'danger')
+                    return redirect(url_for('index'))
+
+        proveedor_id_comun = productos[0].proveedor_id
+        if not all(p.proveedor_id == proveedor_id_comun for p in productos):
+            flash('Error: Los productos seleccionados deben ser del mismo proveedor.', 'danger')
+            return redirect(url_for('index'))
+
+        nueva_oc = OrdenCompra(
+            proveedor_id=proveedor_id_comun,
+            estado='borrador',
+            creador_id=current_user.id,
+            organizacion_id=current_user.organizacion_id
+        )
+        db.session.add(nueva_oc)
+        
+        for prod in productos:
+            cantidad_sugerida = prod.stock_maximo - prod.cantidad_stock
+            detalle = OrdenCompraDetalle(
+                orden=nueva_oc,
+                producto_id=prod.id,
+                cantidad_solicitada=max(1, cantidad_sugerida),
+                costo_unitario_estimado=prod.precio_unitario
+            )
+            db.session.add(detalle)
+        
+        db.session.commit()
+        flash('Nueva Orden de Compra generada en "Borrador".', 'success')
+        return redirect(url_for('lista_ordenes'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al generar la orden: {e}', 'danger')
+        return redirect(url_for('index'))
+
+@app.route('/orden/<int:id>/recibir', methods=['POST'])
+@login_required
+@check_permission('perm_create_oc_standard')
+def recibir_orden(id):
+    """ Marca una orden como 'recibida' (Multiusuario). """
+    orden = get_item_or_404(OrdenCompra, id)
+    
+    if orden.estado == 'recibida':
+        flash('Esta orden ya fue recibida anteriormente.', 'warning')
+        return redirect(url_for('lista_ordenes'))
+
+    try:
+        org_id = orden.organizacion_id
+        for detalle in orden.detalles:
+            producto = detalle.producto
+            producto.cantidad_stock += detalle.cantidad_solicitada
+            db.session.add(producto)
+            
+            movimiento = Movimiento(
+                producto_id=producto.id,
+                cantidad=detalle.cantidad_solicitada,
+                tipo='entrada',
+                fecha=datetime.now(),
+                motivo=f'Recepción de OC #{orden.id}',
+                orden_compra_id=orden.id,
+                organizacion_id=org_id
+            )
+            db.session.add(movimiento)
+        
+        orden.estado = 'recibida'
+        orden.fecha_recepcion = datetime.now()
+        db.session.add(orden)
+        
+        db.session.commit()
+        flash('¡Orden recibida! El stock ha sido actualizado.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al recibir la orden: {e}', 'danger')
+    
+    return redirect(url_for('lista_ordenes'))
+
+@app.route('/orden/<int:id>/enviar', methods=['POST'])
+@login_required
+@check_permission('perm_create_oc_standard')
+def enviar_orden(id):
+    """ Cambia el estado de la orden a 'enviada' (Multiusuario). """
+    orden = get_item_or_404(OrdenCompra, id)
+
+    if orden.estado == 'borrador':
+        try:
+            orden.estado = 'enviada'
+            db.session.commit()
+            flash('Orden marcada como "Enviada".', 'info')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    
+    return redirect(url_for('lista_ordenes'))
+
+@app.route('/orden/<int:id>/pdf')
+@login_required
+@check_permission('perm_create_oc_standard')
+def generar_oc_pdf(id):
+    """ Genera un PDF de OC (Multiusuario). """
+    orden = get_item_or_404(OrdenCompra, id)
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                            rightMargin=inch, leftMargin=inch,
+                            topMargin=inch, bottomMargin=inch)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_body = ParagraphStyle(name='Body', parent=styles['BodyText'], fontName='Helvetica', fontSize=10)
+    style_right = ParagraphStyle(name='BodyRight', parent=style_body, alignment=TA_RIGHT)
+    style_left = ParagraphStyle(name='BodyLeft', parent=style_body, alignment=TA_LEFT)
+    style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
+    style_total_label = ParagraphStyle(name='TotalLabel', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
+    style_total_value = ParagraphStyle(name='TotalValue', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
+    
+    story.append(Paragraph(f"ORDEN DE COMPRA #{orden.id}", styles['h1']))
+    story.append(Paragraph(f"<b>Estado:</b> {orden.estado.capitalize()}", styles['h3']))
+    story.append(Spacer(1, 0.25 * inch))
+    info_proveedor = f"""
+        <b>Proveedor:</b> {orden.proveedor.nombre}<br/>
+        <b>Email Contacto:</b> {orden.proveedor.contacto_email}<br/>
+        <b>Fecha Creación:</b> {orden.fecha_creacion.strftime('%Y-%m-%d')}
+    """
+    story.append(Paragraph(info_proveedor, styles['BodyText']))
+    story.append(Spacer(1, 0.5 * inch))
+
+    data = [[
+        Paragraph('Producto (SKU)', style_header), 
+        Paragraph('Cantidad', style_header), 
+        Paragraph('Costo Unit. (Est.)', style_header), 
+        Paragraph('Subtotal (Est.)', style_header)
+    ]]
+    for detalle in orden.detalles:
+        producto_sku = Paragraph(f"{detalle.producto.nombre} ({detalle.producto.codigo})", style_left)
+        cantidad = Paragraph(str(detalle.cantidad_solicitada), style_right)
+        costo_unit = Paragraph(f"${detalle.costo_unitario_estimado:.2f}", style_right)
+        subtotal = Paragraph(f"${detalle.subtotal:.2f}", style_right)
+        data.append([producto_sku, cantidad, costo_unit, subtotal])
+    data.append([
+        '', '', 
+        Paragraph('TOTAL (Est.):', style_total_label), 
+        Paragraph(f"${orden.costo_total:.2f}", style_total_value)
+    ])
+
+    style = TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E9ECEF")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('PADDING', (0,0), (-1,-1), 8),
+        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor("#F8F9FA")]), 
+        ('GRID', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
+        ('BOX', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
+        ('BACKGROUND', (0,-1), (3,-1), colors.white),
+        ('GRID', (2,-1), (3,-1), 1, colors.HexColor("#DEE2E6")),
+        ('SPAN', (0,-1), (1,-1)),
+    ])
+    
+    tabla_oc = Table(data, colWidths=[2.75*inch, 1.0*inch, 1.25*inch, 1.25*inch])
+    tabla_oc.setStyle(style)
+    story.append(tabla_oc)
+    doc.build(story)
+    
+    fecha_str = orden.fecha_creacion.strftime("%Y-%m-%d")
+    filename = f"OC#{orden.id}_{fecha_str}.pdf"
+
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=False,
+        download_name=filename,
+        mimetype='application/pdf'
+    )
+
 @app.route('/salida', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
-@check_permission('perm_do_salidas') # <-- PERMISO AÑADIDO
+@check_permission('perm_do_salidas')
 def registrar_salida():
     """ Registra una Salida (Multiusuario). """
     org_id = current_user.organizacion_id
@@ -1144,7 +1377,7 @@ def registrar_salida():
 
 @app.route('/salida/<int:id>/cancelar', methods=['POST'])
 @login_required
-@check_permission('perm_do_salidas') # <-- PERMISO AÑADIDO
+@check_permission('perm_do_salidas')
 def cancelar_salida(id):
     """ Cancela una Salida (Multiusuario). """
     salida = get_item_or_404(Salida, id)
@@ -1189,7 +1422,7 @@ def cancelar_salida(id):
 
 @app.route('/salida/<int:id>/pdf')
 @login_required
-@check_permission('perm_do_salidas') # <-- PERMISO AÑADIDO
+@check_permission('perm_do_salidas')
 def generar_salida_pdf(id):
     """ Genera un PDF de Salida (Multiusuario). """
     salida = get_item_or_404(Salida, id)
@@ -1254,245 +1487,9 @@ def generar_salida_pdf(id):
         mimetype='application/pdf'
     )
 
-# --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
-
-@app.route('/ordenes')
-@login_required
-@check_org_permission
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
-def lista_ordenes():
-    """ Muestra la lista de Órdenes de Compra (Multiusuario). """
-    mes = request.args.get('mes', type=int)
-    ano = request.args.get('ano', type=int)
-    prov_id = request.args.get('proveedor_id', type=int)
-    
-    ahora = datetime.now()
-    if not mes: mes = ahora.month
-    if not ano: ano = ahora.year
-
-    meses_lista = [
-        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'), 
-        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'), 
-        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
-    ]
-
-    if current_user.rol == 'super_admin':
-        proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
-        query = OrdenCompra.query
-    else:
-        org_id = current_user.organizacion_id
-        proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
-        query = OrdenCompra.query.filter_by(organizacion_id=org_id)
-
-    query = query.filter(extract('month', OrdenCompra.fecha_creacion) == mes)
-    query = query.filter(extract('year', OrdenCompra.fecha_creacion) == ano)
-
-    if prov_id and prov_id != 0:
-        query = query.filter_by(proveedor_id=prov_id)
-
-    ordenes = query.order_by(OrdenCompra.fecha_creacion.desc()).all()
-    
-    return render_template('ordenes.html', 
-                           ordenes=ordenes,
-                           proveedores=proveedores,
-                           meses_lista=meses_lista,
-                           mes_seleccionado=mes,
-                           ano_seleccionado=ano,
-                           prov_seleccionado=prov_id or 0)
-
-@app.route('/orden/nueva', methods=['POST'])
-@login_required
-@check_org_permission
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
-def nueva_orden():
-    """ Crea una OC automática (Multiusuario). """
-    try:
-        ids_productos_a_ordenar = request.form.getlist('producto_id')
-        if not ids_productos_a_ordenar:
-            flash('No se seleccionaron productos para la orden.', 'warning')
-            return redirect(url_for('index'))
-
-        productos = Producto.query.filter(Producto.id.in_(ids_productos_a_ordenar)).all()
-        
-        if current_user.rol != 'super_admin':
-            for p in productos:
-                if p.organizacion_id != current_user.organizacion_id:
-                    flash('Error: Intento de ordenar un producto no válido.', 'danger')
-                    return redirect(url_for('index'))
-
-        proveedor_id_comun = productos[0].proveedor_id
-        if not all(p.proveedor_id == proveedor_id_comun for p in productos):
-            flash('Error: Los productos seleccionados deben ser del mismo proveedor.', 'danger')
-            return redirect(url_for('index'))
-
-        nueva_oc = OrdenCompra(
-            proveedor_id=proveedor_id_comun,
-            estado='borrador',
-            creador_id=current_user.id,
-            organizacion_id=current_user.organizacion_id
-        )
-        db.session.add(nueva_oc)
-        
-        for prod in productos:
-            cantidad_sugerida = prod.stock_maximo - prod.cantidad_stock
-            detalle = OrdenCompraDetalle(
-                orden=nueva_oc,
-                producto_id=prod.id,
-                cantidad_solicitada=max(1, cantidad_sugerida),
-                costo_unitario_estimado=prod.precio_unitario
-            )
-            db.session.add(detalle)
-        
-        db.session.commit()
-        flash('Nueva Orden de Compra generada en "Borrador".', 'success')
-        return redirect(url_for('lista_ordenes'))
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al generar la orden: {e}', 'danger')
-        return redirect(url_for('index'))
-
-@app.route('/orden/<int:id>/recibir', methods=['POST'])
-@login_required
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
-def recibir_orden(id):
-    """ Marca una orden como 'recibida' (Multiusuario). """
-    orden = get_item_or_404(OrdenCompra, id)
-    
-    if orden.estado == 'recibida':
-        flash('Esta orden ya fue recibida anteriormente.', 'warning')
-        return redirect(url_for('lista_ordenes'))
-
-    try:
-        org_id = orden.organizacion_id
-        for detalle in orden.detalles:
-            producto = detalle.producto
-            producto.cantidad_stock += detalle.cantidad_solicitada
-            db.session.add(producto)
-            
-            movimiento = Movimiento(
-                producto_id=producto.id,
-                cantidad=detalle.cantidad_solicitada,
-                tipo='entrada',
-                fecha=datetime.now(),
-                motivo=f'Recepción de OC #{orden.id}',
-                orden_compra_id=orden.id,
-                organizacion_id=org_id
-            )
-            db.session.add(movimiento)
-        
-        orden.estado = 'recibida'
-        orden.fecha_recepcion = datetime.now()
-        db.session.add(orden)
-        
-        db.session.commit()
-        flash('¡Orden recibida! El stock ha sido actualizado.', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al recibir la orden: {e}', 'danger')
-    
-    return redirect(url_for('lista_ordenes'))
-
-@app.route('/orden/<int:id>/enviar', methods=['POST'])
-@login_required
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
-def enviar_orden(id):
-    """ Cambia el estado de la orden a 'enviada' (Multiusuario). """
-    orden = get_item_or_404(OrdenCompra, id)
-
-    if orden.estado == 'borrador':
-        try:
-            orden.estado = 'enviada'
-            db.session.commit()
-            flash('Orden marcada como "Enviada".', 'info')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error: {e}', 'danger')
-    
-    return redirect(url_for('lista_ordenes'))
-
-@app.route('/orden/<int:id>/pdf')
-@login_required
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
-def generar_oc_pdf(id):
-    """ Genera un PDF de OC (Multiusuario). """
-    orden = get_item_or_404(OrdenCompra, id)
-    
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                            rightMargin=inch, leftMargin=inch,
-                            topMargin=inch, bottomMargin=inch)
-    story = []
-    styles = getSampleStyleSheet()
-    
-    style_body = ParagraphStyle(name='Body', parent=styles['BodyText'], fontName='Helvetica', fontSize=10)
-    style_right = ParagraphStyle(name='BodyRight', parent=style_body, alignment=TA_RIGHT)
-    style_left = ParagraphStyle(name='BodyLeft', parent=style_body, alignment=TA_LEFT)
-    style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
-    style_total_label = ParagraphStyle(name='TotalLabel', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
-    style_total_value = ParagraphStyle(name='TotalValue', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
-    
-    story.append(Paragraph(f"ORDEN DE COMPRA #{orden.id}", styles['h1']))
-    story.append(Paragraph(f"<b>Estado:</b> {orden.estado.capitalize()}", styles['h3']))
-    story.append(Spacer(1, 0.25 * inch))
-    info_proveedor = f"""
-        <b>Proveedor:</b> {orden.proveedor.nombre}<br/>
-        <b>Email Contacto:</b> {orden.proveedor.contacto_email}<br/>
-        <b>Fecha Creación:</b> {orden.fecha_creacion.strftime('%Y-%m-%d')}
-    """
-    story.append(Paragraph(info_proveedor, styles['BodyText']))
-    story.append(Spacer(1, 0.5 * inch))
-
-    data = [[
-        Paragraph('Producto (SKU)', style_header), 
-        Paragraph('Cantidad', style_header), 
-        Paragraph('Costo Unit. (Est.)', style_header), 
-        Paragraph('Subtotal (Est.)', style_header)
-    ]]
-    for detalle in orden.detalles:
-        producto_sku = Paragraph(f"{detalle.producto.nombre} ({detalle.producto.codigo})", style_left)
-        cantidad = Paragraph(str(detalle.cantidad_solicitada), style_right)
-        costo_unit = Paragraph(f"${detalle.costo_unitario_estimado:.2f}", style_right)
-        subtotal = Paragraph(f"${detalle.subtotal:.2f}", style_right)
-        data.append([producto_sku, cantidad, costo_unit, subtotal])
-    data.append([
-        '', '', 
-        Paragraph('TOTAL (Est.):', style_total_label), 
-        Paragraph(f"${orden.costo_total:.2f}", style_total_value)
-    ])
-
-    style = TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E9ECEF")),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 8),
-        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor("#F8F9FA")]), 
-        ('GRID', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
-        ('BOX', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
-        ('BACKGROUND', (0,-1), (3,-1), colors.white),
-        ('GRID', (2,-1), (3,-1), 1, colors.HexColor("#DEE2E6")),
-        ('SPAN', (0,-1), (1,-1)),
-    ])
-    
-    tabla_oc = Table(data, colWidths=[2.75*inch, 1.0*inch, 1.25*inch, 1.25*inch])
-    tabla_oc.setStyle(style)
-    story.append(tabla_oc)
-    doc.build(story)
-    
-    fecha_str = orden.fecha_creacion.strftime("%Y-%m-%d")
-    filename = f"OC#{orden.id}_{fecha_str}.pdf"
-
-    buffer.seek(0)
-    return send_file(
-        buffer,
-        as_attachment=False,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
-
 @app.route('/orden/<int:id>')
 @login_required
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
+@check_permission('perm_create_oc_standard')
 def ver_orden(id):
     """ Muestra el detalle de una OC (Multiusuario). """
     orden = get_item_or_404(OrdenCompra, id)
@@ -1501,7 +1498,7 @@ def ver_orden(id):
 @app.route('/orden/nueva_manual', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
+@check_permission('perm_create_oc_standard')
 def nueva_orden_manual():
     """ Crea una OC manual (Multiusuario). """
     org_id = current_user.organizacion_id
@@ -1581,7 +1578,7 @@ def nueva_orden_manual():
 
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
+@check_permission('perm_create_oc_standard')
 def editar_orden(id):
     """ Edita una OC (Multiusuario). """
     orden = get_item_or_404(OrdenCompra, id)
@@ -1652,7 +1649,7 @@ def editar_orden(id):
 
 @app.route('/orden/<int:id>/cancelar', methods=['POST'])
 @login_required
-@check_permission('perm_create_oc_standard') # <-- PERMISO AÑADIDO
+@check_permission('perm_create_oc_standard')
 def cancelar_orden(id):
     """ Cancela una OC (Multiusuario). """
     orden = get_item_or_404(OrdenCompra, id)
@@ -1673,13 +1670,13 @@ def cancelar_orden(id):
     return redirect(url_for('lista_ordenes'))
 
 # =============================================
-# RUTAS PARA OC DE PROYECTO
+# NUEVAS RUTAS PARA OC DE PROYECTO
 # =============================================
 
 @app.route('/proyectos-oc')
 @login_required
 @check_org_permission
-@check_permission('perm_create_oc_proyecto') # <-- PERMISO AÑADIDO
+@check_permission('perm_create_oc_proyecto')
 def lista_proyectos_oc():
     """ Muestra la lista de Órdenes de Compra de Proyectos. """
     if current_user.rol == 'super_admin':
@@ -1695,7 +1692,7 @@ def lista_proyectos_oc():
 
 @app.route('/proyecto-oc/<int:id>')
 @login_required
-@check_permission('perm_create_oc_proyecto') # <-- PERMISO AÑADIDO
+@check_permission('perm_create_oc_proyecto')
 def ver_proyecto_oc(id):
     """ Muestra el detalle de una OC de Proyecto. """
     proyecto_oc = get_item_or_404(ProyectoOC, id)
@@ -1706,7 +1703,7 @@ def ver_proyecto_oc(id):
 @app.route('/proyecto-oc/nueva', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
-@check_permission('perm_create_oc_proyecto') # <-- PERMISO AÑADIDO
+@check_permission('perm_create_oc_proyecto')
 def nuevo_proyecto_oc():
     """ Formulario para crear una nueva OC de Proyecto. """
     
@@ -1720,7 +1717,6 @@ def nuevo_proyecto_oc():
             'nombre': p.nombre,
             'codigo': p.codigo,
             'precio_unitario': p.precio_unitario,
-            'proveedor_id': p.proveedor_id
         })
         
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
@@ -1759,7 +1755,7 @@ def nuevo_proyecto_oc():
                 
                 if tipos[i] == 'existente':
                     detalle.producto_id = int(productos_existentes[i])
-                else: # 'nuevo'
+                else: 
                     detalle.descripcion_nuevo = productos_nuevos[i]
                 
                 db.session.add(detalle)
@@ -1781,7 +1777,7 @@ def nuevo_proyecto_oc():
 @app.route('/gastos')
 @login_required
 @check_org_permission
-@check_permission('perm_view_gastos') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_gastos')
 def lista_gastos():
     """ Muestra la lista de Gastos (Multiusuario). """
     mes = request.args.get('mes', type=int)
@@ -1818,7 +1814,7 @@ def lista_gastos():
 @app.route('/gasto/nuevo', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
-@check_permission('perm_view_gastos') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_gastos')
 def nuevo_gasto():
     """ Crea un nuevo gasto (Multiusuario). """
     org_id = current_user.organizacion_id
@@ -1853,7 +1849,7 @@ def nuevo_gasto():
 
 @app.route('/gastos/exportar_excel')
 @login_required
-@check_permission('perm_view_gastos') # <-- PERMISO AÑADIDO
+@check_permission('perm_view_gastos')
 def exportar_gastos_excel():
     """ Exporta Gastos a Excel (Multiusuario). """
     mes = request.args.get('mes', type=int)
@@ -2233,19 +2229,16 @@ def asignar_usuario(user_id):
 @app.route('/admin_panel')
 @login_required
 @admin_required # Solo 'admin' o 'super_admin'
-@check_org_permission # Debe pertenecer a una org (super_admin no tiene)
+@check_org_permission # Debe pertenecer a una org (esto excluye al super_admin sin org)
 def admin_panel():
     """ Panel para que un Admin gestione los usuarios de SU organización. """
-    
-    # Si es Super Admin, redirige a su propio panel
-    if current_user.rol == 'super_admin':
-        return redirect(url_for('super_admin'))
     
     # Obtenemos solo los usuarios de la organización del admin actual
     usuarios = User.query.filter_by(
         organizacion_id=current_user.organizacion_id
     ).order_by(User.username).all()
     
+    # Creamos un dict de formularios, uno para cada usuario
     forms = {}
     for user in usuarios:
         form = AdminPermissionForm()
@@ -2272,22 +2265,23 @@ def update_user_permissions(user_id):
     
     user_to_update = User.query.get_or_404(user_id)
     
-    # Verificación de seguridad:
-    # Un Super Admin puede editar a cualquiera.
-    # Un Admin solo puede editar usuarios de SU PROPIA organización.
+    # --- CHEQUEO DE SEGURIDAD ---
+    # Un admin solo puede editar usuarios de SU PROPIA organización
     if current_user.rol == 'admin' and user_to_update.organizacion_id != current_user.organizacion_id:
         flash('No tienes permiso para editar a este usuario.', 'danger')
         return redirect(url_for('admin_panel'))
         
-    # Un Admin no puede editarse a sí mismo (solo un Super Admin puede)
+    # No puedes editar tus propios permisos (solo el Super Admin puede)
     if user_to_update.id == current_user.id and current_user.rol != 'super_admin':
         flash('No puedes editar tus propios permisos. Pide a otro admin o al Super Admin que lo haga.', 'warning')
         return redirect(url_for('admin_panel'))
+    # --- FIN CHEQUEO ---
 
     form = AdminPermissionForm()
     
     if form.validate_on_submit():
         try:
+            # Actualizamos al usuario con los datos (checkboxes) del formulario
             user_to_update.perm_view_dashboard = form.perm_view_dashboard.data
             user_to_update.perm_view_management = form.perm_view_management.data
             user_to_update.perm_edit_management = form.perm_edit_management.data
@@ -2302,13 +2296,11 @@ def update_user_permissions(user_id):
             db.session.rollback()
             flash(f'Error al actualizar permisos: {e}', 'danger')
     else:
+        # Si la validación (CSRF) falla
         flash('Error de validación del formulario. Inténtalo de nuevo.', 'danger')
             
-    # Redirige de vuelta al panel correspondiente
-    if current_user.rol == 'super_admin':
-        return redirect(url_for('super_admin'))
-    else:
-        return redirect(url_for('admin_panel'))
+    return redirect(url_for('admin_panel'))
+
 
 # --- Inicialización ---
 if __name__ == '__main__':
