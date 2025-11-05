@@ -41,9 +41,11 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 
+                <!-- 1. MENÚ DE LA IZQUIERDA (GESTIÓN, OPERACIONES) -->
                 {% if current_user.is_authenticated %}
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         
+                        <!-- Solo se muestra si NO estamos en el index -->
                         {% if request.endpoint != 'index' %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('index') }}">
@@ -90,36 +92,20 @@
                                     </li>
                                 </ul>
                             </li>
-                            <li class="nav-item dropdown">
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                             
-                            <li><a class="dropdown-item" href="#">DEBUG ROL: '{{ current_user.rol }}'</a></li>
-                            {% if current_user.rol == 'super_admin' %}
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('super_admin') }}">
-                                    <i class="bi bi-shield-lock"></i> Super Admin Panel
-                                </a>
-                            </li>
-                            {% endif %}
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('account') }}">
-                                    <i class="bi bi-gear"></i> Configuración de Cuenta
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('logout') }}">
-                                    <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
-                                </a>
-                            </li>
-                        </ul>
-                        </li>
+                            <!-- 
+                              AQUÍ ESTABA EL CÓDIGO INCORRECTO.
+                              Ha sido eliminado de aquí.
+                            -->
+                            
                         {% endif %}
-                        </ul>
+                    </ul>
                 {% endif %}
 
+                <!-- 2. MENÚ DE LA DERECHA (USUARIO) -->
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     {% if current_user.is_authenticated %}
+                        <!-- Si está logueado -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" 
                                id="navbarDropdown" role="button" data-bs-toggle="dropdown" 
@@ -132,21 +118,45 @@
                                 
                                 ¡Hola, {{ current_user.username }}!
                             </a>
+                            
+                            <!-- ============================================= -->
+                            <!-- ESTE ES EL LUGAR CORRECTO PARA EL MENÚ -->
+                            <!-- ============================================= -->
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                
+                                <!-- (Tu línea de depuración temporal) -->
+                                <li><a class="dropdown-item" href="#">DEBUG ROL: '{{ current_user.rol }}'</a></li>
+
+                                <!-- Enlace de Super Admin -->
+                                {% if current_user.rol == 'super_admin' %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('super_admin') }}">
+                                        <i class="bi bi-shield-lock"></i> Super Admin Panel
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                <!-- Enlace de Cuenta -->
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('account') }}">
                                         <i class="bi bi-gear"></i> Configuración de Cuenta
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
+                                
+                                <!-- Enlace de Cerrar Sesión -->
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('logout') }}">
                                         <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
                                     </a>
                                 </li>
                             </ul>
+                            <!-- ============================================= -->
+                            <!-- FIN DEL BLOQUE CORRECTO -->
+                            <!-- ============================================= -->
                         </li>
                     {% else %}
+                        <!-- Si NO está logueado -->
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('login') }}">
                                 <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
@@ -181,4 +191,5 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
