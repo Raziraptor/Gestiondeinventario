@@ -100,7 +100,7 @@
                                     {% endif %}
                                     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_proyectos_oc') }}">
+                                        <a class="dropdown-item" href="{{ url_for('proyectos_oc_lista') }}">
                                             <i class="bi bi-clipboard-data"></i> OC de Proyectos
                                         </a>
                                     </li>
@@ -228,3 +228,4 @@
 </body>
 
 </html>
+
