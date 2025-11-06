@@ -22,6 +22,7 @@
                     {% endfor %}
                 </select>
                 {% if orden %}
+                    <input type="hidden" name="proveedor_id" value="{{ orden.proveedor_id }}">
                     <small class="form-text text-muted">No se puede cambiar el proveedor de una orden existente.</small>
                 {% endif %}
             </div>
@@ -39,6 +40,7 @@
                     {% endfor %}
                 </select>
                 {% if orden %}
+                     <input type="hidden" name="almacen_id" value="{{ orden.almacen_id }}">
                     <small class="form-text text-muted">No se puede cambiar el almacén de una orden existente.</small>
                 {% endif %}
             </div>
@@ -56,7 +58,7 @@
                         <select name="producto_id[]" class="form-select" required>
                             <option value="">-- Selecciona --</option>
                             {% for p in productos %}
-                                {% if p.proveedor_id == orden.proveedor_id or not p.proveedor_id %}
+                                {% if p.proveedor_id == orden.proveedor_id %}
                                 <option value="{{ p.id }}" data-precio="{{ p.precio_unitario }}" {% if p.id == detalle.producto_id %}selected{% endif %}>
                                     {{ p.nombre }} (SKU: {{ p.codigo }})
                                 </option>
@@ -70,7 +72,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Costo Unitario</label>
-                        <input type="number" name="costo[]" class="form-control costo-input" value="{{ detalle.costo_unitario_estimado }}" step="0.01" min="0" required>
+                        <input type="number" name="costo[]" class="form-control costo-input" value="{{ "%.2f"|format(detalle.costo_unitario_estimado) }}" step="0.01" min="0" required>
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-danger w-100" onclick="eliminarLinea(this)">
@@ -80,14 +82,13 @@
                 </div>
                 {% endfor %}
             {% endif %}
-            </div>
+        </div>
         
-        <button type="button" id="btn_add_producto" class="btn btn-info mt-2" 
-                {% if not orden %}disabled{% endif %}>
+        <button type="button" id="btn_add_producto" class="btn btn-info mt-2" disabled>
             <i class="bi bi-plus-circle"></i> Añadir Producto
         </button>
-        <small id="producto_ayuda" class="form-text text-muted d-block">
-            {% if not orden %}Selecciona un Proveedor y Almacén para añadir productos.{% endif %}
+        <small id="producto_ayuda" class="form-text text-muted d-block mt-2">
+            Primero selecciona un Proveedor y un Almacén.
         </small>
         
         
@@ -103,7 +104,6 @@
             <div class="col-md-5">
                 <label class="form-label">Producto</label>
                 <select name="producto_id[]" class="form-select" required>
-                    <option value="">-- Selecciona un producto --</option>
                     </select>
             </div>
             <div class="col-md-2">
@@ -124,10 +124,8 @@
 
 
     <script>
-        // (Ignora el falso error de VS Code en esta línea)
         var todosLosProductos = {{ productos | tojson | safe }};
 
-        // Función global para eliminar línea
         function eliminarLinea(boton) {
             boton.closest('.producto-linea').remove();
         }
@@ -140,9 +138,8 @@
             const contenedor = document.getElementById('lineas_productos_container');
             const plantilla = document.getElementById('plantilla_linea');
 
-            // --- 1. Función para chequear si los dropdowns están listos ---
-            function chequearFormulario() {
-                // Si ambos tienen un valor, activa el botón
+            // --- 1. Verifica si podemos habilitar el botón ---
+            function actualizarEstadoBoton() {
                 if (selectProveedor.value && selectAlmacen.value) {
                     botonAnadir.disabled = false;
                     productoAyuda.style.display = 'none';
@@ -152,28 +149,40 @@
                 }
             }
 
-            // --- 2. Función para añadir una nueva línea ---
+            // --- 2. Añade una nueva línea filtrada ---
             function anadirNuevaLinea() {
-                const selectedProveedorId = selectProveedor.value;
+                const proveedorId = selectProveedor.value;
+                // Si no hay proveedor seleccionado, no hacemos nada (seguridad extra)
+                if (!proveedorId) return;
+
                 const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
                 const selectProducto = nuevaLinea.querySelector('select[name="producto_id[]"]');
                 const inputCosto = nuevaLinea.querySelector('.costo-input');
 
-                // --- Filtrado de Productos ---
+                // Opción por defecto
+                selectProducto.add(new Option('-- Selecciona --', ''));
+
+                // FILTRADO ESTRICTO: Solo productos de ESTE proveedor
+                let productosEncontrados = 0;
                 todosLosProductos.forEach(function(producto) {
-                    // Muestra el producto si su ID de proveedor coincide
-                    // O si el producto no tiene proveedor (es 'null')
-                    if (producto.proveedor_id == selectedProveedorId || !producto.proveedor_id) {
+                    // Comparación flexible (==) porque uno puede ser string y otro int
+                    if (producto.proveedor_id == proveedorId) {
                         const opcion = new Option(
                             `${producto.nombre} (SKU: ${producto.codigo})`,
                             producto.id
                         );
                         opcion.dataset.precio = producto.precio_unitario;
                         selectProducto.add(opcion);
+                        productosEncontrados++;
                     }
                 });
 
-                // --- Listener para auto-rellenar costo ---
+                if (productosEncontrados === 0) {
+                    alert("Este proveedor no tiene productos registrados.");
+                    return; // No añadimos la línea vacía
+                }
+
+                // Auto-rellenar costo
                 selectProducto.addEventListener('change', function() {
                     const precio = this.options[this.selectedIndex].dataset.precio || 0;
                     inputCosto.value = parseFloat(precio).toFixed(2);
@@ -181,44 +190,35 @@
                 
                 contenedor.appendChild(nuevaLinea);
             }
+
+            // --- Listeners ---
+            botonAnadir.addEventListener('click', anadirNuevaLinea);
+
+            // Si cambiamos proveedor u almacén, reseteamos las líneas para evitar errores
+            selectProveedor.addEventListener('change', function() {
+                contenedor.innerHTML = ''; 
+                actualizarEstadoBoton();
+            });
+            selectAlmacen.addEventListener('change', function() {
+                 // Opcional: si quieres que cambiar de almacén TAMBIÉN borre las líneas, descomenta la siguiente:
+                 // contenedor.innerHTML = '';
+                 actualizarEstadoBoton();
+            });
+
+            // --- Carga Inicial ---
+            actualizarEstadoBoton();
             
-            // --- 3. Listeners de los Dropdowns ---
-            // (Solo si no estamos editando, ya que están deshabilitados)
-            {% if not orden %}
-                selectProveedor.addEventListener('change', function() {
-                    contenedor.innerHTML = ''; // Borra líneas antiguas al cambiar
-                    chequearFormulario();
-                    if (!botonAnadir.disabled) {
-                        anadirNuevaLinea(); // Añade la primera línea filtrada
-                    }
-                });
-                
-                selectAlmacen.addEventListener('change', function() {
-                    // No borramos las líneas si solo cambia el almacén
-                    chequearFormulario();
-                    if (!botonAnadir.disabled && contenedor.children.length === 0) {
-                        anadirNuevaLinea();
-                    }
-                });
-            {% else %}
-                // Modo "Editar": el botón de añadir está habilitado
-                botonAnadir.disabled = false;
-                productoAyuda.style.display = 'none';
-                
-                // Añadir listeners a las líneas ya existentes
-                contenedor.querySelectorAll('.producto-linea').forEach(function(linea) {
+            // Si estamos editando, necesitamos reactivar los listeners de costo para las líneas existentes
+            {% if orden %}
+                 contenedor.querySelectorAll('.producto-linea').forEach(function(linea) {
                     const select = linea.querySelector('select[name="producto_id[]"]');
                     const inputCosto = linea.querySelector('.costo-input');
-                    
                     select.addEventListener('change', function() {
                         const precio = this.options[this.selectedIndex].dataset.precio || 0;
                         inputCosto.value = parseFloat(precio).toFixed(2);
                     });
                 });
             {% endif %}
-
-            // --- 4. Listener del Botón Añadir ---
-            botonAnadir.addEventListener('click', anadirNuevaLinea);
         });
     </script>
 {% endblock %}
