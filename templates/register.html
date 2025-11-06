@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ titulo }}{% endblock %}
+
 {% block content %}
     <div class="row justify-content-center">
         <div class="col-md-6">
@@ -8,7 +10,7 @@
                     <h2>{{ titulo }}</h2>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="">
+                    <form method="POST" action="{{ url_for('register') }}" novalidate>
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
@@ -38,12 +40,21 @@
                                 {{ form.email(class="form-control") }}
                             {% endif %}
                         </div>
-
+                        
                         <div class="mb-3">
                             {{ form.password.label(class="form-label") }}
-                            {{ form.password(class="form-control") }}
+                            {% if form.password.errors %}
+                                {{ form.password(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password.errors %}
+                                        <span>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.password(class="form-control") }}
+                            {% endif %}
                         </div>
-
+                        
                         <div class="mb-3">
                             {{ form.confirm_password.label(class="form-label") }}
                             {% if form.confirm_password.errors %}
@@ -58,14 +69,18 @@
                             {% endif %}
                         </div>
                         
+                        <div class="mb-3">
+                            {{ form.codigo_invitacion.label(class="form-label") }}
+                            {{ form.codigo_invitacion(class="form-control", placeholder="Ej: A1B-C2D") }}
+                        </div>
                         <div class="d-grid">
                             {{ form.submit(class="btn btn-primary") }}
                         </div>
-                        </form>
+                    </form>
                 </div>
                 <div class="card-footer text-center">
                     <small class="text-muted">
-                        ¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Inicia sesión</a>
+                        ¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Inicia Sesión</a>
                     </small>
                 </div>
             </div>
