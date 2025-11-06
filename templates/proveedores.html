@@ -5,7 +5,12 @@
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Gestión de Proveedores</h2>
-        <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary">Agregar Proveedor</a>
+        <!-- Solo mostrar si tiene permisos de edición -->
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+        <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+        </a>
+        {% endif %}
     </div>
 
     <div class="card">
@@ -13,20 +18,31 @@
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>Nombre</th>
                         <th>Email de Contacto</th>
+                        <th>Teléfono</th> <!-- NUEVA COLUMNA -->
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for prov in proveedores %}
                     <tr>
-                        <td>{{ prov.id }}</td>
-                        <td>{{ prov.nombre }}</td>
+                        <td><strong>{{ prov.nombre }}</strong></td>
                         <td>{{ prov.contacto_email }}</td>
-                        <td>
-                            <a href="#" class="btn btn-sm btn-secondary disabled">Editar</a>
+                        <td>{{ prov.contacto_telefono }}</td> <!-- NUEVA CELDA -->
+                        
+                        <!-- Columna de Acciones (Solo para editores) -->
+                        <td style="width: 1%; white-space: nowrap;">
+                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('editar_proveedor', id=prov.id) }}" class="btn btn-secondary" title="Editar">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                <!-- (Aquí iría un futuro botón de Eliminar) -->
+                            </div>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
