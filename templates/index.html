@@ -4,13 +4,9 @@
 
 {% block content %}
 
-    <!-- ============================================= -->
-    <!-- MENÚ PRINCIPAL (RECUADROS CON PERMISOS) -->
-    <!-- ============================================= -->
     <h2 class="mb-3">Menú Principal</h2>
     <div class="row g-3 mb-4">
         
-        <!-- Dashboard -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('dashboard') }}" class="dashboard-card card text-dark">
@@ -22,7 +18,6 @@
         </div>
         {% endif %}
         
-        <!-- Agregar Producto -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('nuevo_producto') }}" class="dashboard-card card text-dark">
@@ -34,7 +29,6 @@
         </div>
         {% endif %}
         
-        <!-- Categorías y Proveedores (Gestión) -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_categorias') }}" class="dashboard-card card text-dark">
@@ -54,7 +48,6 @@
         </div>
         {% endif %}
         
-        <!-- OCs Standard -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_ordenes') }}" class="dashboard-card card text-dark">
@@ -66,7 +59,6 @@
         </div>
         {% endif %}
 
-        <!-- OCs Proyecto -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_proyectos_oc') }}" class="dashboard-card card text-dark">
@@ -78,7 +70,6 @@
         </div>
         {% endif %}
 
-        <!-- Salidas -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('historial_salidas') }}" class="dashboard-card card text-dark">
@@ -90,7 +81,6 @@
         </div>
         {% endif %}
 
-        <!-- Gastos -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_gastos') }}" class="dashboard-card card text-dark">
@@ -106,85 +96,44 @@
     
     <hr class="mb-4">
 
-    <!-- ============================================= -->
-    <!-- SECCIÓN DE ALERTAS (La mantenemos aquí) -->
-    <!-- ============================================= -->
     {% if alertas_agrupadas %}
     <div class="alert alert-warning">
         <h4 class="alert-heading">¡Alertas de Stock!</h4>
-        <p>Los siguientes productos están por debajo del mínimo.</p>
+        <p>Los siguientes productos están por debajo del mínimo en uno o más almacenes.</p>
         
-        {% for proveedor_nombre, alertas in alertas_agrupadas.items() %}
+        {% for (alm_id, alm_nombre, prov_id, prov_nombre), items_stock in alertas_agrupadas.items() %}
             <div class="card my-3">
                 <div class="card-header bg-dark text-white">
-                    <strong>Proveedor: {{ proveedor_nombre }}</strong>
+                    <strong>Almacén: {{ alm_nombre }}</strong> | 
+                    <span class="text-muted">Proveedor: {{ prov_nombre }}</span>
                 </div>
                 
                 <form action="{{ url_for('nueva_orden') }}" method="POST">
+                    <input type="hidden" name="almacen_id" value="{{ alm_id }}">
                     
-                    {% set context = {'hay_productos': false, 'pending_oc_id': 0} %}
-
+                    {% set context = {'hay_productos': true} %}
+                    
                     <ul class="list-group list-group-flush">
-                        
-                        {% for alerta in alertas %}
-                        
-                        {% set pending_info = pending_map.get(alerta.id) %}
-                        
-                        {% if pending_info %}
-                            <!-- CASO A: Ya hay una OC en 'borrador' O 'enviada' -->
-                            
-                            {% if context.pending_oc_id == 0 %}
-                                {% do context.update({'pending_oc_id': pending_info.orden_id}) %}
-                            {% endif %}
-                            
-                            {% if pending_info.estado == 'borrador' %}
-                                {% set badge_class = 'bg-info text-dark' %}
-                                {% set badge_text = 'Pendiente' %}
-                                {% set alert_message = 'ya fue generada por <strong>' ~ pending_info.username ~ '</strong> y está pendiente de envío.' %}
-                            {% else %}
-                                {% set badge_class = 'bg-primary text-white' %}
-                                {% set badge_text = 'Enviada' %}
-                                {% set alert_message = 'ya fue enviada (OC #' ~ pending_info.orden_id ~ ') y está pendiente de recepción.' %}
-                            {% endif %}
-                            
-                            <li class="list-group-item list-group-item-info">
-                                <strong>{{ alerta.nombre }}</strong> 
-                                <span class="badge {{ badge_class }}">{{ badge_text }}</span>
-                                <br>
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle-fill"></i> 
-                                    La <a href="{{ url_for('ver_orden', id=pending_info.orden_id) }}">OC #{{ pending_info.orden_id }}</a> {{ alert_message | safe }}
-                                </small>
-                            </li>
-                        {% else %}
-                            <!-- CASO B: No hay OC, mostrar el checkbox -->
-                            {% do context.update({'hay_productos': true}) %}
-                            
-                            <li class="list-group-item">
-                                <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ alerta.id }}" id="check_{{ alerta.id }}" checked>
-                                <label class="form-check-label" for="check_{{ alerta.id }}">
-                                    <strong>{{ alerta.nombre }}</strong> ({{ alerta.cantidad_stock }} en stock, mínimo: {{ alerta.stock_minimo }})
-                                </label>
-                            </li>
-                        {% endif %}
-                        
+                        {% for item in items_stock %}
+                        <li class="list-group-item">
+                            <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ item.id }}" checked>
+                            <label class="form-check-label" for="check_{{ item.id }}">
+                                <strong>{{ item.producto.nombre }}</strong> 
+                                ({{ item.cantidad }} en stock, mínimo: {{ item.stock_minimo }})
+                            </label>
+                        </li>
                         {% endfor %}
                     </ul>
 
                     <div class="card-footer">
-                        {% if context.hay_productos %}
+                        {% if prov_id != 0 %}
                             <button type="submit" class="btn btn-sm btn-success">
-                                Generar OC para productos seleccionados
+                                Generar OC para {{ prov_nombre }} (en {{ alm_nombre }})
                             </button>
-                        {% elif proveedor_nombre == 'Proveedor no asignado' %}
-                            <span class="text-danger">Asigna un proveedor a estos productos para poder generar una OC.</span>
                         {% else %}
-                            <a href="{{ url_for('ver_orden', id=context.pending_oc_id) }}" class="btn btn-sm btn-info">
-                                <i class="bi bi-eye"></i> Ver OC Pendiente (#{{ context.pending_oc_id }})
-                            </a>
+                            <span class="text-danger">Asigna un proveedor a estos productos para poder generar una OC.</span>
                         {% endif %}
                     </div>
-                    
                 </form>
             </div>
         {% endfor %}
