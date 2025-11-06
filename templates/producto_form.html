@@ -59,8 +59,8 @@
                         </div>
                         
                         {% if not producto %} 
-                        <div class="alert alert-info">
-                            <strong>Niveles de Stock:</strong> Estos mínimos/máximos se aplicarán a todos los almacenes por defecto.
+                        <div class="alert alert-info py-2">
+                            <small><strong>Niveles de Stock:</strong> Estos mínimos/máximos se aplicarán a todos los almacenes por defecto.</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -74,14 +74,14 @@
                         </div>
                         
                         <hr>
-                        <div class="alert alert-success">
-                            <strong>Stock Inicial (Opcional):</strong> Si ya tienes este producto, registra la cantidad inicial en un almacén.
+                        <div class="alert alert-success py-2">
+                            <small><strong>Stock Inicial (Opcional):</strong> Puedes registrar la cantidad inicial en un almacén ahora mismo.</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="almacen_inicial_id" class="form-label">Almacén de Stock Inicial</label>
                                 <select class="form-select" id="almacen_inicial_id" name="almacen_inicial_id">
-                                    <option value="0">-- No registrar stock inicial --</option>
+                                    <option value="0">-- Ninguno (Stock 0 en todos) --</option>
                                     {% for alm in almacenes %}
                                     <option value="{{ alm.id }}">{{ alm.nombre }}</option>
                                     {% endfor %}
@@ -98,8 +98,8 @@
                         <h5>Stock en: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label for="cantidad" class="form-label">Cantidad Actual</label>
-                                <input type="number" class="form-control" id="cantidad" name="cantidad" 
+                                <label class="form-label">Cantidad Actual</label>
+                                <input type="number" class="form-control" name="cantidad" 
                                        value="{{ stock_item.cantidad }}" min="0" required>
                                 <small class="text-muted">Ajuste manual directo.</small>
                             </div>
@@ -115,7 +115,7 @@
 
                         {% else %} 
                         <div class="alert alert-info mt-3">
-                            <strong>Nota:</strong> Para ver o editar el stock de este producto, ve al <a href="{{ url_for('dashboard') }}">Dashboard</a>, selecciona un almacén y haz clic en "Editar" en la fila del producto.
+                            <strong>Nota:</strong> Para ver o editar el stock, ve al <a href="{{ url_for('dashboard') }}">Dashboard</a>, selecciona un almacén y edita el producto desde allí.
                         </div>
                         {% endif %}
                         </div>
@@ -151,7 +151,7 @@
             const preview = document.getElementById('img_preview');
             preview.style.display = 'block';
             preview.src = URL.createObjectURL(event.target.files[0]);
-            preview.onload = () => URL.revokeObjectURL(preview.src); // Libera memoria
+            preview.onload = () => URL.revokeObjectURL(preview.src);
         }
     </script>
 {% endblock %}
