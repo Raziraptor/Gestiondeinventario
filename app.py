@@ -701,6 +701,8 @@ def nuevo_producto():
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
+    # --- AÑADIDO: Necesitamos la lista de almacenes ---
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() 
     
     if request.method == 'POST':
         imagen_filename = None
@@ -717,6 +719,7 @@ def nuevo_producto():
                                    titulo="Nuevo Producto", 
                                    proveedores=proveedores,
                                    categorias=categorias,
+                                   almacenes=almacenes, # <-- AÑADIDO
                                    producto=producto_temporal)
             
         if 'imagen' in request.files:
@@ -741,32 +744,63 @@ def nuevo_producto():
             )
             db.session.add(nuevo_prod)
             
+            # --- LÓGICA DE STOCK MODIFICADA ---
+            # Leemos los nuevos campos del formulario
+            cantidad_inicial = int(request.form.get('cantidad_inicial', 0))
+            # Hacemos que el ID del almacén sea un entero o None
+            almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0)) or None
+
             almacenes_org = Almacen.query.filter_by(organizacion_id=org_id).all()
-            if not almacenes_org:
-                flash('¡Producto creado! ADVERTENCIA: No se crearon registros de stock porque no hay almacenes definidos.', 'warning')
+            if not almacenes_org and cantidad_inicial > 0:
+                flash('¡Producto creado! ADVERTENCIA: No se pudo registrar el stock inicial porque no hay almacenes definidos.', 'warning')
             
             for almacen in almacenes_org:
+                cantidad_a_registrar = 0
+                if almacen.id == almacen_inicial_id:
+                    cantidad_a_registrar = cantidad_inicial
+
                 nuevo_stock = Stock(
                     producto=nuevo_prod,
                     almacen=almacen,
-                    cantidad=0,
+                    cantidad=cantidad_a_registrar, # <-- LÓGICA MODIFICADA
                     stock_minimo=int(request.form.get('stock_minimo', 5)),
                     stock_maximo=int(request.form.get('stock_maximo', 100))
                 )
                 db.session.add(nuevo_stock)
+            
+            # --- NUEVA LÓGICA DE MOVIMIENTO ---
+            # Si se añadió stock inicial, crear un movimiento de auditoría
+            if cantidad_inicial > 0 and almacen_inicial_id:
+                movimiento_inicial = Movimiento(
+                    producto=nuevo_prod,
+                    cantidad=cantidad_inicial,
+                    tipo='entrada-inicial',
+                    fecha=datetime.now(),
+                    motivo='Stock Inicial (Creación de Producto)',
+                    almacen_id=almacen_inicial_id,
+                    organizacion_id=org_id
+                )
+                db.session.add(movimiento_inicial)
+            # --- FIN DE NUEVA LÓGICA ---
 
             db.session.commit()
-            flash('Producto creado exitosamente. Se ha añadido con stock 0 a todos los almacenes.', 'success')
-            return redirect(url_for('dashboard'))
+            flash('Producto creado exitosamente.', 'success')
+            # Redirigimos al dashboard, mostrando el almacén donde se añadió el stock
+            if almacen_inicial_id:
+                return redirect(url_for('dashboard', almacen_id=almacen_inicial_id))
+            else:
+                return redirect(url_for('dashboard'))
         
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear producto: {e}', 'danger')
+            return repoblar_formulario_con_error() # <-- Corregido para llamar a la función
             
     return render_template('producto_form.html', 
                            titulo="Nuevo Producto", 
                            proveedores=proveedores,
                            categorias=categorias,
+                           almacenes=almacenes, # <-- AÑADIDO
                            producto=None)
 
 @app.route('/producto/editar/<int:id>', methods=['GET', 'POST'])
@@ -2696,5 +2730,6 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
