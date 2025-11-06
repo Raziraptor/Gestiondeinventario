@@ -49,13 +49,15 @@
                 {% if current_user.is_authenticated %}
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         
-                        <!-- Solo se muestra si NO estamos en el index -->
                         {% if request.endpoint != 'index' %}
+                            <!-- Enlace a Dashboard (si tiene permiso) -->
+                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('dashboard') }}">
                                     <i class="bi bi-grid-fill"></i> Dashboard
                                 </a>
                             </li>
+                            {% endif %}
                             
                             <!-- Dropdown de GESTIÓN (CON PERMISOS) -->
                             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
@@ -64,6 +66,16 @@
                                     <i class="bi bi-folder2-open"></i> Gestión
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownGestion">
+                                    <!-- ======================== -->
+                                    <!-- NUEVO ENLACE A ALMACENES -->
+                                    <!-- ======================== -->
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('lista_almacenes') }}">
+                                            <i class="bi bi-house-door"></i> Almacenes
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <!-- ======================== -->
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('lista_categorias') }}">
                                             <i class="bi bi-tags"></i> Categorías
@@ -79,6 +91,7 @@
                             {% endif %}
 
                             <!-- Dropdown de OPERACIONES (CON PERMISOS) -->
+                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas or current_user.perm_view_gastos %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="dropdownOperaciones" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-gear-wide-connected"></i> Operaciones
@@ -86,9 +99,6 @@
                                 <ul class="dropdown-menu" aria-labelledby="dropdownOperaciones">
                                     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
                                     <li>
-                                        <!-- ======================== -->
-                                        <!-- CORRECCIÓN 1 -->
-                                        <!-- ======================== -->
                                         <a class="dropdown-item" href="{{ url_for('lista_ordenes') }}">
                                             <i class="bi bi-receipt"></i> Órdenes de Compra
                                         </a>
@@ -96,9 +106,6 @@
                                     {% endif %}
                                     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
                                     <li>
-                                        <!-- ======================== -->
-                                        <!-- CORRECCIÓN 2 -->
-                                        <!-- ======================== -->
                                         <a class="dropdown-item" href="{{ url_for('lista_proyectos_oc') }}">
                                             <i class="bi bi-clipboard-data"></i> OC de Proyectos
                                         </a>
@@ -112,7 +119,6 @@
                                     </li>
                                     {% endif %}
                                     
-                                    <!-- Divisor lógico -->
                                     {% if (current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas) and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos) %}
                                     <li><hr class="dropdown-divider"></li>
                                     {% endif %}
@@ -126,6 +132,7 @@
                                     {% endif %}
                                 </ul>
                             </li>
+                            {% endif %}
                         {% endif %}
                     </ul>
                 {% endif %}
@@ -149,7 +156,6 @@
                             
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                 
-                                <!-- Enlace de Admin Panel (Super o Admin) -->
                                 {% if current_user.rol in ['super_admin', 'admin'] %}
                                 <li>
                                     {% if current_user.rol == 'super_admin' %}
@@ -164,15 +170,14 @@
                                 </li>
                                 {% endif %}
                                 
-                                <!-- Enlace de Cuenta -->
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('account') }}">
                                         <i class="bi bi-gear"></i> Configuración de Cuenta
                                     </a>
+Next, we'll implement the logic for the **Dashboard** (`/dashboard`) and the **New Product** form (`/producto/nuevo`) to work with this new "Stock per Warehouse" system.
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 
-                                <!-- Enlace de Cerrar Sesión -->
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('logout') }}">
                                         <i class="bi bi-box-arrow-left"></i> Cerrar Sesión
