@@ -12,10 +12,6 @@
                 <div class="card-body">
                     <p>Por favor, selecciona un almacén para continuar.</p>
                     
-                    <!-- 
-                        Este formulario usa GET para pasar el 'almacen_id'
-                        de vuelta a la ruta de destino (ej. 'registrar_salida')
-                    -->
                     <form method="GET" action="{{ url_for(destino_ruta) }}">
                         <div class="mb-3">
                             <label for="almacen_id" class="form-label">Almacenes Disponibles</label>
@@ -27,6 +23,7 @@
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary">Continuar</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
                     </form>
                 </div>
             </div>
