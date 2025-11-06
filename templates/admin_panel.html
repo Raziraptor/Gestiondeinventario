@@ -8,6 +8,13 @@
         Gestiona los permisos de los usuarios de tu organización: 
         <strong>{{ current_user.organizacion.nombre }}</strong>
     </p>
+
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Código de Invitación</h4>
+        <p>Comparte este código con los nuevos usuarios para que se unan automáticamente a tu organización:</p>
+        <h3><span class="badge bg-primary">{{ current_user.organizacion.codigo_invitacion }}</span></h3>
+    </div>
+
     <hr>
 
     <div class="card">
@@ -20,13 +27,10 @@
                     <tr>
                         <th>Usuario</th>
                         <th>Rol</th>
-                        <!-- ======================== -->
-                        <!-- TÍTULOS CORREGIDOS CON ICONOS -->
-                        <!-- ======================== -->
                         <th class="text-center" title="Ver Inventario">
                             <i class="bi bi-grid-fill"></i>
                         </th>
-                        <th class="text-center" title="Editar Inventario/Gestión">
+                        <th class="text-center" title="Editar Gestión/Inventario">
                             <i class="bi bi-pencil-square"></i>
                         </th>
                         <th class="text-center" title="Crear OC Normal">
@@ -46,13 +50,11 @@
                 </thead>
                 <tbody>
                     {% for user in usuarios %}
-                    <!-- Solo mostramos usuarios con rol 'user' -->
                     {% if user.rol == 'user' %}
                     <tr>
                         <form action="{{ url_for('update_user_permissions', user_id=user.id) }}" method="POST">
                             {{ forms[user.id].hidden_tag() }}
                             
-                            <!-- Info del Usuario -->
                             <td class="align-middle">
                                 <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
                                      class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
@@ -62,7 +64,6 @@
                                 <span class="badge bg-secondary">{{ user.rol.capitalize() }}</span>
                             </td>
                             
-                            <!-- Checkboxes de Permisos (Cambiados a Switches) -->
                             <td class="text-center align-middle">
                                 <div class="form-check form-switch d-flex justify-content-center">
                                     {{ forms[user.id].perm_view_dashboard(class="form-check-input") }}
@@ -94,14 +95,12 @@
                                 </div>
                             </td>
                             
-                            <!-- Botón de Guardar -->
                             <td class="align-middle">
                                 <button type="submit" class="btn btn-success btn-sm">Guardar</button>
                             </td>
                         </form>
                     </tr>
                     {% elif user.rol == 'admin' %}
-                    <!-- Fila para otros Admins (no editables) -->
                     <tr class="table-info">
                         <td class="align-middle">
                             <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
