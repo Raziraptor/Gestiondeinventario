@@ -866,7 +866,7 @@ def editar_producto(id):
                 stock_item.stock_maximo = int(request.form.get('stock_maximo', stock_item.stock_maximo))
                 # Si realmente necesitas editar la cantidad directamente (ej. corrección de inventario),
                 # descomenta la siguiente línea, pero ten cuidado porque no dejará huella en 'Movimiento'.
-                # stock_item.cantidad = int(request.form.get('cantidad', stock_item.cantidad))
+                stock_item.cantidad = int(request.form.get('cantidad', stock_item.cantidad))
 
             db.session.commit()
             flash('Producto actualizado exitosamente', 'success')
@@ -2803,6 +2803,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
