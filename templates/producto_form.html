@@ -8,6 +8,7 @@
     
     <form method="POST" action="{{ url_for('editar_producto', id=producto.id) if producto else url_for('nuevo_producto') }}" enctype="multipart/form-data">
         <div class="row g-3">
+            <!-- Columna Izquierda: Detalles -->
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">Detalles del Producto</div>
@@ -58,6 +59,9 @@
                             </div>
                         </div>
                         
+                        <!-- ======================== -->
+                        <!-- CAMPOS DE STOCK MODIFICADOS -->
+                        <!-- ======================== -->
                         {% if not producto %}
                         <div class="alert alert-info">
                             <strong>Nota:</strong> El stock inicial será 0. Los niveles de stock se aplicarán a todos los almacenes existentes.
@@ -77,10 +81,13 @@
                             <strong>Nota:</strong> Para ver o editar el stock, ve al <a href="{{ url_for('dashboard') }}">Dashboard</a> y selecciona un almacén.
                         </div>
                         {% endif %}
-                        </div>
+                        <!-- ======================== -->
+
+                    </div>
                 </div>
             </div>
             
+            <!-- Columna Derecha: Imagen -->
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">Imagen del Producto</div>
