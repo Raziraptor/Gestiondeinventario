@@ -1982,9 +1982,9 @@ def ver_proyecto_oc(id):
 @check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def nuevo_proyecto_oc():
-    
     org_id = current_user.organizacion_id
     
+    # 1. Preparar Productos para JS
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
@@ -1995,7 +1995,11 @@ def nuevo_proyecto_oc():
             'precio_unitario': p.precio_unitario,
         })
         
-    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+    # 2. Preparar Proveedores para JS (CORRECCIÓN AQUÍ)
+    proveedores_query = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+    proveedores_lista = [{'id': p.id, 'nombre': p.nombre} for p in proveedores_query]
+
+    # 3. Obtener Almacenes (siguen siendo objetos, se usan en un bucle Jinja normal)
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
 
     if request.method == 'POST':
@@ -2005,7 +2009,14 @@ def nuevo_proyecto_oc():
             
             if not nombre_proyecto or not almacen_id:
                 flash('El nombre del proyecto y el almacén son obligatorios.', 'danger')
-                raise Exception("Campos obligatorios vacíos")
+                # Usamos return para no lanzar excepción y perder datos del form
+                return render_template('proyecto_oc_form.html', 
+                           titulo="Crear OC de Proyecto",
+                           productos=productos_lista,
+                           proveedores=proveedores_lista,
+                           almacenes=almacenes,
+                           proyecto_oc=None,
+                           detalles_json=None)
 
             nueva_proyecto_oc = ProyectoOC(
                 nombre_proyecto=nombre_proyecto,
@@ -2034,12 +2045,12 @@ def nuevo_proyecto_oc():
                 )
                 
                 if tipos[i] == 'existente':
-                    prod_id_val = int(productos_existentes_ids[i] or 0)
+                    # Asegurar que es un entero válido
+                    prod_id_val = int(productos_existentes_ids[i]) if productos_existentes_ids[i].isdigit() else 0
                     if prod_id_val > 0:
                         detalle.producto_id = prod_id_val
                     else:
-                        detalle.descripcion_nuevo = "Error: Producto existente no seleccionado"
-                        detalle.producto_id = None
+                         detalle.producto_id = None # Evitar error de FK
                 else: 
                     detalle.descripcion_nuevo = productos_nuevos[i]
                 
@@ -2051,12 +2062,13 @@ def nuevo_proyecto_oc():
 
         except Exception as e:
             db.session.rollback()
+            print(f"ERROR OC PROYECTO: {e}") # Para ver en logs de Render
             flash(f'Error al crear la OC de Proyecto: {e}', 'danger')
     
     return render_template('proyecto_oc_form.html', 
                            titulo="Crear OC de Proyecto",
                            productos=productos_lista,
-                           proveedores=proveedores,
+                           proveedores=proveedores_lista, # <-- Pasamos la lista corregida
                            almacenes=almacenes,
                            proyecto_oc=None,
                            detalles_json=None)
@@ -2065,7 +2077,6 @@ def nuevo_proyecto_oc():
 @login_required
 @check_permission('perm_create_oc_proyecto')
 def editar_proyecto_oc(id):
-    
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     org_id = proyecto_oc.organizacion_id
 
@@ -2076,7 +2087,6 @@ def editar_proyecto_oc(id):
     if request.method == 'POST':
         try:
             proyecto_oc.nombre_proyecto = request.form.get('nombre_proyecto')
-            
             ProyectoOCDetalle.query.filter_by(proyecto_oc_id=id).delete()
             
             tipos = request.form.getlist('tipo_item[]')
@@ -2087,26 +2097,19 @@ def editar_proyecto_oc(id):
             proveedores_sugeridos = request.form.getlist('proveedor_sugerido[]')
 
             for i in range(len(tipos)):
-                if not cantidades[i] or not costos[i]:
-                    continue 
-
+                if not cantidades[i] or not costos[i]: continue 
                 detalle = ProyectoOCDetalle(
                     proyecto_oc_id=id,
                     cantidad=int(cantidades[i]),
                     costo_unitario=float(costos[i]),
                     proveedor_sugerido=proveedores_sugeridos[i]
                 )
-                
                 if tipos[i] == 'existente':
-                    prod_id_val = int(productos_existentes_ids[i] or 0)
-                    if prod_id_val > 0:
-                        detalle.producto_id = prod_id_val
-                    else:
-                        detalle.descripcion_nuevo = "Error: Producto existente no seleccionado"
-                        detalle.producto_id = None
+                    prod_id_val = int(productos_existentes_ids[i]) if productos_existentes_ids[i].isdigit() else 0
+                    if prod_id_val > 0: detalle.producto_id = prod_id_val
+                    else: detalle.producto_id = None
                 else: 
                     detalle.descripcion_nuevo = productos_nuevos[i]
-                
                 db.session.add(detalle)
 
             db.session.commit()
@@ -2115,19 +2118,22 @@ def editar_proyecto_oc(id):
 
         except Exception as e:
             db.session.rollback()
+            print(f"ERROR EDITAR OC PROYECTO: {e}")
             flash(f'Error al actualizar la OC de Proyecto: {e}', 'danger')
             return redirect(url_for('editar_proyecto_oc', id=id))
     
+    # --- GET: Preparar datos ---
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
         productos_lista.append({
-            'id': p.id, 'nombre': p.nombre, 'codigo': p.codigo, 
-            'precio_unitario': p.precio_unitario,
-            'proveedor_id': p.proveedor_id
+            'id': p.id, 'nombre': p.nombre, 'codigo': p.codigo, 'precio_unitario': p.precio_unitario
         })
         
-    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+    # CORRECCIÓN AQUÍ TAMBIÉN:
+    proveedores_query = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+    proveedores_lista = [{'id': p.id, 'nombre': p.nombre} for p in proveedores_query]
+
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
     
     detalles_json = []
@@ -2144,7 +2150,7 @@ def editar_proyecto_oc(id):
     return render_template('proyecto_oc_form.html', 
                            titulo=f"Editar OC de Proyecto #{proyecto_oc.id}",
                            productos=productos_lista,
-                           proveedores=proveedores,
+                           proveedores=proveedores_lista, # <-- Pasamos la lista corregida
                            almacenes=almacenes,
                            proyecto_oc=proyecto_oc,
                            detalles_json=detalles_json)
@@ -2803,6 +2809,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
