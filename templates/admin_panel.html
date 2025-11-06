@@ -15,18 +15,32 @@
             Usuarios de la Organización
         </div>
         <div class="card-body table-responsive">
-            <table class="table table-striped table-hover table-sm"> <!-- Añadido table-sm -->
+            <table class="table table-striped table-hover table-sm">
                 <thead>
                     <tr>
                         <th>Usuario</th>
                         <th>Rol</th>
-                        <!-- Rotamos los títulos para ahorrar espacio -->
-                        <th class="text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); padding-top: 10px;">Ver Inventario</th>
-                        <th class="text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); padding-top: 10px;">Editar Inventario</th>
-                        <th class="text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); padding-top: 10px;">Crear OC Normal</th>
-                        <th class="text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); padding-top: 10px;">Crear OC Proyecto</th>
-                        <th class="text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); padding-top: 10px;">Registrar Salidas</th>
-                        <th class="text-center" style="writing-mode: vertical-rl; transform: rotate(180deg); padding-top: 10px;">Ver Gastos</th>
+                        <!-- ======================== -->
+                        <!-- TÍTULOS CORREGIDOS CON ICONOS -->
+                        <!-- ======================== -->
+                        <th class="text-center" title="Ver Inventario">
+                            <i class="bi bi-grid-fill"></i>
+                        </th>
+                        <th class="text-center" title="Editar Inventario/Gestión">
+                            <i class="bi bi-pencil-square"></i>
+                        </th>
+                        <th class="text-center" title="Crear OC Normal">
+                            <i class="bi bi-receipt"></i>
+                        </th>
+                        <th class="text-center" title="Crear OC Proyecto">
+                            <i class="bi bi-clipboard-data"></i>
+                        </th>
+                        <th class="text-center" title="Registrar Salidas">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </th>
+                        <th class="text-center" title="Ver Gastos">
+                            <i class="bi bi-cash-coin"></i>
+                        </th>
                         <th>Acción</th>
                     </tr>
                 </thead>
@@ -48,7 +62,7 @@
                                 <span class="badge bg-secondary">{{ user.rol.capitalize() }}</span>
                             </td>
                             
-                            <!-- Checkboxes de Permisos -->
+                            <!-- Checkboxes de Permisos (Cambiados a Switches) -->
                             <td class="text-center align-middle">
                                 <div class="form-check form-switch d-flex justify-content-center">
                                     {{ forms[user.id].perm_view_dashboard(class="form-check-input") }}
@@ -82,7 +96,7 @@
                             
                             <!-- Botón de Guardar -->
                             <td class="align-middle">
-                                {{ forms[user.id].submit(class="btn btn-success btn-sm") }}
+                                <button type="submit" class="btn btn-success btn-sm">Guardar</button>
                             </td>
                         </form>
                     </tr>
