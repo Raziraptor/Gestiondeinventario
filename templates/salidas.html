@@ -11,7 +11,30 @@
     </div>
 
     <div class="card bg-light mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('historial_salidas') }}" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label for="mes" class="form-label">Mes</label>
+                    <select id="mes" name="mes" class="form-select">
+                        {% for num, nombre in meses_lista %}
+                            <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="ano" class="form-label">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control" value="{{ ano_seleccionado }}" min="2020" max="2050">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-filter"></i> Filtrar
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
     {% for salida in salidas %}
     <div class="card mb-3">
@@ -20,7 +43,10 @@
             <div>
                 <strong>Hoja de Salida del {{ salida.fecha.strftime('%Y-%m-%d') }}</strong>
                 <br>
-                <small>Creada por: {{ salida.creador.username }}</small>
+                <small>
+                    <i class="bi bi-house-door"></i> Almacén: <strong>{{ salida.almacen.nombre }}</strong>
+                    | Creada por: {{ salida.creador.username }}
+                </small>
             </div>
             <h4>
                 {% if salida.estado == 'cancelada' %}
@@ -56,10 +82,10 @@
         </div>
         
         <div class="card-footer text-end">
-            <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-outline-secondary">
-                <i class="bi bi-eye"></i> Ver Detalle/Editar
+            <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-eye"></i> Ver Detalle / Editar Items
             </a>
-            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-outline-danger" title="Imprimir PDF" target="_blank">
+            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-sm btn-outline-danger" title="Imprimir PDF" target="_blank">
                 <i class="bi bi-file-earmark-pdf"></i>
             </a>
         </div>
