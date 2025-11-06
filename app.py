@@ -260,18 +260,26 @@ class Gasto(db.Model):
     def __repr__(self):
         return f'<Gasto {self.descripcion} - ${self.monto}>'
     
+# ========================
+# MODELO 'Salida' MODIFICADO
+# ========================
 class Salida(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    motivo = db.Column(db.String(255), nullable=True)
-    estado = db.Column(db.String(20), nullable=False, default='completada')
+    # --- CAMBIO: De DateTime a Date. Solo nos importa el día. ---
+    fecha = db.Column(db.Date, nullable=False, default=datetime.now().date)
+    estado = db.Column(db.String(20), nullable=False, default='abierta') # 'abierta', 'cerrada' (futuro)
     
-    creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)    
+    # --- 'motivo' ELIMINADO de aquí. Ahora vive en 'Movimiento'. ---
+    
+    creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Quién creó el *primer* item del día
+    # (cancelado_por_id ya no es necesario aquí, se cancela por item)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
     
-    movimientos = db.relationship('Movimiento', backref='salida', lazy=True, cascade="all, delete-orphan")
+    movimientos = db.relationship('Movimiento', backref='salida', lazy='dynamic', cascade="all, delete-orphan")
 
+# ========================
+# MODELO 'Movimiento' MODIFICADO
+# ========================
 class Movimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
@@ -279,8 +287,10 @@ class Movimiento(db.Model):
     
     cantidad = db.Column(db.Integer, nullable=False) 
     tipo = db.Column(db.String(20), nullable=False) 
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    motivo = db.Column(db.String(255), nullable=True) 
+    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now) # Mantenemos DateTime para la hora exacta
+    
+    # --- CAMBIO: El motivo ahora es obligatorio y vive aquí ---
+    motivo = db.Column(db.String(255), nullable=False) 
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
     salida_id = db.Column(db.Integer, db.ForeignKey('salida.id'), nullable=True)
@@ -974,13 +984,15 @@ def nuevo_proveedor():
             
     return render_template('proveedor_form.html', titulo="Nuevo Proveedor")
 
-#<---------SALIDA DE PRODUCTOS----------->
+#<---------SALIDA DE PRODUCTOS (MODIFICADO)----------->
 
 @app.route('/salidas')
 @login_required
 @check_org_permission
 @check_permission('perm_do_salidas')
 def historial_salidas():
+    """ Muestra el historial de Hojas de Salida Diarias (Multiusuario). """
+    # ... (lógica de filtro de mes/año sin cambios) ...
     mes = request.args.get('mes', type=int)
     ano = request.args.get('ano', type=int)
     ahora = datetime.now()
@@ -998,7 +1010,7 @@ def historial_salidas():
         query = Salida.query.filter_by(organizacion_id=current_user.organizacion_id)
 
     query = query.filter(
-        extract('month', Salida.fecha) == mes,
+        extract('month', Salida.fecha) == mes, # Filtra por la columna 'fecha' (Date)
         extract('year', Salida.fecha) == ano
     )
     salidas = query.order_by(Salida.fecha.desc()).all()
@@ -1013,8 +1025,123 @@ def historial_salidas():
 @login_required
 @check_permission('perm_do_salidas')
 def ver_salida(id):
+    """ Muestra el detalle de una Hoja de Salida Diaria (Multiusuario). """
     salida = get_item_or_404(Salida, id)
-    return render_template('salida_detalle.html', salida=salida)
+    # Ordenamos los movimientos por hora para verlos cronológicamente
+    movimientos = salida.movimientos.order_by(Movimiento.fecha.asc()).all()
+    
+    return render_template('salida_detalle.html', 
+                           salida=salida, 
+                           movimientos=movimientos,
+                           titulo=f"Salida del {salida.fecha.strftime('%Y-%m-%d')}")
+
+@app.route('/salida', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_do_salidas')
+def registrar_salida():
+    """ 
+    AÑADE items a la Hoja de Salida del día de hoy.
+    La crea si no existe.
+    """
+    org_id = current_user.organizacion_id
+    
+    # --- LÓGICA DE BUSCAR-O-CREAR LA HOJA DIARIA ---
+    today = datetime.now().date()
+    salida_del_dia = Salida.query.filter_by(
+        fecha=today, 
+        organizacion_id=org_id
+    ).first()
+
+    # Si no existe, la creamos
+    if not salida_del_dia:
+        salida_del_dia = Salida(
+            fecha=today,
+            creador_id=current_user.id,
+            organizacion_id=org_id
+        )
+        db.session.add(salida_del_dia)
+        # Hacemos un 'flush' para obtener el ID
+        db.session.flush()
+
+    # --- FIN DE LÓGICA ---
+
+    productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
+    productos_lista = []
+    for p in productos_query:
+        productos_lista.append({
+            'id': p.id,
+            'nombre': p.nombre,
+            'codigo': p.codigo,
+            'stock_actual': p.cantidad_stock 
+        })
+
+    if request.method == 'POST':
+        try:
+            productos_ids = request.form.getlist('producto_id[]')
+            cantidades = request.form.getlist('cantidad[]')
+            motivos = request.form.getlist('motivo[]') # <-- AHORA ES UNA LISTA
+
+            if not productos_ids:
+                flash('Debes añadir al menos un producto a la salida.', 'danger')
+                return redirect(url_for('registrar_salida'))
+
+            # --- 1. FASE DE VALIDACIÓN ---
+            productos_para_actualizar = [] 
+            for i in range(len(productos_ids)):
+                prod_id = productos_ids[i]
+                cant_str = cantidades[i]
+                
+                if not prod_id or not cant_str: continue
+                cantidad_salida = int(cant_str)
+                
+                producto = Producto.query.filter_by(id=prod_id, organizacion_id=org_id).first()
+                if not producto:
+                    flash(f'Error: Producto no válido.', 'danger')
+                    db.session.rollback()
+                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id)
+                # ... (resto de validaciones de stock) ...
+                if cantidad_salida <= 0:
+                    flash('Todas las cantidades deben ser positivas.', 'danger')
+                    db.session.rollback() 
+                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id)
+                if producto.cantidad_stock < cantidad_salida:
+                    flash(f'Error: Stock insuficiente para "{producto.nombre}".', 'danger')
+                    db.session.rollback()
+                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id)
+                
+                productos_para_actualizar.append((producto, cantidad_salida, motivos[i]))
+
+            # --- 2. FASE DE EJECUCIÓN ---
+            for producto, cantidad_salida, motivo_item in productos_para_actualizar:
+                
+                producto.cantidad_stock -= cantidad_salida
+                db.session.add(producto)
+                
+                movimiento = Movimiento(
+                    producto_id=producto.id,
+                    cantidad= -cantidad_salida,
+                    tipo='salida',
+                    fecha=datetime.now(), # <-- Hora exacta
+                    motivo=motivo_item, # <-- Motivo por item
+                    salida=salida_del_dia, # <-- Vinculamos a la hoja diaria
+                    organizacion_id=org_id
+                )
+                db.session.add(movimiento)
+            
+            db.session.commit()
+            flash(f'Se añadieron {len(productos_para_actualizar)} items a la salida del día.', 'success')
+            # Redirigimos al detalle de la hoja de hoy
+            return redirect(url_for('ver_salida', id=salida_del_dia.id)) 
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al registrar la salida: {e}', 'danger')
+    
+    return render_template('salida_form.html', 
+                           titulo=f"Registrar Salida para {today.strftime('%Y-%m-%d')}", 
+                           productos=productos_lista,
+                           salida_id=salida_del_dia.id) # Pasamos el ID para el botón "Ver Hoja de Hoy"
 
 # --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
 
@@ -1333,48 +1460,57 @@ def registrar_salida():
                            titulo="Registrar Salida", 
                            productos=productos_lista)
 
-@app.route('/salida/<int:id>/cancelar', methods=['POST'])
+# ========================
+# RUTA MODIFICADA (Antes 'cancelar_salida')
+# ========================
+@app.route('/movimiento/<int:id>/eliminar', methods=['POST'])
 @login_required
 @check_permission('perm_do_salidas')
-def cancelar_salida(id):
-    salida = get_item_or_404(Salida, id)
+def eliminar_movimiento_salida(id):
+    """ 
+    Elimina un SOLO item (Movimiento) de una hoja de salida 
+    y REVIERTE el stock.
+    """
+    movimiento = get_item_or_404(Movimiento, id)
     
-    if salida.estado == 'cancelada':
-        flash('Esta salida ya ha sido cancelada.', 'warning')
+    # Doble chequeo de seguridad
+    if movimiento.tipo != 'salida':
+        flash('Error: Solo se pueden eliminar items de salida.', 'danger')
         return redirect(url_for('historial_salidas'))
+        
+    salida_id_redirect = movimiento.salida_id
 
     try:
-        org_id = salida.organizacion_id
+        producto = movimiento.producto
+        cantidad_a_devolver = abs(movimiento.cantidad)
         
-        salida.estado = 'cancelada'
-        salida.cancelado_por_id = current_user.id
-        db.session.add(salida)
+        # 1. Revertir el stock
+        producto.cantidad_stock += cantidad_a_devolver
+        db.session.add(producto)
         
-        for mov in salida.movimientos:
-            producto = mov.producto
-            cantidad_a_devolver = abs(mov.cantidad)
-            
-            producto.cantidad_stock += cantidad_a_devolver
-            db.session.add(producto)
-            
-            mov_ajuste = Movimiento(
-                producto_id=producto.id,
-                cantidad=cantidad_a_devolver,
-                tipo='ajuste-entrada',
-                fecha=datetime.now(),
-                motivo=f'Cancelación de Salida #{salida.id}',
-                organizacion_id=org_id
-            )
-            db.session.add(mov_ajuste)
-
+        # 2. (Opcional) Registrar el ajuste
+        # Para auditoría, es mejor registrar la reversión
+        mov_ajuste = Movimiento(
+            producto_id=producto.id,
+            cantidad=cantidad_a_devolver,
+            tipo='ajuste-entrada',
+            fecha=datetime.now(),
+            motivo=f'Corrección/Eliminación de item (Salida #{salida_id_redirect})',
+            organizacion_id=movimiento.organizacion_id
+        )
+        db.session.add(mov_ajuste)
+        
+        # 3. Eliminar el movimiento de salida original
+        db.session.delete(movimiento)
+        
         db.session.commit()
-        flash(f'Salida #{salida.id} cancelada. El stock ha sido reingresado.', 'success')
+        flash(f'Item "{producto.nombre}" eliminado. Stock revertido.', 'success')
         
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al cancelar la salida: {e}', 'danger')
+        flash(f'Error al eliminar el item: {e}', 'danger')
 
-    return redirect(url_for('historial_salidas'))
+    return redirect(url_for('ver_salida', id=salida_id_redirect))
 
 
 @app.route('/salida/<int:id>/pdf')
@@ -2446,4 +2582,5 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
