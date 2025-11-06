@@ -8,27 +8,55 @@
 
     <form method="POST" action="{{ url_for('editar_orden', id=orden.id) if orden else url_for('nueva_orden_manual') }}">
         
-        <div class="mb-3 col-md-6">
-            <label for="proveedor_id" class="form-label">Proveedor</label>
-            <select class="form-select" id="proveedor_id" name="proveedor_id" 
-                    {% if orden %}disabled{% endif %} required>
-                <option value="">-- Selecciona un proveedor --</option>
-                {% for prov in proveedores %}
-                    <option value="{{ prov.id }}" 
-                            {% if orden and orden.proveedor_id == prov.id %}selected{% endif %}>
-                        {{ prov.nombre }}
-                    </option>
-                {% endfor %}
-            </select>
-            {% if orden %}
-                <small class="form-text text-muted">No se puede cambiar el proveedor de una orden existente.</small>
-            {% endif %}
+        <div class="row">
+            <!-- Columna 1: Proveedor -->
+            <div class="mb-3 col-md-6">
+                <label for="proveedor_id" class="form-label">Proveedor</label>
+                <select class="form-select" id="proveedor_id" name="proveedor_id" 
+                        {% if orden %}disabled{% endif %} required>
+                    <option value="">-- Selecciona un proveedor --</option>
+                    {% for prov in proveedores %}
+                        <option value="{{ prov.id }}" 
+                                {% if orden and orden.proveedor_id == prov.id %}selected{% endif %}>
+                            {{ prov.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if orden %}
+                    <small class="form-text text-muted">No se puede cambiar el proveedor de una orden existente.</small>
+                {% endif %}
+            </div>
+            
+            <!-- ======================== -->
+            <!-- NUEVO: Almacén de Destino -->
+            <!-- ======================== -->
+            <div class="mb-3 col-md-6">
+                <label for="almacen_id" class="form-label">Almacén de Destino</label>
+                <select class="form-select" id="almacen_id" name="almacen_id" 
+                        {% if orden %}disabled{% endif %} required>
+                    <option value="">-- Selecciona un almacén --</option>
+                    {% for alm in almacenes %}
+                        <option value="{{ alm.id }}" 
+                                {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>
+                            {{ alm.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if orden %}
+                    <small class="form-text text-muted">No se puede cambiar el almacén de una orden existente.</small>
+                {% endif %}
+            </div>
         </div>
-        
+
         <hr>
         
+        <!-- 2. LÍNEAS DE PRODUCTOS -->
         <h4>Productos</h4>
         <div id="lineas_productos_container">
+            <!-- 
+              Si estamos editando, Jinja renderiza las líneas existentes.
+              Si es nueva, el script añadirá la primera línea aquí.
+            -->
             {% if orden %}
                 {% for detalle in orden.detalles %}
                 <div class="row g-3 mb-2 align-items-end producto-linea">
@@ -37,8 +65,9 @@
                         <select name="producto_id[]" class="form-select" required>
                             <option value="">-- Selecciona --</option>
                             {% for p in productos %}
+                                <!-- Mostramos solo los del proveedor de la orden -->
                                 {% if p.proveedor_id == orden.proveedor_id or not p.proveedor_id %}
-                                <option value="{{ p.id }}" {% if p.id == detalle.producto_id %}selected{% endif %}>
+                                <option value="{{ p.id }}" data-precio="{{ p.precio_unitario }}" {% if p.id == detalle.producto_id %}selected{% endif %}>
                                     {{ p.nombre }} (SKU: {{ p.codigo }})
                                 </option>
                                 {% endif %}
@@ -51,7 +80,7 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Costo Unitario</label>
-                        <input type="number" name="costo[]" class="form-control" value="{{ detalle.costo_unitario_estimado }}" step="0.01" min="0" required>
+                        <input type="number" name="costo[]" class="form-control costo-input" value="{{ detalle.costo_unitario_estimado }}" step="0.01" min="0" required>
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-danger w-100" onclick="eliminarLinea(this)">
@@ -63,30 +92,34 @@
             {% endif %}
         </div>
         
-        <button type="button" id="btn_add_producto" class="btn btn-info mt-2" disabled>
+        <button type="button" id="btn_add_producto" class="btn btn-info mt-2" 
+                {% if not orden %}disabled{% endif %}>
             <i class="bi bi-plus-circle"></i> Añadir Producto
         </button>
         <small id="producto_ayuda" class="form-text text-muted d-block">
-            {% if not orden %}Selecciona un proveedor para añadir productos.{% endif %}
+            {% if not orden %}Selecciona un Proveedor y Almacén para añadir productos.{% endif %}
         </small>
         
         
+        <!-- 3. ACCIONES DEL FORMULARIO -->
         <hr class="my-4">
         <div class="col-12">
             <button type="submit" class="btn btn-primary">Guardar Orden</button>
             <a href="{{ url_for('lista_ordenes') }}" class="btn btn-secondary">Cancelar</a>
         </div>
-        
     </form>
 
-
+    <!-- ============================================= -->
+    <!-- PLANTILLA JS (oculta) PARA NUEVAS LÍNEAS -->
+    <!-- ============================================= -->
     <template id="plantilla_linea">
         <div class="row g-3 mb-2 align-items-end producto-linea">
             <div class="col-md-5">
                 <label class="form-label">Producto</label>
                 <select name="producto_id[]" class="form-select" required>
                     <option value="">-- Selecciona un producto --</option>
-                    </select>
+                    <!-- Las opciones se llenarán con JavaScript -->
+                </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Cantidad</label>
@@ -94,7 +127,7 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Costo Unitario</label>
-                <input type="number" name="costo[]" class="form-control" value="0.00" step="0.01" min="0" required>
+                <input type="number" name="costo[]" class="form-control costo-input" value="0.00" step="0.01" min="0" required>
             </div>
             <div class="col-md-2">
                 <button type="button" class="btn btn-danger w-100" onclick="eliminarLinea(this)">
@@ -105,109 +138,109 @@
     </template>
 
 
+    <!-- ============================================= -->
+    <!-- JAVASCRIPT MODIFICADO PARA MULTI-ALMACÉN -->
+    <!-- ============================================= -->
     <script>
+        // (Ignora el falso error de VS Code en esta línea)
+        var todosLosProductos = {{ productos | tojson | safe }};
+
         // Función global para eliminar línea
         function eliminarLinea(boton) {
             boton.closest('.producto-linea').remove();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM Cargado. Iniciando script de orden_form.");
-            
-            // (Ignora el falso error de VS Code en esta línea)
-            var todosLosProductos = {{ productos | tojson | safe }};
-            console.log("Productos cargados:", todosLosProductos.length);
-            
             const selectProveedor = document.getElementById('proveedor_id');
+            const selectAlmacen = document.getElementById('almacen_id');
             const botonAnadir = document.getElementById('btn_add_producto');
-            const contenedor = document.getElementById('lineas_productos_container');
-            const plantilla = document.getElementById('plantilla_linea'); // <-- Obtenemos el <template>
             const productoAyuda = document.getElementById('producto_ayuda');
+            const contenedor = document.getElementById('lineas_productos_container');
+            const plantilla = document.getElementById('plantilla_linea');
 
-            if (!plantilla) {
-                console.error("Error Crítico: No se encontró el <template> #plantilla_linea.");
-                return;
+            // --- 1. Función para chequear si los dropdowns están listos ---
+            function chequearFormulario() {
+                // Si ambos tienen un valor, activa el botón
+                if (selectProveedor.value && selectAlmacen.value) {
+                    botonAnadir.disabled = false;
+                    productoAyuda.style.display = 'none';
+                } else {
+                    botonAnadir.disabled = true;
+                    productoAyuda.style.display = 'block';
+                }
             }
 
-            // --- 1. Función reutilizable para añadir línea ---
+            // --- 2. Función para añadir una nueva línea ---
             function anadirNuevaLinea() {
-                console.log("Llamando a anadirNuevaLinea()...");
-                try {
-                    const selectedProveedorId = selectProveedor.value;
-                    
-                    // Clonamos el contenido del <template>
-                    const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
-                    const selectProducto = nuevaLinea.querySelector('select[name="producto_id[]"]');
-                    
-                    let productosFiltrados = 0;
-                    todosLosProductos.forEach(function(producto) {
-                        if (producto.proveedor_id == selectedProveedorId || !producto.proveedor_id) {
-                            const opcion = new Option(
-                                `${producto.nombre} (SKU: ${producto.codigo})`,
-                                producto.id
-                            );
-                            opcion.dataset.precio = producto.precio_unitario;
-                            selectProducto.add(opcion);
-                            productosFiltrados++;
-                        }
-                    });
-                    console.log("Línea creada con", productosFiltrados, "productos.");
+                const selectedProveedorId = selectProveedor.value;
+                const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
+                const selectProducto = nuevaLinea.querySelector('select[name="producto_id[]"]');
+                const inputCosto = nuevaLinea.querySelector('.costo-input');
 
-                    // Añadimos el listener para auto-rellenar el costo
-                    const inputCosto = nuevaLinea.querySelector('input[name="costo[]"]');
-                    selectProducto.addEventListener('change', function() {
+                // --- Filtrado de Productos ---
+                todosLosProductos.forEach(function(producto) {
+                    // Muestra el producto si su ID de proveedor coincide
+                    // O si el producto no tiene proveedor (es 'null')
+                    if (producto.proveedor_id == selectedProveedorId || !producto.proveedor_id) {
+                        const opcion = new Option(
+                            `${producto.nombre} (SKU: ${producto.codigo})`,
+                            producto.id
+                        );
+                        opcion.dataset.precio = producto.precio_unitario;
+                        selectProducto.add(opcion);
+                    }
+                });
+
+                // --- Listener para auto-rellenar costo ---
+                selectProducto.addEventListener('change', function() {
+                    const precio = this.options[this.selectedIndex].dataset.precio || 0;
+                    inputCosto.value = parseFloat(precio).toFixed(2);
+                });
+                
+                contenedor.appendChild(nuevaLinea);
+            }
+            
+            // --- 3. Listeners de los Dropdowns ---
+            // (Solo si no estamos editando, ya que están deshabilitados)
+            {% if not orden %}
+                selectProveedor.addEventListener('change', function() {
+                    contenedor.innerHTML = ''; // Borra líneas antiguas al cambiar
+                    chequearFormulario();
+                    if (!botonAnadir.disabled) {
+                        anadirNuevaLinea(); // Añade la primera línea filtrada
+                    }
+                });
+                
+                selectAlmacen.addEventListener('change', function() {
+                    contenedor.innerHTML = '';
+                    chequearFormulario();
+                    if (!botonAnadir.disabled) {
+                        anadirNuevaLinea();
+                    }
+                });
+            {% endif %}
+
+            // --- 4. Listener del Botón Añadir ---
+            botonAnadir.addEventListener('click', anadirNuevaLinea);
+            
+            // --- 5. Lógica de Carga Inicial (para Edición) ---
+            // Si estamos editando, los dropdowns están deshabilitados
+            // pero el botón de añadir debe estar habilitado.
+            {% if orden %}
+                botonAnadir.disabled = false;
+                productoAyuda.style.display = 'none';
+                
+                // Rellenar costos de líneas existentes
+                contenedor.querySelectorAll('.producto-linea').forEach(function(linea) {
+                    const select = linea.querySelector('select[name="producto_id[]"]');
+                    const inputCosto = linea.querySelector('.costo-input');
+                    
+                    select.addEventListener('change', function() {
                         const precio = this.options[this.selectedIndex].dataset.precio || 0;
                         inputCosto.value = parseFloat(precio).toFixed(2);
                     });
-
-                    contenedor.appendChild(nuevaLinea);
-
-                } catch (e) {
-                    console.error("Error al añadir la línea:", e);
-                }
-            }
-
-            // --- 2. Asignar la función al botón ---
-            if (botonAnadir) {
-                botonAnadir.addEventListener('click', anadirNuevaLinea);
-            } else {
-                console.error("Error: Botón '#btn_add_producto' no encontrado.");
-            }
-
-            // --- 3. Lógica del cambio de Proveedor ---
-            if(selectProveedor) {
-                selectProveedor.addEventListener('change', function() {
-                    console.log("Proveedor cambiado a ID:", this.value);
-                    contenedor.innerHTML = ''; // Borra líneas antiguas
-                    
-                    if (this.value) { // Si se seleccionó un proveedor
-                        botonAnadir.disabled = false;
-                        productoAyuda.style.display = 'none';
-                        anadirNuevaLinea(); // Añade la primera línea filtrada
-                    } else { 
-                        botonAnadir.disabled = true;
-                        productoAyuda.style.display = 'block';
-                    }
                 });
-            } else {
-                console.error("Error: Select '#proveedor_id' no encontrado.");
-            }
-
-            // --- 4. Lógica de Carga Inicial ---
-            {% if orden %}
-                // Si es una edición, habilitamos el botón
-                botonAnadir.disabled = false;
-                productoAyuda.style.display = 'none';
-                console.log("Modo Edición: Botón de añadir habilitado.");
-            {% else %}
-                // Si es nuevo y el proveedor ya está seleccionado (por recarga de error),
-                // activamos el botón
-                if(selectProveedor.value) {
-                    botonAnadir.disabled = false;
-                    productoAyuda.style.display = 'none';
-                    anadirNuevaLinea();
-                }
             {% endif %}
         });
     </script>
-{% endblock %} ```
+{% endblock %}
