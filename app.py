@@ -1254,6 +1254,237 @@ def generar_salida_pdf(id):
         mimetype='application/pdf'
     )
 
+# --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
+
+@app.route('/ordenes')
+@login_required
+@check_org_permission
+@check_permission('perm_create_oc_standard')
+def lista_ordenes():
+    mes = request.args.get('mes', type=int)
+    ano = request.args.get('ano', type=int)
+    prov_id = request.args.get('proveedor_id', type=int)
+    
+    ahora = datetime.now()
+    if not mes: mes = ahora.month
+    if not ano: ano = ahora.year
+
+    meses_lista = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'), 
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'), 
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+
+    if current_user.rol == 'super_admin':
+        proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
+        query = OrdenCompra.query
+    else:
+        org_id = current_user.organizacion_id
+        proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+        query = OrdenCompra.query.filter_by(organizacion_id=org_id)
+
+    query = query.filter(extract('month', OrdenCompra.fecha_creacion) == mes)
+    query = query.filter(extract('year', OrdenCompra.fecha_creacion) == ano)
+
+    if prov_id and prov_id != 0:
+        query = query.filter_by(proveedor_id=prov_id)
+
+    ordenes = query.order_by(OrdenCompra.fecha_creacion.desc()).all()
+    
+    return render_template('ordenes.html', 
+                           ordenes=ordenes,
+                           proveedores=proveedores,
+                           meses_lista=meses_lista,
+                           mes_seleccionado=mes,
+                           ano_seleccionado=ano,
+                           prov_seleccionado=prov_id or 0)
+
+@app.route('/orden/nueva', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_create_oc_standard')
+def nueva_orden():
+    try:
+        ids_productos_a_ordenar = request.form.getlist('producto_id')
+        if not ids_productos_a_ordenar:
+            flash('No se seleccionaron productos para la orden.', 'warning')
+            return redirect(url_for('index'))
+
+        productos = Producto.query.filter(Producto.id.in_(ids_productos_a_ordenar)).all()
+        
+        if current_user.rol != 'super_admin':
+            for p in productos:
+                if p.organizacion_id != current_user.organizacion_id:
+                    flash('Error: Intento de ordenar un producto no válido.', 'danger')
+                    return redirect(url_for('index'))
+
+        proveedor_id_comun = productos[0].proveedor_id
+        if not all(p.proveedor_id == proveedor_id_comun for p in productos):
+            flash('Error: Los productos seleccionados deben ser del mismo proveedor.', 'danger')
+            return redirect(url_for('index'))
+
+        nueva_oc = OrdenCompra(
+            proveedor_id=proveedor_id_comun,
+            estado='borrador',
+            creador_id=current_user.id,
+            organizacion_id=current_user.organizacion_id
+        )
+        db.session.add(nueva_oc)
+        
+        for prod in productos:
+            cantidad_sugerida = prod.stock_maximo - prod.cantidad_stock
+            detalle = OrdenCompraDetalle(
+                orden=nueva_oc,
+                producto_id=prod.id,
+                cantidad_solicitada=max(1, cantidad_sugerida),
+                costo_unitario_estimado=prod.precio_unitario
+            )
+            db.session.add(detalle)
+        
+        db.session.commit()
+        flash('Nueva Orden de Compra generada en "Borrador".', 'success')
+        return redirect(url_for('lista_ordenes'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al generar la orden: {e}', 'danger')
+        return redirect(url_for('index'))
+
+@app.route('/orden/<int:id>/recibir', methods=['POST'])
+@login_required
+@check_permission('perm_create_oc_standard')
+def recibir_orden(id):
+    orden = get_item_or_404(OrdenCompra, id)
+    
+    if orden.estado == 'recibida':
+        flash('Esta orden ya fue recibida anteriormente.', 'warning')
+        return redirect(url_for('lista_ordenes'))
+
+    try:
+        org_id = orden.organizacion_id
+        for detalle in orden.detalles:
+            producto = detalle.producto
+            producto.cantidad_stock += detalle.cantidad_solicitada
+            db.session.add(producto)
+            
+            movimiento = Movimiento(
+                producto_id=producto.id,
+                cantidad=detalle.cantidad_solicitada,
+                tipo='entrada',
+                fecha=datetime.now(),
+                motivo=f'Recepción de OC #{orden.id}',
+                orden_compra_id=orden.id,
+                organizacion_id=org_id
+            )
+            db.session.add(movimiento)
+        
+        orden.estado = 'recibida'
+        orden.fecha_recepcion = datetime.now()
+        db.session.add(orden)
+        
+        db.session.commit()
+        flash('¡Orden recibida! El stock ha sido actualizado.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al recibir la orden: {e}', 'danger')
+    
+    return redirect(url_for('lista_ordenes'))
+
+@app.route('/orden/<int:id>/enviar', methods=['POST'])
+@login_required
+@check_permission('perm_create_oc_standard')
+def enviar_orden(id):
+    orden = get_item_or_404(OrdenCompra, id)
+
+    if orden.estado == 'borrador':
+        try:
+            orden.estado = 'enviada'
+            db.session.commit()
+            flash('Orden marcada como "Enviada".', 'info')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    
+    return redirect(url_for('lista_ordenes'))
+
+@app.route('/orden/<int:id>/pdf')
+@login_required
+@check_permission('perm_create_oc_standard')
+def generar_oc_pdf(id):
+    orden = get_item_or_404(OrdenCompra, id)
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+                            rightMargin=inch, leftMargin=inch,
+                            topMargin=inch, bottomMargin=inch)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    style_body = ParagraphStyle(name='Body', parent=styles['BodyText'], fontName='Helvetica', fontSize=10)
+    style_right = ParagraphStyle(name='BodyRight', parent=style_body, alignment=TA_RIGHT)
+    style_left = ParagraphStyle(name='BodyLeft', parent=style_body, alignment=TA_LEFT)
+    style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
+    style_total_label = ParagraphStyle(name='TotalLabel', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
+    style_total_value = ParagraphStyle(name='TotalValue', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
+    
+    story.append(Paragraph(f"ORDEN DE COMPRA #{orden.id}", styles['h1']))
+    story.append(Paragraph(f"<b>Estado:</b> {orden.estado.capitalize()}", styles['h3']))
+    story.append(Spacer(1, 0.25 * inch))
+    info_proveedor = f"""
+        <b>Proveedor:</b> {orden.proveedor.nombre}<br/>
+        <b>Email Contacto:</b> {orden.proveedor.contacto_email}<br/>
+        <b>Fecha Creación:</b> {orden.fecha_creacion.strftime('%Y-%m-%d')}
+    """
+    story.append(Paragraph(info_proveedor, styles['BodyText']))
+    story.append(Spacer(1, 0.5 * inch))
+
+    data = [[
+        Paragraph('Producto (SKU)', style_header), 
+        Paragraph('Cantidad', style_header), 
+        Paragraph('Costo Unit. (Est.)', style_header), 
+        Paragraph('Subtotal (Est.)', style_header)
+    ]]
+    for detalle in orden.detalles:
+        producto_sku = Paragraph(f"{detalle.producto.nombre} ({detalle.producto.codigo})", style_left)
+        cantidad = Paragraph(str(detalle.cantidad_solicitada), style_right)
+        costo_unit = Paragraph(f"${detalle.costo_unitario_estimado:.2f}", style_right)
+        subtotal = Paragraph(f"${detalle.subtotal:.2f}", style_right)
+        data.append([producto_sku, cantidad, costo_unit, subtotal])
+    data.append([
+        '', '', 
+        Paragraph('TOTAL (Est.):', style_total_label), 
+        Paragraph(f"${orden.costo_total:.2f}", style_total_value)
+    ])
+
+    style = TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E9ECEF")),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('PADDING', (0,0), (-1,-1), 8),
+        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor("#F8F9FA")]), 
+        ('GRID', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
+        ('BOX', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
+        ('BACKGROUND', (0,-1), (3,-1), colors.white),
+        ('GRID', (2,-1), (3,-1), 1, colors.HexColor("#DEE2E6")),
+        ('SPAN', (0,-1), (1,-1)),
+    ])
+    
+    tabla_oc = Table(data, colWidths=[2.75*inch, 1.0*inch, 1.25*inch, 1.25*inch])
+    tabla_oc.setStyle(style)
+    story.append(tabla_oc)
+    doc.build(story)
+    
+    fecha_str = orden.fecha_creacion.strftime("%Y-%m-%d")
+    filename = f"OC#{orden.id}_{fecha_str}.pdf"
+
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        as_attachment=False,
+        download_name=filename,
+        mimetype='application/pdf'
+    )
+
 @app.route('/orden/<int:id>')
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -1515,7 +1746,13 @@ def nuevo_proyecto_oc():
                 )
                 
                 if tipos[i] == 'existente':
-                    detalle.producto_id = int(productos_existentes_ids[i])
+                    prod_id_val = int(productos_existentes_ids[i] or 0)
+                    if prod_id_val > 0:
+                        detalle.producto_id = prod_id_val
+                    else:
+                        # Si no se seleccionó un producto válido, pero el tipo era 'existente'
+                        detalle.descripcion_nuevo = "Error: Producto existente no seleccionado"
+                        detalle.producto_id = None
                 else: 
                     detalle.descripcion_nuevo = productos_nuevos[i]
                 
@@ -1545,21 +1782,16 @@ def editar_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     org_id = proyecto_oc.organizacion_id
 
-    # --- CHEQUEO DE ESTADO ---
     if proyecto_oc.estado != 'borrador':
         flash('Solo se pueden editar Órdenes de Proyecto en estado "Borrador".', 'warning')
         return redirect(url_for('ver_proyecto_oc', id=id))
 
-    # --- LÓGICA POST (Guardar Cambios) ---
     if request.method == 'POST':
         try:
-            # 1. Actualizar el nombre del proyecto
             proyecto_oc.nombre_proyecto = request.form.get('nombre_proyecto')
             
-            # 2. "Nuke and Pave": Borrar detalles antiguos
             ProyectoOCDetalle.query.filter_by(proyecto_oc_id=id).delete()
             
-            # 3. Copiar/Pegar la lógica de 'nuevo_proyecto_oc' para crear detalles
             tipos = request.form.getlist('tipo_item[]')
             productos_existentes_ids = request.form.getlist('producto_id_existente[]') 
             productos_nuevos = request.form.getlist('producto_nuevo_descripcion[]')
@@ -1572,19 +1804,19 @@ def editar_proyecto_oc(id):
                     continue 
 
                 detalle = ProyectoOCDetalle(
-                    proyecto_oc_id=id, # <-- Usar el ID existente
+                    proyecto_oc_id=id,
                     cantidad=int(cantidades[i]),
                     costo_unitario=float(costos[i]),
                     proveedor_sugerido=proveedores_sugeridos[i]
                 )
                 
                 if tipos[i] == 'existente':
-                    # Convertir a int, asegurándose de que no sea un string vacío
                     prod_id_val = int(productos_existentes_ids[i] or 0)
                     if prod_id_val > 0:
                         detalle.producto_id = prod_id_val
                     else:
                         detalle.descripcion_nuevo = "Error: Producto existente no seleccionado"
+                        detalle.producto_id = None
                 else: 
                     detalle.descripcion_nuevo = productos_nuevos[i]
                 
@@ -1598,8 +1830,6 @@ def editar_proyecto_oc(id):
             db.session.rollback()
             flash(f'Error al actualizar la OC de Proyecto: {e}', 'danger')
             return redirect(url_for('editar_proyecto_oc', id=id))
-    
-    # --- LÓGICA GET (Mostrar Formulario Relleno) ---
     
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
