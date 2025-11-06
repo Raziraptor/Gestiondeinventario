@@ -30,7 +30,7 @@ from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, E
 # --- Utilidades y Herramientas ---
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import extract
+from sqlalchemy import extract, Date # <-- AÑADIDO Date
 from itsdangerous.url_safe import URLSafeTimedSerializer
 from PIL import Image
 import qrcode
@@ -181,9 +181,7 @@ class Proveedor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
     contacto_email = db.Column(db.String(100))
-    # --- LÍNEA AÑADIDA ---
     contacto_telefono = db.Column(db.String(50), nullable=True)
-    # --- FIN DE LÍNEA AÑADIDA ---
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
 class Categoria(db.Model):
@@ -263,26 +261,17 @@ class Gasto(db.Model):
     def __repr__(self):
         return f'<Gasto {self.descripcion} - ${self.monto}>'
     
-# ========================
-# MODELO 'Salida' MODIFICADO
-# ========================
 class Salida(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # --- CAMBIO: De DateTime a Date. Solo nos importa el día. ---
     fecha = db.Column(db.Date, nullable=False, default=datetime.now().date)
-    estado = db.Column(db.String(20), nullable=False, default='abierta') # 'abierta', 'cerrada' (futuro)
+    estado = db.Column(db.String(20), nullable=False, default='abierta')
     
-    # --- 'motivo' ELIMINADO de aquí. Ahora vive en 'Movimiento'. ---
-    
-    creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Quién creó el *primer* item del día
-    # (cancelado_por_id ya no es necesario aquí, se cancela por item)
+    creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Este campo es para la Hoja de Salida (futuro)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
     
     movimientos = db.relationship('Movimiento', backref='salida', lazy='dynamic', cascade="all, delete-orphan")
 
-# ========================
-# MODELO 'Movimiento' MODIFICADO
-# ========================
 class Movimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
@@ -290,9 +279,8 @@ class Movimiento(db.Model):
     
     cantidad = db.Column(db.Integer, nullable=False) 
     tipo = db.Column(db.String(20), nullable=False) 
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now) # Mantenemos DateTime para la hora exacta
+    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
     
-    # --- CAMBIO: El motivo ahora es obligatorio y vive aquí ---
     motivo = db.Column(db.String(255), nullable=False) 
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
@@ -959,7 +947,6 @@ def eliminar_categoria(id):
 @check_org_permission
 @check_permission('perm_view_management')
 def lista_proveedores():
-    """ Muestra la lista de proveedores (Multiusuario). """
     if current_user.rol == 'super_admin':
         proveedores = Proveedor.query.all()
     else:
@@ -971,15 +958,12 @@ def lista_proveedores():
 @check_org_permission
 @check_permission('perm_edit_management')
 def nuevo_proveedor():
-    """ Crea un nuevo proveedor (Multiusuario). """
     if request.method == 'POST':
         try:
             nuevo_prov = Proveedor(
                 nombre=request.form['nombre'],
                 contacto_email=request.form.get('contacto_email'),
-                # --- LÍNEA AÑADIDA ---
                 contacto_telefono=request.form.get('contacto_telefono'),
-                # --- FIN DE LÍNEA AÑADIDA ---
                 organizacion_id=current_user.organizacion_id
             )
             db.session.add(nuevo_prov)
@@ -990,24 +974,19 @@ def nuevo_proveedor():
             db.session.rollback()
             flash(f'Error al crear proveedor: {e}', 'danger')
             
-    # --- PASAMOS 'proveedor=None' PARA QUE EL FORMULARIO COMPARTIDO FUNCIONE ---
     return render_template('proveedor_form.html', titulo="Nuevo Proveedor", proveedor=None)
 
-# ========================
-# NUEVA RUTA DE EDICIÓN
-# ========================
 @app.route('/proveedor/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_edit_management')
 def editar_proveedor(id):
-    """ Edita un proveedor existente (Multiusuario). """
     proveedor = get_item_or_404(Proveedor, id)
     
     if request.method == 'POST':
         try:
             proveedor.nombre = request.form['nombre']
             proveedor.contacto_email = request.form.get('contacto_email')
-            proveedor.contacto_telefono = request.form.get('contacto_telefono') # <-- AÑADIDO
+            proveedor.contacto_telefono = request.form.get('contacto_telefono')
             
             db.session.commit()
             flash('Proveedor actualizado exitosamente', 'success')
@@ -1027,8 +1006,6 @@ def editar_proveedor(id):
 @check_org_permission
 @check_permission('perm_do_salidas')
 def historial_salidas():
-    """ Muestra el historial de Hojas de Salida Diarias (Multiusuario). """
-    # ... (lógica de filtro de mes/año sin cambios) ...
     mes = request.args.get('mes', type=int)
     ano = request.args.get('ano', type=int)
     ahora = datetime.now()
@@ -1046,7 +1023,7 @@ def historial_salidas():
         query = Salida.query.filter_by(organizacion_id=current_user.organizacion_id)
 
     query = query.filter(
-        extract('month', Salida.fecha) == mes, # Filtra por la columna 'fecha' (Date)
+        extract('month', Salida.fecha) == mes,
         extract('year', Salida.fecha) == ano
     )
     salidas = query.order_by(Salida.fecha.desc()).all()
@@ -1061,9 +1038,7 @@ def historial_salidas():
 @login_required
 @check_permission('perm_do_salidas')
 def ver_salida(id):
-    """ Muestra el detalle de una Hoja de Salida Diaria (Multiusuario). """
     salida = get_item_or_404(Salida, id)
-    # Ordenamos los movimientos por hora para verlos cronológicamente
     movimientos = salida.movimientos.order_by(Movimiento.fecha.asc()).all()
     
     return render_template('salida_detalle.html', 
@@ -1076,20 +1051,14 @@ def ver_salida(id):
 @check_org_permission
 @check_permission('perm_do_salidas')
 def registrar_salida():
-    """ 
-    AÑADE items a la Hoja de Salida del día de hoy.
-    La crea si no existe.
-    """
     org_id = current_user.organizacion_id
     
-    # --- LÓGICA DE BUSCAR-O-CREAR LA HOJA DIARIA ---
     today = datetime.now().date()
     salida_del_dia = Salida.query.filter_by(
         fecha=today, 
         organizacion_id=org_id
     ).first()
 
-    # Si no existe, la creamos
     if not salida_del_dia:
         salida_del_dia = Salida(
             fecha=today,
@@ -1097,10 +1066,7 @@ def registrar_salida():
             organizacion_id=org_id
         )
         db.session.add(salida_del_dia)
-        # Hacemos un 'flush' para obtener el ID
         db.session.flush()
-
-    # --- FIN DE LÓGICA ---
 
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
@@ -1116,13 +1082,12 @@ def registrar_salida():
         try:
             productos_ids = request.form.getlist('producto_id[]')
             cantidades = request.form.getlist('cantidad[]')
-            motivos = request.form.getlist('motivo[]') # <-- AHORA ES UNA LISTA
+            motivos = request.form.getlist('motivo[]')
 
             if not productos_ids:
                 flash('Debes añadir al menos un producto a la salida.', 'danger')
                 return redirect(url_for('registrar_salida'))
 
-            # --- 1. FASE DE VALIDACIÓN ---
             productos_para_actualizar = [] 
             for i in range(len(productos_ids)):
                 prod_id = productos_ids[i]
@@ -1136,7 +1101,6 @@ def registrar_salida():
                     flash(f'Error: Producto no válido.', 'danger')
                     db.session.rollback()
                     return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id)
-                # ... (resto de validaciones de stock) ...
                 if cantidad_salida <= 0:
                     flash('Todas las cantidades deben ser positivas.', 'danger')
                     db.session.rollback() 
@@ -1148,7 +1112,6 @@ def registrar_salida():
                 
                 productos_para_actualizar.append((producto, cantidad_salida, motivos[i]))
 
-            # --- 2. FASE DE EJECUCIÓN ---
             for producto, cantidad_salida, motivo_item in productos_para_actualizar:
                 
                 producto.cantidad_stock -= cantidad_salida
@@ -1158,16 +1121,15 @@ def registrar_salida():
                     producto_id=producto.id,
                     cantidad= -cantidad_salida,
                     tipo='salida',
-                    fecha=datetime.now(), # <-- Hora exacta
-                    motivo=motivo_item, # <-- Motivo por item
-                    salida=salida_del_dia, # <-- Vinculamos a la hoja diaria
+                    fecha=datetime.now(),
+                    motivo=motivo_item,
+                    salida=salida_del_dia,
                     organizacion_id=org_id
                 )
                 db.session.add(movimiento)
             
             db.session.commit()
             flash(f'Se añadieron {len(productos_para_actualizar)} items a la salida del día.', 'success')
-            # Redirigimos al detalle de la hoja de hoy
             return redirect(url_for('ver_salida', id=salida_del_dia.id)) 
 
         except Exception as e:
@@ -1177,328 +1139,8 @@ def registrar_salida():
     return render_template('salida_form.html', 
                            titulo=f"Registrar Salida para {today.strftime('%Y-%m-%d')}", 
                            productos=productos_lista,
-                           salida_id=salida_del_dia.id) # Pasamos el ID para el botón "Ver Hoja de Hoy"
+                           salida_id=salida_del_dia.id)
 
-# --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
-
-@app.route('/ordenes')
-@login_required
-@check_org_permission
-@check_permission('perm_create_oc_standard')
-def lista_ordenes():
-    mes = request.args.get('mes', type=int)
-    ano = request.args.get('ano', type=int)
-    prov_id = request.args.get('proveedor_id', type=int)
-    
-    ahora = datetime.now()
-    if not mes: mes = ahora.month
-    if not ano: ano = ahora.year
-
-    meses_lista = [
-        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'), 
-        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'), 
-        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
-    ]
-
-    if current_user.rol == 'super_admin':
-        proveedores = Proveedor.query.order_by(Proveedor.nombre).all()
-        query = OrdenCompra.query
-    else:
-        org_id = current_user.organizacion_id
-        proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
-        query = OrdenCompra.query.filter_by(organizacion_id=org_id)
-
-    query = query.filter(extract('month', OrdenCompra.fecha_creacion) == mes)
-    query = query.filter(extract('year', OrdenCompra.fecha_creacion) == ano)
-
-    if prov_id and prov_id != 0:
-        query = query.filter_by(proveedor_id=prov_id)
-
-    ordenes = query.order_by(OrdenCompra.fecha_creacion.desc()).all()
-    
-    return render_template('ordenes.html', 
-                           ordenes=ordenes,
-                           proveedores=proveedores,
-                           meses_lista=meses_lista,
-                           mes_seleccionado=mes,
-                           ano_seleccionado=ano,
-                           prov_seleccionado=prov_id or 0)
-
-@app.route('/orden/nueva', methods=['POST'])
-@login_required
-@check_org_permission
-@check_permission('perm_create_oc_standard')
-def nueva_orden():
-    try:
-        ids_productos_a_ordenar = request.form.getlist('producto_id')
-        if not ids_productos_a_ordenar:
-            flash('No se seleccionaron productos para la orden.', 'warning')
-            return redirect(url_for('index'))
-
-        productos = Producto.query.filter(Producto.id.in_(ids_productos_a_ordenar)).all()
-        
-        if current_user.rol != 'super_admin':
-            for p in productos:
-                if p.organizacion_id != current_user.organizacion_id:
-                    flash('Error: Intento de ordenar un producto no válido.', 'danger')
-                    return redirect(url_for('index'))
-
-        proveedor_id_comun = productos[0].proveedor_id
-        if not all(p.proveedor_id == proveedor_id_comun for p in productos):
-            flash('Error: Los productos seleccionados deben ser del mismo proveedor.', 'danger')
-            return redirect(url_for('index'))
-
-        nueva_oc = OrdenCompra(
-            proveedor_id=proveedor_id_comun,
-            estado='borrador',
-            creador_id=current_user.id,
-            organizacion_id=current_user.organizacion_id
-        )
-        db.session.add(nueva_oc)
-        
-        for prod in productos:
-            cantidad_sugerida = prod.stock_maximo - prod.cantidad_stock
-            detalle = OrdenCompraDetalle(
-                orden=nueva_oc,
-                producto_id=prod.id,
-                cantidad_solicitada=max(1, cantidad_sugerida),
-                costo_unitario_estimado=prod.precio_unitario
-            )
-            db.session.add(detalle)
-        
-        db.session.commit()
-        flash('Nueva Orden de Compra generada en "Borrador".', 'success')
-        return redirect(url_for('lista_ordenes'))
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al generar la orden: {e}', 'danger')
-        return redirect(url_for('index'))
-
-@app.route('/orden/<int:id>/recibir', methods=['POST'])
-@login_required
-@check_permission('perm_create_oc_standard')
-def recibir_orden(id):
-    orden = get_item_or_404(OrdenCompra, id)
-    
-    if orden.estado == 'recibida':
-        flash('Esta orden ya fue recibida anteriormente.', 'warning')
-        return redirect(url_for('lista_ordenes'))
-
-    try:
-        org_id = orden.organizacion_id
-        for detalle in orden.detalles:
-            producto = detalle.producto
-            producto.cantidad_stock += detalle.cantidad_solicitada
-            db.session.add(producto)
-            
-            movimiento = Movimiento(
-                producto_id=producto.id,
-                cantidad=detalle.cantidad_solicitada,
-                tipo='entrada',
-                fecha=datetime.now(),
-                motivo=f'Recepción de OC #{orden.id}',
-                orden_compra_id=orden.id,
-                organizacion_id=org_id
-            )
-            db.session.add(movimiento)
-        
-        orden.estado = 'recibida'
-        orden.fecha_recepcion = datetime.now()
-        db.session.add(orden)
-        
-        db.session.commit()
-        flash('¡Orden recibida! El stock ha sido actualizado.', 'success')
-        
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al recibir la orden: {e}', 'danger')
-    
-    return redirect(url_for('lista_ordenes'))
-
-@app.route('/orden/<int:id>/enviar', methods=['POST'])
-@login_required
-@check_permission('perm_create_oc_standard')
-def enviar_orden(id):
-    orden = get_item_or_404(OrdenCompra, id)
-
-    if orden.estado == 'borrador':
-        try:
-            orden.estado = 'enviada'
-            db.session.commit()
-            flash('Orden marcada como "Enviada".', 'info')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error: {e}', 'danger')
-    
-    return redirect(url_for('lista_ordenes'))
-
-@app.route('/orden/<int:id>/pdf')
-@login_required
-@check_permission('perm_create_oc_standard')
-def generar_oc_pdf(id):
-    orden = get_item_or_404(OrdenCompra, id)
-    
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, 
-                            rightMargin=inch, leftMargin=inch,
-                            topMargin=inch, bottomMargin=inch)
-    story = []
-    styles = getSampleStyleSheet()
-    
-    style_body = ParagraphStyle(name='Body', parent=styles['BodyText'], fontName='Helvetica', fontSize=10)
-    style_right = ParagraphStyle(name='BodyRight', parent=style_body, alignment=TA_RIGHT)
-    style_left = ParagraphStyle(name='BodyLeft', parent=style_body, alignment=TA_LEFT)
-    style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
-    style_total_label = ParagraphStyle(name='TotalLabel', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
-    style_total_value = ParagraphStyle(name='TotalValue', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
-    
-    story.append(Paragraph(f"ORDEN DE COMPRA #{orden.id}", styles['h1']))
-    story.append(Paragraph(f"<b>Estado:</b> {orden.estado.capitalize()}", styles['h3']))
-    story.append(Spacer(1, 0.25 * inch))
-    info_proveedor = f"""
-        <b>Proveedor:</b> {orden.proveedor.nombre}<br/>
-        <b>Email Contacto:</b> {orden.proveedor.contacto_email}<br/>
-        <b>Fecha Creación:</b> {orden.fecha_creacion.strftime('%Y-%m-%d')}
-    """
-    story.append(Paragraph(info_proveedor, styles['BodyText']))
-    story.append(Spacer(1, 0.5 * inch))
-
-    data = [[
-        Paragraph('Producto (SKU)', style_header), 
-        Paragraph('Cantidad', style_header), 
-        Paragraph('Costo Unit. (Est.)', style_header), 
-        Paragraph('Subtotal (Est.)', style_header)
-    ]]
-    for detalle in orden.detalles:
-        producto_sku = Paragraph(f"{detalle.producto.nombre} ({detalle.producto.codigo})", style_left)
-        cantidad = Paragraph(str(detalle.cantidad_solicitada), style_right)
-        costo_unit = Paragraph(f"${detalle.costo_unitario_estimado:.2f}", style_right)
-        subtotal = Paragraph(f"${detalle.subtotal:.2f}", style_right)
-        data.append([producto_sku, cantidad, costo_unit, subtotal])
-    data.append([
-        '', '', 
-        Paragraph('TOTAL (Est.):', style_total_label), 
-        Paragraph(f"${orden.costo_total:.2f}", style_total_value)
-    ])
-
-    style = TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E9ECEF")),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 8),
-        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor("#F8F9FA")]), 
-        ('GRID', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
-        ('BOX', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
-        ('BACKGROUND', (0,-1), (3,-1), colors.white),
-        ('GRID', (2,-1), (3,-1), 1, colors.HexColor("#DEE2E6")),
-        ('SPAN', (0,-1), (1,-1)),
-    ])
-    
-    tabla_oc = Table(data, colWidths=[2.75*inch, 1.0*inch, 1.25*inch, 1.25*inch])
-    tabla_oc.setStyle(style)
-    story.append(tabla_oc)
-    doc.build(story)
-    
-    fecha_str = orden.fecha_creacion.strftime("%Y-%m-%d")
-    filename = f"OC#{orden.id}_{fecha_str}.pdf"
-
-    buffer.seek(0)
-    return send_file(
-        buffer,
-        as_attachment=False,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
-
-@app.route('/salida', methods=['GET', 'POST'])
-@login_required
-@check_org_permission
-@check_permission('perm_do_salidas')
-def registrar_salida():
-    org_id = current_user.organizacion_id
-    productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
-    productos_lista = []
-    for p in productos_query:
-        productos_lista.append({
-            'id': p.id,
-            'nombre': p.nombre,
-            'codigo': p.codigo,
-            'stock_actual': p.cantidad_stock 
-        })
-
-    if request.method == 'POST':
-        try:
-            productos_ids = request.form.getlist('producto_id[]')
-            cantidades = request.form.getlist('cantidad[]')
-            motivo_general = request.form['motivo'] 
-
-            if not productos_ids:
-                flash('Debes añadir al menos un producto a la salida.', 'danger')
-                return render_template('salida_form.html', 
-                                       titulo="Registrar Salida", 
-                                       productos=productos_lista)
-
-            productos_para_actualizar = [] 
-            for prod_id, cant_str in zip(productos_ids, cantidades):
-                if not prod_id or not cant_str: continue
-                cantidad_salida = int(cant_str)
-                
-                producto = Producto.query.filter_by(id=prod_id, organizacion_id=org_id).first()
-                if not producto:
-                    flash(f'Error: Producto no válido o no pertenece a tu organización.', 'danger')
-                    db.session.rollback()
-                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista)
-
-                if cantidad_salida <= 0:
-                    flash('Todas las cantidades deben ser positivas.', 'danger')
-                    db.session.rollback() 
-                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista)
-                
-                if producto.cantidad_stock < cantidad_salida:
-                    flash(f'Error: Stock insuficiente para "{producto.nombre}". Stock actual: {producto.cantidad_stock}, Solicitado: {cantidad_salida}', 'danger')
-                    db.session.rollback()
-                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista)
-                
-                productos_para_actualizar.append((producto, cantidad_salida))
-
-            nueva_salida = Salida(
-                fecha=datetime.now(),
-                motivo=motivo_general,
-                creador_id=current_user.id,
-                organizacion_id=org_id
-            )
-            db.session.add(nueva_salida)
-
-            for producto, cantidad_salida in productos_para_actualizar:
-                producto.cantidad_stock -= cantidad_salida
-                db.session.add(producto)
-                
-                movimiento = Movimiento(
-                    producto_id=producto.id,
-                    cantidad= -cantidad_salida,
-                    tipo='salida',
-                    fecha=datetime.now(),
-                    motivo=motivo_general,
-                    salida=nueva_salida,
-                    organizacion_id=org_id
-                )
-                db.session.add(movimiento)
-            
-            db.session.commit()
-            flash(f'Salida #{nueva_salida.id} registrada con {len(productos_para_actualizar)} productos.', 'success')
-            return redirect(url_for('historial_salidas'))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al registrar la salida: {e}', 'danger')
-    
-    return render_template('salida_form.html', 
-                           titulo="Registrar Salida", 
-                           productos=productos_lista)
-
-# ========================
-# RUTA MODIFICADA (Antes 'cancelar_salida')
-# ========================
 @app.route('/movimiento/<int:id>/eliminar', methods=['POST'])
 @login_required
 @check_permission('perm_do_salidas')
@@ -1509,7 +1151,6 @@ def eliminar_movimiento_salida(id):
     """
     movimiento = get_item_or_404(Movimiento, id)
     
-    # Doble chequeo de seguridad
     if movimiento.tipo != 'salida':
         flash('Error: Solo se pueden eliminar items de salida.', 'danger')
         return redirect(url_for('historial_salidas'))
@@ -1520,12 +1161,9 @@ def eliminar_movimiento_salida(id):
         producto = movimiento.producto
         cantidad_a_devolver = abs(movimiento.cantidad)
         
-        # 1. Revertir el stock
         producto.cantidad_stock += cantidad_a_devolver
         db.session.add(producto)
         
-        # 2. (Opcional) Registrar el ajuste
-        # Para auditoría, es mejor registrar la reversión
         mov_ajuste = Movimiento(
             producto_id=producto.id,
             cantidad=cantidad_a_devolver,
@@ -1536,7 +1174,6 @@ def eliminar_movimiento_salida(id):
         )
         db.session.add(mov_ajuste)
         
-        # 3. Eliminar el movimiento de salida original
         db.session.delete(movimiento)
         
         db.session.commit()
@@ -1570,11 +1207,11 @@ def generar_salida_pdf(id):
     story.append(Paragraph(f"COMPROBANTE DE SALIDA #{salida.id}", styles['h1']))
     story.append(Spacer(1, 0.25 * inch))
     info_salida = f"""
-        <b>Motivo:</b> {salida.motivo}<br/>
-        <b>Fecha:</b> {salida.fecha.strftime('%Y-%m-%d %H:%M')}<br/>
+        <b>Fecha:</b> {salida.fecha.strftime('%Y-%m-%d')}<br/>
         <b>Estado:</b> <font color="{'red' if salida.estado == 'cancelada' else 'green'}">
             {salida.estado.capitalize()}
-        </font>
+        </font><br/>
+        <b>Creada por:</b> {salida.creador.username}
     """
     story.append(Paragraph(info_salida, styles['BodyText']))
     story.append(Spacer(1, 0.5 * inch))
@@ -1582,13 +1219,15 @@ def generar_salida_pdf(id):
     data = [[
         Paragraph('Producto', style_header), 
         Paragraph('SKU', style_header), 
+        Paragraph('Motivo', style_header),
         Paragraph('Cantidad Retirada', style_header)
     ]]
     for mov in salida.movimientos:
         producto = Paragraph(mov.producto.nombre, style_left)
         sku = Paragraph(mov.producto.codigo, style_left)
+        motivo = Paragraph(mov.motivo, style_left)
         cantidad = Paragraph(str(abs(mov.cantidad)), style_right)
-        data.append([producto, sku, cantidad])
+        data.append([producto, sku, motivo, cantidad])
 
     style = TableStyle([
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E9ECEF")),
@@ -1599,7 +1238,7 @@ def generar_salida_pdf(id):
         ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#DEE2E6")),
     ])
 
-    tabla_salida = Table(data, colWidths=[3*inch, 2*inch, 1.25*inch])
+    tabla_salida = Table(data, colWidths=[2.5*inch, 1.5*inch, 1.25*inch, 1.25*inch])
     tabla_salida.setStyle(style)
     story.append(tabla_salida)
     doc.build(story)
@@ -1893,11 +1532,10 @@ def nuevo_proyecto_oc():
     return render_template('proyecto_oc_form.html', 
                            titulo="Crear OC de Proyecto",
                            productos=productos_lista,
-                           proveedores=proveedores)
+                           proveedores=proveedores,
+                           proyecto_oc=None,
+                           detalles_json=None)
 
-# ========================
-# NUEVA RUTA DE EDICIÓN
-# ========================
 @app.route('/proyecto-oc/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_create_oc_proyecto')
@@ -1941,7 +1579,12 @@ def editar_proyecto_oc(id):
                 )
                 
                 if tipos[i] == 'existente':
-                    detalle.producto_id = int(productos_existentes_ids[i])
+                    # Convertir a int, asegurándose de que no sea un string vacío
+                    prod_id_val = int(productos_existentes_ids[i] or 0)
+                    if prod_id_val > 0:
+                        detalle.producto_id = prod_id_val
+                    else:
+                        detalle.descripcion_nuevo = "Error: Producto existente no seleccionado"
                 else: 
                     detalle.descripcion_nuevo = productos_nuevos[i]
                 
@@ -1958,18 +1601,17 @@ def editar_proyecto_oc(id):
     
     # --- LÓGICA GET (Mostrar Formulario Relleno) ---
     
-    # Preparamos los dropdowns (igual que en 'nuevo')
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
         productos_lista.append({
             'id': p.id, 'nombre': p.nombre, 'codigo': p.codigo, 
-            'precio_unitario': p.precio_unitario
+            'precio_unitario': p.precio_unitario,
+            'proveedor_id': p.proveedor_id
         })
         
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
     
-    # Preparamos los detalles existentes para el JavaScript
     detalles_json = []
     for d in proyecto_oc.detalles:
         detalles_json.append({
@@ -1985,14 +1627,13 @@ def editar_proyecto_oc(id):
                            titulo=f"Editar OC de Proyecto #{proyecto_oc.id}",
                            productos=productos_lista,
                            proveedores=proveedores,
-                           proyecto_oc=proyecto_oc,        # <-- Pasamos la OC
-                           detalles_json=detalles_json) # <-- Pasamos los detalles
+                           proyecto_oc=proyecto_oc,
+                           detalles_json=detalles_json)
 
 @app.route('/proyecto-oc/<int:id>/pdf')
 @login_required
 @check_permission('perm_create_oc_proyecto')
 def generar_proyecto_oc_pdf(id):
-    """ Genera un PDF para una OC de Proyecto. """
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     
     buffer = io.BytesIO()
@@ -2536,22 +2177,16 @@ def asignar_usuario(user_id):
 def admin_panel():
     """ Panel para que un Admin gestione los usuarios de SU organización. """
     
-    # Si el super_admin entra aquí, redirigir a su panel principal
     if current_user.rol == 'super_admin':
         return redirect(url_for('super_admin'))
         
-    # check_org_permission no es necesario aquí porque un admin DEBE tener org
-    
-    # Obtenemos solo los usuarios de la organización del admin actual
     usuarios = User.query.filter_by(
         organizacion_id=current_user.organizacion_id
     ).order_by(User.username).all()
     
-    # Creamos un dict de formularios, uno para cada usuario
     forms = {}
     for user in usuarios:
         form = AdminPermissionForm()
-        # Rellenamos el formulario con los permisos actuales del usuario
         form.perm_view_dashboard.data = user.perm_view_dashboard
         form.perm_view_management.data = user.perm_view_management
         form.perm_edit_management.data = user.perm_edit_management
@@ -2575,13 +2210,10 @@ def update_user_permissions(user_id):
     user_to_update = User.query.get_or_404(user_id)
     
     # --- CHEQUEO DE SEGURIDAD ---
-    # Un admin solo puede editar usuarios de SU PROPIA organización
-    # Un super_admin puede editar a cualquiera
     if current_user.rol == 'admin' and user_to_update.organizacion_id != current_user.organizacion_id:
         flash('No tienes permiso para editar a este usuario.', 'danger')
         return redirect(url_for('admin_panel'))
         
-    # No puedes editar tus propios permisos (solo el Super Admin puede)
     if user_to_update.id == current_user.id and current_user.rol != 'super_admin':
         flash('No puedes editar tus propios permisos. Pide a otro admin o al Super Admin que lo haga.', 'warning')
         return redirect(url_for('admin_panel'))
@@ -2605,7 +2237,6 @@ def update_user_permissions(user_id):
             db.session.rollback()
             flash(f'Error al actualizar permisos: {e}', 'danger')
     else:
-        # Si la validación (CSRF) falla
         flash('Error de validación del formulario. Inténtalo de nuevo.', 'danger')
             
     return redirect(url_for('admin_panel'))
@@ -2613,11 +2244,7 @@ def update_user_permissions(user_id):
 
 # --- Inicialización ---
 if __name__ == '__main__':
-    # Crea la base de datos y las tablas si no existen
     with app.app_context():
         db.create_all()
 
     app.run(debug=True, port=5000)
-
-
-
