@@ -6,7 +6,7 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
-    <form method="POST" action="{{ url_for('editar_producto', id=producto.id) if producto else url_for('nuevo_producto') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto else url_for('nuevo_producto')) }}" enctype="multipart/form-data">
         <div class="row g-3">
             <div class="col-md-8">
                 <div class="card">
@@ -72,14 +72,36 @@
                                 <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="100" min="0">
                             </div>
                         </div>
+                        
+                        <hr>
+                        <div class="alert alert-success">
+                            <strong>Stock Inicial (Opcional):</strong> Si ya tienes este producto, registra la cantidad inicial en un almacén.
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="almacen_inicial_id" class="form-label">Almacén de Stock Inicial</label>
+                                <select class="form-select" id="almacen_inicial_id" name="almacen_inicial_id">
+                                    <option value="0">-- No registrar stock inicial --</option>
+                                    {% for alm in almacenes %}
+                                    <option value="{{ alm.id }}">{{ alm.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="cantidad_inicial" class="form-label">Cantidad Inicial</label>
+                                <input type="number" class="form-control" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
+                            </div>
+                        </div>
+
                         {% elif stock_item %}
                         <hr>
-                        <h5>Niveles de Stock para: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
+                        <h5>Stock en: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label class="form-label">Cantidad Actual</label>
-                                <input type="text" class="form-control" value="{{ stock_item.cantidad }}" disabled readonly>
-                                <small class="text-muted">Usa Entradas/Salidas para modificar esto.</small>
+                                <label for="cantidad" class="form-label">Cantidad Actual</label>
+                                <input type="number" class="form-control" id="cantidad" name="cantidad" 
+                                       value="{{ stock_item.cantidad }}" min="0" required>
+                                <small class="text-muted">Ajuste manual directo.</small>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="stock_minimo" class="form-label">Stock Mínimo</label>
@@ -93,9 +115,10 @@
 
                         {% else %} 
                         <div class="alert alert-info mt-3">
-                            <strong>Nota:</strong> Para ver o editar los niveles de stock de este producto, ve al <a href="{{ url_for('dashboard') }}">Inventario</a>, selecciona un almacén y haz clic en "Editar" en la fila del producto.
+                            <strong>Nota:</strong> Para ver o editar el stock de este producto, ve al <a href="{{ url_for('dashboard') }}">Dashboard</a>, selecciona un almacén y haz clic en "Editar" en la fila del producto.
                         </div>
                         {% endif %}
+                        </div>
                 </div>
             </div>
             
@@ -118,7 +141,7 @@
             
             <div class="col-12 mt-4">
                 <button type="submit" class="btn btn-primary">Guardar Producto</button>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
+                <a href="{{ url_for('dashboard', almacen_id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
             </div>
         </div>
     </form>
@@ -132,4 +155,3 @@
         }
     </script>
 {% endblock %}
-
