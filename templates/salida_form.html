@@ -3,21 +3,19 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <h2>{{ titulo }}</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ titulo }}</h2>
+        <a href="{{ url_for('ver_salida', id=salida_id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-eye"></i> Ver Hoja de Salida de Hoy
+        </a>
+    </div>
     <p class="text-muted">
-        Usa este formulario para registrar salidas de inventario (ventas, mermas, etc.).
+        Añade items a la hoja de salida del día.
     </p>
     <hr>
     
     <form method="POST" action="{{ url_for('registrar_salida') }}">
         
-        <div class="col-md-6 mb-3">
-            <label for="motivo" class="form-label">Motivo General de la Salida</label>
-            <input type="text" class="form-control" id="motivo" name="motivo" placeholder="Ej: Venta Factura #123, Merma por caducidad" required>
-        </div>
-        
-        <hr>
-
         <h4>Productos a Retirar</h4>
         <div id="lineas_productos_container">
             </div>
@@ -26,92 +24,69 @@
             <i class="bi bi-plus-circle"></i> Añadir Producto
         </button>
         
-        
         <hr class="my-4">
         <div class="col-12">
             <button type="submit" class="btn btn-danger">
-                <i class="bi bi-box-arrow-up"></i> Registrar Salida Múltiple
+                <i class="bi bi-box-arrow-up"></i> Registrar Salida
             </button>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+            <a href="{{ url_for('historial_salidas') }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
 
-
-    <div id="plantilla_linea" style="display: none;">
-        <div class="row g-3 mb-2 align-items-end producto-linea">
-            <div class="col-md-7">
+    <template id="plantilla_linea">
+        <div class="row g-3 mb-3 p-2 border rounded bg-light producto-linea">
+            <div class="col-md-5">
                 <label class="form-label">Producto</label>
                 <select name="producto_id[]" class="form-select" required>
                     <option value="">-- Selecciona un producto --</option>
                     </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Cantidad a Retirar</label>
+            <div class="col-md-2">
+                <label class="form-label">Cantidad</label>
                 <input type="number" name="cantidad[]" class="form-control" value="1" min="1" required>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
+                <label class="form-label">Motivo</label>
+                <input type="text" name="motivo[]" class="form-control" placeholder="Ej: Venta, Merma" required>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-danger w-100" onclick="eliminarLinea(this)">
-                    <i class="bi bi-trash"></i> Eliminar
+                    <i class="bi bi-trash"></i>
                 </button>
             </div>
         </div>
-    </div>
+    </template>
 
     <script>
-        // Función para eliminar una línea (debe ser global para 'onclick')
+        // (Ignora el falso error de VS Code en esta línea)
+        var productos = {{ productos | tojson | safe }};
+
         function eliminarLinea(boton) {
             boton.closest('.producto-linea').remove();
         }
 
-        // Esperamos a que el DOM (la página) esté completamente cargado
         document.addEventListener('DOMContentLoaded', function() {
-            
-            // --- LA LÍNEA DEL ERROR HA SIDO CORREGIDA ---
-            // Esta es la forma correcta de pasar datos de Jinja a JS.
-            // Es posible que tu editor VS Code muestre un error falso aquí,
-            // ¡IGNÓRALO! Este código es el que funciona.
-            var productos = {{ productos | tojson | safe }};
-            
-            // Obtenemos los elementos de la plantilla y el contenedor
-            const plantilla = document.getElementById('plantilla_linea').firstElementChild;
             const contenedor = document.getElementById('lineas_productos_container');
-            const botonAnadir = document.getElementById('btn_add_producto');
-
-            // --- 1. CREAMOS UNA FUNCIÓN REUTILIZABLE ---
+            const plantilla = document.getElementById('plantilla_linea');
+            
             function anadirNuevaLinea() {
-                try {
-                    // Clonamos la plantilla oculta
-                    const nuevaLinea = plantilla.cloneNode(true);
-                    
-                    // Buscamos el <select>
-                    const selectProducto = nuevaLinea.querySelector('select[name="producto_id[]"]');
-                    
-                    // Llenamos el <select>
-                    productos.forEach(function(producto) {
-                        const opcion = new Option(
-                            `${producto.nombre} (Stock: ${producto.stock_actual})`, 
-                            producto.id
-                        );
-                        selectProducto.add(opcion);
-                    });
+                const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
+                const selectProducto = nuevaLinea.querySelector('select[name="producto_id[]"]');
+                
+                productos.forEach(function(producto) {
+                    const opcion = new Option(
+                        `${producto.nombre} (Stock: ${producto.stock_actual})`, 
+                        producto.id
+                    );
+                    selectProducto.add(opcion);
+                });
 
-                    // Añadimos la nueva línea al contenedor
-                    contenedor.appendChild(nuevaLinea);
-
-                } catch (e) {
-                    // Si algo falla, lo mostramos en la consola
-                    console.error("Error al añadir la línea:", e);
-                }
+                contenedor.appendChild(nuevaLinea);
             }
 
-            // --- 2. ASIGNAMOS LA FUNCIÓN AL BOTÓN ---
-            if (botonAnadir) {
-                botonAnadir.addEventListener('click', anadirNuevaLinea);
-            } else {
-                console.error("Error: Botón '#btn_add_producto' no encontrado.");
-            }
-
-            // --- 3. EJECUTAMOS LA FUNCIÓN 1 VEZ AL CARGAR LA PÁGINA ---
+            document.getElementById('btn_add_producto').addEventListener('click', anadirNuevaLinea);
+            
+            // Cargar la primera línea automáticamente
             anadirNuevaLinea();
         });
     </script>
