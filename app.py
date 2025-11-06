@@ -262,16 +262,22 @@ class OrdenCompra(db.Model):
     estado = db.Column(db.String(20), nullable=False, default='borrador')
     
     proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedor.id'), nullable=False)
-    
-    # --- LÍNEA AÑADIDA ---
+    # --- LÍNEA RESTAURADA ---
+    proveedor = db.relationship('Proveedor', backref='ordenes_compra', lazy=True)
+    # ------------------------
+
     almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
-    almacen = db.relationship('Almacen') # Para fácil acceso
+    almacen = db.relationship('Almacen')
     
     detalles = db.relationship('OrdenCompraDetalle', backref='orden', lazy=True, cascade="all, delete-orphan")
     
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    
+    @property
+    def costo_total(self):
+        return sum(detalle.subtotal for detalle in self.detalles)
     
     @property
     def costo_total(self):
@@ -2773,6 +2779,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
