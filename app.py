@@ -34,6 +34,8 @@ from sqlalchemy import extract, Date # <-- AÑADIDO Date
 from itsdangerous.url_safe import URLSafeTimedSerializer
 from PIL import Image
 import qrcode
+import secrets
+from functools import wraps
 
 # --- Reportes (PDF y Excel) ---
 import openpyxl
@@ -126,6 +128,8 @@ class Organizacion(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(120), unique=True, nullable=False)
     
+    # --- LÍNEA AÑADIDA ---
+    codigo_invitacion = db.Column(db.String(10), unique=True, nullable=True)
     usuarios = db.relationship('User', backref='organizacion', lazy=True)
     productos = db.relationship('Producto', backref='organizacion', lazy=True)
     categorias = db.relationship('Categoria', backref='organizacion', lazy=True)
@@ -400,8 +404,11 @@ class RegistrationForm(FlaskForm):
     password = PasswordField('Contraseña', validators=[DataRequired(), Length(min=6)])
     confirm_password = PasswordField('Confirmar Contraseña', 
                                      validators=[DataRequired(), EqualTo('password', message='Las contraseñas deben coincidir.')])
+    
+    # --- LÍNEA AÑADIDA ---
+    codigo_invitacion = StringField('Código de Invitación (Opcional)')
+    
     submit = SubmitField('Registrarse')
-
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
         if user:
@@ -2405,23 +2412,49 @@ def exportar_gastos_excel():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """ Página de Registro de nuevos usuarios. """
+    """ Página de Registro de nuevos usuarios (MODIFICADA para códigos). """
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
     form = RegistrationForm()
     if form.validate_on_submit():
+        
+        # --- LÓGICA DE CÓDIGO DE INVITACIÓN AÑADIDA ---
+        org_id_asignada = None
+        rol_asignado = 'user' # Por defecto es 'user'
+        
+        codigo = form.codigo_invitacion.data
+        if codigo:
+            # Si el usuario escribió un código, lo buscamos
+            org = Organizacion.query.filter_by(codigo_invitacion=codigo.upper()).first()
+            
+            if not org:
+                # El código es inválido, detenemos el registro y mostramos error
+                flash('El código de invitación no es válido.', 'danger')
+                return render_template('register.html', titulo="Registro", form=form)
+            else:
+                # ¡Código válido! Asignamos la organización y el rol
+                org_id_asignada = org.id
+                rol_asignado = 'user' # Los usuarios que se unen por código son 'user'
+        # --- FIN DE LÓGICA AÑADIDA ---
+        
         try:
             new_user = User(
                 username=form.username.data,
-                email=form.email.data
+                email=form.email.data,
+                organizacion_id=org_id_asignada, # <-- MODIFICADO
+                rol=rol_asignado                 # <-- MODIFICADO
             )
             new_user.set_password(form.password.data)
             
             db.session.add(new_user)
             db.session.commit()
             
-            flash(f'¡Cuenta creada para {form.username.data}! Ahora puedes iniciar sesión.', 'success')
+            if org_id_asignada:
+                flash(f'¡Cuenta creada! Has sido añadido a la organización {org.nombre}.', 'success')
+            else:
+                flash(f'¡Cuenta creada! Pide a un Super Admin que te asigne a una organización.', 'success')
+            
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
@@ -2648,6 +2681,42 @@ def asignar_usuario(user_id):
         flash(f'Error al actualizar el usuario: {e}', 'danger')
 
     return redirect(url_for('super_admin'))
+
+@app.route('/superadmin/organizacion/nueva', methods=['POST'])
+@login_required
+@super_admin_required
+def nueva_organizacion():
+    """ Crea una nueva organización y le genera un código de invitación. """
+    nombre = request.form.get('nombre')
+    if not nombre:
+        flash('El nombre de la organización no puede estar vacío.', 'danger')
+        return redirect(url_for('super_admin'))
+        
+    existente = Organizacion.query.filter_by(nombre=nombre).first()
+    if existente:
+        flash(f'La organización "{nombre}" ya existe.', 'warning')
+        return redirect(url_for('super_admin'))
+        
+    try:
+        # --- LÓGICA DE CÓDIGO ÚNICO AÑADIDA ---
+        codigo = None
+        while codigo is None or Organizacion.query.filter_by(codigo_invitacion=codigo).first():
+            # Genera un código de 8 caracteres (ej: "A1b-C2dE")
+            codigo = secrets.token_urlsafe(6).upper() 
+        # --- FIN DE LÓGICA AÑADIDA ---
+
+        nueva_org = Organizacion(
+            nombre=nombre,
+            codigo_invitacion=codigo # <-- AÑADIDO
+        )
+        db.session.add(nueva_org)
+        db.session.commit()
+        flash(f'Organización "{nombre}" creada. Código de invitación: {codigo}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al crear la organización: {e}', 'danger')
+        
+    return redirect(url_for('super_admin'))
     
 # ========================
 # NUEVAS RUTAS DEL ADMIN
@@ -2730,6 +2799,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
