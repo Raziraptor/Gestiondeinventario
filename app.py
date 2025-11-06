@@ -1092,13 +1092,14 @@ def editar_almacen(id):
                            titulo="Editar Almacén", 
                            almacen=almacen)
 
-#<---------SALIDA DE PRODUCTOS (MODIFICADO)----------->
+#<---------SALIDA DE PRODUCTOS (REESCRITO PARA MULTI-ALMACÉN)----------->
 
 @app.route('/salidas')
 @login_required
 @check_org_permission
 @check_permission('perm_do_salidas')
 def historial_salidas():
+    """ Muestra el historial de Hojas de Salida Diarias (Multiusuario). """
     mes = request.args.get('mes', type=int)
     ano = request.args.get('ano', type=int)
     ahora = datetime.now()
@@ -1131,7 +1132,9 @@ def historial_salidas():
 @login_required
 @check_permission('perm_do_salidas')
 def ver_salida(id):
+    """ Muestra el detalle de una Hoja de Salida Diaria (Multiusuario). """
     salida = get_item_or_404(Salida, id)
+    # Ordenamos los movimientos por hora para verlos cronológicamente
     movimientos = salida.movimientos.order_by(Movimiento.fecha.asc()).all()
     
     return render_template('salida_detalle.html', 
@@ -1144,6 +1147,10 @@ def ver_salida(id):
 @check_org_permission
 @check_permission('perm_do_salidas')
 def registrar_salida():
+    """ 
+    AÑADE items a la Hoja de Salida del día de hoy.
+    (MODIFICADO para Multi-Almacén)
+    """
     org_id = current_user.organizacion_id
     
     # --- LÓGICA DE ALMACÉN ---
@@ -1153,6 +1160,7 @@ def registrar_salida():
     almacen_seleccionado = None
     if almacen_id_solicitado:
         almacen_seleccionado = Almacen.query.get(almacen_id_solicitado)
+        # Chequeo de seguridad
         if not almacen_seleccionado or almacen_seleccionado.organizacion_id != org_id:
             flash('Permiso denegado para ese almacén.', 'danger')
             return redirect(url_for('historial_salidas'))
@@ -1165,14 +1173,14 @@ def registrar_salida():
         return render_template('seleccionar_almacen.html',
                                titulo="Seleccionar Almacén de Origen",
                                almacenes=almacenes_org,
-                               destino_ruta='registrar_salida')
+                               destino_ruta='registrar_salida') # Ruta a la que volver
 
     # --- LÓGICA DE BUSCAR-O-CREAR LA HOJA DIARIA ---
     today = datetime.now().date()
     salida_del_dia = Salida.query.filter_by(
         fecha=today, 
         organizacion_id=org_id,
-        almacen_id=almacen_seleccionado.id
+        almacen_id=almacen_seleccionado.id # <-- Filtro por almacén
     ).first()
 
     if not salida_del_dia:
@@ -1180,12 +1188,13 @@ def registrar_salida():
             fecha=today,
             creador_id=current_user.id,
             organizacion_id=org_id,
-            almacen_id=almacen_seleccionado.id
+            almacen_id=almacen_seleccionado.id # <-- Asignar almacén
         )
         db.session.add(salida_del_dia)
         db.session.flush()
 
     # --- LÓGICA DE PRODUCTOS ---
+    # Filtramos solo productos que tienen stock EN ESE ALMACÉN
     productos_en_almacen = db.session.query(Producto).join(Stock).filter(
         Stock.almacen_id == almacen_seleccionado.id,
         Producto.organizacion_id == org_id,
@@ -1194,6 +1203,7 @@ def registrar_salida():
     
     productos_lista = []
     for p in productos_en_almacen:
+        # Obtenemos el stock específico de ESE almacén
         stock_item = Stock.query.filter_by(producto_id=p.id, almacen_id=almacen_seleccionado.id).first()
         productos_lista.append({
             'id': p.id,
@@ -1206,56 +1216,64 @@ def registrar_salida():
         try:
             productos_ids = request.form.getlist('producto_id[]')
             cantidades = request.form.getlist('cantidad[]')
-            motivos = request.form.getlist('motivo[]')
+            motivos = request.form.getlist('motivo[]') # <-- AHORA ES UNA LISTA
 
             if not productos_ids:
                 flash('Debes añadir al menos un producto a la salida.', 'danger')
                 return redirect(url_for('registrar_salida', almacen_id=almacen_seleccionado.id))
 
+            # --- 1. FASE DE VALIDACIÓN ---
             productos_para_actualizar = [] 
             for i in range(len(productos_ids)):
                 prod_id = productos_ids[i]
                 cant_str = cantidades[i]
+                
                 if not prod_id or not cant_str: continue
                 cantidad_salida = int(cant_str)
                 
+                # Buscamos el item de stock específico
                 stock_item = Stock.query.filter_by(producto_id=prod_id, almacen_id=almacen_seleccionado.id).first()
                 
                 if not stock_item:
                     flash(f'Error: Producto no válido.', 'danger')
                     db.session.rollback()
-                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id, almacen=almacen_seleccionado)
+                    return render_template('salida_form.html', titulo=f"Registrar Salida de: {almacen_seleccionado.nombre}", productos=productos_lista, salida_id=salida_del_dia.id, almacen=almacen_seleccionado)
                 if cantidad_salida <= 0:
                     flash('Todas las cantidades deben ser positivas.', 'danger')
                     db.session.rollback() 
-                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id, almacen=almacen_seleccionado)
+                    return render_template('salida_form.html', titulo=f"Registrar Salida de: {almacen_seleccionado.nombre}", productos=productos_lista, salida_id=salida_del_dia.id, almacen=almacen_seleccionado)
                 
+                # --- VALIDACIÓN CRÍTICA DE STOCK (Ahora en la tabla Stock) ---
                 if stock_item.cantidad < cantidad_salida:
-                    flash(f'Error: Stock insuficiente para "{stock_item.producto.nombre}".', 'danger')
+                    flash(f'Error: Stock insuficiente para "{stock_item.producto.nombre}". Stock actual: {stock_item.cantidad}', 'danger')
                     db.session.rollback()
-                    return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id, almacen=almacen_seleccionado)
+                    return render_template('salida_form.html', titulo=f"Registrar Salida de: {almacen_seleccionado.nombre}", productos=productos_lista, salida_id=salida_del_dia.id, almacen=almacen_seleccionado)
                 
                 productos_para_actualizar.append((stock_item, cantidad_salida, motivos[i]))
 
+            # --- 2. FASE DE EJECUCIÓN ---
             for stock_item, cantidad_salida, motivo_item in productos_para_actualizar:
                 
+                # 1. Actualizar el stock del item
                 stock_item.cantidad -= cantidad_salida
                 db.session.add(stock_item)
                 
+                # 2. Registrar el movimiento VINCULADO
                 movimiento = Movimiento(
                     producto_id=stock_item.producto_id,
-                    cantidad= -cantidad_salida,
+                    cantidad= -cantidad_salida, # Negativo
                     tipo='salida',
-                    fecha=datetime.now(),
-                    motivo=motivo_item,
-                    salida=salida_del_dia,
-                    almacen_id=almacen_seleccionado.id,
+                    fecha=datetime.now(), # <-- Hora exacta
+                    motivo=motivo_item, # <-- Motivo por item
+                    salida=salida_del_dia, # <-- Vinculamos a la hoja diaria
+                    almacen_id=almacen_seleccionado.id, # <-- ESTAMPAR ID
                     organizacion_id=org_id
                 )
                 db.session.add(movimiento)
             
             db.session.commit()
             flash(f'Se añadieron {len(productos_para_actualizar)} items a la salida del día.', 'success')
+            # Redirigimos al detalle de la hoja de hoy
             return redirect(url_for('ver_salida', id=salida_del_dia.id)) 
 
         except Exception as e:
@@ -1265,13 +1283,20 @@ def registrar_salida():
     return render_template('salida_form.html', 
                            titulo=f"Registrar Salida de: {almacen_seleccionado.nombre}", 
                            productos=productos_lista,
-                           salida_id=salida_del_dia.id,
+                           salida_id=salida_del_dia.id, # Pasamos el ID para el botón "Ver Hoja de Hoy"
                            almacen=almacen_seleccionado)
 
+# ========================
+# RUTA REESCRITA (Antes 'cancelar_salida')
+# ========================
 @app.route('/movimiento/<int:id>/eliminar', methods=['POST'])
 @login_required
 @check_permission('perm_do_salidas')
 def eliminar_movimiento_salida(id):
+    """ 
+    Elimina un SOLO item (Movimiento) de una hoja de salida 
+    y REVIERTE el stock.
+    """
     movimiento = get_item_or_404(Movimiento, id)
     
     if movimiento.tipo != 'salida':
@@ -1281,16 +1306,20 @@ def eliminar_movimiento_salida(id):
     salida_id_redirect = movimiento.salida_id
 
     try:
+        # --- LÓGICA MODIFICADA ---
+        # Buscamos el item de stock específico
         stock_item = Stock.query.filter_by(
             producto_id=movimiento.producto_id, 
             almacen_id=movimiento.almacen_id
         ).first()
         cantidad_a_devolver = abs(movimiento.cantidad)
         
+        # 1. Revertir el stock
         if stock_item:
             stock_item.cantidad += cantidad_a_devolver
             db.session.add(stock_item)
         else:
+            # Si el stock no existe, lo creamos (caso raro)
             stock_item = Stock(
                 producto_id=movimiento.producto_id,
                 almacen_id=movimiento.almacen_id,
@@ -1298,6 +1327,7 @@ def eliminar_movimiento_salida(id):
             )
             db.session.add(stock_item)
         
+        # 2. Registrar el ajuste (para auditoría)
         mov_ajuste = Movimiento(
             producto_id=movimiento.producto_id,
             cantidad=cantidad_a_devolver,
@@ -1309,6 +1339,7 @@ def eliminar_movimiento_salida(id):
         )
         db.session.add(mov_ajuste)
         
+        # 3. Eliminar el movimiento de salida original
         db.session.delete(movimiento)
         
         db.session.commit()
@@ -1325,6 +1356,7 @@ def eliminar_movimiento_salida(id):
 @login_required
 @check_permission('perm_do_salidas')
 def generar_salida_pdf(id):
+    """ Genera un PDF de Salida (Multiusuario, Multi-Almacén). """
     salida = get_item_or_404(Salida, id)
     
     buffer = io.BytesIO()
@@ -1340,10 +1372,10 @@ def generar_salida_pdf(id):
     style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
 
     story.append(Paragraph(f"COMPROBANTE DE SALIDA #{salida.id}", styles['h1']))
+    story.append(Paragraph(f"<b>Almacén:</b> {salida.almacen.nombre}", styles['h3']))
     story.append(Spacer(1, 0.25 * inch))
     info_salida = f"""
         <b>Fecha:</b> {salida.fecha.strftime('%Y-%m-%d')}<br/>
-        <b>Almacén:</b> {salida.almacen.nombre}<br/>
         <b>Estado:</b> <font color="{'red' if salida.estado == 'cancelada' else 'green'}">
             {salida.estado.capitalize()}
         </font><br/>
@@ -1352,13 +1384,14 @@ def generar_salida_pdf(id):
     story.append(Paragraph(info_salida, styles['BodyText']))
     story.append(Spacer(1, 0.5 * inch))
 
+    # --- TABLA PDF MODIFICADA ---
     data = [[
         Paragraph('Producto', style_header), 
         Paragraph('SKU', style_header), 
         Paragraph('Motivo', style_header),
         Paragraph('Cantidad Retirada', style_header)
     ]]
-    for mov in salida.movimientos:
+    for mov in salida.movimientos.order_by(Movimiento.fecha.asc()).all():
         producto = Paragraph(mov.producto.nombre, style_left)
         sku = Paragraph(mov.producto.codigo, style_left)
         motivo = Paragraph(mov.motivo, style_left)
@@ -1389,7 +1422,6 @@ def generar_salida_pdf(id):
         download_name=filename,
         mimetype='application/pdf'
     )
-
 # --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
 
 @app.route('/ordenes')
@@ -2659,3 +2691,4 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
