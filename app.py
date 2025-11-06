@@ -711,29 +711,15 @@ def dashboard():
 @check_org_permission
 @check_permission('perm_edit_management')
 def nuevo_producto():
+    """ Formulario para crear un nuevo producto (Multiusuario, Multi-Almacén). """
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
-    # --- AÑADIDO: Necesitamos la lista de almacenes ---
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() 
+    # Necesitamos los almacenes para el dropdown de stock inicial
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
     
     if request.method == 'POST':
         imagen_filename = None
-            
-        def repoblar_formulario_con_error():
-            producto_temporal = Producto(
-                nombre=request.form.get('nombre'),
-                codigo=request.form.get('codigo'),
-                categoria_id=int(request.form.get('categoria_id') or 0) or None,
-                precio_unitario=float(request.form.get('precio_unitario') or 0.0),
-                proveedor_id=int(request.form.get('proveedor_id') or 0) or None
-            )
-            return render_template('producto_form.html', 
-                                   titulo="Nuevo Producto", 
-                                   proveedores=proveedores,
-                                   categorias=categorias,
-                                   almacenes=almacenes, # <-- AÑADIDO
-                                   producto=producto_temporal)
             
         if 'imagen' in request.files:
             file = request.files['imagen']
@@ -742,8 +728,8 @@ def nuevo_producto():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
             elif file.filename != '' and not allowed_file(file.filename):
-                flash('Tipo de archivo de imagen no permitido. Los demás datos se han conservado.', 'danger')
-                return repoblar_formulario_con_error()
+                flash('Tipo de archivo de imagen no permitido.', 'danger')
+                return redirect(url_for('nuevo_producto'))
         
         try:
             nuevo_prod = Producto(
@@ -757,32 +743,28 @@ def nuevo_producto():
             )
             db.session.add(nuevo_prod)
             
-            # --- LÓGICA DE STOCK MODIFICADA ---
-            # Leemos los nuevos campos del formulario
+            # --- LÓGICA DE STOCK INICIAL (RESTAURADA) ---
             cantidad_inicial = int(request.form.get('cantidad_inicial', 0))
-            # Hacemos que el ID del almacén sea un entero o None
-            almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0)) or None
+            almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0) or 0)
 
-            almacenes_org = Almacen.query.filter_by(organizacion_id=org_id).all()
-            if not almacenes_org and cantidad_inicial > 0:
-                flash('¡Producto creado! ADVERTENCIA: No se pudo registrar el stock inicial porque no hay almacenes definidos.', 'warning')
+            if not almacenes and cantidad_inicial > 0:
+                flash('ADVERTENCIA: No se pudo registrar el stock inicial porque no hay almacenes.', 'warning')
             
-            for almacen in almacenes_org:
-                cantidad_a_registrar = 0
-                if almacen.id == almacen_inicial_id:
-                    cantidad_a_registrar = cantidad_inicial
+            for almacen in almacenes:
+                # Solo asignamos la cantidad inicial al almacén seleccionado.
+                # Los demás se crean con 0.
+                cant_a_registrar = cantidad_inicial if almacen.id == almacen_inicial_id else 0
 
                 nuevo_stock = Stock(
                     producto=nuevo_prod,
                     almacen=almacen,
-                    cantidad=cantidad_a_registrar, # <-- LÓGICA MODIFICADA
+                    cantidad=cant_a_registrar,
                     stock_minimo=int(request.form.get('stock_minimo', 5)),
                     stock_maximo=int(request.form.get('stock_maximo', 100))
                 )
                 db.session.add(nuevo_stock)
-            
-            # --- NUEVA LÓGICA DE MOVIMIENTO ---
-            # Si se añadió stock inicial, crear un movimiento de auditoría
+
+            # Si hubo stock inicial, registramos el movimiento (Kardex)
             if cantidad_inicial > 0 and almacen_inicial_id:
                 movimiento_inicial = Movimiento(
                     producto=nuevo_prod,
@@ -794,26 +776,25 @@ def nuevo_producto():
                     organizacion_id=org_id
                 )
                 db.session.add(movimiento_inicial)
-            # --- FIN DE NUEVA LÓGICA ---
+            # --- FIN LÓGICA RESTAURADA ---
 
             db.session.commit()
             flash('Producto creado exitosamente.', 'success')
-            # Redirigimos al dashboard, mostrando el almacén donde se añadió el stock
+            
+            # Si se seleccionó un almacén, vamos directo a su dashboard
             if almacen_inicial_id:
-                return redirect(url_for('dashboard', almacen_id=almacen_inicial_id))
-            else:
-                return redirect(url_for('dashboard'))
+                 return redirect(url_for('dashboard', almacen_id=almacen_inicial_id))
+            return redirect(url_for('dashboard'))
         
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear producto: {e}', 'danger')
-            return repoblar_formulario_con_error() # <-- Corregido para llamar a la función
             
     return render_template('producto_form.html', 
                            titulo="Nuevo Producto", 
                            proveedores=proveedores,
                            categorias=categorias,
-                           almacenes=almacenes, # <-- AÑADIDO
+                           almacenes=almacenes, # <-- Pasamos almacenes a la plantilla
                            producto=None)
 
 @app.route('/producto/editar/<int:id>', methods=['GET', 'POST'])
@@ -2809,6 +2790,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
