@@ -139,6 +139,45 @@ class Organizacion(db.Model):
     def __repr__(self):
         return f'<Organizacion {self.nombre}>'
 
+class Almacen(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    ubicacion = db.Column(db.String(255), nullable=True) # ej. "Pasillo 5, Estante A"
+    
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    
+    # Relación inversa: 'stocks' nos dará el inventario de este almacén
+    stocks = db.relationship('Stock', backref='almacen', lazy='dynamic', cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f'<Almacen {self.nombre}>'
+
+class Stock(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    
+    producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
+    
+    cantidad = db.Column(db.Integer, nullable=False, default=0)
+    
+    # Los mínimos y máximos ahora viven aquí, por almacén
+    stock_minimo = db.Column(db.Integer, nullable=False, default=5)
+    stock_maximo = db.Column(db.Integer, nullable=False, default=100)
+    
+    # Asegura que no puedas tener el mismo producto dos veces en el mismo almacén
+    __table_args__ = (db.UniqueConstraint('producto_id', 'almacen_id', name='_producto_almacen_uc'),)
+    
+    @property
+    def estado_stock(self):
+        if self.cantidad < self.stock_minimo:
+            return 'bajo'
+        elif self.cantidad > self.stock_maximo:
+            return 'exceso'
+        return 'ok'
+
+    def __repr__(self):
+        return f'<Stock ProdID: {self.producto_id} AlmID: {self.almacen_id} Qty: {self.cantidad}>'
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -194,9 +233,12 @@ class Producto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     codigo = db.Column(db.String(50), unique=True, nullable=False)
-    cantidad_stock = db.Column(db.Integer, nullable=False, default=0)
-    stock_minimo = db.Column(db.Integer, nullable=False, default=5)
-    stock_maximo = db.Column(db.Integer, nullable=False, default=100)
+    # --- CAMPOS ELIMINADOS ---
+    # cantidad_stock
+    # stock_minimo
+    # stock_maximo
+    # --- FIN DE CAMPOS ELIMINADOS ---
+    
     precio_unitario = db.Column(db.Float, default=0.0)
     imagen_url = db.Column(db.String(255), nullable=True)
     
@@ -208,13 +250,15 @@ class Producto(db.Model):
     
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
     
-    @property
-    def estado_stock(self):
-        if self.cantidad_stock < self.stock_minimo:
-            return 'bajo'
-        elif self.cantidad_stock > self.stock_maximo:
-            return 'exceso'
-        return 'ok'
+    # --- NUEVA RELACIÓN ---
+    stocks = db.relationship('Stock', backref='producto', lazy='dynamic', cascade="all, delete-orphan")
+    
+    # --- PROPIEDAD ELIMINADA ---
+    # @property def estado_stock ... (¡Ya no vive aquí!)
+    
+    def get_stock_total(self):
+        """ Suma el stock de este producto en TODOS los almacenes. """
+        return db.session.query(db.func.sum(Stock.cantidad)).filter_by(producto_id=self.id).scalar() or 0
 
 class OrdenCompra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -223,6 +267,8 @@ class OrdenCompra(db.Model):
     estado = db.Column(db.String(20), nullable=False, default='borrador')
     
     proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedor.id'), nullable=False)
+    # --- LÍNEA AÑADIDA ---
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
     
     detalles = db.relationship('OrdenCompraDetalle', backref='orden', lazy=True, cascade="all, delete-orphan")
     
@@ -269,6 +315,8 @@ class Salida(db.Model):
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # Este campo es para la Hoja de Salida (futuro)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    # --- LÍNEA AÑADIDA ---
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
     
     movimientos = db.relationship('Movimiento', backref='salida', lazy='dynamic', cascade="all, delete-orphan")
 
@@ -285,6 +333,8 @@ class Movimiento(db.Model):
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
     salida_id = db.Column(db.Integer, db.ForeignKey('salida.id'), nullable=True)
+    # --- LÍNEA AÑADIDA ---
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
     
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
@@ -299,6 +349,8 @@ class ProyectoOC(db.Model):
     
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    # --- LÍNEA AÑADIDA ---
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
     
     detalles = db.relationship('ProyectoOCDetalle', backref='proyecto_oc', lazy=True, cascade="all, delete-orphan")
 
@@ -998,6 +1050,69 @@ def editar_proveedor(id):
     return render_template('proveedor_form.html', 
                            titulo="Editar Proveedor", 
                            proveedor=proveedor)
+
+# --- Rutas de Almacenes ---
+
+@app.route('/almacenes')
+@login_required
+@admin_required # Solo Admins y Super Admins pueden gestionar almacenes
+def lista_almacenes():
+    """ Muestra la lista de almacenes de la organización. """
+    if current_user.rol == 'super_admin':
+        # El Super Admin ve todas
+        almacenes = Almacen.query.all()
+    else:
+        almacenes = Almacen.query.filter_by(organizacion_id=current_user.organizacion_id).all()
+        
+    return render_template('almacenes.html', 
+                           almacenes=almacenes,
+                           titulo="Gestionar Almacenes")
+
+@app.route('/almacen/nuevo', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def nuevo_almacen():
+    """ Formulario para crear un nuevo almacén. """
+    if request.method == 'POST':
+        try:
+            nuevo_alm = Almacen(
+                nombre=request.form['nombre'],
+                ubicacion=request.form.get('ubicacion'),
+                organizacion_id=current_user.organizacion_id
+            )
+            db.session.add(nuevo_alm)
+            db.session.commit()
+            flash('Almacén creado exitosamente', 'success')
+            return redirect(url_for('lista_almacenes'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al crear el almacén: {e}', 'danger')
+            
+    return render_template('almacen_form.html', 
+                           titulo="Nuevo Almacén", 
+                           almacen=None)
+
+@app.route('/almacen/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_almacen(id):
+    """ Edita un almacén existente. """
+    almacen = get_item_or_404(Almacen, id) # Usamos nuestra función de seguridad
+    
+    if request.method == 'POST':
+        try:
+            almacen.nombre = request.form['nombre']
+            almacen.ubicacion = request.form.get('ubicacion')
+            db.session.commit()
+            flash('Almacén actualizado exitosamente', 'success')
+            return redirect(url_for('lista_almacenes'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar el almacén: {e}', 'danger')
+
+    return render_template('almacen_form.html', 
+                           titulo="Editar Almacén", 
+                           almacen=almacen)
 
 #<---------SALIDA DE PRODUCTOS (MODIFICADO)----------->
 
@@ -2478,3 +2593,4 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
