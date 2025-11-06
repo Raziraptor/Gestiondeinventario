@@ -144,7 +144,8 @@
                             <td style="width: 1%; white-space: nowrap;">
                                 <div class="btn-group btn-group-sm" role="group">
                                     <!-- Los enlaces ahora van al PRODUCTO, no al item de stock -->
-                                    <a href="{{ url_for('editar_producto', id=item.producto.id) }}" class="btn btn-secondary" title="Editar">
+                                    <a href="{{ url_for('editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}" 
+                                       class="btn btn-secondary" title="Editar Producto y Stock">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <a href="{{ url_for('generar_etiqueta', id=item.producto.id) }}" class="btn btn-info" title="Imprimir Etiqueta" target="_blank">
