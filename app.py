@@ -181,6 +181,9 @@ class Proveedor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
     contacto_email = db.Column(db.String(100))
+    # --- LÍNEA AÑADIDA ---
+    contacto_telefono = db.Column(db.String(50), nullable=True)
+    # --- FIN DE LÍNEA AÑADIDA ---
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
 class Categoria(db.Model):
@@ -956,6 +959,7 @@ def eliminar_categoria(id):
 @check_org_permission
 @check_permission('perm_view_management')
 def lista_proveedores():
+    """ Muestra la lista de proveedores (Multiusuario). """
     if current_user.rol == 'super_admin':
         proveedores = Proveedor.query.all()
     else:
@@ -967,11 +971,15 @@ def lista_proveedores():
 @check_org_permission
 @check_permission('perm_edit_management')
 def nuevo_proveedor():
+    """ Crea un nuevo proveedor (Multiusuario). """
     if request.method == 'POST':
         try:
             nuevo_prov = Proveedor(
                 nombre=request.form['nombre'],
-                contacto_email=request.form['contacto_email'],
+                contacto_email=request.form.get('contacto_email'),
+                # --- LÍNEA AÑADIDA ---
+                contacto_telefono=request.form.get('contacto_telefono'),
+                # --- FIN DE LÍNEA AÑADIDA ---
                 organizacion_id=current_user.organizacion_id
             )
             db.session.add(nuevo_prov)
@@ -982,7 +990,35 @@ def nuevo_proveedor():
             db.session.rollback()
             flash(f'Error al crear proveedor: {e}', 'danger')
             
-    return render_template('proveedor_form.html', titulo="Nuevo Proveedor")
+    # --- PASAMOS 'proveedor=None' PARA QUE EL FORMULARIO COMPARTIDO FUNCIONE ---
+    return render_template('proveedor_form.html', titulo="Nuevo Proveedor", proveedor=None)
+
+# ========================
+# NUEVA RUTA DE EDICIÓN
+# ========================
+@app.route('/proveedor/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_edit_management')
+def editar_proveedor(id):
+    """ Edita un proveedor existente (Multiusuario). """
+    proveedor = get_item_or_404(Proveedor, id)
+    
+    if request.method == 'POST':
+        try:
+            proveedor.nombre = request.form['nombre']
+            proveedor.contacto_email = request.form.get('contacto_email')
+            proveedor.contacto_telefono = request.form.get('contacto_telefono') # <-- AÑADIDO
+            
+            db.session.commit()
+            flash('Proveedor actualizado exitosamente', 'success')
+            return redirect(url_for('lista_proveedores'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar el proveedor: {e}', 'danger')
+
+    return render_template('proveedor_form.html', 
+                           titulo="Editar Proveedor", 
+                           proveedor=proveedor)
 
 #<---------SALIDA DE PRODUCTOS (MODIFICADO)----------->
 
@@ -2582,5 +2618,6 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
