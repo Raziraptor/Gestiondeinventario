@@ -4,9 +4,13 @@
 
 {% block content %}
 
+    <!-- ============================================= -->
+    <!-- MENÚ PRINCIPAL (RECUADROS CON PERMISOS) -->
+    <!-- ============================================= -->
     <h2 class="mb-3">Menú Principal</h2>
     <div class="row g-3 mb-4">
         
+        <!-- Dashboard -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('dashboard') }}" class="dashboard-card card text-dark">
@@ -18,6 +22,7 @@
         </div>
         {% endif %}
         
+        <!-- Agregar Producto -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('nuevo_producto') }}" class="dashboard-card card text-dark">
@@ -29,6 +34,7 @@
         </div>
         {% endif %}
         
+        <!-- Categorías y Proveedores (Gestión) -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_categorias') }}" class="dashboard-card card text-dark">
@@ -48,6 +54,7 @@
         </div>
         {% endif %}
         
+        <!-- OCs Standard -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_ordenes') }}" class="dashboard-card card text-dark">
@@ -59,6 +66,7 @@
         </div>
         {% endif %}
 
+        <!-- OCs Proyecto -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_proyectos_oc') }}" class="dashboard-card card text-dark">
@@ -70,6 +78,7 @@
         </div>
         {% endif %}
 
+        <!-- Salidas -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('historial_salidas') }}" class="dashboard-card card text-dark">
@@ -81,6 +90,7 @@
         </div>
         {% endif %}
 
+        <!-- Gastos -->
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_gastos') }}" class="dashboard-card card text-dark">
@@ -96,6 +106,9 @@
     
     <hr class="mb-4">
 
+    <!-- ============================================= -->
+    <!-- SECCIÓN DE ALERTAS (La mantenemos aquí) -->
+    <!-- ============================================= -->
     {% if alertas_agrupadas %}
     <div class="alert alert-warning">
         <h4 class="alert-heading">¡Alertas de Stock!</h4>
@@ -118,6 +131,8 @@
                         {% set pending_info = pending_map.get(alerta.id) %}
                         
                         {% if pending_info %}
+                            <!-- CASO A: Ya hay una OC en 'borrador' O 'enviada' -->
+                            
                             {% if context.pending_oc_id == 0 %}
                                 {% do context.update({'pending_oc_id': pending_info.orden_id}) %}
                             {% endif %}
@@ -142,6 +157,7 @@
                                 </small>
                             </li>
                         {% else %}
+                            <!-- CASO B: No hay OC, mostrar el checkbox -->
                             {% do context.update({'hay_productos': true}) %}
                             
                             <li class="list-group-item">
