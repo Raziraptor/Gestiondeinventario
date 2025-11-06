@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    <hr>
+    
+    <form method="POST" action="{{ url_for('editar_almacen', id=almacen.id) if almacen else url_for('nuevo_almacen') }}">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="nombre" class="form-label">Nombre del Almacén</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" 
+                       value="{{ almacen.nombre if almacen else '' }}" placeholder="Ej: Bodega Principal, Tienda" required>
+            </div>
+            <div class="col-md-6">
+                <label for="ubicacion" class="form-label">Ubicación (Opcional)</label>
+                <input type="text" class="form-control" id="ubicacion" name="ubicacion" 
+                       value="{{ almacen.ubicacion if almacen else '' }}" placeholder="Ej: Pasillo A, Estante 1">
+            </div>
+            
+            <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-primary">Guardar Almacén</button>
+                <a href="{{ url_for('lista_almacenes') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </div>
+    </form>
+{% endblock %}
