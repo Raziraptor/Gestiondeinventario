@@ -689,10 +689,12 @@ def dashboard():
         categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
         proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
             
+    # NOTA: Las alertas de stock (del index) se romperán. Las arreglaremos después.
+    
     return render_template('dashboard.html', 
-                           items_stock=items_stock,
-                           almacenes=almacenes,
-                           almacen_seleccionado=almacen_seleccionado,
+                           items_stock=items_stock, # Pasamos los items de Stock
+                           almacenes=almacenes, # Pasamos la lista de almacenes
+                           almacen_seleccionado=almacen_seleccionado, # Pasamos el almacén activo
                            categorias=categorias,
                            proveedores=proveedores)
 
@@ -2683,6 +2685,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
