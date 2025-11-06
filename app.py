@@ -820,11 +820,19 @@ def nuevo_producto():
 @login_required
 @check_permission('perm_edit_management')
 def editar_producto(id):
+    """ Edita un producto (Multiusuario, Multi-Almacén). """
     producto = get_item_or_404(Producto, id)
     org_id = producto.organizacion_id
         
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
+
+    # --- NUEVO: Detectar si venimos de un almacén específico ---
+    almacen_id = request.args.get('almacen_id', type=int)
+    stock_item = None
+    if almacen_id:
+        # Buscamos el registro de stock para este producto en este almacén
+        stock_item = Stock.query.filter_by(producto_id=producto.id, almacen_id=almacen_id).first()
 
     if request.method == 'POST':
         try:
@@ -840,17 +848,33 @@ def editar_producto(id):
                                            titulo="Editar Producto", 
                                            producto=producto,
                                            proveedores=proveedores,
-                                           categorias=categorias)
+                                           categorias=categorias,
+                                           stock_item=stock_item) # <-- Pasamos stock_item
 
             producto.nombre = request.form['nombre']
             producto.codigo = request.form['codigo']
             producto.categoria_id = request.form.get('categoria_id') or None
-            producto.precio_unitario = float(request.form['precio_unitario'])
+            producto.precio_unitario = float(request.form.get('precio_unitario', 0.0))
             producto.proveedor_id = request.form.get('proveedor_id') or None
+
+            # --- NUEVO: Si estamos editando stock, guardarlo ---
+            if stock_item:
+                # Nota: Generalmente NO se debe editar la 'cantidad' directamente aquí,
+                # sino usar Entradas/Salidas para mantener el historial.
+                # Por seguridad, solo permitiremos editar mínimos/máximos aquí.
+                stock_item.stock_minimo = int(request.form.get('stock_minimo', stock_item.stock_minimo))
+                stock_item.stock_maximo = int(request.form.get('stock_maximo', stock_item.stock_maximo))
+                # Si realmente necesitas editar la cantidad directamente (ej. corrección de inventario),
+                # descomenta la siguiente línea, pero ten cuidado porque no dejará huella en 'Movimiento'.
+                # stock_item.cantidad = int(request.form.get('cantidad', stock_item.cantidad))
 
             db.session.commit()
             flash('Producto actualizado exitosamente', 'success')
-            return redirect(url_for('dashboard')) # <-- Redirigir a dashboard
+            # Si veníamos de un almacén, volvemos a él
+            if almacen_id:
+                return redirect(url_for('dashboard', almacen_id=almacen_id))
+            return redirect(url_for('dashboard'))
+            
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar producto: {e}', 'danger')
@@ -859,8 +883,8 @@ def editar_producto(id):
                            titulo="Editar Producto", 
                            producto=producto,
                            proveedores=proveedores,
-                           categorias=categorias)
-
+                           categorias=categorias,
+                           stock_item=stock_item) # <-- Pasamos stock_item a la plantilla
 @app.route('/producto/<int:id>/etiqueta')
 @login_required
 @check_permission('perm_view_dashboard')
@@ -2779,6 +2803,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
