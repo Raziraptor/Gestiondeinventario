@@ -7,8 +7,7 @@
         <div>
             <h2>{{ titulo }}</h2>
             <h5 class="text-muted">
-                Hoja de Salida Diaria 
-                {% if salida.estado == 'cancelada' %}(Cancelada){% endif %}
+                Hoja de Salida Diaria para Almacén: <strong>{{ salida.almacen.nombre }}</strong>
             </h5>
             <small>Creada por: {{ salida.creador.username }}</small>
         </div>
@@ -31,7 +30,7 @@
     <div class="card">
         <div class="card-header">
             Items Retirados
-            <a href="{{ url_for('registrar_salida') }}" class="btn btn-sm btn-outline-primary float-end">
+            <a href="{{ url_for('registrar_salida', almacen_id=salida.almacen_id) }}" class="btn btn-sm btn-outline-primary float-end">
                 <i class="bi bi-plus-circle"></i> Añadir más items
             </a>
         </div>
