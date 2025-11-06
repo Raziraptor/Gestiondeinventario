@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ titulo }}</h2>
+        <a href="{{ url_for('nuevo_almacen') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Almacén
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Ubicación/Descripción</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alm in almacenes %}
+                    <tr>
+                        <td><strong>{{ alm.nombre }}</strong></td>
+                        <td>{{ alm.ubicacion }}</td>
+                        <td style="width: 1%; white-space: nowrap;">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('editar_almacen', id=alm.id) }}" class="btn btn-secondary" title="Editar">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center">No hay almacenes registrados.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
