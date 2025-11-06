@@ -300,14 +300,13 @@ class Gasto(db.Model):
     def __repr__(self):
         return f'<Gasto {self.descripcion} - ${self.monto}>'
     
-# --- MODELO 'Salida' MODIFICADO ---
 class Salida(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fecha = db.Column(db.Date, nullable=False, default=datetime.now().date)
     estado = db.Column(db.String(20), nullable=False, default='abierta')
     
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)    
+    cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) # (Para auditoría futura) 
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
     # --- LÍNEA AÑADIDA ---
@@ -316,7 +315,6 @@ class Salida(db.Model):
     
     movimientos = db.relationship('Movimiento', backref='salida', lazy='dynamic', cascade="all, delete-orphan")
 
-# --- MODELO 'Movimiento' MODIFICADO ---
 class Movimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
@@ -325,6 +323,7 @@ class Movimiento(db.Model):
     cantidad = db.Column(db.Integer, nullable=False) 
     tipo = db.Column(db.String(20), nullable=False) 
     fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    
     motivo = db.Column(db.String(255), nullable=False) 
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
@@ -1286,9 +1285,6 @@ def registrar_salida():
                            salida_id=salida_del_dia.id, # Pasamos el ID para el botón "Ver Hoja de Hoy"
                            almacen=almacen_seleccionado)
 
-# ========================
-# RUTA REESCRITA (Antes 'cancelar_salida')
-# ========================
 @app.route('/movimiento/<int:id>/eliminar', methods=['POST'])
 @login_required
 @check_permission('perm_do_salidas')
@@ -1323,7 +1319,8 @@ def eliminar_movimiento_salida(id):
             stock_item = Stock(
                 producto_id=movimiento.producto_id,
                 almacen_id=movimiento.almacen_id,
-                cantidad=cantidad_a_devolver
+                cantidad=cantidad_a_devolver,
+                organizacion_id=movimiento.organizacion_id # Aseguramos la org
             )
             db.session.add(stock_item)
         
@@ -1349,7 +1346,12 @@ def eliminar_movimiento_salida(id):
         db.session.rollback()
         flash(f'Error al eliminar el item: {e}', 'danger')
 
-    return redirect(url_for('ver_salida', id=salida_id_redirect))
+    # Si la hoja de salida todavía existe, redirige a ella
+    if salida_id_redirect and Salida.query.get(salida_id_redirect):
+        return redirect(url_for('ver_salida', id=salida_id_redirect))
+    # Si era el último item, la hoja se borró (por la cascada), 
+    # así que redirigimos al historial
+    return redirect(url_for('historial_salidas'))
 
 
 @app.route('/salida/<int:id>/pdf')
@@ -1372,6 +1374,7 @@ def generar_salida_pdf(id):
     style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
 
     story.append(Paragraph(f"COMPROBANTE DE SALIDA #{salida.id}", styles['h1']))
+    # --- AÑADIDO ALMACÉN ---
     story.append(Paragraph(f"<b>Almacén:</b> {salida.almacen.nombre}", styles['h3']))
     story.append(Spacer(1, 0.25 * inch))
     info_salida = f"""
@@ -1391,6 +1394,7 @@ def generar_salida_pdf(id):
         Paragraph('Motivo', style_header),
         Paragraph('Cantidad Retirada', style_header)
     ]]
+    # Usamos .all() porque la relación ahora es 'dynamic'
     for mov in salida.movimientos.order_by(Movimiento.fecha.asc()).all():
         producto = Paragraph(mov.producto.nombre, style_left)
         sku = Paragraph(mov.producto.codigo, style_left)
@@ -1422,6 +1426,7 @@ def generar_salida_pdf(id):
         download_name=filename,
         mimetype='application/pdf'
     )
+    
 # --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
 
 @app.route('/ordenes')
@@ -2691,4 +2696,5 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
