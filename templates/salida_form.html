@@ -10,11 +10,11 @@
         </a>
     </div>
     <p class="text-muted">
-        Añade items a la hoja de salida del día.
+        Añade items a la hoja de salida del día. Los items se restarán del almacén: <strong>{{ almacen.nombre }}</strong>
     </p>
     <hr>
     
-    <form method="POST" action="{{ url_for('registrar_salida') }}">
+    <form method="POST" action="{{ url_for('registrar_salida', almacen_id=almacen.id) }}">
         
         <h4>Productos a Retirar</h4>
         <div id="lineas_productos_container">
