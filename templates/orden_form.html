@@ -9,7 +9,6 @@
     <form method="POST" action="{{ url_for('editar_orden', id=orden.id) if orden else url_for('nueva_orden_manual') }}">
         
         <div class="row">
-            <!-- Columna 1: Proveedor -->
             <div class="mb-3 col-md-6">
                 <label for="proveedor_id" class="form-label">Proveedor</label>
                 <select class="form-select" id="proveedor_id" name="proveedor_id" 
@@ -27,9 +26,6 @@
                 {% endif %}
             </div>
             
-            <!-- ======================== -->
-            <!-- NUEVO: Almacén de Destino -->
-            <!-- ======================== -->
             <div class="mb-3 col-md-6">
                 <label for="almacen_id" class="form-label">Almacén de Destino</label>
                 <select class="form-select" id="almacen_id" name="almacen_id" 
@@ -50,13 +46,8 @@
 
         <hr>
         
-        <!-- 2. LÍNEAS DE PRODUCTOS -->
         <h4>Productos</h4>
         <div id="lineas_productos_container">
-            <!-- 
-              Si estamos editando, Jinja renderiza las líneas existentes.
-              Si es nueva, el script añadirá la primera línea aquí.
-            -->
             {% if orden %}
                 {% for detalle in orden.detalles %}
                 <div class="row g-3 mb-2 align-items-end producto-linea">
@@ -65,7 +56,6 @@
                         <select name="producto_id[]" class="form-select" required>
                             <option value="">-- Selecciona --</option>
                             {% for p in productos %}
-                                <!-- Mostramos solo los del proveedor de la orden -->
                                 {% if p.proveedor_id == orden.proveedor_id or not p.proveedor_id %}
                                 <option value="{{ p.id }}" data-precio="{{ p.precio_unitario }}" {% if p.id == detalle.producto_id %}selected{% endif %}>
                                     {{ p.nombre }} (SKU: {{ p.codigo }})
@@ -90,7 +80,7 @@
                 </div>
                 {% endfor %}
             {% endif %}
-        </div>
+            </div>
         
         <button type="button" id="btn_add_producto" class="btn btn-info mt-2" 
                 {% if not orden %}disabled{% endif %}>
@@ -101,7 +91,6 @@
         </small>
         
         
-        <!-- 3. ACCIONES DEL FORMULARIO -->
         <hr class="my-4">
         <div class="col-12">
             <button type="submit" class="btn btn-primary">Guardar Orden</button>
@@ -109,17 +98,13 @@
         </div>
     </form>
 
-    <!-- ============================================= -->
-    <!-- PLANTILLA JS (oculta) PARA NUEVAS LÍNEAS -->
-    <!-- ============================================= -->
     <template id="plantilla_linea">
         <div class="row g-3 mb-2 align-items-end producto-linea">
             <div class="col-md-5">
                 <label class="form-label">Producto</label>
                 <select name="producto_id[]" class="form-select" required>
                     <option value="">-- Selecciona un producto --</option>
-                    <!-- Las opciones se llenarán con JavaScript -->
-                </select>
+                    </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label">Cantidad</label>
@@ -138,9 +123,6 @@
     </template>
 
 
-    <!-- ============================================= -->
-    <!-- JAVASCRIPT MODIFICADO PARA MULTI-ALMACÉN -->
-    <!-- ============================================= -->
     <script>
         // (Ignora el falso error de VS Code en esta línea)
         var todosLosProductos = {{ productos | tojson | safe }};
@@ -212,25 +194,18 @@
                 });
                 
                 selectAlmacen.addEventListener('change', function() {
-                    contenedor.innerHTML = '';
+                    // No borramos las líneas si solo cambia el almacén
                     chequearFormulario();
-                    if (!botonAnadir.disabled) {
+                    if (!botonAnadir.disabled && contenedor.children.length === 0) {
                         anadirNuevaLinea();
                     }
                 });
-            {% endif %}
-
-            // --- 4. Listener del Botón Añadir ---
-            botonAnadir.addEventListener('click', anadirNuevaLinea);
-            
-            // --- 5. Lógica de Carga Inicial (para Edición) ---
-            // Si estamos editando, los dropdowns están deshabilitados
-            // pero el botón de añadir debe estar habilitado.
-            {% if orden %}
+            {% else %}
+                // Modo "Editar": el botón de añadir está habilitado
                 botonAnadir.disabled = false;
                 productoAyuda.style.display = 'none';
                 
-                // Rellenar costos de líneas existentes
+                // Añadir listeners a las líneas ya existentes
                 contenedor.querySelectorAll('.producto-linea').forEach(function(linea) {
                     const select = linea.querySelector('select[name="producto_id[]"]');
                     const inputCosto = linea.querySelector('.costo-input');
@@ -241,6 +216,9 @@
                     });
                 });
             {% endif %}
+
+            // --- 4. Listener del Botón Añadir ---
+            botonAnadir.addEventListener('click', anadirNuevaLinea);
         });
     </script>
 {% endblock %}
