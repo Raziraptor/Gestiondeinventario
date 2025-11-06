@@ -28,6 +28,7 @@
                     {% endfor %}
                 </select>
                 {% if proyecto_oc %}
+                    <input type="hidden" name="almacen_id" value="{{ proyecto_oc.almacen_id }}">
                     <small class="form-text text-muted">No se puede cambiar el almacén de una orden existente.</small>
                 {% endif %}
             </div>
@@ -67,7 +68,7 @@
                 
                 <div class="control-existente">
                     <label class="form-label">Producto del Inventario</label>
-                    <input class="form-control producto-search" list="datalistProductos" name="producto_nombre_existente[]" placeholder="Escribe para buscar..." autocomplete="off">
+                    <input class="form-control producto-search" list="datalistProductos" name="producto_nombre_existente_visual[]" placeholder="Escribe para buscar..." autocomplete="off">
                     <input type="hidden" class="producto-id-hidden" name="producto_id_existente[]" value="0">
                 </div>
                 
@@ -79,18 +80,18 @@
             </div>
             
             <div class="col-md-3">
-                <label class="form-label">Proveedor (Existente o Nuevo)</label>
-                <input class="form-control" list="datalistProveedores" name="proveedor_sugerido[]" placeholder="Escribe o selecciona...">
+                <label class="form-label">Proveedor Sugerido</label>
+                <input class="form-control proveedor-search" list="datalistProveedores" name="proveedor_sugerido[]" placeholder="Escribe o selecciona...">
             </div>
             
             <div class="col-md-4">
                 <div class="row">
                     <div class="col-6">
                         <label class="form-label">Cantidad</label>
-                        <input type="number" name="cantidad[]" class="form-control" value="1" min="1" required>
+                        <input type="number" name="cantidad[]" class="form-control cantidad-input" value="1" min="1" required>
                     </div>
                     <div class="col-6">
-                        <label class="form-label">Costo Unitario</label>
+                        <label class="form-label">Costo Unit.</label>
                         <input type="number" name="costo[]" class="form-control costo-input" value="0.00" step="0.01" min="0" required>
                     </div>
                 </div>
@@ -104,176 +105,174 @@
         </div>
     </template>
 
-    <datalist id="datalistProveedores">
-        {% for prov in proveedores %}
-            <option value="{{ prov.nombre }}">
-        {% endfor %}
-    </datalist>
-    
-    <datalist id="datalistProductos">
-        {% for p in productos %}
-            <option data-id="{{ p.id }}" data-precio="{{ p.precio_unitario }}" value="{{ p.nombre }} (SKU: {{ p.codigo }})">
-        {% endfor %}
-    </datalist>
+    <datalist id="datalistProductos"></datalist>
+    <datalist id="datalistProveedores"></datalist>
 
     <script>
-        // Contador global para asegurar IDs/Names únicos
         let lineaCounter = 0;
-        
-        // Ponemos los productos en un mapa de JS para búsqueda rápida (Nombre -> Datos)
-        const productosMap = new Map();
-        {% for p in productos %}
-            productosMap.set("{{ p.nombre }} (SKU: {{ p.codigo }})", { id: {{ p.id }}, precio: {{ p.precio_unitario }} });
-        {% endfor %}
+        // Mapas para búsqueda rápida
+        const productosMap = new Map();     // Nombre -> {id, precio}
+        const productosIdMap = new Map();   // ID -> Nombre
 
-        // Mapa inverso (ID -> Nombre/SKU) para rellenar el formulario de edición
-        const productosMapById = new Map();
-        {% for p in productos %}
-            productosMapById.set({{ p.id }}, "{{ p.nombre }} (SKU: {{ p.codigo }})");
-        {% endfor %}
-        
-        // Detalles existentes (solo en modo edición)
-        const detallesExistentes = {{ detalles_json | tojson | safe }};
-
-        // Función global para eliminar línea
+        // Función global para el botón de eliminar
         function eliminarLinea(boton) {
             boton.closest('.item-linea').remove();
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Iniciando script de Proyecto OC...");
+
+            // 1. Cargar datos de forma SEGURA usando tojson
+            const productosData = {{ productos | tojson | safe }};
+            const proveedoresData = {{ proveedores | tojson | safe }};
+            const detallesExistentes = {{ detalles_json | tojson | safe }};
+
+            // 2. Llenar Datalists y Mapas
+            const datalistProductos = document.getElementById('datalistProductos');
+            productosData.forEach(p => {
+                const nombreCompleto = `${p.nombre} (SKU: ${p.codigo})`;
+                // Llenar mapas
+                productosMap.set(nombreCompleto, { id: p.id, precio: p.precio_unitario });
+                productosIdMap.set(p.id, nombreCompleto);
+                // Llenar datalist
+                const option = document.createElement('option');
+                option.value = nombreCompleto;
+                datalistProductos.appendChild(option);
+            });
+
+            const datalistProveedores = document.getElementById('datalistProveedores');
+            proveedoresData.forEach(prov => {
+                const option = document.createElement('option');
+                option.value = prov.nombre;
+                datalistProveedores.appendChild(option);
+            });
+
+            // 3. Función Principal: Añadir Línea
             const contenedor = document.getElementById('lineas_items_container');
             const plantilla = document.getElementById('plantilla_linea');
-            
-            // ========================
-            // FUNCIÓN AÑADIR LÍNEA (MODIFICADA)
-            // ========================
+
             function anadirNuevaLinea(detalle = null) {
                 lineaCounter++;
                 const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
 
-                // --- 1. Actualizar IDs y 'name' de radios ---
-                nuevaLinea.querySelector('#tipo_existente_X').id = `tipo_existente_${lineaCounter}`;
-                nuevaLinea.querySelector('label[for="tipo_existente_X"]').htmlFor = `tipo_existente_${lineaCounter}`;
-                nuevaLinea.querySelector('#tipo_nuevo_X').id = `tipo_nuevo_${lineaCounter}`;
-                nuevaLinea.querySelector('label[for="tipo_nuevo_X"]').htmlFor = `tipo_nuevo_${lineaCounter}`;
-                
+                // --- A. Configurar IDs únicos para los Radios ---
                 const radioName = `tipo_item_group_${lineaCounter}`;
-                nuevaLinea.querySelectorAll('.tipo-item').forEach(radio => radio.name = radioName);
+                const radioExistente = nuevaLinea.querySelector('#tipo_existente_X');
+                const radioNuevo = nuevaLinea.querySelector('#tipo_nuevo_X');
                 
-                // --- 2. Referencias a los controles ---
-                const radios = nuevaLinea.querySelectorAll('.tipo-item');
+                radioExistente.id = `tipo_existente_${lineaCounter}`;
+                radioExistente.name = radioName;
+                nuevaLinea.querySelector('label[for="tipo_existente_X"]').htmlFor = `tipo_existente_${lineaCounter}`;
+                
+                radioNuevo.id = `tipo_nuevo_${lineaCounter}`;
+                radioNuevo.name = radioName;
+                nuevaLinea.querySelector('label[for="tipo_nuevo_X"]').htmlFor = `tipo_nuevo_${lineaCounter}`;
+
+                // --- B. Referencias a elementos ---
                 const tipoHidden = nuevaLinea.querySelector('.tipo-item-hidden');
                 const divExistente = nuevaLinea.querySelector('.control-existente');
+                const inputSearch = divExistente.querySelector('.producto-search');
+                const inputIdHidden = divExistente.querySelector('.producto-id-hidden');
+                
                 const divNuevo = nuevaLinea.querySelector('.control-nuevo');
-                
-                const inputExistente = divExistente.querySelector('.producto-search');
-                const inputExistenteId = divExistente.querySelector('.producto-id-hidden');
-                
-                const inputNuevo = divNuevo.querySelector('input');
-                const inputNuevoId = divNuevo.querySelector('input[type="hidden"]');
-                
+                const inputNuevoDesc = divNuevo.querySelector('input[type="text"]');
+                const inputNuevoIdDummy = divNuevo.querySelector('input[type="hidden"]');
+
                 const inputCosto = nuevaLinea.querySelector('.costo-input');
-                const inputCantidad = nuevaLinea.querySelector('input[name="cantidad[]"]');
-                const inputProveedor = nuevaLinea.querySelector('input[name="proveedor_sugerido[]"]');
+                const inputCantidad = nuevaLinea.querySelector('.cantidad-input');
+                const inputProveedor = nuevaLinea.querySelector('.proveedor-search');
 
-                // --- 3. Lógica de cambio de Tipo (Existente vs Nuevo) ---
-                radios.forEach(radio => {
-                    radio.addEventListener('change', function() {
-                        tipoHidden.value = this.value;
-                        if (this.value === 'existente') {
-                            divExistente.style.display = 'block';
-                            inputExistente.disabled = false;
-                            inputExistente.required = true;
-                            inputExistenteId.disabled = false;
-                            
-                            divNuevo.style.display = 'none';
-                            inputNuevo.disabled = true;
-                            inputNuevo.required = false;
-                            inputNuevoId.disabled = true;
+                // --- C. Lógica de Cambio de Tipo ---
+                function cambiarTipo(tipo) {
+                    tipoHidden.value = tipo;
+                    if (tipo === 'existente') {
+                        divExistente.style.display = 'block';
+                        inputSearch.disabled = false;
+                        inputSearch.required = true;
+                        inputIdHidden.disabled = false;
 
-                            buscarProducto(inputExistente.value);
-                            
-                        } else if (this.value === 'nuevo') {
-                            divExistente.style.display = 'none';
-                            inputExistente.disabled = true;
-                            inputExistente.required = false;
-                            inputExistenteId.disabled = true;
-                            
-                            divNuevo.style.display = 'block';
-                            inputNuevo.disabled = false;
-                            inputNuevo.required = true;
-                            inputNuevoId.disabled = false;
+                        divNuevo.style.display = 'none';
+                        inputNuevoDesc.disabled = true;
+                        inputNuevoDesc.required = false;
+                        inputNuevoIdDummy.disabled = true;
+                        
+                        // Intentar re-rellenar precio si ya había algo seleccionado
+                        buscarProducto(inputSearch.value);
 
-                            inputCosto.value = '0.00';
-                            inputCosto.readOnly = false;
-                            inputExistenteId.value = '0';
-                        }
-                    });
-                });
-                
-                // --- 4. Lógica de búsqueda y auto-rellenado ---
-                function buscarProducto(valor) {
-                    const producto = productosMap.get(valor);
-                    if (producto) {
-                        inputExistenteId.value = producto.id;
-                        inputCosto.value = parseFloat(producto.precio).toFixed(2);
-                        inputCosto.readOnly = true;
-                    } else {
-                        inputExistenteId.value = '0';
+                    } else { // tipo === 'nuevo'
+                        divExistente.style.display = 'none';
+                        inputSearch.disabled = true;
+                        inputSearch.required = false;
+                        inputIdHidden.disabled = true;
+
+                        divNuevo.style.display = 'block';
+                        inputNuevoDesc.disabled = false;
+                        inputNuevoDesc.required = true;
+                        inputNuevoIdDummy.disabled = false;
+
                         inputCosto.readOnly = false;
+                        if (inputCosto.value === '') inputCosto.value = '0.00';
                     }
                 }
-                
-                inputExistente.addEventListener('input', function() {
-                    buscarProducto(this.value);
-                });
 
-                // --- 5. LÓGICA DE EDICIÓN (PRE-RELLENAR) ---
+                radioExistente.addEventListener('change', () => cambiarTipo('existente'));
+                radioNuevo.addEventListener('change', () => cambiarTipo('nuevo'));
+
+                // --- D. Lógica de Búsqueda de Producto ---
+                function buscarProducto(valor) {
+                    const prodData = productosMap.get(valor);
+                    if (prodData) {
+                        // Encontrado: Rellenar ID y Costo
+                        inputIdHidden.value = prodData.id;
+                        inputCosto.value = parseFloat(prodData.precio).toFixed(2);
+                        inputCosto.readOnly = true; // Bloquear costo para existentes
+                    } else {
+                        // No encontrado (aún escribiendo): Limpiar ID
+                        inputIdHidden.value = '0';
+                        inputCosto.readOnly = false; // Permitir editar costo si no hay match
+                    }
+                }
+                inputSearch.addEventListener('input', (e) => buscarProducto(e.target.value));
+
+                // --- E. Pre-rellenar datos (si es edición) ---
                 if (detalle) {
                     inputCantidad.value = detalle.cantidad;
                     inputCosto.value = parseFloat(detalle.costo_unitario).toFixed(2);
                     inputProveedor.value = detalle.proveedor_sugerido || '';
-
+                    
                     if (detalle.tipo === 'existente') {
-                        nuevaLinea.querySelector('#tipo_existente_X').checked = true;
-                        tipoHidden.value = 'existente';
-                        
-                        const nombreProducto = productosMapById.get(detalle.producto_id);
-                        if (nombreProducto) {
-                            inputExistente.value = nombreProducto;
-                            buscarProducto(nombreProducto);
+                        radioExistente.checked = true;
+                        cambiarTipo('existente');
+                        // Buscar nombre por ID y rellenar
+                        const nombre = productosIdMap.get(detalle.producto_id);
+                        if (nombre) {
+                            inputSearch.value = nombre;
+                            inputIdHidden.value = detalle.producto_id;
+                            inputCosto.readOnly = true;
                         }
-                        
-                    } else { // Es 'nuevo'
-                        nuevaLinea.querySelector('#tipo_nuevo_X').checked = true;
-                        tipoHidden.value = 'nuevo';
-                        inputNuevo.value = detalle.descripcion_nuevo;
-                        inputCosto.readOnly = false;
-                        
-                        nuevaLinea.querySelector('#tipo_nuevo_X').dispatchEvent(new Event('change'));
+                    } else {
+                        radioNuevo.checked = true;
+                        cambiarTipo('nuevo');
+                        inputNuevoDesc.value = detalle.descripcion_nuevo;
                     }
                 } else {
-                    // Si es nuevo, chequear 'existente' por defecto
-                    nuevaLinea.querySelector('#tipo_existente_X').checked = true;
-                    tipoHidden.value = 'existente';
-                    inputExistente.required = true;
-                    inputNuevo.required = false;
+                    // Nueva línea por defecto
+                    radioExistente.checked = true;
+                    cambiarTipo('existente');
                 }
 
                 contenedor.appendChild(nuevaLinea);
             }
 
-            // --- 6. LÓGICA DE CARGA INICIAL ---
-            document.getElementById('btn_add_item').addEventListener('click', () => anadirNuevaLinea(null));
-            
+            // --- 4. Inicialización ---
+            document.getElementById('btn_add_item').addEventListener('click', () => anadirNuevaLinea());
+
             if (detallesExistentes && detallesExistentes.length > 0) {
-                // Modo Edición: Cargar líneas desde la BD
-                detallesExistentes.forEach(detalle => {
-                    anadirNuevaLinea(detalle);
-                });
+                console.log("Cargando detalles existentes:", detallesExistentes.length);
+                detallesExistentes.forEach(detalle => anadirNuevaLinea(detalle));
             } else {
-                // Modo Nuevo: Cargar la primera línea vacía
-                anadirNuevaLinea(null);
+                console.log("Cargando línea vacía inicial.");
+                anadirNuevaLinea();
             }
         });
     </script>
