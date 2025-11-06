@@ -6,27 +6,24 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
-    <form method="POST" action="{{ url_for('nuevo_proyecto_oc') }}">
+    <form method="POST" action="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) if proyecto_oc else url_for('nuevo_proyecto_oc') }}">
         
-        <!-- 1. NOMBRE DEL PROYECTO -->
         <div class="mb-3 col-md-6">
             <label for="nombre_proyecto" class="form-label">Nombre del Proyecto</label>
-            <input type="text" class="form-control" id="nombre_proyecto" name="nombre_proyecto" required>
+            <input type="text" class="form-control" id="nombre_proyecto" name="nombre_proyecto" 
+                   value="{{ proyecto_oc.nombre_proyecto if proyecto_oc else '' }}" required>
         </div>
         
         <hr>
         
-        <!-- 2. LÍNEAS DE ITEMS DINÁMICAS -->
         <h4>Items</h4>
         <div id="lineas_items_container">
-            <!-- La primera línea se añade con JS -->
-        </div>
+            </div>
         
         <button type="button" id="btn_add_item" class="btn btn-info mt-2">
             <i class="bi bi-plus-circle"></i> Añadir Item
         </button>
         
-        <!-- 3. ACCIONES DEL FORMULARIO -->
         <hr class="my-4">
         <div class="col-12">
             <button type="submit" class="btn btn-primary">Guardar OC de Proyecto</button>
@@ -34,17 +31,12 @@
         </div>
     </form>
 
-    <!-- ============================================= -->
-    <!-- PLANTILLA JS (oculta) PARA NUEVAS LÍNEAS -->
-    <!-- ============================================= -->
     <template id="plantilla_linea">
         <div class="row g-3 mb-3 p-2 border rounded bg-light item-linea">
-            <!-- Columna 1: Tipo y Selección -->
             <div class="col-md-5">
-                <!-- Tipo de Item (Radio) -->
                 <div class="mb-2">
                     <div class="form-check form-check-inline">
-                        <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_existente_X" value="existente" checked>
+                        <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_existente_X" value="existente">
                         <label class="form-check-label" for="tipo_existente_X">Producto Existente</label>
                     </div>
                     <div class="form-check form-check-inline">
@@ -54,34 +46,24 @@
                     <input type="hidden" class="tipo-item-hidden" name="tipo_item[]" value="existente">
                 </div>
                 
-                <!-- ======================== -->
-                <!-- CAMBIO A INPUT CON DATALIST -->
-                <!-- ======================== -->
                 <div class="control-existente">
                     <label class="form-label">Producto del Inventario</label>
-                    <!-- 1. El Input para buscar -->
-                    <input class="form-control producto-search" list="datalistProductos" name="producto_nombre_existente[]" placeholder="Escribe para buscar..." autocomplete="off" required>
-                    <!-- 2. El Input oculto para enviar el ID -->
+                    <input class="form-control producto-search" list="datalistProductos" name="producto_nombre_existente[]" placeholder="Escribe para buscar..." autocomplete="off">
                     <input type="hidden" class="producto-id-hidden" name="producto_id_existente[]" value="0">
                 </div>
-                <!-- ======================== -->
                 
-                <!-- Input de Producto Nuevo (oculto por defecto) -->
                 <div class="control-nuevo" style="display: none;">
                     <label class="form-label">Descripción del Producto Nuevo</label>
                     <input type="text" name="producto_nuevo_descripcion[]" class="form-control" disabled>
-                    <!-- 3. Un input oculto (deshabilitado) para mantener el array del form alineado -->
                     <input type="hidden" name="producto_id_existente[]" value="0" disabled>
                 </div>
             </div>
             
-            <!-- Columna 2: Proveedor (con Datalist) -->
             <div class="col-md-3">
                 <label class="form-label">Proveedor (Existente o Nuevo)</label>
                 <input class="form-control" list="datalistProveedores" name="proveedor_sugerido[]" placeholder="Escribe o selecciona...">
             </div>
             
-            <!-- Columna 3: Cantidad y Costo -->
             <div class="col-md-4">
                 <div class="row">
                     <div class="col-6">
@@ -95,7 +77,6 @@
                 </div>
             </div>
             
-            <!-- Botón Eliminar -->
             <div class="col-12 text-end">
                 <button type="button" class="btn btn-sm btn-danger" onclick="eliminarLinea(this)">
                     <i class="bi bi-trash"></i> Eliminar Línea
@@ -104,32 +85,36 @@
         </div>
     </template>
 
-    <!-- DATALIST (global) para Proveedores -->
     <datalist id="datalistProveedores">
         {% for prov in proveedores %}
             <option value="{{ prov.nombre }}">
         {% endfor %}
     </datalist>
     
-    <!-- DATALIST (global) para Productos -->
     <datalist id="datalistProductos">
         {% for p in productos %}
-            <option value="{{ p.nombre }} (SKU: {{ p.codigo }})">
+            <option data-id="{{ p.id }}" data-precio="{{ p.precio_unitario }}" value="{{ p.nombre }} (SKU: {{ p.codigo }})">
         {% endfor %}
     </datalist>
 
-    <!-- ============================================= -->
-    <!-- JAVASCRIPT MODIFICADO PARA BÚSQUEDA -->
-    <!-- ============================================= -->
     <script>
         // Contador global para asegurar IDs/Names únicos
         let lineaCounter = 0;
         
-        // Ponemos los productos en un mapa de JS para búsqueda rápida
+        // Ponemos los productos en un mapa de JS para búsqueda rápida (Nombre -> Datos)
         const productosMap = new Map();
         {% for p in productos %}
             productosMap.set("{{ p.nombre }} (SKU: {{ p.codigo }})", { id: {{ p.id }}, precio: {{ p.precio_unitario }} });
         {% endfor %}
+
+        // Mapa inverso (ID -> Nombre/SKU) para rellenar el formulario de edición
+        const productosMapById = new Map();
+        {% for p in productos %}
+            productosMapById.set({{ p.id }}, "{{ p.nombre }} (SKU: {{ p.codigo }})");
+        {% endfor %}
+        
+        // Detalles existentes (solo en modo edición)
+        const detallesExistentes = {{ detalles_json | tojson | safe }};
 
         // Función global para eliminar línea
         function eliminarLinea(boton) {
@@ -140,7 +125,10 @@
             const contenedor = document.getElementById('lineas_items_container');
             const plantilla = document.getElementById('plantilla_linea');
             
-            function anadirNuevaLinea() {
+            // ========================
+            // FUNCIÓN AÑADIR LÍNEA (MODIFICADA)
+            // ========================
+            function anadirNuevaLinea(detalle = null) {
                 lineaCounter++;
                 const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
 
@@ -163,9 +151,11 @@
                 const inputExistenteId = divExistente.querySelector('.producto-id-hidden');
                 
                 const inputNuevo = divNuevo.querySelector('input');
-                const inputNuevoId = divNuevo.querySelector('input[type="hidden"]'); // El input oculto deshabilitado
+                const inputNuevoId = divNuevo.querySelector('input[type="hidden"]');
                 
                 const inputCosto = nuevaLinea.querySelector('.costo-input');
+                const inputCantidad = nuevaLinea.querySelector('input[name="cantidad[]"]');
+                const inputProveedor = nuevaLinea.querySelector('input[name="proveedor_sugerido[]"]');
 
                 // --- 3. Lógica de cambio de Tipo (Existente vs Nuevo) ---
                 radios.forEach(radio => {
@@ -174,22 +164,25 @@
                         if (this.value === 'existente') {
                             divExistente.style.display = 'block';
                             inputExistente.disabled = false;
+                            inputExistente.required = true;
                             inputExistenteId.disabled = false;
                             
                             divNuevo.style.display = 'none';
                             inputNuevo.disabled = true;
+                            inputNuevo.required = false;
                             inputNuevoId.disabled = true;
 
-                            // Auto-rellenar precio si ya hay algo
                             buscarProducto(inputExistente.value);
                             
                         } else if (this.value === 'nuevo') {
                             divExistente.style.display = 'none';
                             inputExistente.disabled = true;
+                            inputExistente.required = false;
                             inputExistenteId.disabled = true;
                             
                             divNuevo.style.display = 'block';
                             inputNuevo.disabled = false;
+                            inputNuevo.required = true;
                             inputNuevoId.disabled = false;
 
                             inputCosto.value = '0.00';
@@ -203,32 +196,66 @@
                 function buscarProducto(valor) {
                     const producto = productosMap.get(valor);
                     if (producto) {
-                        // Encontrado: Rellenar ID y Costo
                         inputExistenteId.value = producto.id;
                         inputCosto.value = parseFloat(producto.precio).toFixed(2);
                         inputCosto.readOnly = true;
                     } else {
-                        // No encontrado: Limpiar ID (el costo se queda editable)
                         inputExistenteId.value = '0';
-                        // (Opcional: puedes forzar el costo a 0 si quieres)
-                        // inputCosto.value = '0.00'; 
                         inputCosto.readOnly = false;
                     }
                 }
                 
-                // Usamos 'input' para que se active al escribir O al seleccionar del datalist
                 inputExistente.addEventListener('input', function() {
                     buscarProducto(this.value);
                 });
-                
-                // Llamada inicial para auto-rellenar el costo (si el producto '0' tiene precio)
-                buscarProducto(inputExistente.value);
+
+                // --- 5. LÓGICA DE EDICIÓN (PRE-RELLENAR) ---
+                if (detalle) {
+                    inputCantidad.value = detalle.cantidad;
+                    inputCosto.value = parseFloat(detalle.costo_unitario).toFixed(2);
+                    inputProveedor.value = detalle.proveedor_sugerido || '';
+
+                    if (detalle.tipo === 'existente') {
+                        nuevaLinea.querySelector('#tipo_existente_X').checked = true;
+                        tipoHidden.value = 'existente';
+                        
+                        const nombreProducto = productosMapById.get(detalle.producto_id);
+                        if (nombreProducto) {
+                            inputExistente.value = nombreProducto;
+                            buscarProducto(nombreProducto);
+                        }
+                        
+                    } else { // Es 'nuevo'
+                        nuevaLinea.querySelector('#tipo_nuevo_X').checked = true;
+                        tipoHidden.value = 'nuevo';
+                        inputNuevo.value = detalle.descripcion_nuevo;
+                        inputCosto.readOnly = false;
+                        
+                        nuevaLinea.querySelector('#tipo_nuevo_X').dispatchEvent(new Event('change'));
+                    }
+                } else {
+                    // Si es nuevo, chequear 'existente' por defecto
+                    nuevaLinea.querySelector('#tipo_existente_X').checked = true;
+                    tipoHidden.value = 'existente';
+                    inputExistente.required = true;
+                    inputNuevo.required = false;
+                }
 
                 contenedor.appendChild(nuevaLinea);
             }
 
-            document.getElementById('btn_add_item').addEventListener('click', anadirNuevaLinea);
-            anadirNuevaLinea(); // Cargar la primera línea automáticamente
+            // --- 6. LÓGICA DE CARGA INICIAL ---
+            document.getElementById('btn_add_item').addEventListener('click', () => anadirNuevaLinea(null));
+            
+            if (detallesExistentes && detallesExistentes.length > 0) {
+                // Modo Edición: Cargar líneas desde la BD
+                detallesExistentes.forEach(detalle => {
+                    anadirNuevaLinea(detalle);
+                });
+            } else {
+                // Modo Nuevo: Cargar la primera línea vacía
+                anadirNuevaLinea(null);
+            }
         });
     </script>
 {% endblock %}
