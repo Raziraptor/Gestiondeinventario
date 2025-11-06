@@ -58,8 +58,9 @@
                             </div>
                         </div>
                         
-                        {% if not producto %} <div class="alert alert-info">
-                            <strong>Niveles de Stock:</strong> Define los mínimos/máximos que se aplicarán a este producto en todos los almacenes.
+                        {% if not producto %} 
+                        <div class="alert alert-info">
+                            <strong>Niveles de Stock:</strong> Estos mínimos/máximos se aplicarán a todos los almacenes por defecto.
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -71,32 +72,30 @@
                                 <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="100" min="0">
                             </div>
                         </div>
-                        
+                        {% elif stock_item %}
                         <hr>
-                        <div class="alert alert-success">
-                            <strong>Stock Inicial (Opcional):</strong> Si ya tienes este producto, registra la cantidad inicial en un almacén.
-                        </div>
+                        <h5>Niveles de Stock para: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="almacen_inicial_id" class="form-label">Almacén de Stock Inicial</label>
-                                <select class="form-select" id="almacen_inicial_id" name="almacen_inicial_id">
-                                    <option value="0">-- No registrar stock inicial --</option>
-                                    {% for alm in almacenes %}
-                                    <option value="{{ alm.id }}">{{ alm.nombre }}</option>
-                                    {% endfor %}
-                                </select>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Cantidad Actual</label>
+                                <input type="text" class="form-control" value="{{ stock_item.cantidad }}" disabled readonly>
+                                <small class="text-muted">Usa Entradas/Salidas para modificar esto.</small>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="cantidad_inicial" class="form-label">Cantidad Inicial</label>
-                                <input type="number" class="form-control" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
+                            <div class="col-md-4 mb-3">
+                                <label for="stock_minimo" class="form-label">Stock Mínimo</label>
+                                <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" value="{{ stock_item.stock_minimo }}" min="0">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="stock_maximo" class="form-label">Stock Máximo</label>
+                                <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
                             </div>
                         </div>
-                        
-                        {% else %} <div class="alert alert-info">
-                            <strong>Nota:</strong> Para ver o editar el stock de este producto, ve al <a href="{{ url_for('dashboard') }}">Dashboard</a>, selecciona un almacén y edita el producto desde allí.
+
+                        {% else %} 
+                        <div class="alert alert-info mt-3">
+                            <strong>Nota:</strong> Para ver o editar los niveles de stock de este producto, ve al <a href="{{ url_for('dashboard') }}">Inventario</a>, selecciona un almacén y haz clic en "Editar" en la fila del producto.
                         </div>
                         {% endif %}
-                        </div>
                 </div>
             </div>
             
@@ -133,3 +132,4 @@
         }
     </script>
 {% endblock %}
+
