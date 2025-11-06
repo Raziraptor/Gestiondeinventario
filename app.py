@@ -664,71 +664,64 @@ def index():
 def dashboard():
     """ 
     Página del Dashboard de Inventario (Filtros y Tabla).
+    MODIFICADO para Multi-Almacén.
     """
     
+    # --- LÓGICA DE ALMACÉN ---
+    # Obtenemos los almacenes de la organización del usuario
     if current_user.rol == 'super_admin':
-        productos = Producto.query.all()
+        almacenes = Almacen.query.all()
+    else:
+        almacenes = Almacen.query.filter_by(organizacion_id=current_user.organizacion_id).all()
+
+    # Verificamos qué almacén se está solicitando ver
+    almacen_id_solicitado = request.args.get('almacen_id', type=int)
+    almacen_seleccionado = None
+
+    if almacen_id_solicitado:
+        # El Super Admin puede ver cualquier almacén que pida
+        if current_user.rol == 'super_admin':
+            almacen_seleccionado = Almacen.query.get(almacen_id_solicitado)
+        else:
+            # El usuario normal solo puede ver almacenes de su org
+            almacen_seleccionado = Almacen.query.filter_by(id=almacen_id_solicitado, organizacion_id=current_user.organizacion_id).first()
+    
+    # Si no se selecciona ninguno (o es inválido), elegimos el primero de la lista
+    if not almacen_seleccionado and almacenes:
+        almacen_seleccionado = almacenes[0]
+    
+    # --- LÓGICA DE DATOS ---
+    # Ahora, en lugar de consultar 'Producto', consultamos 'Stock'
+    # para el almacén seleccionado.
+    if almacen_seleccionado:
+        items_stock = Stock.query.filter_by(almacen_id=almacen_seleccionado.id).all()
+        # (Esto nos da una lista de objetos Stock, que tienen .producto, .cantidad, etc.)
+    else:
+        items_stock = [] # No hay almacenes creados, no mostrar nada.
+
+    # --- Lógica de Filtros (para los dropdowns) ---
+    if current_user.rol == 'super_admin':
         categorias = Categoria.query.all()
         proveedores = Proveedor.query.all()
-        query_pendientes = db.session.query(
-            OrdenCompraDetalle.producto_id, 
-            OrdenCompra.id, 
-            User.username,
-            OrdenCompra.estado
-        ).join(
-            OrdenCompra, OrdenCompraDetalle.orden_id == OrdenCompra.id
-        ).join(
-            User, OrdenCompra.creador_id == User.id
-        ).filter(
-            OrdenCompra.estado.in_(['borrador', 'enviada'])
-        )
     else:
         org_id = current_user.organizacion_id
-        productos = Producto.query.filter_by(organizacion_id=org_id).all()
         categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
         proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
-        query_pendientes = db.session.query(
-            OrdenCompraDetalle.producto_id, 
-            OrdenCompra.id, 
-            User.username,
-            OrdenCompra.estado
-        ).join(
-            OrdenCompra, OrdenCompraDetalle.orden_id == OrdenCompra.id
-        ).join(
-            User, OrdenCompra.creador_id == User.id
-        ).filter(
-            OrdenCompra.estado.in_(['borrador', 'enviada']),
-            OrdenCompra.organizacion_id == org_id
-        )
-
-    alertas_crudas = [p for p in productos if p.estado_stock == 'bajo']
-    alertas_agrupadas = defaultdict(list)
-    proveedor_desconocido = Proveedor(id=0, nombre="Proveedor no asignado")
-
-    for alerta in alertas_crudas:
-        if alerta.proveedor:
-            alertas_agrupadas[alerta.proveedor.nombre].append(alerta)
-        else:
-            alertas_agrupadas[proveedor_desconocido.nombre].append(alerta)
             
-    ordenes_pendientes = query_pendientes.all()
-    pending_map = {} 
-    for prod_id, orden_id, username, estado in ordenes_pendientes:
-        pending_map[prod_id] = {
-            'orden_id': orden_id, 
-            'username': username,
-            'estado': estado
-        }
-
+    # NOTA: Las alertas de stock bajo (Alertas) ahora son más complejas.
+    # Las dejaremos pendientes por ahora y las arreglaremos en la siguiente fase.
+    # Por ahora, nos enfocamos en que el Dashboard funcione.
+    
     return render_template('dashboard.html', 
-                           productos=productos, 
-                           alertas_agrupadas=alertas_agrupadas,
+                           items_stock=items_stock, # Pasamos los items de Stock
+                           almacenes=almacenes, # Pasamos la lista de almacenes
+                           almacen_seleccionado=almacen_seleccionado, # Pasamos el almacén activo
                            categorias=categorias,
-                           proveedores=proveedores,
-                           pending_map=pending_map)
+                           proveedores=proveedores)
 
 # --- Rutas de Productos ---
 
+@app.route('/producto/nuevo', methods=['GET', 'POST'])
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
@@ -738,25 +731,11 @@ def nuevo_producto():
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
     
+    # --- MODIFICADO ---
+    # Ya no necesitamos 'repoblar_formulario_con_error' para el stock inicial
+    
     if request.method == 'POST':
         imagen_filename = None
-        
-        def repoblar_formulario_con_error():
-            producto_temporal = Producto(
-                nombre=request.form.get('nombre'),
-                codigo=request.form.get('codigo'),
-                categoria_id=int(request.form.get('categoria_id') or 0) or None,
-                cantidad_stock=int(request.form.get('cantidad_stock') or 0),
-                stock_minimo=int(request.form.get('stock_minimo') or 5),
-                stock_maximo=int(request.form.get('stock_maximo') or 100),
-                precio_unitario=float(request.form.get('precio_unitario') or 0.0),
-                proveedor_id=int(request.form.get('proveedor_id') or 0) or None
-            )
-            return render_template('producto_form.html', 
-                                   titulo="Nuevo Producto", 
-                                   proveedores=proveedores,
-                                   categorias=categorias,
-                                   producto=producto_temporal)
             
         if 'imagen' in request.files:
             file = request.files['imagen']
@@ -765,30 +744,44 @@ def nuevo_producto():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
             elif file.filename != '' and not allowed_file(file.filename):
-                flash('Tipo de archivo de imagen no permitido. Los demás datos se han conservado.', 'danger')
-                return repoblar_formulario_con_error()
+                flash('Tipo de archivo de imagen no permitido.', 'danger')
+                return redirect(url_for('nuevo_producto')) # Simplificado
         
         try:
             nuevo_prod = Producto(
                 nombre=request.form['nombre'],
                 codigo=request.form['codigo'],
                 categoria_id=request.form.get('categoria_id') or None,
-                cantidad_stock=int(request.form['cantidad_stock']),
-                stock_minimo=int(request.form['stock_minimo']),
-                stock_maximo=int(request.form['stock_maximo']),
-                precio_unitario=float(request.form['precio_unitario']),
+                # --- CAMPOS DE STOCK ELIMINADOS DE AQUÍ ---
+                precio_unitario=float(request.form.get('precio_unitario', 0.0)),
                 imagen_url=imagen_filename,
                 proveedor_id=request.form.get('proveedor_id') or None,
                 organizacion_id=current_user.organizacion_id
             )
             db.session.add(nuevo_prod)
+            
+            # --- NUEVA LÓGICA DE STOCK ---
+            # Ahora, crea un registro de Stock (con 0) para este producto
+            # en CADA almacén que pertenece a esta organización.
+            almacenes_org = Almacen.query.filter_by(organizacion_id=org_id).all()
+            for almacen in almacenes_org:
+                nuevo_stock = Stock(
+                    producto=nuevo_prod, # Vincula al producto que acabamos de crear
+                    almacen=almacen,      # Vincula a este almacén
+                    cantidad=0,           # Inicia en 0
+                    stock_minimo=int(request.form.get('stock_minimo', 5)), # Tomamos del form
+                    stock_maximo=int(request.form.get('stock_maximo', 100)) # Tomamos del form
+                )
+                db.session.add(nuevo_stock)
+            # --- FIN DE NUEVA LÓGICA ---
+
             db.session.commit()
-            flash('Producto creado exitosamente', 'success')
-            return redirect(url_for('index'))
+            flash('Producto creado exitosamente. Se ha añadido con stock 0 a todos los almacenes.', 'success')
+            return redirect(url_for('dashboard')) # Redirigir al nuevo dashboard
+        
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear producto (quizás el SKU ya existe). Los datos se han conservado.', 'danger')
-            return repoblar_formulario_con_error()
+            flash(f'Error al crear producto: {e}', 'danger')
             
     return render_template('producto_form.html', 
                            titulo="Nuevo Producto", 
@@ -2593,4 +2586,5 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
