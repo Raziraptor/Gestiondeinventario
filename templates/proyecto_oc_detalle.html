@@ -15,6 +15,9 @@
             </a>
             
             {% if proyecto_oc.estado == 'borrador' %}
+            <!-- ======================== -->
+            <!-- NUEVO BOTÓN DE EDICIÓN -->
+            <!-- ======================== -->
             <a href="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) }}" class="btn btn-warning">
                 <i class="bi bi-pencil"></i> Editar OC
             </a>
