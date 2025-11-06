@@ -4,6 +4,9 @@
 
 {% block content %}
     
+    <!-- ============================================= -->
+    <!-- NUEVO: SELECTOR DE ALMACÉN -->
+    <!-- ============================================= -->
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="almacen_selector" class="form-label">
@@ -30,6 +33,7 @@
         </div>
     </div>
     
+    <!-- Si no hay almacén, no podemos mostrar nada -->
     {% if not almacen_seleccionado %}
         <div class="alert alert-warning">
             <h4>No hay almacenes</h4>
@@ -41,9 +45,45 @@
         </div>
     {% else %}
 
+        <!-- Filtros de Búsqueda (tu código anterior, pero lo pegamos aquí) -->
         <div class="card bg-light mb-4">
+            <div class="card-header">
+                <i class="bi bi-search"></i> Filtros y Búsqueda
             </div>
+            <div class="card-body">
+                <div classs="row g-3">
+                    <div class="col-md-12 mb-3">
+                        <label for="filtro_busqueda" class="form-label">Buscar por Nombre o SKU</label>
+                        <input type="text" class="form-control" id="filtro_busqueda" 
+                               placeholder="Escribe para buscar (ej. 'Tornillo' o 'SKU-001')...">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label for="filtro_categoria" class="form-label">Filtrar por Categoría</label>
+                            <select class="form-select" id="filtro_categoria">
+                                <option value="0">-- Todas las Categorías --</option>
+                                {% for cat in categorias %}
+                                <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label for="filtro_proveedor" class="form-label">Filtrar por Proveedor</label>
+                            <select class="form-select" id="filtro_proveedor">
+                                <option value="0">-- Todos los Proveedores --</option>
+                                {% for prov in proveedores %}
+                                <option value="{{ prov.id }}">{{ prov.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- ============================================= -->
+        <!-- TABLA DE PRODUCTOS (MODIFICADA) -->
+        <!-- ============================================= -->
         <div class="card">
             <div class="card-header">
                 Lista de Productos en: <strong>{{ almacen_seleccionado.nombre }}</strong>
@@ -63,6 +103,7 @@
                         </tr>
                     </thead>
                     <tbody id="tabla_productos_cuerpo">
+                        <!-- AHORA ITERAMOS SOBRE 'items_stock' -->
                         {% for item in items_stock %}
                         <tr class="fila-producto"
                             data-categoria-id="{{ item.producto.categoria_id or '0' }}"
@@ -89,6 +130,7 @@
                                     {{ item.producto.proveedor.nombre }}
                                 {% else %}<span class="text-muted">N/A</span>{% endif %}
                             </td>
+                            <!-- Usamos los datos del 'item' de Stock -->
                             <td><strong>{{ item.cantidad }}</strong></td>
                             <td>
                                 {% if item.estado_stock == 'bajo' %}
@@ -101,6 +143,7 @@
                             </td>
                             <td style="width: 1%; white-space: nowrap;">
                                 <div class="btn-group btn-group-sm" role="group">
+                                    <!-- Los enlaces ahora van al PRODUCTO, no al item de stock -->
                                     <a href="{{ url_for('editar_producto', id=item.producto.id) }}" class="btn btn-secondary" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
@@ -125,6 +168,9 @@
     {% endif %}
 
 
+    <!-- ============================================= -->
+    <!-- SCRIPT DE FILTRADO Y CAMBIO DE ALMACÉN -->
+    <!-- ============================================= -->
     <script>
         // Función para cambiar de almacén
         function cambiarAlmacen(almacenId) {
@@ -133,8 +179,48 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // (Tu script de filtrado de tabla existente va aquí, no necesita cambios)
-            // ...
+            // Tu script de filtrado de tabla (búsqueda, categoría, proveedor)
+            // se mantiene igual, ya que 'fila-producto' y los 'data-attributes'
+            // siguen existiendo.
+            const filtroBusqueda = document.getElementById('filtro_busqueda');
+            const filtroCategoria = document.getElementById('filtro_categoria');
+            const filtroProveedor = document.getElementById('filtro_proveedor');
+            const tablaCuerpo = document.getElementById('tabla_productos_cuerpo');
+            const filas = tablaCuerpo.getElementsByClassName('fila-producto');
+
+            function filtrarTabla() {
+                const textoBusqueda = filtroBusqueda.value.toLowerCase();
+                const idCategoria = filtroCategoria.value;
+                const idProveedor = filtroProveedor.value;
+
+                for (let fila of filas) {
+                    const textoFila = fila.textContent.toLowerCase(); 
+                    const catIdFila = fila.dataset.categoriaId;
+                    const provIdFila = fila.dataset.proveedorId;
+
+                    let mostrar = true; 
+                    if (textoBusqueda && !textoFila.includes(textoBusqueda)) {
+                        mostrar = false;
+                    }
+                    if (idCategoria !== '0' && catIdFila !== idCategoria) {
+                        mostrar = false;
+                    }
+                    if (idProveedor !== '0' && provIdFila !== idProveedor) {
+                        mostrar = false;
+                    }
+                    fila.style.display = mostrar ? '' : 'none';
+                }
+            }
+
+            if (filtroBusqueda) {
+                filtroBusqueda.addEventListener('keyup', filtrarTabla);
+            }
+            if (filtroCategoria) {
+                filtroCategoria.addEventListener('change', filtrarTabla);
+            }
+            if (filtroProveedor) {
+                filtroProveedor.addEventListener('change', filtrarTabla);
+            }
         });
     </script>
 {% endblock %}
