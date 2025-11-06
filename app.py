@@ -2627,7 +2627,7 @@ def super_admin():
 @login_required
 @super_admin_required
 def nueva_organizacion():
-    """ Crea una nueva organización. """
+    """ Crea una nueva organización y le genera un código de invitación. """
     nombre = request.form.get('nombre')
     if not nombre:
         flash('El nombre de la organización no puede estar vacío.', 'danger')
@@ -2639,10 +2639,20 @@ def nueva_organizacion():
         return redirect(url_for('super_admin'))
         
     try:
-        nueva_org = Organizacion(nombre=nombre)
+        # --- LÓGICA DE CÓDIGO ÚNICO AÑADIDA ---
+        codigo = None
+        while codigo is None or Organizacion.query.filter_by(codigo_invitacion=codigo).first():
+            # Genera un código de 8 caracteres (ej: "A1b-C2dE")
+            codigo = secrets.token_urlsafe(6).upper() 
+        # --- FIN DE LÓGICA AÑADIDA ---
+
+        nueva_org = Organizacion(
+            nombre=nombre,
+            codigo_invitacion=codigo # <-- AÑADIDO
+        )
         db.session.add(nueva_org)
         db.session.commit()
-        flash(f'Organización "{nombre}" creada exitosamente.', 'success')
+        flash(f'Organización "{nombre}" creada. Código de invitación: {codigo}', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Error al crear la organización: {e}', 'danger')
@@ -2680,42 +2690,6 @@ def asignar_usuario(user_id):
         db.session.rollback()
         flash(f'Error al actualizar el usuario: {e}', 'danger')
 
-    return redirect(url_for('super_admin'))
-
-@app.route('/superadmin/organizacion/nueva', methods=['POST'])
-@login_required
-@super_admin_required
-def nueva_organizacion():
-    """ Crea una nueva organización y le genera un código de invitación. """
-    nombre = request.form.get('nombre')
-    if not nombre:
-        flash('El nombre de la organización no puede estar vacío.', 'danger')
-        return redirect(url_for('super_admin'))
-        
-    existente = Organizacion.query.filter_by(nombre=nombre).first()
-    if existente:
-        flash(f'La organización "{nombre}" ya existe.', 'warning')
-        return redirect(url_for('super_admin'))
-        
-    try:
-        # --- LÓGICA DE CÓDIGO ÚNICO AÑADIDA ---
-        codigo = None
-        while codigo is None or Organizacion.query.filter_by(codigo_invitacion=codigo).first():
-            # Genera un código de 8 caracteres (ej: "A1b-C2dE")
-            codigo = secrets.token_urlsafe(6).upper() 
-        # --- FIN DE LÓGICA AÑADIDA ---
-
-        nueva_org = Organizacion(
-            nombre=nombre,
-            codigo_invitacion=codigo # <-- AÑADIDO
-        )
-        db.session.add(nueva_org)
-        db.session.commit()
-        flash(f'Organización "{nombre}" creada. Código de invitación: {codigo}', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Error al crear la organización: {e}', 'danger')
-        
     return redirect(url_for('super_admin'))
     
 # ========================
@@ -2799,6 +2773,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
