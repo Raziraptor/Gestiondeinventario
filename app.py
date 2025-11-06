@@ -136,36 +136,11 @@ class Organizacion(db.Model):
     movimientos = db.relationship('Movimiento', backref='organizacion', lazy=True)
     proyectos_oc = db.relationship('ProyectoOC', backref='organizacion', lazy=True)
 
+    # --- AÑADIDO ---
+    almacenes = db.relationship('Almacen', backref='organizacion', lazy=True)
+
     def __repr__(self):
         return f'<Organizacion {self.nombre}>'
-
-class Almacen(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), nullable=False)
-    ubicacion = db.Column(db.String(255), nullable=True)
-    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
-    stocks = db.relationship('Stock', backref='almacen', lazy='dynamic', cascade="all, delete-orphan")
-    def __repr__(self):
-        return f'<Almacen {self.nombre}>'
-
-class Stock(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
-    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
-    cantidad = db.Column(db.Integer, nullable=False, default=0)
-    stock_minimo = db.Column(db.Integer, nullable=False, default=5)
-    stock_maximo = db.Column(db.Integer, nullable=False, default=100)
-    __table_args__ = (db.UniqueConstraint('producto_id', 'almacen_id', name='_producto_almacen_uc'),)
-    
-    @property
-    def estado_stock(self):
-        if self.cantidad < self.stock_minimo:
-            return 'bajo'
-        elif self.cantidad > self.stock_maximo:
-            return 'exceso'
-        return 'ok'
-    def __repr__(self):
-        return f'<Stock ProdID: {self.producto_id} AlmID: {self.almacen_id} Qty: {self.cantidad}>'
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -177,15 +152,14 @@ class User(db.Model, UserMixin):
     rol = db.Column(db.String(20), nullable=False, default='user')
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=True)
     
-    # --- NUEVAS LÍNEAS (PERMISOS GRANULARES) ---
+    # --- PERMISOS GRANULARES ---
     perm_view_dashboard = db.Column(db.Boolean, nullable=False, default=False)
-    perm_view_management = db.Column(db.Boolean, nullable=False, default=False) # Ver Cat/Prov
-    perm_edit_management = db.Column(db.Boolean, nullable=False, default=False) # Editar Cat/Prov/Prod
+    perm_view_management = db.Column(db.Boolean, nullable=False, default=False)
+    perm_edit_management = db.Column(db.Boolean, nullable=False, default=False)
     perm_create_oc_standard = db.Column(db.Boolean, nullable=False, default=False)
     perm_create_oc_proyecto = db.Column(db.Boolean, nullable=False, default=False)
     perm_do_salidas = db.Column(db.Boolean, nullable=False, default=False)
     perm_view_gastos = db.Column(db.Boolean, nullable=False, default=False)
-    # --- FIN DE NUEVAS LÍNEAS ---
     
     # Relaciones de Auditoría
     ordenes_creadas = db.relationship('OrdenCompra', foreign_keys='OrdenCompra.creador_id', backref='creador', lazy=True)
@@ -218,7 +192,8 @@ class Categoria(db.Model):
     descripcion = db.Column(db.String(255), nullable=True)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
-cclass Producto(db.Model):
+# --- MODELO 'Producto' MODIFICADO ---
+class Producto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     codigo = db.Column(db.String(50), unique=True, nullable=False)
@@ -234,12 +209,48 @@ cclass Producto(db.Model):
     
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
     
+    # --- NUEVA RELACIÓN ---
     stocks = db.relationship('Stock', backref='producto', lazy='dynamic', cascade="all, delete-orphan")
     
     def get_stock_total(self):
         """ Suma el stock de este producto en TODOS los almacenes. """
         return db.session.query(db.func.sum(Stock.cantidad)).filter_by(producto_id=self.id).scalar() or 0
 
+# --- NUEVO MODELO 'Almacen' ---
+class Almacen(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False)
+    ubicacion = db.Column(db.String(255), nullable=True) # ej. "Pasillo 5, Estante A"
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    
+    stocks = db.relationship('Stock', backref='almacen', lazy='dynamic', cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f'<Almacen {self.nombre}>'
+
+# --- NUEVO MODELO 'Stock' ---
+class Stock(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
+    cantidad = db.Column(db.Integer, nullable=False, default=0)
+    
+    stock_minimo = db.Column(db.Integer, nullable=False, default=5)
+    stock_maximo = db.Column(db.Integer, nullable=False, default=100)
+    
+    __table_args__ = (db.UniqueConstraint('producto_id', 'almacen_id', name='_producto_almacen_uc'),)
+    
+    @property
+    def estado_stock(self):
+        if self.cantidad < self.stock_minimo:
+            return 'bajo'
+        elif self.cantidad > self.stock_maximo:
+            return 'exceso'
+        return 'ok'
+    def __repr__(self):
+        return f'<Stock ProdID: {self.producto_id} AlmID: {self.almacen_id} Qty: {self.cantidad}>'
+
+# --- MODELO 'OrdenCompra' MODIFICADO ---
 class OrdenCompra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.now)
@@ -289,13 +300,14 @@ class Gasto(db.Model):
     def __repr__(self):
         return f'<Gasto {self.descripcion} - ${self.monto}>'
     
+# --- MODELO 'Salida' MODIFICADO ---
 class Salida(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fecha = db.Column(db.Date, nullable=False, default=datetime.now().date)
     estado = db.Column(db.String(20), nullable=False, default='abierta')
     
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)    
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
     # --- LÍNEA AÑADIDA ---
@@ -304,6 +316,7 @@ class Salida(db.Model):
     
     movimientos = db.relationship('Movimiento', backref='salida', lazy='dynamic', cascade="all, delete-orphan")
 
+# --- MODELO 'Movimiento' MODIFICADO ---
 class Movimiento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
@@ -312,7 +325,6 @@ class Movimiento(db.Model):
     cantidad = db.Column(db.Integer, nullable=False) 
     tipo = db.Column(db.String(20), nullable=False) 
     fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    
     motivo = db.Column(db.String(255), nullable=False) 
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
@@ -326,6 +338,7 @@ class Movimiento(db.Model):
     def __repr__(self):
         return f'<Movimiento {self.producto_id} ({self.cantidad})>'
     
+# --- MODELO 'ProyectoOC' MODIFICADO ---
 class ProyectoOC(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_proyecto = db.Column(db.String(255), nullable=False)
@@ -440,12 +453,7 @@ class ResetPasswordForm(FlaskForm):
                                      validators=[DataRequired(), EqualTo('password', message='Las contraseñas deben coincidir.')])
     submit = SubmitField('Restablecer Contraseña')
 
-# ========================
-# NUEVO FORMULARIO DE PERMISOS
-# (CORREGIDO de db.Column a BooleanField)
-# ========================
 class AdminPermissionForm(FlaskForm):
-    """ Formulario para que un Admin actualice los permisos de un Usuario. """
     perm_view_dashboard = BooleanField('Ver Inventario')
     perm_view_management = BooleanField('Ver Gestión (Cat/Prov)')
     perm_edit_management = BooleanField('Editar Gestión (Cat/Prov/Prod)')
@@ -538,9 +546,6 @@ def get_item_or_404(model, item_id):
     item = query.filter_by(id=item_id).first_or_404()
     return item
 
-# ========================
-# NUEVOS DECORADORES DE PERMISOS
-# ========================
 def admin_required(f):
     """
     Decorador personalizado para verificar que el usuario
@@ -583,13 +588,11 @@ def check_permission(permission_name):
 def index():
     """ Dashboard Principal (Multiusuario) con Alertas por Almacén. """
     
-    # --- LÓGICA DE ALERTA (REESCRITA) ---
     alertas_agrupadas = {}
     pending_map = {}
     
     if current_user.rol == 'super_admin':
         # (El Super Admin ve todo, agrupado por organización)
-        # Por simplicidad, por ahora el index del super admin no mostrará alertas.
         pass
     elif current_user.organizacion_id:
         org_id = current_user.organizacion_id
@@ -606,7 +609,7 @@ def index():
             OrdenCompra.id, 
             User.username,
             OrdenCompra.estado,
-            OrdenCompra.almacen_id # <-- Necesitamos saber el almacén de la OC
+            OrdenCompra.almacen_id
         ).join(
             OrdenCompra, OrdenCompraDetalle.orden_id == OrdenCompra.id
         ).join(
@@ -617,7 +620,6 @@ def index():
         ).all()
 
         # 3. Convertir OCs pendientes en un mapa de búsqueda rápida
-        # La clave ahora es (producto_id, almacen_id)
         for prod_id, orden_id, username, estado, alm_id in ordenes_pendientes:
             pending_map[(prod_id, alm_id)] = {
                 'orden_id': orden_id, 
@@ -628,22 +630,20 @@ def index():
         # 4. Agrupar las alertas por (Almacén, Proveedor)
         alertas_agrupadas = defaultdict(list)
         for item_stock in alertas_crudas:
-            # Si el item ya está en una OC pendiente para ESE almacén, no lo mostramos
             if (item_stock.producto_id, item_stock.almacen_id) in pending_map:
                 continue
                 
-            # Si el producto tiene un proveedor, lo agrupamos
             if item_stock.producto.proveedor:
                 key = (item_stock.almacen_id, item_stock.almacen.nombre, 
                        item_stock.producto.proveedor_id, item_stock.producto.proveedor.nombre)
                 alertas_agrupadas[key].append(item_stock)
             else:
-                # Agrupar por "Sin Proveedor"
                 key = (item_stock.almacen_id, item_stock.almacen.nombre, 0, "Proveedor no asignado")
                 alertas_agrupadas[key].append(item_stock)
 
     return render_template('index.html', 
-                           alertas_agrupadas=alertas_agrupadas)
+                           alertas_agrupadas=alertas_agrupadas,
+                           pending_map=pending_map)
 
 @app.route('/dashboard')
 @login_required
@@ -655,7 +655,6 @@ def dashboard():
     MODIFICADO para Multi-Almacén.
     """
     
-    # --- LÓGICA DE ALMACÉN ---
     if current_user.rol == 'super_admin':
         almacenes = Almacen.query.all()
     else:
@@ -673,14 +672,11 @@ def dashboard():
     if not almacen_seleccionado and almacenes:
         almacen_seleccionado = almacenes[0]
     
-    # --- LÓGICA DE DATOS ---
     if almacen_seleccionado:
-        # Consultamos el Stock del almacén seleccionado
         items_stock = db.session.query(Stock).filter_by(almacen_id=almacen_seleccionado.id).join(Producto).order_by(Producto.nombre).all()
     else:
         items_stock = []
 
-    # --- Lógica de Filtros (para los dropdowns) ---
     if current_user.rol == 'super_admin':
         categorias = Categoria.query.all()
         proveedores = Proveedor.query.all()
@@ -689,12 +685,10 @@ def dashboard():
         categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
         proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
             
-    # NOTA: Las alertas de stock (del index) se romperán. Las arreglaremos después.
-    
     return render_template('dashboard.html', 
-                           items_stock=items_stock, # Pasamos los items de Stock
-                           almacenes=almacenes, # Pasamos la lista de almacenes
-                           almacen_seleccionado=almacen_seleccionado, # Pasamos el almacén activo
+                           items_stock=items_stock,
+                           almacenes=almacenes,
+                           almacen_seleccionado=almacen_seleccionado,
                            categorias=categorias,
                            proveedores=proveedores)
 
@@ -705,13 +699,26 @@ def dashboard():
 @check_org_permission
 @check_permission('perm_edit_management')
 def nuevo_producto():
-    """ Formulario para crear un nuevo producto (Multiusuario, Multi-Almacén). """
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
     
     if request.method == 'POST':
         imagen_filename = None
+            
+        def repoblar_formulario_con_error():
+            producto_temporal = Producto(
+                nombre=request.form.get('nombre'),
+                codigo=request.form.get('codigo'),
+                categoria_id=int(request.form.get('categoria_id') or 0) or None,
+                precio_unitario=float(request.form.get('precio_unitario') or 0.0),
+                proveedor_id=int(request.form.get('proveedor_id') or 0) or None
+            )
+            return render_template('producto_form.html', 
+                                   titulo="Nuevo Producto", 
+                                   proveedores=proveedores,
+                                   categorias=categorias,
+                                   producto=producto_temporal)
             
         if 'imagen' in request.files:
             file = request.files['imagen']
@@ -720,20 +727,8 @@ def nuevo_producto():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
             elif file.filename != '' and not allowed_file(file.filename):
-                flash('Tipo de archivo de imagen no permitido.', 'danger')
-                # Repoblamos el formulario (esta lógica ya la tenías)
-                producto_temporal = Producto(
-                    nombre=request.form.get('nombre'),
-                    codigo=request.form.get('codigo'),
-                    categoria_id=int(request.form.get('categoria_id') or 0) or None,
-                    precio_unitario=float(request.form.get('precio_unitario') or 0.0),
-                    proveedor_id=int(request.form.get('proveedor_id') or 0) or None
-                )
-                return render_template('producto_form.html', 
-                                   titulo="Nuevo Producto", 
-                                   proveedores=proveedores,
-                                   categorias=categorias,
-                                   producto=producto_temporal) # Usamos el temporal
+                flash('Tipo de archivo de imagen no permitido. Los demás datos se han conservado.', 'danger')
+                return repoblar_formulario_con_error()
         
         try:
             nuevo_prod = Producto(
@@ -747,7 +742,6 @@ def nuevo_producto():
             )
             db.session.add(nuevo_prod)
             
-            # --- NUEVA LÓGICA DE STOCK ---
             almacenes_org = Almacen.query.filter_by(organizacion_id=org_id).all()
             if not almacenes_org:
                 flash('¡Producto creado! ADVERTENCIA: No se crearon registros de stock porque no hay almacenes definidos.', 'warning')
@@ -761,7 +755,6 @@ def nuevo_producto():
                     stock_maximo=int(request.form.get('stock_maximo', 100))
                 )
                 db.session.add(nuevo_stock)
-            # --- FIN DE NUEVA LÓGICA ---
 
             db.session.commit()
             flash('Producto creado exitosamente. Se ha añadido con stock 0 a todos los almacenes.', 'success')
@@ -806,15 +799,12 @@ def editar_producto(id):
             producto.nombre = request.form['nombre']
             producto.codigo = request.form['codigo']
             producto.categoria_id = request.form.get('categoria_id') or None
-            producto.cantidad_stock = int(request.form['cantidad_stock'])
-            producto.stock_minimo = int(request.form['stock_minimo'])
-            producto.stock_maximo = int(request.form['stock_maximo'])
             producto.precio_unitario = float(request.form['precio_unitario'])
             producto.proveedor_id = request.form.get('proveedor_id') or None
 
             db.session.commit()
             flash('Producto actualizado exitosamente', 'success')
-            return redirect(url_for('index'))
+            return redirect(url_for('dashboard')) # <-- Redirigir a dashboard
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar producto: {e}', 'danger')
@@ -830,13 +820,11 @@ def editar_producto(id):
 @check_permission('perm_view_dashboard')
 def generar_etiqueta(id):
     producto = get_item_or_404(Producto, id)
-
     try:
         buffer = io.BytesIO()
         label_width = 4 * inch
         label_height = 2.5 * inch
         c = canvas.Canvas(buffer, pagesize=(label_width, label_height))
-        
         qr_img = qrcode.make(producto.codigo)
         qr_img_path = io.BytesIO()
         qr_img.save(qr_img_path, format='PNG')
@@ -844,7 +832,6 @@ def generar_etiqueta(id):
         qr_para_pdf = ImageReader(qr_img_path)
         c.drawImage(qr_para_pdf, label_width - (1.6 * inch), 0.6 * inch,
                     width=(1.4 * inch), height=(1.4 * inch), preserveAspectRatio=True)
-
         text_x = 0.25 * inch
         text_y = label_height - (0.5 * inch)
         c.setFont('Helvetica-Bold', 12)
@@ -853,7 +840,6 @@ def generar_etiqueta(id):
         c.drawString(text_x, text_y - (0.3 * inch), f"SKU: {producto.codigo}")
         c.setFont('Helvetica', 10)
         c.drawString(text_x, text_y - (0.6 * inch), f"Precio: ${producto.precio_unitario:.2f}")
-
         if producto.imagen_url:
             img_path = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
             if os.path.exists(img_path):
@@ -864,14 +850,12 @@ def generar_etiqueta(id):
                                 preserveAspectRatio=True)
                 except Exception as img_err:
                     print(f"Error al dibujar imagen en PDF: {img_err}")
-
         c.showPage()
         c.save()
         buffer.seek(0)
         nombre_base = secure_filename(producto.nombre) 
         fecha_str = datetime.now().strftime("%Y-%m-%d")
         nombre_archivo = f"{nombre_base}_{fecha_str}.pdf"
-
         return send_file(
             buffer,
             as_attachment=False, 
@@ -887,11 +871,25 @@ def generar_etiqueta(id):
 @check_permission('perm_view_dashboard')
 def historial_producto(id):
     producto = get_item_or_404(Producto, id)
-    movimientos = sorted(producto.movimientos, key=lambda m: m.fecha, reverse=True)
+    # --- LÓGICA MODIFICADA ---
+    # Obtenemos los movimientos y los agrupamos por almacén
+    movimientos_query = Movimiento.query.filter_by(producto_id=id).order_by(Movimiento.fecha.desc())
+    
+    # El Super Admin ve todos los almacenes
+    if current_user.rol != 'super_admin':
+        movimientos_query = movimientos_query.join(Almacen).filter(Almacen.organizacion_id == current_user.organizacion_id)
+        
+    movimientos = movimientos_query.all()
+    
+    # Agrupar por almacén
+    historial_por_almacen = defaultdict(list)
+    for m in movimientos:
+        almacen_nombre = Almacen.query.get(m.almacen_id).nombre if m.almacen_id else "Indefinido"
+        historial_por_almacen[almacen_nombre].append(m)
     
     return render_template('historial_producto.html', 
                            producto=producto, 
-                           movimientos=movimientos)
+                           historial_por_almacen=historial_por_almacen)
 
 # --- Rutas de Categorías ---
 
@@ -1040,7 +1038,6 @@ def editar_proveedor(id):
 def lista_almacenes():
     """ Muestra la lista de almacenes de la organización. """
     if current_user.rol == 'super_admin':
-        # El Super Admin ve todas
         almacenes = Almacen.query.all()
     else:
         almacenes = Almacen.query.filter_by(organizacion_id=current_user.organizacion_id).all()
@@ -1078,7 +1075,7 @@ def nuevo_almacen():
 @admin_required
 def editar_almacen(id):
     """ Edita un almacén existente. """
-    almacen = get_item_or_404(Almacen, id) # Usamos nuestra función de seguridad
+    almacen = get_item_or_404(Almacen, id)
     
     if request.method == 'POST':
         try:
@@ -1147,43 +1144,35 @@ def ver_salida(id):
 @check_org_permission
 @check_permission('perm_do_salidas')
 def registrar_salida():
-    """ 
-    AÑADE items a la Hoja de Salida del día de hoy.
-    (MODIFICADO para Multi-Almacén)
-    """
     org_id = current_user.organizacion_id
     
     # --- LÓGICA DE ALMACÉN ---
-    # El usuario debe seleccionar DE QUÉ almacén está sacando
     almacen_id_solicitado = request.args.get('almacen_id', type=int)
     almacenes_org = Almacen.query.filter_by(organizacion_id=org_id).all()
     
     almacen_seleccionado = None
     if almacen_id_solicitado:
         almacen_seleccionado = Almacen.query.get(almacen_id_solicitado)
-        # Chequeo de seguridad
-        if almacen_seleccionado.organizacion_id != org_id:
+        if not almacen_seleccionado or almacen_seleccionado.organizacion_id != org_id:
             flash('Permiso denegado para ese almacén.', 'danger')
             return redirect(url_for('historial_salidas'))
     
-    # Si no hay almacenes, no puede continuar
     if not almacenes_org:
         flash('No se pueden registrar salidas porque no hay almacenes creados.', 'warning')
         return redirect(url_for('index'))
     
-    # Si no hay ninguno seleccionado, forzar a seleccionar
     if not almacen_seleccionado:
         return render_template('seleccionar_almacen.html',
                                titulo="Seleccionar Almacén de Origen",
                                almacenes=almacenes_org,
-                               destino_ruta='registrar_salida') # Ruta a la que volver
+                               destino_ruta='registrar_salida')
 
     # --- LÓGICA DE BUSCAR-O-CREAR LA HOJA DIARIA ---
     today = datetime.now().date()
     salida_del_dia = Salida.query.filter_by(
         fecha=today, 
         organizacion_id=org_id,
-        almacen_id=almacen_seleccionado.id # <-- Filtro por almacén
+        almacen_id=almacen_seleccionado.id
     ).first()
 
     if not salida_del_dia:
@@ -1191,21 +1180,20 @@ def registrar_salida():
             fecha=today,
             creador_id=current_user.id,
             organizacion_id=org_id,
-            almacen_id=almacen_seleccionado.id # <-- Asignar almacén
+            almacen_id=almacen_seleccionado.id
         )
         db.session.add(salida_del_dia)
         db.session.flush()
 
     # --- LÓGICA DE PRODUCTOS ---
-    # Filtramos solo productos que tienen stock EN ESE ALMACÉN
     productos_en_almacen = db.session.query(Producto).join(Stock).filter(
         Stock.almacen_id == almacen_seleccionado.id,
-        Producto.organizacion_id == org_id
+        Producto.organizacion_id == org_id,
+        Stock.cantidad > 0 # Solo mostrar productos que TENGAN stock
     ).all()
     
     productos_lista = []
     for p in productos_en_almacen:
-        # Obtenemos el stock específico de ESE almacén
         stock_item = Stock.query.filter_by(producto_id=p.id, almacen_id=almacen_seleccionado.id).first()
         productos_lista.append({
             'id': p.id,
@@ -1231,7 +1219,6 @@ def registrar_salida():
                 if not prod_id or not cant_str: continue
                 cantidad_salida = int(cant_str)
                 
-                # Buscamos el item de stock específico
                 stock_item = Stock.query.filter_by(producto_id=prod_id, almacen_id=almacen_seleccionado.id).first()
                 
                 if not stock_item:
@@ -1243,7 +1230,6 @@ def registrar_salida():
                     db.session.rollback() 
                     return render_template('salida_form.html', titulo="Registrar Salida", productos=productos_lista, salida_id=salida_del_dia.id, almacen=almacen_seleccionado)
                 
-                # --- VALIDACIÓN CRÍTICA DE STOCK (Ahora en la tabla Stock) ---
                 if stock_item.cantidad < cantidad_salida:
                     flash(f'Error: Stock insuficiente para "{stock_item.producto.nombre}".', 'danger')
                     db.session.rollback()
@@ -1253,11 +1239,9 @@ def registrar_salida():
 
             for stock_item, cantidad_salida, motivo_item in productos_para_actualizar:
                 
-                # 1. Actualizar el stock del item
                 stock_item.cantidad -= cantidad_salida
                 db.session.add(stock_item)
                 
-                # 2. Registrar el movimiento VINCULADO
                 movimiento = Movimiento(
                     producto_id=stock_item.producto_id,
                     cantidad= -cantidad_salida,
@@ -1265,7 +1249,7 @@ def registrar_salida():
                     fecha=datetime.now(),
                     motivo=motivo_item,
                     salida=salida_del_dia,
-                    almacen_id=almacen_seleccionado.id, # <-- ESTAMPAR ID
+                    almacen_id=almacen_seleccionado.id,
                     organizacion_id=org_id
                 )
                 db.session.add(movimiento)
@@ -1288,33 +1272,25 @@ def registrar_salida():
 @login_required
 @check_permission('perm_do_salidas')
 def eliminar_movimiento_salida(id):
-    """ 
-    Elimina un SOLO item (Movimiento) de una hoja de salida 
-    y REVIERTE el stock. (MODIFICADO para Multi-Almacén)
-    """
     movimiento = get_item_or_404(Movimiento, id)
     
     if movimiento.tipo != 'salida':
-        # ... (flash y redirect)
-        pass
+        flash('Error: Solo se pueden eliminar items de salida.', 'danger')
+        return redirect(url_for('historial_salidas'))
         
     salida_id_redirect = movimiento.salida_id
 
     try:
-        # --- LÓGICA MODIFICADA ---
-        # Buscamos el item de stock específico
         stock_item = Stock.query.filter_by(
             producto_id=movimiento.producto_id, 
             almacen_id=movimiento.almacen_id
         ).first()
         cantidad_a_devolver = abs(movimiento.cantidad)
         
-        # 1. Revertir el stock
         if stock_item:
             stock_item.cantidad += cantidad_a_devolver
             db.session.add(stock_item)
         else:
-            # Si el stock no existe, lo creamos (caso raro)
             stock_item = Stock(
                 producto_id=movimiento.producto_id,
                 almacen_id=movimiento.almacen_id,
@@ -1322,19 +1298,19 @@ def eliminar_movimiento_salida(id):
             )
             db.session.add(stock_item)
         
-        # 2. Registrar el ajuste
         mov_ajuste = Movimiento(
             producto_id=movimiento.producto_id,
             cantidad=cantidad_a_devolver,
             tipo='ajuste-entrada',
             fecha=datetime.now(),
             motivo=f'Corrección/Eliminación de item (Salida #{salida_id_redirect})',
-            almacen_id=movimiento.almacen_id, # <-- ESTAMPAR ID
+            almacen_id=movimiento.almacen_id,
             organizacion_id=movimiento.organizacion_id
         )
         db.session.add(mov_ajuste)
         
         db.session.delete(movimiento)
+        
         db.session.commit()
         flash(f'Item "{movimiento.producto.nombre}" eliminado. Stock revertido.', 'success')
         
@@ -1343,6 +1319,7 @@ def eliminar_movimiento_salida(id):
         flash(f'Error al eliminar el item: {e}', 'danger')
 
     return redirect(url_for('ver_salida', id=salida_id_redirect))
+
 
 @app.route('/salida/<int:id>/pdf')
 @login_required
@@ -1366,6 +1343,7 @@ def generar_salida_pdf(id):
     story.append(Spacer(1, 0.25 * inch))
     info_salida = f"""
         <b>Fecha:</b> {salida.fecha.strftime('%Y-%m-%d')}<br/>
+        <b>Almacén:</b> {salida.almacen.nombre}<br/>
         <b>Estado:</b> <font color="{'red' if salida.estado == 'cancelada' else 'green'}">
             {salida.estado.capitalize()}
         </font><br/>
@@ -1462,10 +1440,8 @@ def lista_ordenes():
 @check_org_permission
 @check_permission('perm_create_oc_standard')
 def nueva_orden():
-    """ Crea una OC automática (Multiusuario, Multi-Almacén). """
     try:
         ids_productos_a_ordenar = request.form.getlist('producto_id')
-        # --- NUEVO: Obtenemos el almacén del formulario ---
         almacen_id = request.form.get('almacen_id', type=int)
         
         if not ids_productos_a_ordenar or not almacen_id:
@@ -1474,30 +1450,32 @@ def nueva_orden():
 
         productos = Producto.query.filter(Producto.id.in_(ids_productos_a_ordenar)).all()
         
-        # ... (Chequeo de seguridad de organización sin cambios) ...
+        if current_user.rol != 'super_admin':
+            for p in productos:
+                if p.organizacion_id != current_user.organizacion_id:
+                    flash('Error: Intento de ordenar un producto no válido.', 'danger')
+                    return redirect(url_for('index'))
 
         proveedor_id_comun = productos[0].proveedor_id
         if not all(p.proveedor_id == proveedor_id_comun for p in productos):
-            # ... (flash y redirect) ...
-            pass
+            flash('Error: Los productos seleccionados deben ser del mismo proveedor.', 'danger')
+            return redirect(url_for('index'))
 
         nueva_oc = OrdenCompra(
             proveedor_id=proveedor_id_comun,
             estado='borrador',
             creador_id=current_user.id,
             organizacion_id=current_user.organizacion_id,
-            almacen_id=almacen_id # <-- ESTAMPAR ALMACÉN
+            almacen_id=almacen_id
         )
         db.session.add(nueva_oc)
         
         for prod in productos:
-            # --- LÓGICA MODIFICADA ---
-            # Buscamos el 'stock_item' para obtener el min/max de ESE almacén
             stock_item = Stock.query.filter_by(producto_id=prod.id, almacen_id=almacen_id).first()
             if stock_item:
                 cantidad_sugerida = stock_item.stock_maximo - stock_item.cantidad
             else:
-                cantidad_sugerida = 5 # Fallback
+                cantidad_sugerida = 5
             
             detalle = OrdenCompraDetalle(
                 orden=nueva_oc,
@@ -1520,20 +1498,17 @@ def nueva_orden():
 @login_required
 @check_permission('perm_create_oc_standard')
 def recibir_orden(id):
-    """ Marca una orden como 'recibida' (Multiusuario, Multi-Almacén). """
     orden = get_item_or_404(OrdenCompra, id)
     
     if orden.estado == 'recibida':
-        # ... (flash y redirect) ...
-        pass
+        flash('Esta orden ya fue recibida anteriormente.', 'warning')
+        return redirect(url_for('lista_ordenes'))
 
     try:
         org_id = orden.organizacion_id
-        # --- LÓGICA MODIFICADA ---
-        almacen_destino_id = orden.almacen_id # <-- Obtenemos el almacén de la OC
+        almacen_destino_id = orden.almacen_id
         
         for detalle in orden.detalles:
-            # Buscamos el item de stock para ESE producto en ESE almacén
             stock_item = Stock.query.filter_by(
                 producto_id=detalle.producto_id,
                 almacen_id=almacen_destino_id
@@ -1543,13 +1518,10 @@ def recibir_orden(id):
                 stock_item.cantidad += detalle.cantidad_solicitada
                 db.session.add(stock_item)
             else:
-                # Si el producto no tiene registro en este almacén, lo creamos
-                # (Esto pasa si un producto se creó ANTES de que existiera el almacén)
                 stock_item = Stock(
                     producto_id=detalle.producto_id,
                     almacen_id=almacen_destino_id,
                     cantidad=detalle.cantidad_solicitada,
-                    # Usamos min/max por defecto
                     stock_minimo=5, 
                     stock_maximo=100
                 )
@@ -1562,7 +1534,7 @@ def recibir_orden(id):
                 fecha=datetime.now(),
                 motivo=f'Recepción de OC #{orden.id}',
                 orden_compra_id=orden.id,
-                almacen_id=almacen_destino_id, # <-- ESTAMPAR ALMACÉN
+                almacen_id=almacen_destino_id,
                 organizacion_id=org_id
             )
             db.session.add(movimiento)
@@ -1579,6 +1551,7 @@ def recibir_orden(id):
         flash(f'Error al recibir la orden: {e}', 'danger')
     
     return redirect(url_for('lista_ordenes'))
+
 @app.route('/orden/<int:id>/enviar', methods=['POST'])
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -1622,6 +1595,7 @@ def generar_oc_pdf(id):
     info_proveedor = f"""
         <b>Proveedor:</b> {orden.proveedor.nombre}<br/>
         <b>Email Contacto:</b> {orden.proveedor.contacto_email}<br/>
+        <b>Almacén Destino:</b> {orden.almacen.nombre}<br/>
         <b>Fecha Creación:</b> {orden.fecha_creacion.strftime('%Y-%m-%d')}
     """
     story.append(Paragraph(info_proveedor, styles['BodyText']))
@@ -1685,23 +1659,32 @@ def ver_orden(id):
 @check_org_permission
 @check_permission('perm_create_oc_standard')
 def nueva_orden_manual():
-    """ Crea una OC manual (Multiusuario, Multi-Almacén). """
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() # <-- AÑADIDO
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
     
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
-    # ... (lógica de productos_lista sin cambios) ...
+    productos_lista = []
+    for p in productos_query:
+        productos_lista.append({
+            'id': p.id,
+            'nombre': p.nombre,
+            'codigo': p.codigo,
+            'precio_unitario': p.precio_unitario,
+            'proveedor_id': p.proveedor_id
+        })
 
     if request.method == 'POST':
         try:
             proveedor_id = request.form.get('proveedor_id')
-            almacen_id = request.form.get('almacen_id') # <-- AÑADIDO
+            almacen_id = request.form.get('almacen_id')
             
             if not proveedor_id or not almacen_id:
                 flash('Debes seleccionar un Proveedor Y un Almacén de Destino.', 'danger')
                 return render_template('orden_form.html',
-                                       # ... (resto de variables) ...
+                                       titulo="Crear Orden de Compra Manual",
+                                       proveedores=proveedores,
+                                       productos=productos_lista,
                                        almacenes=almacenes,
                                        orden=None) 
 
@@ -1710,68 +1693,56 @@ def nueva_orden_manual():
                 estado='borrador',
                 creador_id=current_user.id,
                 organizacion_id=org_id,
-                almacen_id=almacen_id # <-- ESTAMPAR ALMACÉN
+                almacen_id=almacen_id
             )
             db.session.add(nueva_oc)
             
-            # ... (lógica de procesar detalles sin cambios) ...
+            productos_ids = request.form.getlist('producto_id[]')
+            cantidades = request.form.getlist('cantidad[]')
+            costos = request.form.getlist('costo[]')
+
+            if not productos_ids:
+                 flash('Debes añadir al menos un producto a la orden.', 'danger')
+                 return render_template('orden_form.html',
+                                       titulo="Crear Orden de Compra Manual",
+                                       proveedores=proveedores,
+                                       productos=productos_lista,
+                                       almacenes=almacenes,
+                                       orden=None)
+
+            for prod_id, cant, cost in zip(productos_ids, cantidades, costos):
+                if not prod_id or not cant or not cost:
+                    continue 
+                
+                detalle = OrdenCompraDetalle(
+                    orden=nueva_oc,
+                    producto_id=int(prod_id),
+                    cantidad_solicitada=int(cant),
+                    costo_unitario_estimado=float(cost)
+                )
+                db.session.add(detalle)
             
             db.session.commit()
             flash('Orden de Compra manual creada en "Borrador".', 'success')
             return redirect(url_for('lista_ordenes')) 
 
         except Exception as e:
-            # ... (lógica de rollback) ...
-            pass
+            db.session.rollback()
+            flash(f'Error al crear la orden: {e}', 'danger')
+            return render_template('orden_form.html',
+                                   titulo="Crear Orden de Compra Manual",
+                                   proveedores=proveedores,
+                                   productos=productos_lista,
+                                   almacenes=almacenes,
+                                   orden=None)
     
     return render_template('orden_form.html', 
                            titulo="Crear Orden de Compra Manual",
                            proveedores=proveedores,
                            productos=productos_lista,
-                           almacenes=almacenes, # <-- PASAR A PLANTILLA
+                           almacenes=almacenes,
                            orden=None)
 
-@app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
-@login_required
-@check_permission('perm_create_oc_standard')
-def editar_orden(id):
-    """ Edita una OC (Multiusuario, Multi-Almacén). """
-    orden = get_item_or_404(OrdenCompra, id)
-
-    if orden.estado != 'borrador':
-        # ... (flash y redirect) ...
-        pass
-
-    org_id = orden.organizacion_id
-    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
-    # Pasamos TODOS los almacenes (para el dropdown, aunque esté deshabilitado)
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() # <-- AÑADIDO
-    productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
-    # ... (lógica de productos_lista sin cambios) ...
-    
-    if request.method == 'POST':
-        try:
-            # El almacén no se puede cambiar, pero el proveedor sí
-            orden.proveedor_id = request.form.get('proveedor_id')
-            
-            OrdenCompraDetalle.query.filter_by(orden_id=orden.id).delete()
-            
-            # ... (lógica de procesar detalles sin cambios) ...
-            
-            db.session.commit()
-            flash('Orden de Compra actualizada exitosamente.', 'success')
-            return redirect(url_for('ver_orden', id=id))
-        except Exception as e:
-            # ... (lógica de rollback) ...
-            pass
-
-    return render_template('orden_form.html', 
-                           titulo=f"Editar Orden de Compra #{orden.id}",
-                           proveedores=proveedores,
-                           productos=productos_lista,
-                           almacenes=almacenes, # <-- PASAR A PLANTILLA
-                           orden=orden)
-                           
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -1784,6 +1755,7 @@ def editar_orden(id):
 
     org_id = orden.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
@@ -1797,6 +1769,8 @@ def editar_orden(id):
     
     if request.method == 'POST':
         try:
+            orden.proveedor_id = request.form.get('proveedor_id')
+            
             OrdenCompraDetalle.query.filter_by(orden_id=orden.id).delete()
             
             productos_ids = request.form.getlist('producto_id[]')
@@ -1810,6 +1784,7 @@ def editar_orden(id):
                                        titulo=f"Editar Orden de Compra #{orden.id}",
                                        proveedores=proveedores,
                                        productos=productos_lista,
+                                       almacenes=almacenes,
                                        orden=orden)
             
             for prod_id, cant, cost in zip(productos_ids, cantidades, costos):
@@ -1834,12 +1809,14 @@ def editar_orden(id):
                                    titulo=f"Editar Orden de Compra #{orden.id}",
                                    proveedores=proveedores,
                                    productos=productos_lista,
+                                   almacenes=almacenes,
                                    orden=orden)
 
     return render_template('orden_form.html', 
                            titulo=f"Editar Orden de Compra #{orden.id}",
                            proveedores=proveedores,
                            productos=productos_lista,
+                           almacenes=almacenes,
                            orden=orden)
 
 @app.route('/orden/<int:id>/cancelar', methods=['POST'])
@@ -1897,7 +1874,7 @@ def ver_proyecto_oc(id):
 @check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def nuevo_proyecto_oc():
-    """ Formulario para crear una nueva OC de Proyecto (Multiusuario, Multi-Almacén). """
+    
     org_id = current_user.organizacion_id
     
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
@@ -1908,16 +1885,15 @@ def nuevo_proyecto_oc():
             'nombre': p.nombre,
             'codigo': p.codigo,
             'precio_unitario': p.precio_unitario,
-            'proveedor_id': p.proveedor_id
         })
         
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
-    
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
 
     if request.method == 'POST':
         try:
             nombre_proyecto = request.form.get('nombre_proyecto')
-            almacen_id = request.form.get('almacen_id') # <-- AÑADIDO
+            almacen_id = request.form.get('almacen_id')
             
             if not nombre_proyecto or not almacen_id:
                 flash('El nombre del proyecto y el almacén son obligatorios.', 'danger')
@@ -1927,7 +1903,7 @@ def nuevo_proyecto_oc():
                 nombre_proyecto=nombre_proyecto,
                 creador_id=current_user.id,
                 organizacion_id=org_id,
-                almacen_id=almacen_id # <-- ESTAMPAR ALMACÉN
+                almacen_id=almacen_id
             )
             db.session.add(nueva_proyecto_oc)
 
@@ -1954,7 +1930,6 @@ def nuevo_proyecto_oc():
                     if prod_id_val > 0:
                         detalle.producto_id = prod_id_val
                     else:
-                        # Si no se seleccionó un producto válido, pero el tipo era 'existente'
                         detalle.descripcion_nuevo = "Error: Producto existente no seleccionado"
                         detalle.producto_id = None
                 else: 
@@ -1974,7 +1949,7 @@ def nuevo_proyecto_oc():
                            titulo="Crear OC de Proyecto",
                            productos=productos_lista,
                            proveedores=proveedores,
-                           almacenes=almacenes, # <-- PASAR A PLANTILLA
+                           almacenes=almacenes,
                            proyecto_oc=None,
                            detalles_json=None)
 
@@ -1982,7 +1957,6 @@ def nuevo_proyecto_oc():
 @login_required
 @check_permission('perm_create_oc_proyecto')
 def editar_proyecto_oc(id):
-    """ Formulario para editar una OC de Proyecto (Multiusuario, Multi-Almacén). """
     
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     org_id = proyecto_oc.organizacion_id
@@ -1990,7 +1964,6 @@ def editar_proyecto_oc(id):
     if proyecto_oc.estado != 'borrador':
         flash('Solo se pueden editar Órdenes de Proyecto en estado "Borrador".', 'warning')
         return redirect(url_for('ver_proyecto_oc', id=id))
-        pass
 
     if request.method == 'POST':
         try:
@@ -2047,7 +2020,7 @@ def editar_proyecto_oc(id):
         })
         
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() # <-- AÑADIDO
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
     
     detalles_json = []
     for d in proyecto_oc.detalles:
@@ -2064,6 +2037,7 @@ def editar_proyecto_oc(id):
                            titulo=f"Editar OC de Proyecto #{proyecto_oc.id}",
                            productos=productos_lista,
                            proveedores=proveedores,
+                           almacenes=almacenes,
                            proyecto_oc=proyecto_oc,
                            detalles_json=detalles_json)
 
@@ -2685,7 +2659,3 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
-
-
-
-
