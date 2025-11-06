@@ -6,24 +6,56 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
+    <!-- ======================== -->
+    <!-- FORMULARIO MODIFICADO (para GET/POST) -->
+    <!-- ======================== -->
     <form method="POST" action="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) if proyecto_oc else url_for('nuevo_proyecto_oc') }}">
         
-        <div class="mb-3 col-md-6">
-            <label for="nombre_proyecto" class="form-label">Nombre del Proyecto</label>
-            <input type="text" class="form-control" id="nombre_proyecto" name="nombre_proyecto" 
-                   value="{{ proyecto_oc.nombre_proyecto if proyecto_oc else '' }}" required>
+        <!-- 1. NOMBRE DEL PROYECTO (con valor pre-rellenado) -->
+        <div class="row">
+            <div class="mb-3 col-md-6">
+                <label for="nombre_proyecto" class="form-label">Nombre del Proyecto</label>
+                <input type="text" class="form-control" id="nombre_proyecto" name="nombre_proyecto" 
+                       value="{{ proyecto_oc.nombre_proyecto if proyecto_oc else '' }}" required>
+            </div>
+            
+            <!-- ======================== -->
+            <!-- NUEVO: Almacén de Destino -->
+            <!-- ======================== -->
+            <div class="mb-3 col-md-6">
+                <label for="almacen_id" class="form-label">Almacén de Destino</label>
+                <select class="form-select" id="almacen_id" name="almacen_id" 
+                        {% if proyecto_oc %}disabled{% endif %} required>
+                    <option value="">-- Selecciona un almacén --</option>
+                    {% for alm in almacenes %}
+                        <option value="{{ alm.id }}" 
+                                {% if proyecto_oc and proyecto_oc.almacen_id == alm.id %}selected{% endif %}>
+                            {{ alm.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if proyecto_oc %}
+                    <small class="form-text text-muted">No se puede cambiar el almacén de una orden existente.</small>
+                {% endif %}
+            </div>
         </div>
         
         <hr>
         
+        <!-- 2. LÍNEAS DE ITEMS DINÁMICAS -->
         <h4>Items</h4>
         <div id="lineas_items_container">
-            </div>
+            <!-- 
+                Si estamos editando, el JS llenará esto.
+                Si es nuevo, el JS añadirá la primera línea.
+            -->
+        </div>
         
         <button type="button" id="btn_add_item" class="btn btn-info mt-2">
             <i class="bi bi-plus-circle"></i> Añadir Item
         </button>
         
+        <!-- 3. ACCIONES DEL FORMULARIO -->
         <hr class="my-4">
         <div class="col-12">
             <button type="submit" class="btn btn-primary">Guardar OC de Proyecto</button>
@@ -31,9 +63,14 @@
         </div>
     </form>
 
+    <!-- ============================================= -->
+    <!-- PLANTILLA JS (oculta) PARA NUEVAS LÍNEAS -->
+    <!-- ============================================= -->
     <template id="plantilla_linea">
         <div class="row g-3 mb-3 p-2 border rounded bg-light item-linea">
+            <!-- Columna 1: Tipo y Selección -->
             <div class="col-md-5">
+                <!-- Tipo de Item (Radio) -->
                 <div class="mb-2">
                     <div class="form-check form-check-inline">
                         <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_existente_X" value="existente">
@@ -59,11 +96,13 @@
                 </div>
             </div>
             
+            <!-- Columna 2: Proveedor (con Datalist) -->
             <div class="col-md-3">
                 <label class="form-label">Proveedor (Existente o Nuevo)</label>
                 <input class="form-control" list="datalistProveedores" name="proveedor_sugerido[]" placeholder="Escribe o selecciona...">
             </div>
             
+            <!-- Columna 3: Cantidad y Costo -->
             <div class="col-md-4">
                 <div class="row">
                     <div class="col-6">
@@ -77,6 +116,7 @@
                 </div>
             </div>
             
+            <!-- Botón Eliminar -->
             <div class="col-12 text-end">
                 <button type="button" class="btn btn-sm btn-danger" onclick="eliminarLinea(this)">
                     <i class="bi bi-trash"></i> Eliminar Línea
@@ -85,18 +125,23 @@
         </div>
     </template>
 
+    <!-- DATALIST (global) para Proveedores -->
     <datalist id="datalistProveedores">
         {% for prov in proveedores %}
             <option value="{{ prov.nombre }}">
         {% endfor %}
     </datalist>
     
+    <!-- DATALIST (global) para Productos -->
     <datalist id="datalistProductos">
         {% for p in productos %}
             <option data-id="{{ p.id }}" data-precio="{{ p.precio_unitario }}" value="{{ p.nombre }} (SKU: {{ p.codigo }})">
         {% endfor %}
     </datalist>
 
+    <!-- ============================================= -->
+    <!-- JAVASCRIPT MODIFICADO PARA BÚSQUEDA Y EDICIÓN -->
+    <!-- ============================================= -->
     <script>
         // Contador global para asegurar IDs/Names únicos
         let lineaCounter = 0;
