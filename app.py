@@ -711,15 +711,29 @@ def dashboard():
 @check_org_permission
 @check_permission('perm_edit_management')
 def nuevo_producto():
-    """ Formulario para crear un nuevo producto (Multiusuario, Multi-Almacén). """
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
-    # Necesitamos los almacenes para el dropdown de stock inicial
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() 
     
     if request.method == 'POST':
         imagen_filename = None
+            
+        def repoblar_formulario_con_error():
+            # (Esta función auxiliar se mantiene igual)
+            producto_temporal = Producto(
+                nombre=request.form.get('nombre'),
+                codigo=request.form.get('codigo'),
+                categoria_id=int(request.form.get('categoria_id') or 0) or None,
+                precio_unitario=float(request.form.get('precio_unitario') or 0.0),
+                proveedor_id=int(request.form.get('proveedor_id') or 0) or None
+            )
+            return render_template('producto_form.html', 
+                                   titulo="Nuevo Producto", 
+                                   proveedores=proveedores,
+                                   categorias=categorias,
+                                   almacenes=almacenes, # <-- Pasamos almacenes
+                                   producto=producto_temporal)
             
         if 'imagen' in request.files:
             file = request.files['imagen']
@@ -728,8 +742,8 @@ def nuevo_producto():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
             elif file.filename != '' and not allowed_file(file.filename):
-                flash('Tipo de archivo de imagen no permitido.', 'danger')
-                return redirect(url_for('nuevo_producto'))
+                flash('Tipo de archivo de imagen no permitido. Los demás datos se han conservado.', 'danger')
+                return repoblar_formulario_con_error()
         
         try:
             nuevo_prod = Producto(
@@ -743,29 +757,27 @@ def nuevo_producto():
             )
             db.session.add(nuevo_prod)
             
-            # --- LÓGICA DE STOCK INICIAL (RESTAURADA) ---
+            # --- LÓGICA DE STOCK INICIAL (CORREGIDA Y SIMPLIFICADA) ---
             cantidad_inicial = int(request.form.get('cantidad_inicial', 0))
+            # Obtenemos el ID. Si es "" o "0", se convierte en 0.
             almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0) or 0)
 
-            if not almacenes and cantidad_inicial > 0:
-                flash('ADVERTENCIA: No se pudo registrar el stock inicial porque no hay almacenes.', 'warning')
-            
-            for almacen in almacenes:
-                # Solo asignamos la cantidad inicial al almacén seleccionado.
-                # Los demás se crean con 0.
-                cant_a_registrar = cantidad_inicial if almacen.id == almacen_inicial_id else 0
+            almacen_seleccionado = None
+            if almacen_inicial_id > 0:
+                almacen_seleccionado = Almacen.query.filter_by(id=almacen_inicial_id, organizacion_id=org_id).first()
 
+            # Solo creamos un registro de stock SI se especificó una cantidad Y un almacén válido
+            if cantidad_inicial > 0 and almacen_seleccionado:
                 nuevo_stock = Stock(
                     producto=nuevo_prod,
-                    almacen=almacen,
-                    cantidad=cant_a_registrar,
+                    almacen=almacen_seleccionado,
+                    cantidad=cantidad_inicial,
                     stock_minimo=int(request.form.get('stock_minimo', 5)),
                     stock_maximo=int(request.form.get('stock_maximo', 100))
                 )
                 db.session.add(nuevo_stock)
 
-            # Si hubo stock inicial, registramos el movimiento (Kardex)
-            if cantidad_inicial > 0 and almacen_inicial_id:
+                # Registrar el movimiento (Kardex)
                 movimiento_inicial = Movimiento(
                     producto=nuevo_prod,
                     cantidad=cantidad_inicial,
@@ -776,19 +788,26 @@ def nuevo_producto():
                     organizacion_id=org_id
                 )
                 db.session.add(movimiento_inicial)
-            # --- FIN LÓGICA RESTAURADA ---
+                
+            elif cantidad_inicial > 0 and not almacen_seleccionado:
+                flash('ADVERTENCIA: Se especificó cantidad inicial pero no un almacén válido. El stock no fue registrado.', 'warning')
+            
+            # Si no se especificó stock, no se crea NINGÚN registro de Stock.
+            # El producto solo existirá en el catálogo.
+            # --- FIN DE LÓGICA CORREGIDA ---
 
             db.session.commit()
             flash('Producto creado exitosamente.', 'success')
             
-            # Si se seleccionó un almacén, vamos directo a su dashboard
-            if almacen_inicial_id:
-                 return redirect(url_for('dashboard', almacen_id=almacen_inicial_id))
-            return redirect(url_for('dashboard'))
+            if almacen_seleccionado:
+                return redirect(url_for('dashboard', almacen_id=almacen_seleccionado.id))
+            else:
+                return redirect(url_for('dashboard'))
         
         except Exception as e:
             db.session.rollback()
             flash(f'Error al crear producto: {e}', 'danger')
+            return repoblar_formulario_con_error()
             
     return render_template('producto_form.html', 
                            titulo="Nuevo Producto", 
@@ -2790,6 +2809,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
