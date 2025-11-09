@@ -6,7 +6,7 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
-    <form method="POST" action="{{ url_for('editar_producto', id=producto.id) if producto else url_for('nuevo_producto') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto') }}" enctype="multipart/form-data">
         
         {% if stock_item %}
             <input type="hidden" name="almacen_id" value="{{ stock_item.almacen_id }}">
@@ -93,7 +93,7 @@
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="cantidad_inicial" class="form-label">Cantidad Inicial</CANTIDAD>
+                                <label for="cantidad_inicial" class="form-label">Cantidad Inicial</label>
                                 <input type="number" class="form-control" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
                             </div>
                         </div>
@@ -125,7 +125,8 @@
                             <strong>Nota:</strong> Para ver o editar el stock, ve al <a href="{{ url_for('dashboard') }}">Dashboard</a>, selecciona un almacén y edita el producto desde allí.
                         </div>
                         {% endif %}
-                        </div>
+
+                    </div>
                 </div>
             </div>
             
