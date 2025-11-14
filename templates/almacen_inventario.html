@@ -21,22 +21,23 @@
                     Añadir Producto del Catálogo
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}">
+                    <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod">
                         <div class="mb-3">
-                            <label for="producto_id" class="form-label">Producto a Añadir</label>
-                            <select class="form-select" id="producto_id" name="producto_id" required>
-                                <option value="">-- Selecciona un producto --</option>
-                                {% for p in productos_para_anadir %}
-                                    <option value="{{ p.id }}">{{ p.nombre }} (SKU: {{ p.codigo }})</option>
-                                {% endfor %}
-                            </select>
-                            {% if not productos_para_anadir %}
-                                <small class="text-muted">¡Todos los productos de tu catálogo ya están en este almacén!</small>
-                            {% endif %}
+                            <label for="producto_search" class="form-label">Producto a Añadir</label>
+                            <input class="form-control" list="productosCatalogoDatalist" id="producto_search" 
+                                   placeholder="Escribe para buscar..." autocomplete="off" required>
+                            
+                            <datalist id="productosCatalogoDatalist"></datalist>
+                            
+                            <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
                         </div>
-                        <button type="submit" class="btn btn-primary" {% if not productos_para_anadir %}disabled{% endif %}>
+                        
+                        <button type="submit" class="btn btn-primary" id="btn_submit_anadir" {% if not productos_para_anadir_json %}disabled{% endif %}>
                             <i class="bi bi-plus-circle"></i> Añadir a Almacén
                         </button>
+                        {% if not productos_para_anadir_json %}
+                            <small class="text-muted d-block mt-2">¡Todos los productos de tu catálogo ya están en este almacén!</small>
+                        {% endif %}
                     </form>
                 </div>
             </div>
@@ -84,4 +85,55 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Cargar datos desde Flask
+            const productosData = {{ productos_para_anadir_json | tojson | safe }};
+            const datalist = document.getElementById('productosCatalogoDatalist');
+            
+            // 2. Crear un Mapa para búsqueda rápida
+            const productosMap = new Map();
+            productosData.forEach(p => {
+                const nombreCompleto = `${p.nombre} (SKU: ${p.codigo})`;
+                productosMap.set(nombreCompleto, p.id);
+                
+                const option = document.createElement('option');
+                option.value = nombreCompleto;
+                datalist.appendChild(option);
+            });
+
+            // 3. Referencias a los inputs
+            const inputSearch = document.getElementById('producto_search');
+            const inputIdHidden = document.getElementById('producto_id_hidden');
+            const btnSubmit = document.getElementById('btn_submit_anadir');
+
+            // 4. Listener para el input
+            inputSearch.addEventListener('input', function() {
+                const valor = inputSearch.value;
+                const idEncontrado = productosMap.get(valor);
+
+                if (idEncontrado) {
+                    // Si el texto coincide EXACTAMENTE con una opción
+                    inputIdHidden.value = idEncontrado;
+                    btnSubmit.disabled = false;
+                } else {
+                    // Si el usuario está escribiendo o el texto no coincide
+                    inputIdHidden.value = '0';
+                    btnSubmit.disabled = true;
+                }
+            });
+            
+            // 5. Validación final del formulario
+            document.getElementById('form_anadir_prod').addEventListener('submit', function(e) {
+                if (inputIdHidden.value === '0' || !inputIdHidden.value) {
+                    e.preventDefault(); // Detener el envío
+                    alert('Por favor, selecciona un producto válido de la lista.');
+                }
+            });
+
+            // Estado inicial del botón
+            btnSubmit.disabled = true;
+        });
+    </script>
 {% endblock %}
