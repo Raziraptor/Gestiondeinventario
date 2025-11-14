@@ -1192,11 +1192,11 @@ def gestionar_inventario_almacen(id):
 
     if request.method == 'POST':
         try:
+            # La lógica POST sigue siendo válida, ya que espera un 'producto_id'
             producto_id = int(request.form.get('producto_id'))
             if not producto_id:
                 raise Exception("No se seleccionó un producto.")
 
-            # Verificar que el producto no esté ya en el almacén
             stock_existente = Stock.query.filter_by(
                 almacen_id=id, 
                 producto_id=producto_id
@@ -1205,12 +1205,11 @@ def gestionar_inventario_almacen(id):
             if stock_existente:
                 flash('Ese producto ya está en este almacén.', 'warning')
             else:
-                # Crear el nuevo registro de stock con 0
                 nuevo_stock = Stock(
                     producto_id=producto_id,
                     almacen_id=id,
                     cantidad=0,
-                    stock_minimo=5,  # Usar valores por defecto
+                    stock_minimo=5,
                     stock_maximo=100
                 )
                 db.session.add(nuevo_stock)
@@ -1223,22 +1222,30 @@ def gestionar_inventario_almacen(id):
         
         return redirect(url_for('gestionar_inventario_almacen', id=id))
 
-    # --- Lógica GET ---
-    # 1. Obtener IDs de productos que YA ESTÁN en este almacén
+    # --- LÓGICA GET (MODIFICADA) ---
     productos_en_stock_ids = [s.producto_id for s in almacen.stocks]
-
-    # 2. Obtener todos los productos del catálogo de la org
     productos_catalogo = Producto.query.filter_by(organizacion_id=org_id).all()
     
-    # 3. Filtrar para el dropdown (solo los que NO están en este almacén)
+    # Filtramos los productos que NO están en este almacén
     productos_para_anadir = [
         p for p in productos_catalogo if p.id not in productos_en_stock_ids
     ]
     
+    # --- NUEVO: Convertir a JSON para JavaScript ---
+    # Esto es más seguro que un bucle Jinja dentro de <script>
+    productos_para_anadir_json = []
+    for p in productos_para_anadir:
+        productos_para_anadir_json.append({
+            "id": p.id,
+            "nombre": p.nombre,
+            "codigo": p.codigo
+        })
+    
     return render_template('almacen_inventario.html',
                            titulo=f"Inventario de {almacen.nombre}",
                            almacen=almacen,
-                           productos_para_anadir=productos_para_anadir)
+                           # Pasamos la lista JSON a la plantilla
+                           productos_para_anadir_json=productos_para_anadir_json)
 
 #<---------SALIDA DE PRODUCTOS (REESCRITO PARA MULTI-ALMACÉN)----------->
 
@@ -2887,6 +2894,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
