@@ -720,7 +720,6 @@ def nuevo_producto():
         imagen_filename = None
             
         def repoblar_formulario_con_error():
-            # (Esta función auxiliar se mantiene igual)
             producto_temporal = Producto(
                 nombre=request.form.get('nombre'),
                 codigo=request.form.get('codigo'),
@@ -732,7 +731,7 @@ def nuevo_producto():
                                    titulo="Nuevo Producto", 
                                    proveedores=proveedores,
                                    categorias=categorias,
-                                   almacenes=almacenes, # <-- Pasamos almacenes
+                                   almacenes=almacenes, 
                                    producto=producto_temporal)
             
         if 'imagen' in request.files:
@@ -766,33 +765,32 @@ def nuevo_producto():
             if almacen_inicial_id > 0:
                 almacen_seleccionado = Almacen.query.filter_by(id=almacen_inicial_id, organizacion_id=org_id).first()
 
-            # Solo creamos un registro de stock SI se especificó una cantidad Y un almacén válido
-            if cantidad_inicial > 0 and almacen_seleccionado:
+            # Si se seleccionó un almacén, creamos el registro de stock,
+            # sin importar si la cantidad es 0 o más.
+            if almacen_seleccionado:
                 nuevo_stock = Stock(
                     producto=nuevo_prod,
                     almacen=almacen_seleccionado,
-                    cantidad=cantidad_inicial,
+                    cantidad=cantidad_inicial, # Esto está bien, será 0 si no se puso
                     stock_minimo=int(request.form.get('stock_minimo', 5)),
                     stock_maximo=int(request.form.get('stock_maximo', 100))
                 )
                 db.session.add(nuevo_stock)
 
-                # Registrar el movimiento (Kardex)
-                movimiento_inicial = Movimiento(
-                    producto=nuevo_prod,
-                    cantidad=cantidad_inicial,
-                    tipo='entrada-inicial',
-                    fecha=datetime.now(),
-                    motivo='Stock Inicial (Creación de Producto)',
-                    almacen_id=almacen_inicial_id,
-                    organizacion_id=org_id
-                )
-                db.session.add(movimiento_inicial)
-                
-            elif cantidad_inicial > 0 and not almacen_seleccionado:
-                flash('ADVERTENCIA: Se especificó cantidad inicial pero no un almacén válido. El stock no fue registrado.', 'warning')
+                # Solo creamos el movimiento si la cantidad es > 0
+                if cantidad_inicial > 0:
+                    movimiento_inicial = Movimiento(
+                        producto=nuevo_prod,
+                        cantidad=cantidad_inicial,
+                        tipo='entrada-inicial',
+                        fecha=datetime.now(),
+                        motivo='Stock Inicial (Creación de Producto)',
+                        almacen_id=almacen_inicial_id,
+                        organizacion_id=org_id
+                    )
+                    db.session.add(movimiento_inicial)
             
-            # Si no se especificó stock, no se crea NINGÚN registro de Stock.
+            # Si no se seleccionó almacén, no se crea NINGÚN registro de Stock.
             # El producto solo existirá en el catálogo.
             # --- FIN DE LÓGICA CORREGIDA ---
 
@@ -800,13 +798,20 @@ def nuevo_producto():
             flash('Producto creado exitosamente.', 'success')
             
             if almacen_seleccionado:
-                return redirect(url_for('dashboard', almacen_id=almacen_seleccionado.id))
+                 return redirect(url_for('dashboard', almacen_id=almacen_seleccionado.id))
+            return redirect(url_for('dashboard'))
+        
+        except IntegrityError as e:
+            db.session.rollback()
+            if "producto_codigo_key" in str(e) or "UNIQUE constraint failed: producto.codigo" in str(e):
+                flash('Error: El Código (SKU) que ingresaste ya existe.', 'danger')
             else:
-                return redirect(url_for('dashboard'))
+                flash(f'Error de base de datos: {e}', 'danger')
+            return repoblar_formulario_con_error()
         
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear producto: {e}', 'danger')
+            flash(f'Error inesperado al crear el producto: {e}', 'danger')
             return repoblar_formulario_con_error()
             
     return render_template('producto_form.html', 
@@ -815,7 +820,7 @@ def nuevo_producto():
                            categorias=categorias,
                            almacenes=almacenes, # <-- Pasamos almacenes a la plantilla
                            producto=None)
-
+  
 @app.route('/producto/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_edit_management')
@@ -1161,6 +1166,63 @@ def editar_almacen(id):
     return render_template('almacen_form.html', 
                            titulo="Editar Almacén", 
                            almacen=almacen)
+
+@app.route('/almacen/<int:id>/inventario', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def gestionar_inventario_almacen(id):
+    almacen = get_item_or_404(Almacen, id)
+    org_id = almacen.organizacion_id
+
+    if request.method == 'POST':
+        try:
+            producto_id = int(request.form.get('producto_id'))
+            if not producto_id:
+                raise Exception("No se seleccionó un producto.")
+
+            # Verificar que el producto no esté ya en el almacén
+            stock_existente = Stock.query.filter_by(
+                almacen_id=id, 
+                producto_id=producto_id
+            ).first()
+            
+            if stock_existente:
+                flash('Ese producto ya está en este almacén.', 'warning')
+            else:
+                # Crear el nuevo registro de stock con 0
+                nuevo_stock = Stock(
+                    producto_id=producto_id,
+                    almacen_id=id,
+                    cantidad=0,
+                    stock_minimo=5,  # Usar valores por defecto
+                    stock_maximo=100
+                )
+                db.session.add(nuevo_stock)
+                db.session.commit()
+                flash('Producto añadido al almacén con stock 0.', 'success')
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al añadir producto: {e}', 'danger')
+        
+        return redirect(url_for('gestionar_inventario_almacen', id=id))
+
+    # --- Lógica GET ---
+    # 1. Obtener IDs de productos que YA ESTÁN en este almacén
+    productos_en_stock_ids = [s.producto_id for s in almacen.stocks]
+
+    # 2. Obtener todos los productos del catálogo de la org
+    productos_catalogo = Producto.query.filter_by(organizacion_id=org_id).all()
+    
+    # 3. Filtrar para el dropdown (solo los que NO están en este almacén)
+    productos_para_anadir = [
+        p for p in productos_catalogo if p.id not in productos_en_stock_ids
+    ]
+    
+    return render_template('almacen_inventario.html',
+                           titulo=f"Inventario de {almacen.nombre}",
+                           almacen=almacen,
+                           productos_para_anadir=productos_para_anadir)
 
 #<---------SALIDA DE PRODUCTOS (REESCRITO PARA MULTI-ALMACÉN)----------->
 
@@ -2809,6 +2871,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
