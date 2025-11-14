@@ -31,6 +31,7 @@ from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, E
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy import extract, Date # <-- AÑADIDO Date
+from sqlalchemy.exc import IntegrityError
 from itsdangerous.url_safe import URLSafeTimedSerializer
 from PIL import Image
 import qrcode
@@ -2886,6 +2887,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
