@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ titulo }}</h2>
+        <a href="{{ url_for('lista_almacenes') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Almacenes
+        </a>
+    </div>
+    <p class="text-muted">
+        Aquí puedes ver y gestionar qué productos existen en este almacén. 
+        Los productos añadidos aquí comenzarán con un stock de 0.
+    </p>
+
+    <div class="row g-4">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    Añadir Producto del Catálogo
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}">
+                        <div class="mb-3">
+                            <label for="producto_id" class="form-label">Producto a Añadir</label>
+                            <select class="form-select" id="producto_id" name="producto_id" required>
+                                <option value="">-- Selecciona un producto --</option>
+                                {% for p in productos_para_anadir %}
+                                    <option value="{{ p.id }}">{{ p.nombre }} (SKU: {{ p.codigo }})</option>
+                                {% endfor %}
+                            </select>
+                            {% if not productos_para_anadir %}
+                                <small class="text-muted">¡Todos los productos de tu catálogo ya están en este almacén!</small>
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-primary" {% if not productos_para_anadir %}disabled{% endif %}>
+                            <i class="bi bi-plus-circle"></i> Añadir a Almacén
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    Productos en {{ almacen.nombre }}
+                </div>
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in almacen.stocks.all() %}
+                            <tr>
+                                <td class="align-middle">
+                                    <strong>{{ item.producto.nombre }}</strong><br>
+                                    <small class="text-muted">SKU: {{ item.producto.codigo }}</small>
+                                </td>
+                                <td class="align-middle text-end">
+                                    <strong>{{ item.cantidad }}</strong>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" 
+                                       class="btn btn-sm btn-secondary" title="Editar Stock">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center p-3">No hay productos asignados a este almacén.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
