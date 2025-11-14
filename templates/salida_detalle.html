@@ -1,28 +1,20 @@
 {% extends 'base.html' %}
 
-{% block title %}Detalle de Salida #{{ salida.id }}{% endblock %}
+{% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h2>Detalle de Salida #{{ salida.id }}</h2>
-            <h5 class="text-muted">Motivo: {{ salida.motivo }}</h5>
-            <small>Fecha: {{ salida.fecha.strftime('%Y-%m-%d %H:%M') }}</Lsmall>
+            <h2>{{ titulo }}</h2>
+            <h5 class="text-muted">
+                Hoja de Salida Diaria para Almacén: <strong>{{ salida.almacen.nombre }}</strong>
+            </h5>
+            <small>Creada por: {{ salida.creador.username }}</small>
         </div>
         <div>
             <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-danger" target="_blank">
                 <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF
             </a>
-            
-            {% if salida.estado != 'cancelada' %}
-            <form action="{{ url_for('cancelar_salida', id=salida.id) }}" method="POST" style="display: inline;" 
-                  onsubmit="return confirm('¿Estás seguro? Esta acción cancelará la salida y DEVOLVERÁ el stock al inventario.');">
-                <button type="submit" class="btn btn-warning">
-                    <i class="bi bi-x-circle"></i> Cancelar Salida
-                </button>
-            </form>
-            {% endif %}
-
             <a href="{{ url_for('historial_salidas') }}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Volver al Historial
             </a>
@@ -37,22 +29,49 @@
 
     <div class="card">
         <div class="card-header">
-            Productos Retirados
+            Items Retirados
+            <a href="{{ url_for('registrar_salida', almacen_id=salida.almacen_id) }}" class="btn btn-sm btn-outline-primary float-end">
+                <i class="bi bi-plus-circle"></i> Añadir más items
+            </a>
         </div>
         <div class="card-body table-responsive">
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <strong>Creada por:</strong>
-                    <i class="bi bi-person"></i> {{ salida.creador.username }}
-                </div>
-                {% if salida.estado == 'cancelada' and salida.cancelado_por %}
-                <div class="col-md-6">
-                    <strong>Cancelada por:</strong>
-                    <i class="bi bi-person-x"></i> {{ salida.cancelado_por.username }}
-                </div>
-                {% endif %}
-            </div>
-            <table class="table table-striped">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Producto</th>
+                        <th>SKU</th>
+                        <th>Motivo</th> <th class="text-end">Cantidad</th>
+                        <th>Acción</th> </tr>
+                </thead>
+                <tbody>
+                    {% for mov in movimientos %}
+                    <tr>
+                        <td>{{ mov.fecha.strftime('%H:%M:%S') }}</td>
+                        <td>{{ mov.producto.nombre }}</td>
+                        <td>{{ mov.producto.codigo }}</td>
+                        <td>{{ mov.motivo }}</td>
+                        <td class="text-end">
+                            <strong class="text-danger">{{ mov.cantidad }}</strong>
+                        </td>
+                        <td class="text-center">
+                            <form action="{{ url_for('eliminar_movimiento_salida', id=mov.id) }}" method="POST"
+                                  onsubmit="return confirm('¿Estás seguro de que deseas eliminar este item? Esta acción REVERTIRÁ el stock.');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar Item">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            No hay items registrados en esta hoja de salida.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+    </div>
 {% endblock %}
