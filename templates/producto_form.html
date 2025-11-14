@@ -65,7 +65,7 @@
                         
                         {% if not producto %} 
                         <div class="alert alert-info py-2">
-                            <small><strong>Niveles de Stock:</strong> Estos mínimos/máximos se usarán por defecto la *primera vez* que el producto se añada a cualquier almacén.</small>
+                            <small><strong>Niveles de Stock:</strong> Estos mínimos/máximos se usarán por defecto la *primera vez* que el producto se añada a un almacén.</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -80,13 +80,13 @@
                         
                         <hr>
                         <div class="alert alert-success py-2">
-                            <small><strong>Stock Inicial (Opcional):</strong> Si especificas una "Cantidad Inicial", DEBES seleccionar un "Almacén" para que el producto aparezca en el inventario.</small>
+                            <small><strong>Stock Inicial (Opcional):</strong> Si quieres, puedes asignar este producto a un almacén con una cantidad inicial. Si no, puedes asignarlo más tarde desde la página de "Almacenes".</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="almacen_inicial_id" class="form-label">Almacén de Stock Inicial</label>
                                 <select class="form-select" id="almacen_inicial_id" name="almacen_inicial_id">
-                                    <option value="">-- No registrar stock inicial --</option>
+                                    <option value="">-- No asignar a un almacén --</option>
                                     {% for alm in almacenes %}
                                     <option value="{{ alm.id }}">{{ alm.nombre }}</option>
                                     {% endfor %}
@@ -122,9 +122,17 @@
 
                         {% else %} 
                         <div class="alert alert-info mt-3">
-                            <strong>Nota:</strong> Para ver o editar el stock, ve al <a href="{{ url_for('dashboard') }}">Dashboard</a>, selecciona un almacén y edita el producto desde allí.
+                            <strong>Nota:</strong> Este producto no está asignado a ningún almacén. Para añadirlo a un inventario, ve a la página de <a href="{{ url_for('lista_almacenes') }}">Almacenes</a> y gestiónalo desde allí.
                         </div>
                         {% endif %}
+                        </div>
+                </div>
+            </div>
+            
+            </div>
+    </form>
+    
+    {% endblock %}
 
                     </div>
                 </div>
@@ -163,3 +171,4 @@
         }
     </script>
 {% endblock %}
+
