@@ -27,10 +27,13 @@
                         <td>{{ alm.ubicacion }}</td>
                         <td style="width: 1%; white-space: nowrap;">
                             <div class="btn-group btn-group-sm" role="group">
+                                <a href="{{ url_for('gestionar_inventario_almacen', id=alm.id) }}" class="btn btn-primary" title="Gestionar Inventario">
+                                    <i class="bi bi-box-seam"></i> Inventario
+                                </a>
                                 <a href="{{ url_for('editar_almacen', id=alm.id) }}" class="btn btn-secondary" title="Editar">
                                     <i class="bi bi-pencil"></i> Editar
                                 </a>
-                                </div>
+                            </div>
                         </td>
                     </tr>
                     {% else %}
