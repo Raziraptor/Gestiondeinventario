@@ -6,7 +6,7 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
-    <form method="POST" action="{{ url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto') }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto')) }}" enctype="multipart/form-data">
         
         {% if stock_item %}
             <input type="hidden" name="almacen_id" value="{{ stock_item.almacen_id }}">
@@ -63,7 +63,7 @@
                             </div>
                         </div>
                         
-                        {% if not producto %} 
+                        {% if not producto or not producto.id %} 
                         <div class="alert alert-info py-2">
                             <small><strong>Niveles de Stock:</strong> Estos mínimos/máximos se usarán por defecto la *primera vez* que el producto se añada a un almacén.</small>
                         </div>
@@ -80,13 +80,13 @@
                         
                         <hr>
                         <div class="alert alert-success py-2">
-                            <small><strong>Stock Inicial (Opcional):</strong> Si quieres, puedes asignar este producto a un almacén con una cantidad inicial. Si no, puedes asignarlo más tarde desde la página de "Almacenes".</small>
+                            <small><strong>Stock Inicial (Opcional):</strong> Si especificas una "Cantidad Inicial", DEBES seleccionar un "Almacén" para que el producto aparezca en el inventario.</small>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="almacen_inicial_id" class="form-label">Almacén de Stock Inicial</label>
                                 <select class="form-select" id="almacen_inicial_id" name="almacen_inicial_id">
-                                    <option value="">-- No asignar a un almacén --</option>
+                                    <option value="">-- No registrar stock inicial --</option>
                                     {% for alm in almacenes %}
                                     <option value="{{ alm.id }}">{{ alm.nombre }}</option>
                                     {% endfor %}
@@ -129,15 +129,6 @@
                 </div>
             </div>
             
-            </div>
-    </form>
-    
-    {% endblock %}
-
-                    </div>
-                </div>
-            </div>
-            
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-header">Imagen del Producto</div>
@@ -171,4 +162,3 @@
         }
     </script>
 {% endblock %}
-
