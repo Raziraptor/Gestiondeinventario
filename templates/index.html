@@ -22,18 +22,47 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_almacenes') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
-                    <i class="bi bi-house-door card-icon text-indigo" style="color: #6610f2;"></i>
+                    <i class="bi bi-house-door card-icon text-purple" style="color: #6610f2;"></i>
                     <h5 class="card-title">Almacenes</h5>
                 </div>
             </a>
         </div>
         {% endif %}
+        
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('nuevo_producto') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
                     <i class="bi bi-plus-circle card-icon text-success"></i>
                     <h5 class="card-title">Agregar Producto</h5>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+        
+        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <a href="{{ url_for('lista_categorias') }}" class="dashboard-card card text-dark">
+                <div class="card-body">
+                    <i class="bi bi-tags card-icon text-secondary"></i>
+                    <h5 class="card-title">Categorías</h5>
+                </div>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <a href="{{ url_for('lista_proveedores') }}" class="dashboard-card card text-dark">
+                <div class="card-body">
+                    <i class="bi bi-truck card-icon text-info"></i>
+                    <h5 class="card-title">Proveedores</h5>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <a href="{{ url_for('lista_productos_sin_almacen') }}" class="dashboard-card card text-dark">
+                <div class="card-body">
+                    <i class="bi bi-exclamation-triangle-fill card-icon text-warning"></i>
+                    <h5 class="card-title">Sin Almacén</h5>
                 </div>
             </a>
         </div>
@@ -54,7 +83,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <a href="{{ url_for('lista_proyectos_oc') }}" class="dashboard-card card text-dark">
                 <div class="card-body">
-                    <i class="bi bi-clipboard-data card-icon" style="color: #6f42c1;"></i>
+                    <i class="bi bi-clipboard-data card-icon text-purple" style="color: #6f42c1;"></i>
                     <h5 class="card-title">OC de Proyectos</h5>
                 </div>
             </a>
@@ -67,28 +96,6 @@
                 <div class="card-body">
                     <i class="bi bi-box-arrow-right card-icon text-danger"></i>
                     <h5 class="card-title">Salidas</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
-
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_categorias') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-tags card-icon text-secondary"></i>
-                    <h5 class="card-title">Categorías</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
-        
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_proveedores') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-truck card-icon text-info"></i>
-                    <h5 class="card-title">Proveedores</h5>
                 </div>
             </a>
         </div>
@@ -123,6 +130,8 @@
                 
                 <form action="{{ url_for('nueva_orden') }}" method="POST">
                     <input type="hidden" name="almacen_id" value="{{ alm_id }}">
+                    
+                    {% set context = {'hay_productos': true} %}
                     
                     <ul class="list-group list-group-flush">
                         {% for item in items_stock %}
