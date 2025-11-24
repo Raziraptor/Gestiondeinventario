@@ -15,6 +15,7 @@
     </p>
 
     <div class="row g-4">
+        <!-- Columna 1: Añadir Producto Existente -->
         <div class="col-md-5">
             <div class="card">
                 <div class="card-header">
@@ -26,9 +27,7 @@
                             <label for="producto_search" class="form-label">Producto a Añadir</label>
                             <input class="form-control" list="productosCatalogoDatalist" id="producto_search" 
                                    placeholder="Escribe para buscar..." autocomplete="off" required>
-                            
                             <datalist id="productosCatalogoDatalist"></datalist>
-                            
                             <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
                         </div>
                         
@@ -43,6 +42,7 @@
             </div>
         </div>
 
+        <!-- Columna 2: Productos Ya en el Almacén -->
         <div class="col-md-7">
             <div class="card">
                 <div class="card-header">
@@ -54,7 +54,7 @@
                             <tr>
                                 <th>Producto</th>
                                 <th class="text-end">Cantidad</th>
-                                <th class="text-center">Acción</th>
+                                <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -68,10 +68,24 @@
                                     <strong>{{ item.cantidad }}</strong>
                                 </td>
                                 <td class="align-middle text-center">
-                                    <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" 
-                                       class="btn btn-sm btn-secondary" title="Editar Stock">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
+                                    <div class="btn-group btn-group-sm">
+                                        <!-- Botón Editar -->
+                                        <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" 
+                                           class="btn btn-secondary" title="Editar Stock">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        
+                                        <!-- ======================== -->
+                                        <!-- NUEVO BOTÓN ELIMINAR -->
+                                        <!-- ======================== -->
+                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;"
+                                              onsubmit="return confirm('¿Estás seguro de quitar este producto de ESTE almacén? El producto seguirá existiendo en el catálogo general.');">
+                                            <button type="submit" class="btn btn-danger" title="Quitar del Almacén">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                        <!-- ======================== -->
+                                    </div>
                                 </td>
                             </tr>
                             {% else %}
@@ -88,51 +102,40 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. Cargar datos desde Flask
             const productosData = {{ productos_para_anadir_json | tojson | safe }};
             const datalist = document.getElementById('productosCatalogoDatalist');
-            
-            // 2. Crear un Mapa para búsqueda rápida
             const productosMap = new Map();
+
             productosData.forEach(p => {
                 const nombreCompleto = `${p.nombre} (SKU: ${p.codigo})`;
                 productosMap.set(nombreCompleto, p.id);
-                
                 const option = document.createElement('option');
                 option.value = nombreCompleto;
                 datalist.appendChild(option);
             });
 
-            // 3. Referencias a los inputs
             const inputSearch = document.getElementById('producto_search');
             const inputIdHidden = document.getElementById('producto_id_hidden');
             const btnSubmit = document.getElementById('btn_submit_anadir');
 
-            // 4. Listener para el input
             inputSearch.addEventListener('input', function() {
                 const valor = inputSearch.value;
                 const idEncontrado = productosMap.get(valor);
-
                 if (idEncontrado) {
-                    // Si el texto coincide EXACTAMENTE con una opción
                     inputIdHidden.value = idEncontrado;
                     btnSubmit.disabled = false;
                 } else {
-                    // Si el usuario está escribiendo o el texto no coincide
                     inputIdHidden.value = '0';
                     btnSubmit.disabled = true;
                 }
             });
             
-            // 5. Validación final del formulario
             document.getElementById('form_anadir_prod').addEventListener('submit', function(e) {
                 if (inputIdHidden.value === '0' || !inputIdHidden.value) {
-                    e.preventDefault(); // Detener el envío
+                    e.preventDefault();
                     alert('Por favor, selecciona un producto válido de la lista.');
                 }
             });
-
-            // Estado inicial del botón
             btnSubmit.disabled = true;
         });
     </script>
