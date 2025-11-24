@@ -200,7 +200,7 @@ class Categoria(db.Model):
 # --- MODELO 'Producto' MODIFICADO ---
 class Producto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), nullable=False)
+    nombre = db.Column(db.String(255), nullable=False)
     codigo = db.Column(db.String(50), unique=True, nullable=False)
     # --- CAMPOS DE STOCK ELIMINADOS ---
     precio_unitario = db.Column(db.Float, default=0.0)
@@ -2894,6 +2894,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
