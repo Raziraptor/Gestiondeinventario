@@ -37,6 +37,9 @@ from PIL import Image
 import qrcode
 import secrets
 from functools import wraps
+from reportlab.lib.units import inch, mm
+from reportlab.graphics.barcode import qr
+from reportlab.graphics.shapes import Drawing
 
 # --- Reportes (PDF y Excel) ---
 import openpyxl
@@ -596,6 +599,101 @@ def check_permission(permission_name):
 # ==============================================================================
 # 8. RUTAS DE LA APLICACIÓN
 # ==============================================================================
+
+# =============================================
+# NUEVAS RUTAS PARA ETIQUETAS
+# =============================================
+
+@app.route('/producto/<int:id>/etiqueta/configurar')
+@login_required
+@check_permission('perm_view_dashboard')
+def configurar_etiqueta(id):
+    """ Muestra el formulario para elegir tamaño de etiqueta. """
+    producto = get_item_or_404(Producto, id)
+    # Necesitamos saber si el producto tiene stock en algún lado para mostrar la ubicación
+    # (Tomaremos la primera ubicación disponible o "Sin Ubicación")
+    stock_item = Stock.query.filter_by(producto_id=id).first()
+    ubicacion = stock_item.ubicacion if stock_item else "N/A"
+    
+    return render_template('etiqueta_config.html', producto=producto, ubicacion=ubicacion)
+
+@app.route('/producto/<int:id>/etiqueta/generar', methods=['POST'])
+@login_required
+@check_permission('perm_view_dashboard')
+def generar_etiqueta_personalizada(id):
+    """ Genera el PDF de la etiqueta con el tamaño seleccionado. """
+    producto = get_item_or_404(Producto, id)
+    
+    # Obtener ubicación (puedes mejorar esto para que el usuario elija el almacén si hay varios)
+    stock_item = Stock.query.filter_by(producto_id=id).first()
+    ubicacion = stock_item.ubicacion if stock_item and stock_item.ubicacion else ""
+
+    tamano = request.form.get('tamano') # '1x3' o '1.75x4'
+    
+    # Definir medidas en puntos (1 inch = 72 points)
+    if tamano == '1.75x4':
+        width = 4 * inch
+        height = 1.75 * inch
+        font_size_nombre = 18
+        font_size_codigo = 14
+        qr_size = 1.2 * inch
+    else: # Default 1x3
+        width = 3 * inch
+        height = 1 * inch
+        font_size_nombre = 12
+        font_size_codigo = 10
+        qr_size = 0.8 * inch
+
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(width, height))
+    
+    # --- DISEÑO DE LA ETIQUETA ---
+    
+    # 1. Código QR (A la derecha)
+    qr_code = qr.QrCodeWidget(producto.codigo)
+    qr_code.barWidth = qr_size
+    qr_code.barHeight = qr_size
+    qr_code.qrVersion = 1
+    d = Drawing(qr_size, qr_size)
+    d.add(qr_code)
+    
+    # Posición del QR: A la derecha con un margen
+    renderPDF.draw(d, c, width - qr_size - (0.1 * inch), (height - qr_size) / 2)
+
+    # 2. Textos (A la izquierda)
+    text_x = 0.1 * inch
+    # Calculamos posiciones relativas a la altura
+    y_nombre = height - (0.4 * inch)
+    y_codigo = y_nombre - (0.3 * inch)
+    y_sku = y_codigo - (0.25 * inch)
+    y_ubicacion = y_sku - (0.3 * inch) # Ubicación abajo
+
+    # Nombre del Producto (Truncar si es muy largo)
+    c.setFont("Helvetica-Bold", font_size_nombre)
+    nombre_corto = producto.nombre[:25] + "..." if len(producto.nombre) > 25 else producto.nombre
+    c.drawString(text_x, y_nombre, nombre_corto)
+
+    # Código Principal (Azul como en la imagen)
+    c.setFont("Helvetica-Bold", font_size_codigo + 2)
+    c.setFillColor(colors.HexColor("#005a8d")) # Azul oscuro
+    c.drawString(text_x, y_codigo, producto.codigo)
+    
+    # SKU / ID Interno (Negro)
+    c.setFont("Helvetica", font_size_codigo)
+    c.setFillColor(colors.black)
+    c.drawString(text_x, y_sku, f"ID: {producto.id}")
+
+    # Ubicación (Si existe, abajo y resaltada)
+    if ubicacion:
+        c.setFont("Helvetica-Bold", font_size_codigo)
+        c.setFillColor(colors.red) # Rojo para resaltar ubicación (opcional)
+        c.drawString(text_x, 0.2 * inch, f"UBIC: {ubicacion}")
+
+    c.showPage()
+    c.save()
+    
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=False, mimetype='application/pdf', download_name=f"etiqueta_{producto.codigo}.pdf")
 
 # --- Rutas Principales (Dashboard) ---
 
@@ -3027,6 +3125,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
