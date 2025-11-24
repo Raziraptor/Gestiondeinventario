@@ -1279,6 +1279,75 @@ def eliminar_producto_de_almacen(id):
 
     return redirect(url_for('gestionar_inventario_almacen', id=almacen_id))
 
+# ========================
+# NUEVAS RUTAS: GESTIÓN DE HUÉRFANOS
+# ========================
+
+@app.route('/productos/sin-almacen')
+@login_required
+@check_org_permission
+@check_permission('perm_view_management')
+def lista_productos_sin_almacen():
+    """ Muestra productos que existen en catálogo pero NO en ningún almacén (Stock). """
+    org_id = current_user.organizacion_id
+    
+    # 1. Subconsulta: IDs de productos que SÍ tienen al menos un registro de Stock
+    # (Un producto tiene stock si existe una fila en la tabla 'stock' vinculada a él)
+    ids_con_stock = db.session.query(Stock.producto_id).join(Almacen).filter(
+        Almacen.organizacion_id == org_id
+    ).distinct()
+    
+    # 2. Consulta Principal: Productos de la org que NO están en la lista anterior
+    productos_huerfanos = Producto.query.filter(
+        Producto.organizacion_id == org_id,
+        ~Producto.id.in_(ids_con_stock) # El símbolo ~ niega la condición (NOT IN)
+    ).all()
+    
+    # Necesitamos los almacenes para el dropdown de asignación
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
+    
+    return render_template('productos_sin_almacen.html',
+                           titulo="Productos Sin Asignar",
+                           productos=productos_huerfanos,
+                           almacenes=almacenes)
+
+@app.route('/producto/asignar-rapido', methods=['POST'])
+@login_required
+@check_permission('perm_edit_management')
+def asignar_producto_rapido():
+    """ Asigna un producto a un almacén rápidamente desde la lista de huérfanos. """
+    try:
+        producto_id = int(request.form.get('producto_id'))
+        almacen_id = int(request.form.get('almacen_id'))
+        
+        if not producto_id or not almacen_id:
+            raise Exception("Datos incompletos.")
+
+        producto = Producto.query.get_or_404(producto_id)
+        
+        # Verificar si ya existe (doble check de seguridad)
+        existe = Stock.query.filter_by(producto_id=producto_id, almacen_id=almacen_id).first()
+        if existe:
+            flash(f'El producto ya estaba en ese almacén.', 'warning')
+        else:
+            # Crear Stock inicial en 0
+            nuevo_stock = Stock(
+                producto_id=producto_id,
+                almacen_id=almacen_id,
+                cantidad=0,
+                stock_minimo=5,
+                stock_maximo=100
+            )
+            db.session.add(nuevo_stock)
+            db.session.commit()
+            flash(f'Producto "{producto.nombre}" asignado correctamente.', 'success')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al asignar producto: {e}', 'danger')
+        
+    return redirect(url_for('lista_productos_sin_almacen'))
+
 #<---------SALIDA DE PRODUCTOS (REESCRITO PARA MULTI-ALMACÉN)----------->
 
 @app.route('/salidas')
@@ -2926,6 +2995,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
