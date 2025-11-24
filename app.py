@@ -1247,6 +1247,36 @@ def gestionar_inventario_almacen(id):
                            # Pasamos la lista JSON a la plantilla
                            productos_para_anadir_json=productos_para_anadir_json)
 
+@app.route('/almacen/stock/eliminar/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def eliminar_producto_de_almacen(id):
+    """ 
+    Elimina un producto de un almacén específico (borra el registro de Stock).
+    El producto sigue existiendo en el catálogo global.
+    """
+    stock_item = Stock.query.get_or_404(id)
+    almacen_id = stock_item.almacen_id
+    
+    # Chequeo de seguridad: que pertenezca a la org del usuario
+    if stock_item.almacen.organizacion_id != current_user.organizacion_id:
+        flash('No tienes permiso para realizar esta acción.', 'danger')
+        return redirect(url_for('lista_almacenes'))
+
+    try:
+        nombre_prod = stock_item.producto.nombre
+        nombre_alm = stock_item.almacen.nombre
+        
+        db.session.delete(stock_item)
+        db.session.commit()
+        
+        flash(f'Producto "{nombre_prod}" eliminado de "{nombre_alm}".', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar del almacén: {e}', 'danger')
+
+    return redirect(url_for('gestionar_inventario_almacen', id=almacen_id))
+
 #<---------SALIDA DE PRODUCTOS (REESCRITO PARA MULTI-ALMACÉN)----------->
 
 @app.route('/salidas')
@@ -2894,6 +2924,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
