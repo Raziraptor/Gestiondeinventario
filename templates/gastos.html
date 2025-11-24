@@ -80,7 +80,9 @@
                         </td>
                         <td class="text-end"><strong>${{ "%.2f"|format(gasto.monto) }}</strong></td>
                         <td>
-                            <a href="#" class="btn btn-sm btn-secondary disabled">Editar</a>
+                            <a href="{{ url_for('editar_gasto', id=g.id) }}" class="btn btn-sm btn-secondary" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
                         </td>
                     </tr>
                     {% else %}
@@ -94,4 +96,5 @@
             </table>
         </div>
     </div>
+
 {% endblock %}
