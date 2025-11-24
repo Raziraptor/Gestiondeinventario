@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Imprimir Etiqueta{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Configurar Etiqueta</h4>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ producto.nombre }}</h5>
+                <p class="text-muted">SKU: {{ producto.codigo }} | Ubicación: {{ ubicacion }}</p>
+                
+                <form action="{{ url_for('generar_etiqueta_personalizada', id=producto.id) }}" method="POST" target="_blank">
+                    <div class="mb-4">
+                        <label class="form-label">Selecciona el Tamaño:</label>
+                        
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="tamano" id="size1" value="1x3" checked>
+                            <label class="form-check-label" for="size1">
+                                <strong>1" x 3"</strong> (Pequeña - Estándar)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tamano" id="size2" value="1.75x4">
+                            <label class="form-check-label" for="size2">
+                                <strong>1.75" x 4"</strong> (Grande - Detallada)
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-printer"></i> Generar PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-link">Cancelar</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+```
+
+---
+
+### 3. Modificación en `templates/dashboard.html`
+
+Finalmente, cambia el enlace del botón de impresora para que vaya a la página de configuración en lugar de generar el PDF directamente.
+
+**Cambia esto:**
+```html
+<a href="{{ url_for('generar_etiqueta', id=item.producto.id) }}" ...>
+```
+
+**Por esto:**
+```html
+<a href="{{ url_for('configurar_etiqueta', id=item.producto.id) }}" class="btn btn-info" title="Imprimir Etiqueta">
+    <i class="bi bi-printer"></i>
+</a>
