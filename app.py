@@ -243,6 +243,9 @@ class Stock(db.Model):
     stock_minimo = db.Column(db.Integer, nullable=False, default=5)
     stock_maximo = db.Column(db.Integer, nullable=False, default=100)
     
+    # --- NUEVO CAMPO ---
+    ubicacion = db.Column(db.String(100), nullable=True) 
+    
     __table_args__ = (db.UniqueConstraint('producto_id', 'almacen_id', name='_producto_almacen_uc'),)
     
     @property
@@ -716,8 +719,7 @@ def nuevo_producto():
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
-    # Necesitamos los almacenes para el dropdown de stock inicial
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() 
     
     if request.method == 'POST':
         imagen_filename = None
@@ -734,9 +736,9 @@ def nuevo_producto():
                                    titulo="Nuevo Producto", 
                                    proveedores=proveedores,
                                    categorias=categorias,
-                                   almacenes=almacenes, # <-- Pasamos almacenes
+                                   almacenes=almacenes, 
                                    producto=producto_temporal)
-
+            
         if 'imagen' in request.files:
             file = request.files['imagen']
             if file.filename != '' and allowed_file(file.filename):
@@ -759,27 +761,26 @@ def nuevo_producto():
             )
             db.session.add(nuevo_prod)
             
-            # --- LÓGICA DE STOCK INICIAL (CORREGIDA) ---
+            # --- LÓGICA DE STOCK INICIAL ---
             cantidad_inicial = int(request.form.get('cantidad_inicial', 0))
             almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0) or 0)
-            
+            ubicacion_inicial = request.form.get('ubicacion_inicial') # <-- NUEVO
+
             almacen_seleccionado = None
             if almacen_inicial_id > 0:
                 almacen_seleccionado = Almacen.query.filter_by(id=almacen_inicial_id, organizacion_id=org_id).first()
 
-            # CASO 1: Se seleccionó un almacén (Correcto)
             if almacen_seleccionado:
-                # 1. Crear el registro de Stock (incluso si es 0)
                 nuevo_stock = Stock(
                     producto=nuevo_prod,
                     almacen=almacen_seleccionado,
                     cantidad=cantidad_inicial, 
                     stock_minimo=int(request.form.get('stock_minimo', 5)),
-                    stock_maximo=int(request.form.get('stock_maximo', 100))
+                    stock_maximo=int(request.form.get('stock_maximo', 100)),
+                    ubicacion=ubicacion_inicial # <-- GUARDAMOS UBICACIÓN
                 )
                 db.session.add(nuevo_stock)
 
-                # 2. Si la cantidad es > 0, registrar el movimiento
                 if cantidad_inicial > 0:
                     movimiento_inicial = Movimiento(
                         producto=nuevo_prod,
@@ -791,12 +792,9 @@ def nuevo_producto():
                         organizacion_id=org_id
                     )
                     db.session.add(movimiento_inicial)
-
-            # CASO 2: Puso cantidad pero no almacén (Error de usuario)
+                
             elif cantidad_inicial > 0 and not almacen_seleccionado:
                 flash('ADVERTENCIA: Producto creado, pero el stock inicial se ignoró porque no seleccionaste un almacén.', 'warning')
-            
-            # --- FIN LÓGICA ---
 
             db.session.commit()
             flash('Producto creado exitosamente.', 'success')
@@ -822,11 +820,9 @@ def nuevo_producto():
                            titulo="Nuevo Producto", 
                            proveedores=proveedores,
                            categorias=categorias,
-                           almacenes=almacenes, # <-- Pasamos almacenes a la plantilla
+                           almacenes=almacenes,
                            producto=None)
-
-
-  
+ 
 @app.route('/producto/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_edit_management')
@@ -838,20 +834,16 @@ def editar_producto(id):
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
 
-    # 1. Detectar almacen_id (desde URL o Formulario)
     almacen_id = request.args.get('almacen_id', type=int)
     if not almacen_id and request.method == 'POST':
-         # Es vital capturar esto del formulario oculto al guardar
          almacen_id = request.form.get('almacen_id', type=int)
 
-    # 2. Buscar el Stock Item específico
     stock_item = None
     if almacen_id:
         stock_item = Stock.query.filter_by(producto_id=producto.id, almacen_id=almacen_id).first()
 
     if request.method == 'POST':
         try:
-            # --- Manejo de Imagen (sin cambios) ---
             if 'imagen' in request.files:
                 file = request.files['imagen']
                 if file.filename != '' and allowed_file(file.filename):
@@ -867,41 +859,30 @@ def editar_producto(id):
                                            categorias=categorias,
                                            stock_item=stock_item)
 
-            # --- Actualizar Datos del Producto ---
             producto.nombre = request.form['nombre']
             producto.codigo = request.form['codigo']
             producto.categoria_id = request.form.get('categoria_id') or None
             producto.precio_unitario = float(request.form.get('precio_unitario', 0.0))
             producto.proveedor_id = request.form.get('proveedor_id') or None
 
-            # --- ACTUALIZAR STOCK (LÓGICA REFORZADA) ---
+            # --- GUARDAR STOCK Y UBICACIÓN ---
             if stock_item:
-                # Convertimos explícitamente a int para asegurar el dato
-                nuevo_min = int(request.form.get('stock_minimo'))
-                nuevo_max = int(request.form.get('stock_maximo'))
-                nueva_cant = int(request.form.get('cantidad'))
-
-                stock_item.stock_minimo = nuevo_min
-                stock_item.stock_maximo = nuevo_max
-                stock_item.cantidad = nueva_cant
+                stock_item.stock_minimo = int(request.form.get('stock_minimo', stock_item.stock_minimo))
+                stock_item.stock_maximo = int(request.form.get('stock_maximo', stock_item.stock_maximo))
+                stock_item.cantidad = int(request.form.get('cantidad', stock_item.cantidad))
                 
-                # <--- CAMBIO IMPORTANTE: Forzar a la sesión a ver el cambio
-                db.session.add(stock_item) 
-                print(f"DEBUG: Actualizando Stock. Min: {nuevo_min}, Max: {nuevo_max}, Cant: {nueva_cant}")
+                # NUEVO: Actualizar ubicación
+                stock_item.ubicacion = request.form.get('ubicacion') 
 
-            # Guardar cambios (tanto en Producto como en Stock)
             db.session.commit()
+            flash('Producto actualizado exitosamente', 'success')
             
-            flash('Producto y niveles de stock actualizados exitosamente.', 'success')
-            
-            # Si veníamos de un almacén, regresamos a él
             if almacen_id:
                 return redirect(url_for('dashboard', almacen_id=almacen_id))
             return redirect(url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
-            print(f"ERROR AL EDITAR: {e}") # Para ver en logs
             flash(f'Error al actualizar producto: {e}', 'danger')
 
     return render_template('producto_form.html', 
@@ -1198,6 +1179,8 @@ def gestionar_inventario_almacen(id):
     if request.method == 'POST':
         try:
             producto_id = int(request.form.get('producto_id'))
+            ubicacion = request.form.get('ubicacion') # <-- NUEVO
+
             if not producto_id:
                 raise Exception("No se seleccionó un producto.")
 
@@ -1214,7 +1197,8 @@ def gestionar_inventario_almacen(id):
                     almacen_id=id,
                     cantidad=0,
                     stock_minimo=5,
-                    stock_maximo=100
+                    stock_maximo=100,
+                    ubicacion=ubicacion # <-- GUARDAR UBICACIÓN
                 )
                 db.session.add(nuevo_stock)
                 db.session.commit()
@@ -1226,16 +1210,13 @@ def gestionar_inventario_almacen(id):
         
         return redirect(url_for('gestionar_inventario_almacen', id=id))
 
-    # --- LÓGICA GET ---
     productos_en_stock_ids = [s.producto_id for s in almacen.stocks]
     productos_catalogo = Producto.query.filter_by(organizacion_id=org_id).all()
     
-    # Filtramos los productos que NO están en este almacén
     productos_para_anadir = [
         p for p in productos_catalogo if p.id not in productos_en_stock_ids
     ]
     
-    # Convertir a JSON para el autocompletado de JS
     productos_para_anadir_json = []
     for p in productos_para_anadir:
         productos_para_anadir_json.append({
@@ -3036,6 +3017,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
