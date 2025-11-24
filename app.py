@@ -1197,70 +1197,6 @@ def gestionar_inventario_almacen(id):
 
     if request.method == 'POST':
         try:
-            # La lógica POST sigue siendo válida, ya que espera un 'producto_id'
-            producto_id = int(request.form.get('producto_id'))
-            if not producto_id:
-                raise Exception("No se seleccionó un producto.")
-
-            stock_existente = Stock.query.filter_by(
-                almacen_id=id, 
-                producto_id=producto_id
-            ).first()
-            
-            if stock_existente:
-                flash('Ese producto ya está en este almacén.', 'warning')
-            else:
-                nuevo_stock = Stock(
-                    producto_id=producto_id,
-                    almacen_id=id,
-                    cantidad=0,
-                    stock_minimo=5,
-                    stock_maximo=100
-                )
-                db.session.add(nuevo_stock)
-                db.session.commit()
-                flash('Producto añadido al almacén con stock 0.', 'success')
-        
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al añadir producto: {e}', 'danger')
-        
-        return redirect(url_for('gestionar_inventario_almacen', id=id))
-
-    # --- LÓGICA GET (MODIFICADA) ---
-    productos_en_stock_ids = [s.producto_id for s in almacen.stocks]
-    productos_catalogo = Producto.query.filter_by(organizacion_id=org_id).all()
-    
-    # Filtramos los productos que NO están en este almacén
-    productos_para_anadir = [
-        p for p in productos_catalogo if p.id not in productos_en_stock_ids
-    ]
-    
-    # --- NUEVO: Convertir a JSON para JavaScript ---
-    # Esto es más seguro que un bucle Jinja dentro de <script>
-    productos_para_anadir_json = []
-    for p in productos_para_anadir:
-        productos_para_anadir_json.append({
-            "id": p.id,
-            "nombre": p.nombre,
-            "codigo": p.codigo
-        })
-    
-    return render_template('almacen_inventario.html',
-                           titulo=f"Inventario de {almacen.nombre}",
-                           almacen=almacen,
-                           # Pasamos la lista JSON a la plantilla
-                           productos_para_anadir_json=productos_para_anadir_json)
-
-@app.route('/almacen/<int:id>/inventario', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def gestionar_inventario_almacen(id):
-    almacen = get_item_or_404(Almacen, id)
-    org_id = almacen.organizacion_id
-
-    if request.method == 'POST':
-        try:
             producto_id = int(request.form.get('producto_id'))
             if not producto_id:
                 raise Exception("No se seleccionó un producto.")
@@ -2990,6 +2926,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
