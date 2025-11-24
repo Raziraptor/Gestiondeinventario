@@ -228,25 +228,3 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-```
-
----
-
-### Bonus: `templates/index.html` (Opcional: Botón Rápido)
-
-Si también quieres añadir la tarjeta de "Personalizar" al Dashboard principal (solo para Admins), aquí tienes el bloque para añadir en `index.html`.
-
-```html
-        <!-- ... (Después de 'Control de Gastos' o donde prefieras) ... -->
-        
-        <!-- Personalizar Marca -->
-        {% if current_user.rol in ['super_admin', 'admin'] %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('configurar_organizacion') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-palette card-icon text-info"></i>
-                    <h5 class="card-title">Personalizar Marca</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
