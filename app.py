@@ -2520,6 +2520,47 @@ def nuevo_gasto():
                            ordenes=ordenes,
                            now=datetime.now())
 
+@app.route('/gasto/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_view_gastos')
+def editar_gasto(id):
+    """ Edita un gasto existente. """
+    gasto = get_item_or_404(Gasto, id)
+    org_id = current_user.organizacion_id
+    
+    # Necesitamos las órdenes para el dropdown (si se quiere cambiar la asociación)
+    ordenes = OrdenCompra.query.filter_by(organizacion_id=org_id).order_by(OrdenCompra.fecha_creacion.desc()).all()
+
+    if request.method == 'POST':
+        try:
+            # Convertir la fecha del formulario
+            fecha_gasto = datetime.strptime(request.form['fecha'], '%Y-%m-%d')
+            
+            # Manejo del ID de OC (puede ser cadena vacía si no se selecciona nada)
+            oc_id = request.form.get('orden_compra_id')
+            if oc_id == "" or oc_id == "None": 
+                oc_id = None
+
+            # Actualizar campos
+            gasto.descripcion = request.form['descripcion']
+            gasto.monto = float(request.form['monto'])
+            gasto.categoria = request.form['categoria']
+            gasto.fecha = fecha_gasto
+            gasto.orden_compra_id = oc_id
+            
+            db.session.commit()
+            flash('Gasto actualizado exitosamente', 'success')
+            return redirect(url_for('lista_gastos'))
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar el gasto: {e}', 'danger')
+
+    return render_template('gasto_form.html', 
+                           titulo="Editar Gasto", 
+                           ordenes=ordenes,
+                           gasto=gasto) # <-- Pasamos el objeto gasto
+
 @app.route('/gastos/exportar_excel')
 @login_required
 @check_permission('perm_view_gastos')
@@ -2995,6 +3036,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
