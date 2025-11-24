@@ -33,6 +33,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import extract, Date # <-- AÑADIDO Date
 from sqlalchemy.exc import IntegrityError
 from itsdangerous.url_safe import URLSafeTimedSerializer
+from PIL import Image, ImageDraw, ImageFont
 from PIL import Image
 import qrcode
 import secrets
@@ -621,79 +622,102 @@ def configurar_etiqueta(id):
 @login_required
 @check_permission('perm_view_dashboard')
 def generar_etiqueta_personalizada(id):
-    """ Genera el PDF de la etiqueta con el tamaño seleccionado. """
+    """ Genera una imagen JPG de la etiqueta con el tamaño seleccionado. """
     producto = get_item_or_404(Producto, id)
     
-    # Obtener ubicación (puedes mejorar esto para que el usuario elija el almacén si hay varios)
+    # Obtener ubicación del primer almacén donde haya stock (o el primero que encuentre)
     stock_item = Stock.query.filter_by(producto_id=id).first()
+    nombre_almacen = stock_item.almacen.nombre if stock_item else "Sin_Almacen"
     ubicacion = stock_item.ubicacion if stock_item and stock_item.ubicacion else ""
 
     tamano = request.form.get('tamano') # '1x3' o '1.75x4'
     
-    # Definir medidas en puntos (1 inch = 72 points)
+    # Configuración de DPI (Puntos por pulgada) para impresión de alta calidad
+    DPI = 300 
+    
     if tamano == '1.75x4':
-        width = 4 * inch
-        height = 1.75 * inch
-        font_size_nombre = 18
-        font_size_codigo = 14
-        qr_size = 1.2 * inch
+        width_px = int(4 * DPI)      # 4 pulgadas
+        height_px = int(1.75 * DPI)  # 1.75 pulgadas
+        font_size_nombre = 100       # Tamaño grande para nombre
+        font_size_codigo = 80        # Tamaño mediano para código
+        font_size_ubic = 60          # Tamaño para ubicación
+        qr_box_size = 15             # Tamaño de cada cuadro del QR
     else: # Default 1x3
-        width = 3 * inch
-        height = 1 * inch
-        font_size_nombre = 12
-        font_size_codigo = 10
-        qr_size = 0.8 * inch
+        width_px = int(3 * DPI)      # 3 pulgadas
+        height_px = int(1 * DPI)     # 1 pulgada
+        font_size_nombre = 70
+        font_size_codigo = 55
+        font_size_ubic = 45
+        qr_box_size = 10
 
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=(width, height))
+    # Crear imagen en blanco (RGB)
+    img = Image.new('RGB', (width_px, height_px), color='white')
+    d = ImageDraw.Draw(img)
+
+    # Cargar fuentes (intentar cargar una fuente del sistema, o usar default)
+    try:
+        # Intenta usar Arial o DejaVuSans si está disponible en el servidor (Linux/Render)
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" 
+        if not os.path.exists(font_path):
+             # Fallback para Windows local o si no encuentra la de Linux
+             font_path = "arial.ttf" 
+             
+        fnt_nombre = ImageFont.truetype(font_path, font_size_nombre)
+        fnt_codigo = ImageFont.truetype(font_path, font_size_codigo)
+        fnt_ubic = ImageFont.truetype(font_path, font_size_ubic)
+    except IOError:
+        # Si falla, usa la fuente por defecto (muy básica, pero funciona)
+        fnt_nombre = ImageFont.load_default()
+        fnt_codigo = ImageFont.load_default()
+        fnt_ubic = ImageFont.load_default()
+
+    # --- 1. Generar Código QR ---
+    qr_img = qrcode.make(producto.codigo, box_size=qr_box_size, border=1)
+    qr_w, qr_h = qr_img.size
     
-    # --- DISEÑO DE LA ETIQUETA ---
+    # Pegar QR a la derecha (centrado verticalmente)
+    x_qr = width_px - qr_w - 20 # 20px de margen derecho
+    y_qr = (height_px - qr_h) // 2
+    img.paste(qr_img, (x_qr, y_qr))
+
+    # --- 2. Textos (A la izquierda) ---
+    margin_left = 30
+    current_y = 30 # Margen superior
+
+    # Nombre del Producto
+    # (Si es muy largo, lo cortamos para que no se encime al QR)
+    nombre_texto = producto.nombre
+    # Lógica simple de truncado:
+    max_chars = 15 if tamano == '1x3' else 22
+    if len(nombre_texto) > max_chars:
+        nombre_texto = nombre_texto[:max_chars] + "..."
+        
+    d.text((margin_left, current_y), nombre_texto, font=fnt_nombre, fill="black")
     
-    # 1. Código QR (A la derecha)
-    qr_code = qr.QrCodeWidget(producto.codigo)
-    qr_code.barWidth = qr_size
-    qr_code.barHeight = qr_size
-    qr_code.qrVersion = 1
-    d = Drawing(qr_size, qr_size)
-    d.add(qr_code)
+    # Código Principal (Azul)
+    current_y += font_size_nombre + 10
+    d.text((margin_left, current_y), producto.codigo, font=fnt_codigo, fill="#005a8d") # Azul
     
-    # Posición del QR: A la derecha con un margen
-    renderPDF.draw(d, c, width - qr_size - (0.1 * inch), (height - qr_size) / 2)
+    # SKU / ID (Negro)
+    current_y += font_size_codigo + 10
+    d.text((margin_left, current_y), f"SKU: {producto.codigo}", font=fnt_ubic, fill="black")
 
-    # 2. Textos (A la izquierda)
-    text_x = 0.1 * inch
-    # Calculamos posiciones relativas a la altura
-    y_nombre = height - (0.4 * inch)
-    y_codigo = y_nombre - (0.3 * inch)
-    y_sku = y_codigo - (0.25 * inch)
-    y_ubicacion = y_sku - (0.3 * inch) # Ubicación abajo
-
-    # Nombre del Producto (Truncar si es muy largo)
-    c.setFont("Helvetica-Bold", font_size_nombre)
-    nombre_corto = producto.nombre[:25] + "..." if len(producto.nombre) > 25 else producto.nombre
-    c.drawString(text_x, y_nombre, nombre_corto)
-
-    # Código Principal (Azul como en la imagen)
-    c.setFont("Helvetica-Bold", font_size_codigo + 2)
-    c.setFillColor(colors.HexColor("#005a8d")) # Azul oscuro
-    c.drawString(text_x, y_codigo, producto.codigo)
-    
-    # SKU / ID Interno (Negro)
-    c.setFont("Helvetica", font_size_codigo)
-    c.setFillColor(colors.black)
-    c.drawString(text_x, y_sku, f"ID: {producto.id}")
-
-    # Ubicación (Si existe, abajo y resaltada)
+    # Ubicación (Rojo, si existe)
     if ubicacion:
-        c.setFont("Helvetica-Bold", font_size_codigo)
-        c.setFillColor(colors.red) # Rojo para resaltar ubicación (opcional)
-        c.drawString(text_x, 0.2 * inch, f"UBIC: {ubicacion}")
+        current_y += font_size_ubic + 15
+        d.text((margin_left, current_y), f"UBIC: {ubicacion}", font=fnt_ubic, fill="red")
 
-    c.showPage()
-    c.save()
-    
+    # --- 3. Guardar en memoria y enviar ---
+    buffer = io.BytesIO()
+    img.save(buffer, 'JPEG', quality=95)
     buffer.seek(0)
-    return send_file(buffer, as_attachment=False, mimetype='application/pdf', download_name=f"etiqueta_{producto.codigo}.pdf")
+    
+    # Nombre del archivo limpio
+    nombre_clean = secure_filename(producto.nombre)
+    almacen_clean = secure_filename(nombre_almacen)
+    filename = f"{nombre_clean}_{almacen_clean}_{tamano}.jpg"
+
+    return send_file(buffer, mimetype='image/jpeg', as_attachment=True, download_name=filename)
 
 # --- Rutas Principales (Dashboard) ---
 
@@ -3125,6 +3149,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
