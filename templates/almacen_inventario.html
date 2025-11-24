@@ -15,7 +15,6 @@
     </p>
 
     <div class="row g-4">
-        <!-- Columna 1: Añadir Producto Existente -->
         <div class="col-md-5">
             <div class="card">
                 <div class="card-header">
@@ -31,6 +30,11 @@
                             <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
                         </div>
                         
+                        <div class="mb-3">
+                            <label class="form-label">Ubicación (Opcional)</label>
+                            <input type="text" name="ubicacion" class="form-control" placeholder="Ej: Estante 1">
+                        </div>
+
                         <button type="submit" class="btn btn-primary" id="btn_submit_anadir" {% if not productos_para_anadir_json %}disabled{% endif %}>
                             <i class="bi bi-plus-circle"></i> Añadir a Almacén
                         </button>
@@ -42,7 +46,6 @@
             </div>
         </div>
 
-        <!-- Columna 2: Productos Ya en el Almacén -->
         <div class="col-md-7">
             <div class="card">
                 <div class="card-header">
@@ -53,7 +56,7 @@
                         <thead>
                             <tr>
                                 <th>Producto</th>
-                                <th class="text-end">Cantidad</th>
+                                <th>Ubicación</th> <th class="text-end">Cantidad</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
@@ -64,33 +67,35 @@
                                     <strong>{{ item.producto.nombre }}</strong><br>
                                     <small class="text-muted">SKU: {{ item.producto.codigo }}</small>
                                 </td>
+                                <td class="align-middle">
+                                    {% if item.ubicacion %}
+                                        <span class="badge bg-light text-dark border">{{ item.ubicacion }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
                                 <td class="align-middle text-end">
                                     <strong>{{ item.cantidad }}</strong>
                                 </td>
                                 <td class="align-middle text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <!-- Botón Editar -->
                                         <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" 
                                            class="btn btn-secondary" title="Editar Stock">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         
-                                        <!-- ======================== -->
-                                        <!-- NUEVO BOTÓN ELIMINAR -->
-                                        <!-- ======================== -->
                                         <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;"
                                               onsubmit="return confirm('¿Estás seguro de quitar este producto de ESTE almacén? El producto seguirá existiendo en el catálogo general.');">
                                             <button type="submit" class="btn btn-danger" title="Quitar del Almacén">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
-                                        <!-- ======================== -->
                                     </div>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="3" class="text-center p-3">No hay productos asignados a este almacén.</td>
+                                <td colspan="4" class="text-center p-3">No hay productos asignados a este almacén.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
