@@ -111,6 +111,17 @@
             </a>
         </div>
         {% endif %}
+
+        {% if current_user.rol in ['super_admin', 'admin'] %}
+        <div class="col-lg-3 col-md-4 col-sm-6">
+            <a href="{{ url_for('configurar_organizacion') }}" class="dashboard-card card text-dark">
+                <div class="card-body">
+                    <i class="bi bi-palette card-icon text-info"></i>
+                    <h5 class="card-title">Personalizar Marca</h5>
+                </div>
+            </a>
+        </div>
+        {% endif %}
         
     </div>
     
@@ -161,3 +172,4 @@
     {% endif %}
 
 {% endblock %}
+
