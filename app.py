@@ -625,9 +625,9 @@ def generar_etiqueta_personalizada(id):
     """ Genera una imagen JPG de la etiqueta con el tamaño seleccionado usando Century Gothic. """
     producto = get_item_or_404(Producto, id)
     
-    # Obtener ubicación
+    # Obtener ubicación y nombre de almacén para el archivo
     stock_item = Stock.query.filter_by(producto_id=id).first()
-    nombre_almacen = stock_item.almacen.nombre if stock_item else "Sin_Almacen"
+    nombre_almacen = stock_item.almacen.nombre if stock_item else "General"
     ubicacion = stock_item.ubicacion if stock_item and stock_item.ubicacion else ""
 
     tamano = request.form.get('tamano') # '1x3' o '1.75x4'
@@ -638,9 +638,9 @@ def generar_etiqueta_personalizada(id):
     if tamano == '1.75x4':
         width_px = int(4 * DPI)
         height_px = int(1.75 * DPI)
-        font_size_nombre = 90  # Ajustado para Century Gothic
-        font_size_codigo = 110 # Ajustado
-        font_size_ubic = 55    # Ajustado
+        font_size_nombre = 90
+        font_size_codigo = 110
+        font_size_ubic = 55
         qr_box_size = 14
     else: # Default 1x3
         width_px = int(3 * DPI)
@@ -656,33 +656,26 @@ def generar_etiqueta_personalizada(id):
 
     # --- CARGAR FUENTE CENTURY GOTHIC ---
     try:
-        # 1. Busca en la carpeta 'static/fonts' de tu proyecto (RECOMENDADO para Render)
         font_path_regular = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic.ttf')
         font_path_bold = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic-Bold.ttf')
         
-        if not os.path.exists(font_path_bold):
-             # 2. Fallback: Intenta buscar en el sistema (Windows local)
-             font_path_bold = "GOTHICB.TTF" 
-        if not os.path.exists(font_path_regular):
-             font_path_regular = "GOTHIC.TTF"
+        # Fallbacks para desarrollo local
+        if not os.path.exists(font_path_bold): font_path_bold = "arialbd.ttf" 
+        if not os.path.exists(font_path_regular): font_path_regular = "arial.ttf"
 
         fnt_nombre = ImageFont.truetype(font_path_regular, font_size_nombre)
-        fnt_codigo = ImageFont.truetype(font_path_bold, font_size_codigo) # Código en Negrita
+        fnt_codigo = ImageFont.truetype(font_path_bold, font_size_codigo)
         fnt_ubic = ImageFont.truetype(font_path_regular, font_size_ubic)
-        
     except IOError:
-        # Si falla todo, usa la default
-        print("ADVERTENCIA: No se encontró Century Gothic. Usando default.")
         fnt_nombre = ImageFont.load_default()
         fnt_codigo = ImageFont.load_default()
         fnt_ubic = ImageFont.load_default()
 
     # --- 1. Generar Código QR ---
-    qr_img = qrcode.make(producto.codigo, box_size=qr_box_size, border=0) # border 0 para ajustar mejor
+    qr_img = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
     qr_w, qr_h = qr_img.size
     
     # Pegar QR a la derecha
-    # Ajustamos el margen derecho
     margin_right = 30
     x_qr = width_px - qr_w - margin_right
     y_qr = (height_px - qr_h) // 2
@@ -691,38 +684,32 @@ def generar_etiqueta_personalizada(id):
     # --- 2. Textos (A la izquierda) ---
     margin_left = 40
     
-    # Calculamos posiciones verticales para centrar visualmente
-    # Century Gothic es amplia, así que damos buen espaciado
-    
-    # Nombre del Producto (Arriba)
+    # Nombre del Producto
     nombre_texto = producto.nombre
-    # Truncar nombre si es muy largo
     max_chars = 14 if tamano == '1x3' else 20
     if len(nombre_texto) > max_chars:
         nombre_texto = nombre_texto[:max_chars] + "..."
     
     d.text((margin_left, 40), nombre_texto, font=fnt_nombre, fill="black")
     
-    # Código Principal (Centro - Grande y Azul)
-    # Usamos un azul similar al de la imagen: #005a8d o un azul estándar
-    # Ajustamos la Y basándonos en el tamaño del nombre
-    y_codigo = 40 + font_size_nombre + 15 # Espacio después del nombre
-    d.text((margin_left, y_codigo), producto.codigo, font=fnt_codigo, fill="#1f4e79") # Azul oscuro corporativo
+    # Código Principal (Azul)
+    y_codigo = 40 + font_size_nombre + 15
+    d.text((margin_left, y_codigo), producto.codigo, font=fnt_codigo, fill="#1f4e79")
     
     # SKU / Ubicación (Abajo)
     y_ubic = y_codigo + font_size_codigo + 15
-    
-    # Si hay ubicación, la mostramos. Si no, mostramos el SKU interno
     texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
     d.text((margin_left, y_ubic), texto_inferior, font=fnt_ubic, fill="black")
 
-    # --- 3. Guardar y enviar ---
+    # --- 3. Guardar y enviar como JPG ---
     buffer = io.BytesIO()
     img.save(buffer, 'JPEG', quality=100)
     buffer.seek(0)
     
+    # Nombre del archivo: Producto_Almacen_Tamano.jpg
     nombre_clean = secure_filename(producto.nombre)
-    filename = f"Etiqueta_{nombre_clean}_{tamano}.jpg"
+    almacen_clean = secure_filename(nombre_almacen)
+    filename = f"{nombre_clean}_{almacen_clean}_{tamano}.jpg"
 
     return send_file(buffer, mimetype='image/jpeg', as_attachment=True, download_name=filename)
 
@@ -3156,6 +3143,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
