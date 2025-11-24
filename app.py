@@ -712,10 +712,12 @@ def dashboard():
 @check_org_permission
 @check_permission('perm_edit_management')
 def nuevo_producto():
+    """ Formulario para crear un nuevo producto (Multiusuario, Multi-Almacén). """
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all() 
+    # Necesitamos los almacenes para el dropdown de stock inicial
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
     
     if request.method == 'POST':
         imagen_filename = None
@@ -732,9 +734,9 @@ def nuevo_producto():
                                    titulo="Nuevo Producto", 
                                    proveedores=proveedores,
                                    categorias=categorias,
-                                   almacenes=almacenes, 
+                                   almacenes=almacenes, # <-- Pasamos almacenes
                                    producto=producto_temporal)
-            
+
         if 'imagen' in request.files:
             file = request.files['imagen']
             if file.filename != '' and allowed_file(file.filename):
@@ -742,7 +744,7 @@ def nuevo_producto():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
             elif file.filename != '' and not allowed_file(file.filename):
-                flash('Tipo de archivo de imagen no permitido. Los demás datos se han conservado.', 'danger')
+                flash('Tipo de archivo de imagen no permitido.', 'danger')
                 return repoblar_formulario_con_error()
         
         try:
@@ -757,28 +759,27 @@ def nuevo_producto():
             )
             db.session.add(nuevo_prod)
             
-            # --- LÓGICA DE STOCK INICIAL (CORREGIDA Y SIMPLIFICADA) ---
+            # --- LÓGICA DE STOCK INICIAL (CORREGIDA) ---
             cantidad_inicial = int(request.form.get('cantidad_inicial', 0))
-            # Obtenemos el ID. Si es "" o "0", se convierte en 0.
             almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0) or 0)
-
+            
             almacen_seleccionado = None
             if almacen_inicial_id > 0:
                 almacen_seleccionado = Almacen.query.filter_by(id=almacen_inicial_id, organizacion_id=org_id).first()
 
-            # Si se seleccionó un almacén, creamos el registro de stock,
-            # sin importar si la cantidad es 0 o más.
+            # CASO 1: Se seleccionó un almacén (Correcto)
             if almacen_seleccionado:
+                # 1. Crear el registro de Stock (incluso si es 0)
                 nuevo_stock = Stock(
                     producto=nuevo_prod,
                     almacen=almacen_seleccionado,
-                    cantidad=cantidad_inicial, # Esto está bien, será 0 si no se puso
+                    cantidad=cantidad_inicial, 
                     stock_minimo=int(request.form.get('stock_minimo', 5)),
                     stock_maximo=int(request.form.get('stock_maximo', 100))
                 )
                 db.session.add(nuevo_stock)
 
-                # Solo creamos el movimiento si la cantidad es > 0
+                # 2. Si la cantidad es > 0, registrar el movimiento
                 if cantidad_inicial > 0:
                     movimiento_inicial = Movimiento(
                         producto=nuevo_prod,
@@ -790,10 +791,12 @@ def nuevo_producto():
                         organizacion_id=org_id
                     )
                     db.session.add(movimiento_inicial)
+
+            # CASO 2: Puso cantidad pero no almacén (Error de usuario)
+            elif cantidad_inicial > 0 and not almacen_seleccionado:
+                flash('ADVERTENCIA: Producto creado, pero el stock inicial se ignoró porque no seleccionaste un almacén.', 'warning')
             
-            # Si no se seleccionó almacén, no se crea NINGÚN registro de Stock.
-            # El producto solo existirá en el catálogo.
-            # --- FIN DE LÓGICA CORREGIDA ---
+            # --- FIN LÓGICA ---
 
             db.session.commit()
             flash('Producto creado exitosamente.', 'success')
@@ -821,6 +824,8 @@ def nuevo_producto():
                            categorias=categorias,
                            almacenes=almacenes, # <-- Pasamos almacenes a la plantilla
                            producto=None)
+
+
   
 @app.route('/producto/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -1247,6 +1252,68 @@ def gestionar_inventario_almacen(id):
                            # Pasamos la lista JSON a la plantilla
                            productos_para_anadir_json=productos_para_anadir_json)
 
+@app.route('/almacen/<int:id>/inventario', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def gestionar_inventario_almacen(id):
+    almacen = get_item_or_404(Almacen, id)
+    org_id = almacen.organizacion_id
+
+    if request.method == 'POST':
+        try:
+            producto_id = int(request.form.get('producto_id'))
+            if not producto_id:
+                raise Exception("No se seleccionó un producto.")
+
+            stock_existente = Stock.query.filter_by(
+                almacen_id=id, 
+                producto_id=producto_id
+            ).first()
+            
+            if stock_existente:
+                flash('Ese producto ya está en este almacén.', 'warning')
+            else:
+                nuevo_stock = Stock(
+                    producto_id=producto_id,
+                    almacen_id=id,
+                    cantidad=0,
+                    stock_minimo=5,
+                    stock_maximo=100
+                )
+                db.session.add(nuevo_stock)
+                db.session.commit()
+                flash('Producto añadido al almacén con stock 0.', 'success')
+        
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al añadir producto: {e}', 'danger')
+        
+        return redirect(url_for('gestionar_inventario_almacen', id=id))
+
+    # --- LÓGICA GET ---
+    productos_en_stock_ids = [s.producto_id for s in almacen.stocks]
+    productos_catalogo = Producto.query.filter_by(organizacion_id=org_id).all()
+    
+    # Filtramos los productos que NO están en este almacén
+    productos_para_anadir = [
+        p for p in productos_catalogo if p.id not in productos_en_stock_ids
+    ]
+    
+    # Convertir a JSON para el autocompletado de JS
+    productos_para_anadir_json = []
+    for p in productos_para_anadir:
+        productos_para_anadir_json.append({
+            "id": p.id,
+            "nombre": p.nombre,
+            "codigo": p.codigo
+        })
+    
+    return render_template('almacen_inventario.html',
+                           titulo=f"Inventario de {almacen.nombre}",
+                           almacen=almacen,
+                           productos_para_anadir_json=productos_para_anadir_json)
+
+# --- FUNCIÓN NUEVA: eliminar_producto_de_almacen ---
 @app.route('/almacen/stock/eliminar/<int:id>', methods=['POST'])
 @login_required
 @admin_required
@@ -1258,7 +1325,6 @@ def eliminar_producto_de_almacen(id):
     stock_item = Stock.query.get_or_404(id)
     almacen_id = stock_item.almacen_id
     
-    # Chequeo de seguridad: que pertenezca a la org del usuario
     if stock_item.almacen.organizacion_id != current_user.organizacion_id:
         flash('No tienes permiso para realizar esta acción.', 'danger')
         return redirect(url_for('lista_almacenes'))
@@ -2924,6 +2990,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
