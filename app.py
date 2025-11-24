@@ -947,26 +947,36 @@ def generar_etiqueta(id):
 @login_required
 @check_permission('perm_view_dashboard')
 def historial_producto(id):
+    """ Muestra el Kardex (Movimientos) Y el Stock Actual por Almacén. """
     producto = get_item_or_404(Producto, id)
-    # --- LÓGICA MODIFICADA ---
-    # Obtenemos los movimientos y los agrupamos por almacén
+    
+    # --- 1. OBTENER STOCK ACTUAL ---
+    # Buscamos dónde está este producto (en qué almacenes y qué cantidad)
+    stocks_actuales = Stock.query.filter_by(producto_id=id).join(Almacen).order_by(Almacen.nombre).all()
+    
+    # Calcular el total global para mostrarlo en grande
+    total_global = sum(s.cantidad for s in stocks_actuales)
+    
+    # --- 2. OBTENER MOVIMIENTOS ---
     movimientos_query = Movimiento.query.filter_by(producto_id=id).order_by(Movimiento.fecha.desc())
     
-    # El Super Admin ve todos los almacenes
     if current_user.rol != 'super_admin':
-        movimientos_query = movimientos_query.join(Almacen).filter(Almacen.organizacion_id == current_user.organizacion_id)
+        movimientos_query = movimientos_query.filter(Movimiento.organizacion_id == current_user.organizacion_id)
         
     movimientos = movimientos_query.all()
     
-    # Agrupar por almacén
+    # Agrupar movimientos por almacén para la vista
     historial_por_almacen = defaultdict(list)
     for m in movimientos:
-        almacen_nombre = Almacen.query.get(m.almacen_id).nombre if m.almacen_id else "Indefinido"
-        historial_por_almacen[almacen_nombre].append(m)
+        # Usamos una consulta segura por si el almacén fue borrado (aunque no debería pasar con cascade)
+        alm_nombre = Almacen.query.get(m.almacen_id).nombre if m.almacen_id else "Sin Almacén"
+        historial_por_almacen[alm_nombre].append(m)
     
     return render_template('historial_producto.html', 
                            producto=producto, 
-                           historial_por_almacen=historial_por_almacen)
+                           historial_por_almacen=historial_por_almacen,
+                           stocks_actuales=stocks_actuales, # <-- DATO NUEVO
+                           total_global=total_global)       # <-- DATO NUEVO
 
 # --- Rutas de Categorías ---
 
@@ -3017,6 +3027,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
