@@ -4,9 +4,6 @@
 
 {% block content %}
     
-    <!-- ============================================= -->
-    <!-- NUEVO: SELECTOR DE ALMACÉN -->
-    <!-- ============================================= -->
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="almacen_selector" class="form-label">
@@ -33,7 +30,6 @@
         </div>
     </div>
     
-    <!-- Si no hay almacén, no podemos mostrar nada -->
     {% if not almacen_seleccionado %}
         <div class="alert alert-warning">
             <h4>No hay almacenes</h4>
@@ -45,13 +41,12 @@
         </div>
     {% else %}
 
-        <!-- Filtros de Búsqueda (tu código anterior, pero lo pegamos aquí) -->
         <div class="card bg-light mb-4">
             <div class="card-header">
                 <i class="bi bi-search"></i> Filtros y Búsqueda
             </div>
             <div class="card-body">
-                <div classs="row g-3">
+                <div class="row g-3">
                     <div class="col-md-12 mb-3">
                         <label for="filtro_busqueda" class="form-label">Buscar por Nombre o SKU</label>
                         <input type="text" class="form-control" id="filtro_busqueda" 
@@ -81,9 +76,6 @@
             </div>
         </div>
 
-        <!-- ============================================= -->
-        <!-- TABLA DE PRODUCTOS (MODIFICADA) -->
-        <!-- ============================================= -->
         <div class="card">
             <div class="card-header">
                 Lista de Productos en: <strong>{{ almacen_seleccionado.nombre }}</strong>
@@ -96,14 +88,13 @@
                             <th>Código (SKU)</th>
                             <th>Nombre</th>
                             <th>Categoría</th>
-                            <th>Proveedor</th>
+                            <th>Ubicación</th> <th>Proveedor</th>
                             <th>Stock Actual</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tabla_productos_cuerpo">
-                        <!-- AHORA ITERAMOS SOBRE 'items_stock' -->
                         {% for item in items_stock %}
                         <tr class="fila-producto"
                             data-categoria-id="{{ item.producto.categoria_id or '0' }}"
@@ -119,18 +110,24 @@
                                 {% endif %}
                             </td>
                             <td>{{ item.producto.codigo }}</td>
-                            <td><strong>{{ item.producto.nombre }}</strong></td>
+                            <td>
+                                <a href="{{ url_for('historial_producto', id=item.producto.id) }}">
+                                    <strong>{{ item.producto.nombre }}</strong>
+                                </a>
+                            </td>
                             <td>
                                 {% if item.producto.categoria %}
                                     <span class="badge bg-secondary">{{ item.producto.categoria.nombre }}</span>
                                 {% else %}<span class="text-muted">N/A</span>{% endif %}
                             </td>
                             <td>
+                                <small class="text-muted">{{ item.ubicacion or '-' }}</small>
+                            </td>
+                            <td>
                                 {% if item.producto.proveedor %}
                                     {{ item.producto.proveedor.nombre }}
                                 {% else %}<span class="text-muted">N/A</span>{% endif %}
                             </td>
-                            <!-- Usamos los datos del 'item' de Stock -->
                             <td><strong>{{ item.cantidad }}</strong></td>
                             <td>
                                 {% if item.estado_stock == 'bajo' %}
@@ -143,7 +140,6 @@
                             </td>
                             <td style="width: 1%; white-space: nowrap;">
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <!-- Los enlaces ahora van al PRODUCTO, no al item de stock -->
                                     <a href="{{ url_for('editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}" 
                                        class="btn btn-secondary" title="Editar Producto y Stock">
                                         <i class="bi bi-pencil"></i>
@@ -159,7 +155,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="text-center">No hay productos registrados en este almacén.</td>
+                            <td colspan="9" class="text-center">No hay productos registrados en este almacén.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -168,21 +164,12 @@
         </div>
     {% endif %}
 
-
-    <!-- ============================================= -->
-    <!-- SCRIPT DE FILTRADO Y CAMBIO DE ALMACÉN -->
-    <!-- ============================================= -->
     <script>
-        // Función para cambiar de almacén
         function cambiarAlmacen(almacenId) {
-            // Recarga la página con el nuevo almacén_id en la URL
             window.location.href = window.location.pathname + '?almacen_id=' + almacenId;
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Tu script de filtrado de tabla (búsqueda, categoría, proveedor)
-            // se mantiene igual, ya que 'fila-producto' y los 'data-attributes'
-            // siguen existiendo.
             const filtroBusqueda = document.getElementById('filtro_busqueda');
             const filtroCategoria = document.getElementById('filtro_categoria');
             const filtroProveedor = document.getElementById('filtro_proveedor');
