@@ -52,7 +52,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.units import inch
 from reportlab.lib.utils import ImageReader
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as ReportLabImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
@@ -2009,7 +2009,7 @@ def generar_oc_pdf(id):
             # Truco: Usamos un 'Flowable' de imagen o una tabla invisible para el encabezado
             # Por simplicidad, aquí lo añadimos directo si cabe, o usamos una tabla cabecera:
             data_header = [[
-                Image(logo_path, width=1.5*inch, height=0.8*inch, kind='proportional'),
+                ReportLabImage(logo_path, width=1.5*inch, height=0.8*inch, kind='proportional'), 
                 Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b><br/>Fecha: {orden.fecha_creacion.strftime('%Y-%m-%d')}", style_cell_right)
             ]]
             t_header = Table(data_header, colWidths=[3*inch, 3*inch])
@@ -3201,6 +3201,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
