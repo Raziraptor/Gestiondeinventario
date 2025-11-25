@@ -682,9 +682,8 @@ def generar_etiqueta_personalizada(id):
     
     # Pegar QR a la derecha
     margin_right = 30
-    # CORRECCIÓN CRÍTICA: Convertir a enteros explícitamente
-    x_qr = int(width_px - qr_w - margin_right)
-    y_qr = int((height_px - qr_h) // 2) 
+    x_qr = int(width_px - qr_w - margin_right) # Asegura entero
+    y_qr = int((height_px - qr_h) / 2)         # <-- CORREGIDO: Convierte a int
     img.paste(qr_img, (x_qr, y_qr))
 
     # --- 2. Textos (A la izquierda) ---
@@ -3200,6 +3199,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
