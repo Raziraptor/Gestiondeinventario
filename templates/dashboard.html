@@ -4,6 +4,7 @@
 
 {% block content %}
     
+    <!-- Selector de Almacén -->
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="almacen_selector" class="form-label">
@@ -30,6 +31,7 @@
         </div>
     </div>
     
+    <!-- Si no hay almacén, no podemos mostrar nada -->
     {% if not almacen_seleccionado %}
         <div class="alert alert-warning">
             <h4>No hay almacenes</h4>
@@ -41,6 +43,7 @@
         </div>
     {% else %}
 
+        <!-- Filtros de Búsqueda -->
         <div class="card bg-light mb-4">
             <div class="card-header">
                 <i class="bi bi-search"></i> Filtros y Búsqueda
@@ -76,6 +79,7 @@
             </div>
         </div>
 
+        <!-- Tabla de Productos -->
         <div class="card">
             <div class="card-header">
                 Lista de Productos en: <strong>{{ almacen_seleccionado.nombre }}</strong>
@@ -88,7 +92,8 @@
                             <th>Código (SKU)</th>
                             <th>Nombre</th>
                             <th>Categoría</th>
-                            <th>Ubicación</th> <th>Proveedor</th>
+                            <th>Ubicación</th>
+                            <th>Proveedor</th>
                             <th>Stock Actual</th>
                             <th>Estado</th>
                             <th>Acciones</th>
@@ -144,9 +149,16 @@
                                        class="btn btn-secondary" title="Editar Producto y Stock">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="{{ url_for('generar_etiqueta', id=item.producto.id) }}" class="btn btn-info" title="Imprimir Etiqueta" target="_blank">
+                                    
+                                    <!-- ======================== -->
+                                    <!-- BOTÓN ETIQUETA MODIFICADO -->
+                                    <!-- ======================== -->
+                                    <a href="{{ url_for('configurar_etiqueta', id=item.producto.id) }}" 
+                                       class="btn btn-info" title="Imprimir Etiqueta JPG">
                                         <i class="bi bi-printer"></i>
                                     </a>
+                                    <!-- ======================== -->
+
                                     <a href="{{ url_for('historial_producto', id=item.producto.id) }}" class="btn btn-outline-secondary" title="Ver Historial">
                                         <i class="bi bi-clipboard-data"></i>
                                     </a>
