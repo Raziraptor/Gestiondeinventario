@@ -46,21 +46,3 @@
     </div>
 </div>
 {% endblock %}
-```
-
----
-
-### 3. Modificación en `templates/dashboard.html`
-
-Finalmente, cambia el enlace del botón de impresora para que vaya a la página de configuración en lugar de generar el PDF directamente.
-
-**Cambia esto:**
-```html
-<a href="{{ url_for('generar_etiqueta', id=item.producto.id) }}" ...>
-```
-
-**Por esto:**
-```html
-<a href="{{ url_for('configurar_etiqueta', id=item.producto.id) }}" class="btn btn-info" title="Imprimir Etiqueta">
-    <i class="bi bi-printer"></i>
-</a>
