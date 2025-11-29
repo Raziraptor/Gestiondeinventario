@@ -650,8 +650,11 @@ def generar_etiqueta_personalizada(id):
         
         # Elementos
         qr_box_size = 12
-        img_size_px = int(1.2 * DPI) # Imagen grande
         margin = 30
+        
+        # Espacio disponible para la imagen (altura)
+        # Estimamos que el texto ocupa la mitad superior, la imagen la inferior
+        max_img_height = int(height_px * 0.45) 
         
     else: # Default 1x3 (Pequeña)
         width_px = int(3 * DPI)
@@ -663,9 +666,10 @@ def generar_etiqueta_personalizada(id):
         font_size_ubic = 40
         
         # Elementos ajustados
-        qr_box_size = 9 # QR más pequeño
-        img_size_px = int(0.8 * DPI) # Imagen de 0.8 pulgadas
+        qr_box_size = 9 
         margin = 20
+        
+        max_img_height = int(height_px * 0.4) # Menos espacio en la pequeña
 
     # Crear lienzo blanco
     img = Image.new('RGB', (width_px, height_px), color='white')
@@ -687,27 +691,7 @@ def generar_etiqueta_personalizada(id):
         fnt_codigo = ImageFont.load_default()
         fnt_ubic = ImageFont.load_default()
 
-    # --- 1. IMAGEN DEL PRODUCTO (Izquierda) ---
-    # Posición X: Margen izquierdo
-    x_img = margin
-    # Posición Y: Centrada verticalmente
-    y_img = int((height_px - img_size_px) / 2)
-
-    if producto.imagen_url:
-        path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
-        if os.path.exists(path_img_prod):
-            try:
-                prod_img = Image.open(path_img_prod)
-                prod_img.thumbnail((img_size_px, img_size_px))
-                # Centrar la imagen en su "caja" si no es cuadrada
-                w_i, h_i = prod_img.size
-                x_offset = int((img_size_px - w_i) / 2)
-                y_offset = int((img_size_px - h_i) / 2)
-                img.paste(prod_img, (x_img + x_offset, y_img + y_offset))
-            except Exception:
-                pass 
-
-    # --- 2. CÓDIGO QR (Derecha) ---
+    # --- 1. CÓDIGO QR (Derecha) ---
     qr_wrapper = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
     qr_img = getattr(qr_wrapper, '_img', qr_wrapper)
     qr_w, qr_h = qr_img.size
@@ -715,19 +699,15 @@ def generar_etiqueta_personalizada(id):
     # Posición X: Ancho total - Ancho QR - Margen
     x_qr = int(width_px - qr_w - margin)
     # Posición Y: Centrado verticalmente
-    y_qr = int((height_px - qr_h) / 2)
+    y_qr = int((height_px - qr_h) // 2)
     img.paste(qr_img, (x_qr, y_qr))
 
-    # --- 3. TEXTOS (Centro) ---
-    # El texto vive entre la imagen y el QR
-    x_text_start = x_img + img_size_px + 20 # 20px de espacio tras la imagen
-    x_text_end = x_qr - 20 # 20px de espacio antes del QR
-    max_text_width = x_text_end - x_text_start
-    
-    # Calcular Y inicial para centrar el bloque de texto verticalmente
-    # Altura total estimada del bloque de texto
-    total_text_height = font_size_nombre + 10 + font_size_codigo + 10 + font_size_ubic
-    current_y = int((height_px - total_text_height) / 2)
+    # --- 2. TEXTOS (Izquierda Arriba) ---
+    margin_left = margin
+    current_y = margin # Empezamos desde arriba
+
+    # El texto puede ocupar desde la izquierda hasta el inicio del QR
+    max_text_width = x_qr - margin_left - 20
 
     # -- Nombre --
     nombre_texto = producto.nombre
@@ -737,7 +717,7 @@ def generar_etiqueta_personalizada(id):
     if len(nombre_texto) < len(producto.nombre):
         nombre_texto += "..."
         
-    d.text((x_text_start, current_y), nombre_texto, font=fnt_nombre, fill="black")
+    d.text((margin_left, current_y), nombre_texto, font=fnt_nombre, fill="black")
     
     # -- Código Principal --
     current_y += font_size_nombre + 10
@@ -745,12 +725,37 @@ def generar_etiqueta_personalizada(id):
     while d.textlength(codigo_texto, font=fnt_codigo) > max_text_width and len(codigo_texto) > 0:
         codigo_texto = codigo_texto[:-1]
         
-    d.text((x_text_start, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
+    d.text((margin_left, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
     
     # -- Ubicación / SKU --
     current_y += font_size_codigo + 10
     texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
-    d.text((x_text_start, current_y), texto_inferior, font=fnt_ubic, fill="black")
+    d.text((margin_left, current_y), texto_inferior, font=fnt_ubic, fill="black")
+
+    # --- 3. IMAGEN DEL PRODUCTO (Izquierda Abajo) ---
+    # Calculamos dónde empieza la imagen (debajo del último texto)
+    y_img_start = current_y + font_size_ubic + 15
+    
+    # Verificamos si hay espacio suficiente
+    if y_img_start < height_px - 10: # Al menos 10px de margen inferior
+        if producto.imagen_url:
+            path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
+            if os.path.exists(path_img_prod):
+                try:
+                    prod_img = Image.open(path_img_prod)
+                    
+                    # Redimensionar para que quepa en la altura disponible
+                    # pero sin exceder un ancho máximo (ej. hasta la mitad de la etiqueta)
+                    available_height = height_px - y_img_start - margin
+                    available_width = max_text_width # Usamos el mismo ancho que el texto
+                    
+                    # Mantener aspecto
+                    prod_img.thumbnail((available_width, available_height))
+                    
+                    # Pegar alineada a la izquierda con el margen
+                    img.paste(prod_img, (margin_left, y_img_start))
+                except Exception:
+                    pass
 
     # --- Guardar ---
     buffer = io.BytesIO()
@@ -3245,6 +3250,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
