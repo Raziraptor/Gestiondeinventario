@@ -627,7 +627,7 @@ def configurar_etiqueta(id):
 @login_required
 @check_permission('perm_view_dashboard')
 def generar_etiqueta_personalizada(id):
-    """ Genera una imagen JPG de la etiqueta con imagen del producto abajo. """
+    """ Genera una imagen JPG de la etiqueta con imagen a la izquierda (ambos tamaños). """
     producto = get_item_or_404(Producto, id)
     
     # Obtener ubicación
@@ -638,22 +638,34 @@ def generar_etiqueta_personalizada(id):
     tamano = request.form.get('tamano') # '1x3' o '1.75x4'
     DPI = 300 
     
+    # --- CONFIGURACIÓN DE TAMAÑOS ---
     if tamano == '1.75x4':
         width_px = int(4 * DPI)
         height_px = int(1.75 * DPI)
+        
+        # Fuentes
         font_size_nombre = 80
         font_size_codigo = 100
         font_size_ubic = 50
+        
+        # Elementos
         qr_box_size = 12
-        img_size_px = int(0.8 * DPI) # Imagen un poco más pequeña para que quepa abajo
-    else: # Default 1x3
+        img_size_px = int(1.2 * DPI) # Imagen grande
+        margin = 30
+        
+    else: # Default 1x3 (Pequeña)
         width_px = int(3 * DPI)
         height_px = int(1 * DPI)
+        
+        # Fuentes más pequeñas
         font_size_nombre = 55
-        font_size_codigo = 65
-        font_size_ubic = 35
-        qr_box_size = 8
-        img_size_px = int(0.5 * DPI) # Imagen pequeña para etiqueta chica
+        font_size_codigo = 70
+        font_size_ubic = 40
+        
+        # Elementos ajustados
+        qr_box_size = 9 # QR más pequeño
+        img_size_px = int(0.8 * DPI) # Imagen de 0.8 pulgadas
+        margin = 20
 
     # Crear lienzo blanco
     img = Image.new('RGB', (width_px, height_px), color='white')
@@ -675,23 +687,47 @@ def generar_etiqueta_personalizada(id):
         fnt_codigo = ImageFont.load_default()
         fnt_ubic = ImageFont.load_default()
 
-    # --- 1. CÓDIGO QR (Derecha) ---
+    # --- 1. IMAGEN DEL PRODUCTO (Izquierda) ---
+    # Posición X: Margen izquierdo
+    x_img = margin
+    # Posición Y: Centrada verticalmente
+    y_img = int((height_px - img_size_px) / 2)
+
+    if producto.imagen_url:
+        path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
+        if os.path.exists(path_img_prod):
+            try:
+                prod_img = Image.open(path_img_prod)
+                prod_img.thumbnail((img_size_px, img_size_px))
+                # Centrar la imagen en su "caja" si no es cuadrada
+                w_i, h_i = prod_img.size
+                x_offset = int((img_size_px - w_i) / 2)
+                y_offset = int((img_size_px - h_i) / 2)
+                img.paste(prod_img, (x_img + x_offset, y_img + y_offset))
+            except Exception:
+                pass 
+
+    # --- 2. CÓDIGO QR (Derecha) ---
     qr_wrapper = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
     qr_img = getattr(qr_wrapper, '_img', qr_wrapper)
     qr_w, qr_h = qr_img.size
     
-    margin = 20
-    # Centrado verticalmente
+    # Posición X: Ancho total - Ancho QR - Margen
     x_qr = int(width_px - qr_w - margin)
+    # Posición Y: Centrado verticalmente
     y_qr = int((height_px - qr_h) / 2)
     img.paste(qr_img, (x_qr, y_qr))
 
-    # --- 2. TEXTOS (Izquierda Arriba) ---
-    margin_left = 30
-    current_y = 20
-
-    # El texto puede ocupar desde la izquierda hasta el inicio del QR
-    max_text_width = x_qr - margin_left - 20
+    # --- 3. TEXTOS (Centro) ---
+    # El texto vive entre la imagen y el QR
+    x_text_start = x_img + img_size_px + 20 # 20px de espacio tras la imagen
+    x_text_end = x_qr - 20 # 20px de espacio antes del QR
+    max_text_width = x_text_end - x_text_start
+    
+    # Calcular Y inicial para centrar el bloque de texto verticalmente
+    # Altura total estimada del bloque de texto
+    total_text_height = font_size_nombre + 10 + font_size_codigo + 10 + font_size_ubic
+    current_y = int((height_px - total_text_height) / 2)
 
     # -- Nombre --
     nombre_texto = producto.nombre
@@ -701,39 +737,21 @@ def generar_etiqueta_personalizada(id):
     if len(nombre_texto) < len(producto.nombre):
         nombre_texto += "..."
         
-    d.text((margin_left, current_y), nombre_texto, font=fnt_nombre, fill="black")
+    d.text((x_text_start, current_y), nombre_texto, font=fnt_nombre, fill="black")
     
     # -- Código Principal --
-    current_y += font_size_nombre + 5
+    current_y += font_size_nombre + 10
     codigo_texto = producto.codigo
     while d.textlength(codigo_texto, font=fnt_codigo) > max_text_width and len(codigo_texto) > 0:
         codigo_texto = codigo_texto[:-1]
         
-    d.text((margin_left, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
+    d.text((x_text_start, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
     
     # -- Ubicación / SKU --
-    current_y += font_size_codigo + 5
+    current_y += font_size_codigo + 10
     texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
-    d.text((margin_left, current_y), texto_inferior, font=fnt_ubic, fill="black")
+    d.text((x_text_start, current_y), texto_inferior, font=fnt_ubic, fill="black")
 
-    # --- 3. IMAGEN DEL PRODUCTO (Izquierda Abajo) ---
-    # La pegamos debajo del texto de ubicación, si hay espacio
-    y_img_start = current_y + font_size_ubic + 10
-    
-    # Verificamos si cabe antes de pegarla (para no salirnos de la etiqueta)
-    if y_img_start + img_size_px < height_px:
-        if producto.imagen_url:
-            path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
-            if os.path.exists(path_img_prod):
-                try:
-                    prod_img = Image.open(path_img_prod)
-                    # Redimensionar thumbnail
-                    prod_img.thumbnail((img_size_px, img_size_px))
-                    # Pegar alineada a la izquierda con el margen
-                    img.paste(prod_img, (margin_left, y_img_start))
-                except Exception:
-                    pass
-    
     # --- Guardar ---
     buffer = io.BytesIO()
     img.save(buffer, 'JPEG', quality=100)
@@ -3227,6 +3245,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
