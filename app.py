@@ -643,33 +643,28 @@ def generar_etiqueta_personalizada(id):
         width_px = int(4 * DPI)
         height_px = int(1.75 * DPI)
         
-        # Fuentes
         font_size_nombre = 80
         font_size_codigo = 100
         font_size_ubic = 50
         
-        # Elementos
         qr_box_size = 12
+        img_size_px = int(1.2 * DPI)
         margin = 30
-        
-        # Espacio disponible para la imagen (altura)
-        # Estimamos que el texto ocupa la mitad superior, la imagen la inferior
-        max_img_height = int(height_px * 0.45) 
+        margin_text_qr = 30 # Espacio entre texto y QR
         
     else: # Default 1x3 (Pequeña)
         width_px = int(3 * DPI)
         height_px = int(1 * DPI)
         
-        # Fuentes más pequeñas
-        font_size_nombre = 55
-        font_size_codigo = 70
-        font_size_ubic = 40
+        # Reducimos un poco más las fuentes para evitar colisión
+        font_size_nombre = 50  # Antes 55
+        font_size_codigo = 60  # Antes 70
+        font_size_ubic = 35    # Antes 40
         
-        # Elementos ajustados
         qr_box_size = 9 
+        img_size_px = int(0.8 * DPI) 
         margin = 20
-        
-        max_img_height = int(height_px * 0.4) # Menos espacio en la pequeña
+        margin_text_qr = 40 # Mayor margen de seguridad con el QR
 
     # Crear lienzo blanco
     img = Image.new('RGB', (width_px, height_px), color='white')
@@ -691,71 +686,72 @@ def generar_etiqueta_personalizada(id):
         fnt_codigo = ImageFont.load_default()
         fnt_ubic = ImageFont.load_default()
 
-    # --- 1. CÓDIGO QR (Derecha) ---
+    # --- 1. IMAGEN DEL PRODUCTO (Izquierda) ---
+    x_img = margin
+    y_img = int((height_px - img_size_px) / 2)
+
+    if producto.imagen_url:
+        path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
+        if os.path.exists(path_img_prod):
+            try:
+                prod_img = Image.open(path_img_prod)
+                prod_img.thumbnail((img_size_px, img_size_px))
+                w_i, h_i = prod_img.size
+                x_offset = int((img_size_px - w_i) / 2)
+                y_offset = int((img_size_px - h_i) / 2)
+                img.paste(prod_img, (x_img + x_offset, y_img + y_offset))
+            except Exception:
+                pass 
+
+    # --- 2. CÓDIGO QR (Derecha) ---
     qr_wrapper = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
     qr_img = getattr(qr_wrapper, '_img', qr_wrapper)
     qr_w, qr_h = qr_img.size
     
-    # Posición X: Ancho total - Ancho QR - Margen
     x_qr = int(width_px - qr_w - margin)
-    # Posición Y: Centrado verticalmente
-    y_qr = int((height_px - qr_h) // 2)
+    y_qr = int((height_px - qr_h) / 2)
     img.paste(qr_img, (x_qr, y_qr))
 
-    # --- 2. TEXTOS (Izquierda Arriba) ---
-    margin_left = margin
-    current_y = margin # Empezamos desde arriba
+    # --- 3. TEXTOS (Centro) ---
+    x_text_start = x_img + img_size_px + 20 
+    x_text_end = x_qr - margin_text_qr # Usamos el margen de seguridad
+    max_text_width = x_text_end - x_text_start
+    
+    # Calcular Y inicial para centrar
+    total_text_height = font_size_nombre + 5 + font_size_codigo + 5 + font_size_ubic
+    current_y = int((height_px - total_text_height) / 2)
 
-    # El texto puede ocupar desde la izquierda hasta el inicio del QR
-    max_text_width = x_qr - margin_left - 20
-
-    # -- Nombre --
+    # -- Nombre (Truncado Estricto) --
     nombre_texto = producto.nombre
-    # Truncado inteligente
-    while d.textlength(nombre_texto, font=fnt_nombre) > max_text_width and len(nombre_texto) > 0:
+    
+    # Bucle de truncado: mientras el texto sea más ancho que el espacio permitido, quitamos letras
+    while d.textlength(nombre_texto + "...", font=fnt_nombre) > max_text_width and len(nombre_texto) > 0:
         nombre_texto = nombre_texto[:-1]
+    
     if len(nombre_texto) < len(producto.nombre):
         nombre_texto += "..."
         
-    d.text((margin_left, current_y), nombre_texto, font=fnt_nombre, fill="black")
+    d.text((x_text_start, current_y), nombre_texto, font=fnt_nombre, fill="black")
     
-    # -- Código Principal --
-    current_y += font_size_nombre + 10
+    # -- Código Principal (Truncado Estricto) --
+    current_y += font_size_nombre + 5
     codigo_texto = producto.codigo
+    
+    # También verificamos el ancho del código (por si es muy largo)
     while d.textlength(codigo_texto, font=fnt_codigo) > max_text_width and len(codigo_texto) > 0:
-        codigo_texto = codigo_texto[:-1]
+         codigo_texto = codigo_texto[:-1] # Solo cortamos, sin "..." porque es un código
         
-    d.text((margin_left, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
+    d.text((x_text_start, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") 
     
     # -- Ubicación / SKU --
-    current_y += font_size_codigo + 10
+    current_y += font_size_codigo + 5
     texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
-    d.text((margin_left, current_y), texto_inferior, font=fnt_ubic, fill="black")
-
-    # --- 3. IMAGEN DEL PRODUCTO (Izquierda Abajo) ---
-    # Calculamos dónde empieza la imagen (debajo del último texto)
-    y_img_start = current_y + font_size_ubic + 15
     
-    # Verificamos si hay espacio suficiente
-    if y_img_start < height_px - 10: # Al menos 10px de margen inferior
-        if producto.imagen_url:
-            path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
-            if os.path.exists(path_img_prod):
-                try:
-                    prod_img = Image.open(path_img_prod)
-                    
-                    # Redimensionar para que quepa en la altura disponible
-                    # pero sin exceder un ancho máximo (ej. hasta la mitad de la etiqueta)
-                    available_height = height_px - y_img_start - margin
-                    available_width = max_text_width # Usamos el mismo ancho que el texto
-                    
-                    # Mantener aspecto
-                    prod_img.thumbnail((available_width, available_height))
-                    
-                    # Pegar alineada a la izquierda con el margen
-                    img.paste(prod_img, (margin_left, y_img_start))
-                except Exception:
-                    pass
+    # Truncar también la ubicación si es necesario
+    while d.textlength(texto_inferior, font=fnt_ubic) > max_text_width and len(texto_inferior) > 0:
+         texto_inferior = texto_inferior[:-1]
+
+    d.text((x_text_start, current_y), texto_inferior, font=fnt_ubic, fill="black")
 
     # --- Guardar ---
     buffer = io.BytesIO()
@@ -3250,6 +3246,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
