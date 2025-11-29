@@ -627,7 +627,7 @@ def configurar_etiqueta(id):
 @login_required
 @check_permission('perm_view_dashboard')
 def generar_etiqueta_personalizada(id):
-    """ Genera una imagen JPG de la etiqueta con el tamaño seleccionado. """
+    """ Genera una imagen JPG de la etiqueta con imagen del producto. """
     producto = get_item_or_404(Producto, id)
     
     # Obtener ubicación
@@ -641,28 +641,32 @@ def generar_etiqueta_personalizada(id):
     if tamano == '1.75x4':
         width_px = int(4 * DPI)
         height_px = int(1.75 * DPI)
-        font_size_nombre = 90
-        font_size_codigo = 110
-        font_size_ubic = 55
-        qr_box_size = 14
+        font_size_nombre = 80   # Un poco más pequeño para que quepa
+        font_size_codigo = 100
+        font_size_ubic = 50
+        qr_box_size = 12
+        img_size_px = int(1.2 * DPI) # Tamaño de la imagen del producto (cuadrada)
     else: # Default 1x3
         width_px = int(3 * DPI)
         height_px = int(1 * DPI)
-        font_size_nombre = 65
-        font_size_codigo = 75
-        font_size_ubic = 40
-        qr_box_size = 9
+        font_size_nombre = 55
+        font_size_codigo = 65
+        font_size_ubic = 35
+        qr_box_size = 8
+        img_size_px = int(0.8 * DPI)
 
-    # Crear imagen en blanco
+    # Crear lienzo blanco
     img = Image.new('RGB', (width_px, height_px), color='white')
     d = ImageDraw.Draw(img)
 
-    # Cargar fuentes (igual que antes)
+    # --- FUENTES ---
     try:
         font_path_regular = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic.ttf')
         font_path_bold = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic-Bold.ttf')
+        
         if not os.path.exists(font_path_bold): font_path_bold = "arialbd.ttf" 
         if not os.path.exists(font_path_regular): font_path_regular = "arial.ttf"
+
         fnt_nombre = ImageFont.truetype(font_path_regular, font_size_nombre)
         fnt_codigo = ImageFont.truetype(font_path_bold, font_size_codigo)
         fnt_ubic = ImageFont.truetype(font_path_regular, font_size_ubic)
@@ -671,42 +675,68 @@ def generar_etiqueta_personalizada(id):
         fnt_codigo = ImageFont.load_default()
         fnt_ubic = ImageFont.load_default()
 
-    # --- 1. GENERAR CÓDIGO QR (CORREGIDO) ---
-    # Creamos el objeto QR wrapper
+    # --- 1. IMAGEN DEL PRODUCTO (Izquierda) ---
+    margin = 20
+    x_img = margin
+    # Centrada verticalmente
+    y_img = int((height_px - img_size_px) / 2)
+
+    if producto.imagen_url:
+        path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
+        if os.path.exists(path_img_prod):
+            try:
+                prod_img = Image.open(path_img_prod)
+                # Redimensionar manteniendo aspecto (thumbnail)
+                prod_img.thumbnail((img_size_px, img_size_px))
+                # Pegar en el lienzo
+                img.paste(prod_img, (x_img, y_img))
+            except Exception:
+                pass # Si falla la imagen, se deja en blanco esa zona
+
+    # --- 2. CÓDIGO QR (Derecha) ---
     qr_wrapper = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
-    
-    # ¡AQUÍ ESTÁ EL TRUCO! Extraemos la imagen PIL real
-    # Si qr_wrapper tiene el atributo _img, lo usamos. Si no, usamos el objeto directo.
     qr_img = getattr(qr_wrapper, '_img', qr_wrapper)
-    
     qr_w, qr_h = qr_img.size
     
-    # Pegar QR a la derecha (Coordenadas Enteras)
-    margin_right = 30
-    x_qr = int(width_px - qr_w - margin_right)
+    x_qr = int(width_px - qr_w - margin)
     y_qr = int((height_px - qr_h) / 2)
-    
-    # Ahora 'paste' recibirá una imagen PIL válida y coordenadas enteras
     img.paste(qr_img, (x_qr, y_qr))
 
-    # --- 2. Textos (A la izquierda) ---
-    margin_left = 40
-    
-    nombre_texto = producto.nombre
-    max_chars = 14 if tamano == '1x3' else 20
-    if len(nombre_texto) > max_chars:
-        nombre_texto = nombre_texto[:max_chars] + "..."
-    
-    d.text((margin_left, 40), nombre_texto, font=fnt_nombre, fill="black")
-    
-    y_codigo = 40 + font_size_nombre + 15
-    d.text((margin_left, y_codigo), producto.codigo, font=fnt_codigo, fill="#1f4e79")
-    
-    y_ubic = y_codigo + font_size_codigo + 15
-    texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
-    d.text((margin_left, y_ubic), texto_inferior, font=fnt_ubic, fill="black")
+    # --- 3. TEXTOS (Centro) ---
+    # El área de texto va desde el fin de la imagen hasta el inicio del QR
+    x_text_start = x_img + img_size_px + 20
+    x_text_end = x_qr - 20
+    max_text_width = x_text_end - x_text_start
 
-    # --- 3. Guardar ---
+    # Calculamos Y inicial
+    current_y = 30
+
+    # -- Nombre --
+    nombre_texto = producto.nombre
+    # Truncado inteligente: si el texto es muy largo para el espacio disponible
+    # (Esto es una aproximación, PIL no tiene 'word wrap' fácil)
+    while d.textlength(nombre_texto, font=fnt_nombre) > max_text_width and len(nombre_texto) > 0:
+        nombre_texto = nombre_texto[:-1]
+    if len(nombre_texto) < len(producto.nombre):
+        nombre_texto += "..."
+        
+    d.text((x_text_start, current_y), nombre_texto, font=fnt_nombre, fill="black")
+    
+    # -- Código Principal --
+    current_y += font_size_nombre + 10
+    # También truncamos el código si es excesivamente largo (raro, pero posible)
+    codigo_texto = producto.codigo
+    while d.textlength(codigo_texto, font=fnt_codigo) > max_text_width and len(codigo_texto) > 0:
+        codigo_texto = codigo_texto[:-1]
+        
+    d.text((x_text_start, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
+    
+    # -- Ubicación / SKU --
+    current_y += font_size_codigo + 10
+    texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
+    d.text((x_text_start, current_y), texto_inferior, font=fnt_ubic, fill="black") # Rojo opcional: fill="red"
+
+    # --- Guardar ---
     buffer = io.BytesIO()
     img.save(buffer, 'JPEG', quality=100)
     buffer.seek(0)
@@ -3199,6 +3229,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
