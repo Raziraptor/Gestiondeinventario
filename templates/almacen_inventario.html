@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ titulo }}</h2>
+        <a href="{{ url_for('lista_almacenes') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Almacenes
+        </a>
+    </div>
+    <p class="text-muted">
+        Aquí puedes ver y gestionar qué productos existen en este almacén. 
+        Los productos añadidos aquí comenzarán con un stock de 0.
+    </p>
+
+    <div class="row g-4">
+        <div class="col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    Añadir Producto del Catálogo
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod">
+                        <div class="mb-3">
+                            <label for="producto_search" class="form-label">Producto a Añadir</label>
+                            <input class="form-control" list="productosCatalogoDatalist" id="producto_search" 
+                                   placeholder="Escribe para buscar..." autocomplete="off" required>
+                            <datalist id="productosCatalogoDatalist"></datalist>
+                            <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Ubicación (Opcional)</label>
+                            <input type="text" name="ubicacion" class="form-control" placeholder="Ej: Estante 1">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="btn_submit_anadir" {% if not productos_para_anadir_json %}disabled{% endif %}>
+                            <i class="bi bi-plus-circle"></i> Añadir a Almacén
+                        </button>
+                        {% if not productos_para_anadir_json %}
+                            <small class="text-muted d-block mt-2">¡Todos los productos de tu catálogo ya están en este almacén!</small>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    Productos en {{ almacen.nombre }}
+                </div>
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Ubicación</th> <th class="text-end">Cantidad</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in almacen.stocks.all() %}
+                            <tr>
+                                <td class="align-middle">
+                                    <strong>{{ item.producto.nombre }}</strong><br>
+                                    <small class="text-muted">SKU: {{ item.producto.codigo }}</small>
+                                </td>
+                                <td class="align-middle">
+                                    {% if item.ubicacion %}
+                                        <span class="badge bg-light text-dark border">{{ item.ubicacion }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle text-end">
+                                    <strong>{{ item.cantidad }}</strong>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" 
+                                           class="btn btn-secondary" title="Editar Stock">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        
+                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;"
+                                              onsubmit="return confirm('¿Estás seguro de quitar este producto de ESTE almacén? El producto seguirá existiendo en el catálogo general.');">
+                                            <button type="submit" class="btn btn-danger" title="Quitar del Almacén">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center p-3">No hay productos asignados a este almacén.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const productosData = {{ productos_para_anadir_json | tojson | safe }};
+            const datalist = document.getElementById('productosCatalogoDatalist');
+            const productosMap = new Map();
+
+            productosData.forEach(p => {
+                const nombreCompleto = `${p.nombre} (SKU: ${p.codigo})`;
+                productosMap.set(nombreCompleto, p.id);
+                const option = document.createElement('option');
+                option.value = nombreCompleto;
+                datalist.appendChild(option);
+            });
+
+            const inputSearch = document.getElementById('producto_search');
+            const inputIdHidden = document.getElementById('producto_id_hidden');
+            const btnSubmit = document.getElementById('btn_submit_anadir');
+
+            inputSearch.addEventListener('input', function() {
+                const valor = inputSearch.value;
+                const idEncontrado = productosMap.get(valor);
+                if (idEncontrado) {
+                    inputIdHidden.value = idEncontrado;
+                    btnSubmit.disabled = false;
+                } else {
+                    inputIdHidden.value = '0';
+                    btnSubmit.disabled = true;
+                }
+            });
+            
+            document.getElementById('form_anadir_prod').addEventListener('submit', function(e) {
+                if (inputIdHidden.value === '0' || !inputIdHidden.value) {
+                    e.preventDefault();
+                    alert('Por favor, selecciona un producto válido de la lista.');
+                }
+            });
+            btnSubmit.disabled = true;
+        });
+    </script>
+{% endblock %}

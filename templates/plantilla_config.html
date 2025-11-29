@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Configurar Plantilla{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-palette"></i> Personalizar Plantilla de OC</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    
+                    <!-- Logo -->
+                    <div class="mb-4 text-center">
+                        <label class="form-label fw-bold">Logotipo de la Organización</label>
+                        <div class="my-2">
+                            {% if org.logo_url %}
+                                <img src="{{ url_for('static', filename='uploads/' + org.logo_url) }}" 
+                                     class="img-thumbnail" style="max-height: 100px;">
+                            {% else %}
+                                <div class="text-muted fst-italic p-3 border rounded bg-light">Sin logo actual</div>
+                            {% endif %}
+                        </div>
+                        <input type="file" class="form-control" name="logo" accept="image/*">
+                        <div class="form-text">Recomendado: PNG o JPG con fondo transparente.</div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Color -->
+                        <div class="col-md-6 mb-3">
+                            <label for="color_primario" class="form-label fw-bold">Color Corporativo</label>
+                            <input type="color" class="form-control form-control-color w-100" 
+                                   id="color_primario" name="color_primario" 
+                                   value="{{ org.color_primario }}" title="Elige tu color">
+                        </div>
+                        <!-- Fuente -->
+                        <div class="col-md-6 mb-3">
+                            <label for="tipo_letra" class="form-label fw-bold">Tipografía</label>
+                            <select class="form-select" name="tipo_letra">
+                                <option value="Helvetica" {% if org.tipo_letra == 'Helvetica' %}selected{% endif %}>Helvetica (Moderna)</option>
+                                <option value="Times-Roman" {% if org.tipo_letra == 'Times-Roman' %}selected{% endif %}>Times Roman (Clásica)</option>
+                                <option value="Courier" {% if org.tipo_letra == 'Courier' %}selected{% endif %}>Courier (Máquina de escribir)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Datos de Contacto -->
+                    <div class="mb-3">
+                        <label for="direccion" class="form-label fw-bold">Dirección Fiscal / Física</label>
+                        <textarea class="form-control" name="direccion" rows="2" placeholder="Calle, Número, Colonia, Ciudad...">{{ org.direccion or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefono" class="form-label fw-bold">Teléfono de Contacto</label>
+                        <input type="text" class="form-control" name="telefono" value="{{ org.telefono or '' }}" placeholder="+52 ...">
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vista Previa (Simulada) -->
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Vista Previa (Estilo)</h5>
+                <div class="border p-3 bg-white shadow-sm" style="font-family: var(--preview-font);">
+                    <div style="background-color: var(--preview-color); height: 10px; margin-bottom: 10px;"></div>
+                    <h6 style="color: var(--preview-color);">ENCABEZADO DE TABLA</h6>
+                    <p class="small">El color seleccionado se aplicará a los encabezados de las tablas y bordes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Script simple para actualizar la vista previa en tiempo real
+    const colorInput = document.getElementById('color_primario');
+    const fontSelect = document.querySelector('select[name="tipo_letra"]');
+    const previewBox = document.querySelector('.border.p-3');
+
+    function updatePreview() {
+        previewBox.style.setProperty('--preview-color', colorInput.value);
+        let font = 'Arial, sans-serif';
+        if(fontSelect.value === 'Times-Roman') font = 'Times New Roman, serif';
+        if(fontSelect.value === 'Courier') font = 'Courier New, monospace';
+        previewBox.style.fontFamily = font;
+    }
+
+    colorInput.addEventListener('input', updatePreview);
+    fontSelect.addEventListener('change', updatePreview);
+    updatePreview(); // Init
+</script>
+{% endblock %}
