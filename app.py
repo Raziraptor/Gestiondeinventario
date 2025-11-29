@@ -627,7 +627,7 @@ def configurar_etiqueta(id):
 @login_required
 @check_permission('perm_view_dashboard')
 def generar_etiqueta_personalizada(id):
-    """ Genera una imagen JPG de la etiqueta con el tamaño seleccionado usando Century Gothic. """
+    """ Genera una imagen JPG de la etiqueta con el tamaño seleccionado. """
     producto = get_item_or_404(Producto, id)
     
     # Obtener ubicación
@@ -636,16 +636,14 @@ def generar_etiqueta_personalizada(id):
     ubicacion = stock_item.ubicacion if stock_item and stock_item.ubicacion else ""
 
     tamano = request.form.get('tamano') # '1x3' o '1.75x4'
-    
-    # Configuración de DPI
     DPI = 300 
     
     if tamano == '1.75x4':
         width_px = int(4 * DPI)
         height_px = int(1.75 * DPI)
-        font_size_nombre = 90  
-        font_size_codigo = 110 
-        font_size_ubic = 55    
+        font_size_nombre = 90
+        font_size_codigo = 110
+        font_size_ubic = 55
         qr_box_size = 14
     else: # Default 1x3
         width_px = int(3 * DPI)
@@ -655,43 +653,45 @@ def generar_etiqueta_personalizada(id):
         font_size_ubic = 40
         qr_box_size = 9
 
-    # Crear imagen en blanco (RGB)
+    # Crear imagen en blanco
     img = Image.new('RGB', (width_px, height_px), color='white')
     d = ImageDraw.Draw(img)
 
-    # --- CARGAR FUENTE CENTURY GOTHIC ---
+    # Cargar fuentes (igual que antes)
     try:
         font_path_regular = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic.ttf')
         font_path_bold = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic-Bold.ttf')
-        
         if not os.path.exists(font_path_bold): font_path_bold = "arialbd.ttf" 
         if not os.path.exists(font_path_regular): font_path_regular = "arial.ttf"
-
         fnt_nombre = ImageFont.truetype(font_path_regular, font_size_nombre)
         fnt_codigo = ImageFont.truetype(font_path_bold, font_size_codigo)
         fnt_ubic = ImageFont.truetype(font_path_regular, font_size_ubic)
     except IOError:
-        print("ADVERTENCIA: No se encontró fuente. Usando default.")
         fnt_nombre = ImageFont.load_default()
         fnt_codigo = ImageFont.load_default()
         fnt_ubic = ImageFont.load_default()
 
-    # --- 1. Generar Código QR ---
-    qr_img = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
+    # --- 1. GENERAR CÓDIGO QR (CORREGIDO) ---
+    # Creamos el objeto QR wrapper
+    qr_wrapper = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
+    
+    # ¡AQUÍ ESTÁ EL TRUCO! Extraemos la imagen PIL real
+    # Si qr_wrapper tiene el atributo _img, lo usamos. Si no, usamos el objeto directo.
+    qr_img = getattr(qr_wrapper, '_img', qr_wrapper)
+    
     qr_w, qr_h = qr_img.size
     
-    # Pegar QR a la derecha
+    # Pegar QR a la derecha (Coordenadas Enteras)
     margin_right = 30
-    # CORRECCIÓN: Forzar conversión a entero (int)
     x_qr = int(width_px - qr_w - margin_right)
     y_qr = int((height_px - qr_h) / 2)
     
+    # Ahora 'paste' recibirá una imagen PIL válida y coordenadas enteras
     img.paste(qr_img, (x_qr, y_qr))
 
     # --- 2. Textos (A la izquierda) ---
     margin_left = 40
     
-    # Nombre del Producto
     nombre_texto = producto.nombre
     max_chars = 14 if tamano == '1x3' else 20
     if len(nombre_texto) > max_chars:
@@ -699,16 +699,14 @@ def generar_etiqueta_personalizada(id):
     
     d.text((margin_left, 40), nombre_texto, font=fnt_nombre, fill="black")
     
-    # Código Principal (Centro - Grande y Azul)
-    y_codigo = 40 + font_size_nombre + 15 
-    d.text((margin_left, y_codigo), producto.codigo, font=fnt_codigo, fill="#1f4e79") 
+    y_codigo = 40 + font_size_nombre + 15
+    d.text((margin_left, y_codigo), producto.codigo, font=fnt_codigo, fill="#1f4e79")
     
-    # SKU / Ubicación (Abajo)
     y_ubic = y_codigo + font_size_codigo + 15
     texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
     d.text((margin_left, y_ubic), texto_inferior, font=fnt_ubic, fill="black")
 
-    # --- 3. Guardar y enviar ---
+    # --- 3. Guardar ---
     buffer = io.BytesIO()
     img.save(buffer, 'JPEG', quality=100)
     buffer.seek(0)
@@ -3201,6 +3199,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
