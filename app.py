@@ -627,10 +627,7 @@ def configurar_etiqueta(id):
 @login_required
 @check_permission('perm_view_dashboard')
 def generar_etiqueta_personalizada(id):
-    """ 
-    Genera etiqueta JPG. 
-    Diseño: Texto Izq-Arriba, Imagen Izq-Abajo, QR Derecha-Centrado.
-    """
+    """ Genera etiqueta JPG. QR abajo-derecha para dar espacio al Nombre arriba (Full Width). """
     producto = get_item_or_404(Producto, id)
     
     # Obtener datos de ubicación
@@ -651,7 +648,7 @@ def generar_etiqueta_personalizada(id):
         
         qr_box_size = 13
         margin = 30
-        gap_text_qr = 30 # Espacio entre columna de texto y QR
+        gap_text_qr = 30
         
     else: # Default 1x3
         width_px = int(3 * DPI)
@@ -661,7 +658,8 @@ def generar_etiqueta_personalizada(id):
         font_size_codigo = 65
         font_size_ubic = 35
         
-        qr_box_size = 9 
+        # Reducimos un pelín el QR para asegurar que deje espacio arriba
+        qr_box_size = 8 
         margin = 20
         gap_text_qr = 20
 
@@ -673,11 +671,8 @@ def generar_etiqueta_personalizada(id):
     try:
         font_path_regular = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic.ttf')
         font_path_bold = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic-Bold.ttf')
-        
-        # Fallbacks
         if not os.path.exists(font_path_bold): font_path_bold = "arialbd.ttf" 
         if not os.path.exists(font_path_regular): font_path_regular = "arial.ttf"
-
         fnt_nombre = ImageFont.truetype(font_path_regular, font_size_nombre)
         fnt_codigo = ImageFont.truetype(font_path_bold, font_size_codigo)
         fnt_ubic = ImageFont.truetype(font_path_regular, font_size_ubic)
@@ -687,32 +682,44 @@ def generar_etiqueta_personalizada(id):
         fnt_ubic = ImageFont.load_default()
 
     # ==========================================
-    # 1. POSICIONAR CÓDIGO QR (Derecha - Centrado)
+    # 1. POSICIONAR CÓDIGO QR (Abajo - Derecha)
     # ==========================================
     qr_wrapper = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
     qr_img = getattr(qr_wrapper, '_img', qr_wrapper)
     qr_w, qr_h = qr_img.size
     
-    # X: Pegado a la derecha menos el margen
+    # X: Pegado a la derecha
     x_qr = int(width_px - qr_w - margin)
-    # Y: Centrado verticalmente respecto al alto total
-    y_qr = int((height_px - qr_h) // 2)
+    
+    # Y: Pegado al fondo (ABAJO) en lugar de centrado
+    # Esto libera el espacio de arriba para el nombre largo
+    y_qr = int(height_px - qr_h - margin)
     
     img.paste(qr_img, (x_qr, y_qr))
 
     # ==========================================
-    # 2. POSICIONAR TEXTO (Izquierda - Arriba)
+    # 2. POSICIONAR TEXTO
     # ==========================================
     margin_left = margin
     current_y = margin # Empezamos arriba
     
-    # El ancho máximo para texto e imagen es desde el borde izq hasta el QR
-    max_content_width = int(x_qr - margin_left - gap_text_qr)
+    # Lógica inteligente para el ancho del Nombre:
+    # Si el nombre está "arriba" del QR (verticalmente), puede usar todo el ancho.
+    # Si el nombre choca con el QR, se limita.
+    
+    # Calculamos dónde empieza el QR verticalmente
+    qr_top_y = y_qr 
+    
+    # Espacio seguro para texto ancho (Nombre)
+    # Si la linea de texto termina ANTES de que empiece el QR, usa ancho total
+    if (current_y + font_size_nombre) < qr_top_y:
+        max_name_width = int(width_px - (margin * 2)) # Ancho completo
+    else:
+        max_name_width = int(x_qr - margin_left - gap_text_qr) # Limitado por QR
 
     # --- A. Nombre del Producto ---
     nombre_texto = producto.nombre
-    # Truncar si es muy largo
-    while d.textlength(nombre_texto + "...", font=fnt_nombre) > max_content_width and len(nombre_texto) > 0:
+    while d.textlength(nombre_texto + "...", font=fnt_nombre) > max_name_width and len(nombre_texto) > 0:
         nombre_texto = nombre_texto[:-1]
     if len(nombre_texto) < len(producto.nombre):
         nombre_texto += "..."
@@ -721,16 +728,24 @@ def generar_etiqueta_personalizada(id):
     
     # --- B. Código (SKU) ---
     current_y += int(font_size_nombre + 5)
+    
+    # Para las siguientes líneas, probablemente ya estemos a la altura del QR, así que limitamos el ancho
+    if (current_y + font_size_codigo) < qr_top_y:
+        max_std_width = int(width_px - (margin * 2))
+    else:
+        max_std_width = int(x_qr - margin_left - gap_text_qr)
+        
     codigo_texto = producto.codigo
-    while d.textlength(codigo_texto, font=fnt_codigo) > max_content_width and len(codigo_texto) > 0:
+    while d.textlength(codigo_texto, font=fnt_codigo) > max_std_width and len(codigo_texto) > 0:
          codigo_texto = codigo_texto[:-1]
          
     d.text((margin_left, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
     
     # --- C. Ubicación / ID ---
     current_y += int(font_size_codigo + 5)
+    
     texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
-    while d.textlength(texto_inferior, font=fnt_ubic) > max_content_width and len(texto_inferior) > 0:
+    while d.textlength(texto_inferior, font=fnt_ubic) > max_std_width and len(texto_inferior) > 0:
          texto_inferior = texto_inferior[:-1]
          
     d.text((margin_left, current_y), texto_inferior, font=fnt_ubic, fill="black")
@@ -738,37 +753,31 @@ def generar_etiqueta_personalizada(id):
     # ==========================================
     # 3. POSICIONAR IMAGEN (Izquierda - Debajo del Texto)
     # ==========================================
-    
-    # Calculamos dónde terminó el texto para empezar la imagen
     y_img_start = int(current_y + font_size_ubic + 10)
     
-    # Calculamos cuánto espacio vertical nos sobra hasta el margen inferior
+    # El espacio disponible ahora es más limitado porque el QR está abajo a la derecha,
+    # pero la esquina inferior izquierda suele estar libre.
     available_height = int(height_px - y_img_start - margin)
     
-    # Solo intentamos dibujar si hay un espacio razonable (ej. más de 20px)
+    # El ancho disponible para la imagen es hasta donde empieza el QR
+    available_width = int(x_qr - margin_left - 10)
+
     if available_height > 20 and producto.imagen_url:
         path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
-        
         if os.path.exists(path_img_prod):
             try:
                 prod_img = Image.open(path_img_prod)
                 
-                # Definimos la caja máxima donde puede vivir la imagen
-                # Ancho: Igual que el texto (hasta el QR)
-                # Alto: Lo que sobre abajo
-                box_w = int(max_content_width)
-                box_h = int(available_height)
+                # Definimos caja máxima
+                box_w = available_width
+                box_h = available_height
                 
-                # Redimensionamos manteniendo proporción (thumbnail lo hace auto)
                 prod_img.thumbnail((box_w, box_h))
-                
-                # Pegamos en (Margen Izquierdo, Justo debajo del texto)
                 img.paste(prod_img, (margin_left, y_img_start))
-                
             except Exception:
-                pass # Si falla la imagen, se deja en blanco esa zona
+                pass
 
-    # --- GUARDAR Y ENVIAR ---
+    # --- GUARDAR ---
     buffer = io.BytesIO()
     img.save(buffer, 'JPEG', quality=100)
     buffer.seek(0)
@@ -3261,6 +3270,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
