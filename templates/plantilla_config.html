@@ -1,100 +1,81 @@
 {% extends 'base.html' %}
-{% block title %}Configurar Plantilla{% endblock %}
+{% block title %}Personalizar Marca{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="bi bi-palette"></i> Personalizar Plantilla de OC</h4>
-            </div>
-            <div class="card-body">
-                <form method="POST" enctype="multipart/form-data">
-                    
-                    <!-- Logo -->
-                    <div class="mb-4 text-center">
-                        <label class="form-label fw-bold">Logotipo de la Organización</label>
-                        <div class="my-2">
-                            {% if org.logo_url %}
-                                <img src="{{ url_for('static', filename='uploads/' + org.logo_url) }}" 
-                                     class="img-thumbnail" style="max-height: 100px;">
-                            {% else %}
-                                <div class="text-muted fst-italic p-3 border rounded bg-light">Sin logo actual</div>
-                            {% endif %}
-                        </div>
-                        <input type="file" class="form-control" name="logo" accept="image/*">
-                        <div class="form-text">Recomendado: PNG o JPG con fondo transparente.</div>
-                    </div>
+<div class="container mt-4">
+    <h2><i class="bi bi-palette"></i> Personalización de Marca (OC)</h2>
+    <hr>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-light fw-bold">Encabezado del Documento</div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            
+                            <div class="col-md-4 text-center border-end">
+                                <label class="form-label fw-bold d-block">Logotipo</label>
+                                <div class="mb-3">
+                                    {% if org.logo_url %}
+                                        <img src="{{ url_for('static', filename='uploads/' + org.logo_url) }}" 
+                                             class="img-fluid" style="max-height: 80px;">
+                                    {% else %}
+                                        <div class="text-muted p-3 bg-light rounded">Sin Logo</div>
+                                    {% endif %}
+                                </div>
+                                <input type="file" class="form-control form-control-sm" name="logo" accept="image/*">
+                                <div class="form-text small">Aparecerá a la izquierda.</div>
+                            </div>
 
-                    <div class="row">
-                        <!-- Color -->
-                        <div class="col-md-6 mb-3">
-                            <label for="color_primario" class="form-label fw-bold">Color Corporativo</label>
-                            <input type="color" class="form-control form-control-color w-100" 
-                                   id="color_primario" name="color_primario" 
-                                   value="{{ org.color_primario }}" title="Elige tu color">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Título Principal (Grande)</label>
+                                    <input type="text" class="form-control form-control-lg" name="header_titulo" 
+                                           value="{{ org.header_titulo or '' }}" 
+                                           placeholder="Ej. {{ org.nombre }}">
+                                    <div class="form-text">Texto grande que aparece junto al logo.</div>
+                                </div>
+                                
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold">Subtítulo / Eslogan (Pequeño)</label>
+                                    <input type="text" class="form-control form-control-sm" name="header_subtitulo" 
+                                           value="{{ org.header_subtitulo or '' }}" 
+                                           placeholder="Ej. Soluciones Industriales S.A. de C.V.">
+                                    <div class="form-text">Aparece debajo del título principal.</div>
+                                </div>
+                            </div>
                         </div>
-                        <!-- Fuente -->
-                        <div class="col-md-6 mb-3">
-                            <label for="tipo_letra" class="form-label fw-bold">Tipografía</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-light fw-bold">Estilos Globales</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Color Corporativo</label>
+                            <input type="color" class="form-control form-control-color w-100" 
+                                   name="color_primario" value="{{ org.color_primario }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipografía</label>
                             <select class="form-select" name="tipo_letra">
                                 <option value="Helvetica" {% if org.tipo_letra == 'Helvetica' %}selected{% endif %}>Helvetica (Moderna)</option>
-                                <option value="Times-Roman" {% if org.tipo_letra == 'Times-Roman' %}selected{% endif %}>Times Roman (Clásica)</option>
-                                <option value="Courier" {% if org.tipo_letra == 'Courier' %}selected{% endif %}>Courier (Máquina de escribir)</option>
+                                <option value="Times-Roman" {% if org.tipo_letra == 'Times-Roman' %}selected{% endif %}>Times New Roman (Clásica)</option>
+                                <option value="Courier" {% if org.tipo_letra == 'Courier' %}selected{% endif %}>Courier (Máquina)</option>
                             </select>
                         </div>
                     </div>
-
-                    <hr>
-
-                    <!-- Datos de Contacto -->
-                    <div class="mb-3">
-                        <label for="direccion" class="form-label fw-bold">Dirección Fiscal / Física</label>
-                        <textarea class="form-control" name="direccion" rows="2" placeholder="Calle, Número, Colonia, Ciudad...">{{ org.direccion or '' }}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="telefono" class="form-label fw-bold">Teléfono de Contacto</label>
-                        <input type="text" class="form-control" name="telefono" value="{{ org.telefono or '' }}" placeholder="+52 ...">
-                    </div>
-
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-success btn-lg">Guardar Cambios</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Vista Previa (Simulada) -->
-    <div class="col-md-4">
-        <div class="card bg-light">
-            <div class="card-body">
-                <h5 class="card-title text-muted">Vista Previa (Estilo)</h5>
-                <div class="border p-3 bg-white shadow-sm" style="font-family: var(--preview-font);">
-                    <div style="background-color: var(--preview-color); height: 10px; margin-bottom: 10px;"></div>
-                    <h6 style="color: var(--preview-color);">ENCABEZADO DE TABLA</h6>
-                    <p class="small">El color seleccionado se aplicará a los encabezados de las tablas y bordes.</p>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
-
-<script>
-    // Script simple para actualizar la vista previa en tiempo real
-    const colorInput = document.getElementById('color_primario');
-    const fontSelect = document.querySelector('select[name="tipo_letra"]');
-    const previewBox = document.querySelector('.border.p-3');
-
-    function updatePreview() {
-        previewBox.style.setProperty('--preview-color', colorInput.value);
-        let font = 'Arial, sans-serif';
-        if(fontSelect.value === 'Times-Roman') font = 'Times New Roman, serif';
-        if(fontSelect.value === 'Courier') font = 'Courier New, monospace';
-        previewBox.style.fontFamily = font;
-    }
-
-    colorInput.addEventListener('input', updatePreview);
-    fontSelect.addEventListener('change', updatePreview);
-    updatePreview(); // Init
-</script>
 {% endblock %}
