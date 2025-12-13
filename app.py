@@ -2244,6 +2244,70 @@ def generar_oc_pdf(id):
     filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
     return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
 
+@app.route('/orden/nueva/manual', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_create_oc_standard')
+def nueva_orden_manual():
+    """ Crea una nueva Orden de Compra manualmente. """
+    
+    if request.method == 'POST':
+        try:
+            proveedor_id = request.form.get('proveedor_id')
+            almacen_id = request.form.get('almacen_id') # Nuevo campo Multi-Almacén
+            
+            if not proveedor_id:
+                flash('Debes seleccionar un proveedor.', 'warning')
+                return redirect(request.url)
+
+            # 1. Crear la Cabecera de la Orden
+            nueva_orden = OrdenCompra(
+                proveedor_id=proveedor_id,
+                organizacion_id=current_user.organizacion_id,
+                usuario_id=current_user.id,
+                estado='Pendiente',
+                almacen_id=almacen_id if almacen_id else None # Guardamos el almacén destino
+            )
+            db.session.add(nueva_orden)
+            db.session.flush() # Para obtener el ID de la orden antes de seguir
+
+            # 2. Procesar las líneas de productos
+            productos_ids = request.form.getlist('producto_id[]')
+            cantidades = request.form.getlist('cantidad[]')
+            costos = request.form.getlist('costo[]')
+
+            for i in range(len(productos_ids)):
+                if productos_ids[i] and float(cantidades[i]) > 0:
+                    detalle = OrdenDetalle(
+                        orden_id=nueva_orden.id,
+                        producto_id=productos_ids[i],
+                        cantidad_solicitada=float(cantidades[i]),
+                        cantidad_recibida=0,
+                        costo_unitario_estimado=float(costos[i])
+                    )
+                    db.session.add(detalle)
+
+            db.session.commit()
+            flash(f'Orden #{nueva_orden.id} creada exitosamente.', 'success')
+            return redirect(url_for('lista_ordenes'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al crear orden: {e}', 'danger')
+            return redirect(request.url)
+
+    # --- MÉTODO GET: Renderizar el formulario ---
+    org_id = current_user.organizacion_id
+    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
+    productos = Producto.query.filter_by(organizacion_id=org_id).all()
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
+
+    return render_template('orden_form.html', 
+                           titulo="Nueva Orden de Compra",
+                           orden=None,
+                           proveedores=proveedores,
+                           productos=productos,
+                           almacenes=almacenes)
+
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -3280,6 +3344,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
