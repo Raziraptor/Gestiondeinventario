@@ -2402,6 +2402,42 @@ def cancelar_orden(id):
     
     return redirect(url_for('lista_ordenes'))
 
+@app.route('/orden/<int:id>/eliminar', methods=['POST'])
+@login_required
+@check_permission('perm_create_oc_standard') # Usamos el mismo permiso de crear/editar
+def eliminar_orden(id):
+    """
+    Maneja la eliminación de órdenes:
+    - Si estaba Pendiente: Funciona como 'Cancelar y Eliminar' (Automático).
+    - Si estaba Recibida: Funciona como 'Limpiar Historial'.
+    """
+    orden = get_item_or_404(OrdenCompra, id)
+    
+    # Validaciones de seguridad opcionales
+    # (Por ejemplo, impedir borrar si ya tiene movimientos de stock complejos asociados, 
+    # aunque en este sistema simple asumimos que al borrar la OC no revertimos el stock histórico, solo borramos el papel).
+    
+    estado_anterior = orden.estado
+    
+    try:
+        # Primero eliminamos los detalles para evitar errores de integridad (si no hay cascada configurada)
+        OrdenDetalle.query.filter_by(orden_id=orden.id).delete()
+        
+        # Ahora eliminamos la cabecera
+        db.session.delete(orden)
+        db.session.commit()
+        
+        if estado_anterior == 'Pendiente':
+            flash(f'Orden #{id} cancelada y eliminada correctamente.', 'success')
+        else:
+            flash(f'Orden #{id} eliminada del historial.', 'info')
+            
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar la orden: {e}', 'danger')
+        
+    return redirect(url_for('lista_ordenes'))
+
 # =============================================
 # RUTAS PARA OC DE PROYECTO
 # =============================================
@@ -3341,6 +3377,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
