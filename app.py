@@ -2060,7 +2060,7 @@ def generar_oc_pdf(id):
     org = orden.organizacion
     proveedor = orden.proveedor
     
-    # --- 1. CONFIGURACIÓN DEL DOCUMENTO ---
+    # --- CONFIGURACIÓN DE PÁGINA ---
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, 
                             rightMargin=inch, leftMargin=inch,
@@ -2068,26 +2068,23 @@ def generar_oc_pdf(id):
     story = []
     styles = getSampleStyleSheet()
     
-    # --- 2. ESTILOS DE FUENTE Y COLOR ---
+    # --- ESTILOS ---
     fuente_base = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
-    # Si no hay color definido, usamos un gris oscuro elegante por defecto
-    color_primario = colors.HexColor(org.color_primario) if org.color_primario else colors.black
-
+    color_primario = colors.HexColor(org.color_primario) if org.color_primario else colors.darkblue
+    
     # Estilos de Texto
     style_brand_title = ParagraphStyle(name='BrandTitle', parent=styles['Heading1'], fontName=f'{fuente_base}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
     style_brand_sub = ParagraphStyle(name='BrandSub', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12, textColor=colors.gray)
-    style_normal = ParagraphStyle(name='NormalCustom', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12)
-    style_bold = ParagraphStyle(name='BoldCustom', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, leading=12)
-    
-    # Estilo para encabezados de tabla (Blanco)
-    style_th = ParagraphStyle(name='TableHeader', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
+    style_normal = ParagraphStyle(name='MiNormal', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12)
+    style_bold = ParagraphStyle(name='MiBold', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, leading=12)
+    style_th = ParagraphStyle(name='MiTH', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
     
     # Estilos para Total
     style_total_label = ParagraphStyle(name='TotalLabel', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
     style_total_value = ParagraphStyle(name='TotalValue', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
 
     # ==========================================
-    # 3. ENCABEZADO DE MARCA (PERSONALIZADO)
+    # 1. ENCABEZADO PERSONALIZADO (Logo + Texto)
     # ==========================================
     logo_element = []
     if org.logo_url:
@@ -2106,15 +2103,14 @@ def generar_oc_pdf(id):
     if org.header_subtitulo:
         text_elements.append(Paragraph(org.header_subtitulo, style_brand_sub))
 
-    # Tabla Header Invisible (Solo para alinear logo y texto)
     if logo_element:
         data_header = [[logo_element, text_elements]]
-        col_widths_header = [1.5*inch, 4.5*inch]
+        col_widths = [1.5*inch, 4.5*inch]
     else:
         data_header = [[text_elements]]
-        col_widths_header = [6*inch]
+        col_widths = [6*inch]
 
-    t_header = Table(data_header, colWidths=col_widths_header)
+    t_header = Table(data_header, colWidths=col_widths)
     t_header.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('LEFTPADDING', (0,0), (-1,-1), 0),
@@ -2122,16 +2118,17 @@ def generar_oc_pdf(id):
     ]))
     story.append(t_header)
     
-    # Barra Separadora
+    # Barra separadora de color
     story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2], style=TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), color_primario)
     ])))
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 4. INFO PROVEEDOR Y ORDEN
+    # 2. INFORMACIÓN (PROVEEDOR Y ORDEN)
     # ==========================================
-    # Recuperación segura de datos (evita errores si el campo no existe)
+    
+    # Intento seguro de obtener datos de contacto (busca varios nombres posibles para no fallar)
     p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'email_contacto', '-')))
     p_tel = getattr(proveedor, 'telefono', getattr(proveedor, 'celular', '-'))
     p_contacto = getattr(proveedor, 'contacto', getattr(proveedor, 'nombre_contacto', '-'))
@@ -2146,7 +2143,7 @@ def generar_oc_pdf(id):
 
     info_orden = [
         Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_brand_title),
-        Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%Y-%m-%d')}", style_normal),
+        Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%d/%m/%Y')}", style_normal),
         Paragraph(f"<b>Estado:</b> {orden.estado}", style_normal),
         Paragraph(f"<b>Almacén:</b> {orden.almacen.nombre if orden.almacen else 'General'}", style_normal),
     ]
@@ -2160,11 +2157,11 @@ def generar_oc_pdf(id):
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 5. TABLA DE PRODUCTOS (CON BORDES)
+    # 3. TABLA DE PRODUCTOS (ESTILO CLÁSICO)
     # ==========================================
     
     headers = [
-        Paragraph("Producto / Descripción", style_th),
+        Paragraph("Producto / SKU", style_th),
         Paragraph("Cant.", style_th),
         Paragraph("Costo Unit.", style_th),
         Paragraph("Subtotal", style_th)
@@ -2177,65 +2174,55 @@ def generar_oc_pdf(id):
         subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
         total_general += subtotal
         
-        desc_producto = f"{detalle.producto.nombre}\nSKU: {detalle.producto.codigo}"
+        # Descripción con salto de línea para SKU
+        desc = f"{detalle.producto.nombre}\nSKU: {detalle.producto.codigo}"
         
         row = [
-            Paragraph(desc_producto, style_normal),
+            Paragraph(desc, style_normal),
             Paragraph(str(detalle.cantidad_solicitada), style_normal),
             Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", style_normal),
             Paragraph(f"${subtotal:,.2f}", style_normal)
         ]
         data_table.append(row)
 
-    # --- Fila de TOTAL (Fusionada) ---
+    # --- FILA DE TOTAL (INTEGRADA) ---
     row_total = [
-        '', # Celda vacía (se fusionará)
-        '', # Celda vacía (se fusionará)
+        '', # Vacío (se fusiona)
+        '', # Vacío (se fusiona)
         Paragraph("TOTAL:", style_total_label),
         Paragraph(f"${total_general:,.2f}", style_total_value)
     ]
     data_table.append(row_total)
 
-    # Anchos de columna
-    col_widths_table = [2.8*inch, 0.8*inch, 1.3*inch, 1.3*inch]
+    # Configuración de Anchos
+    col_widths_prod = [2.8*inch, 0.8*inch, 1.3*inch, 1.3*inch]
     
-    t_productos = Table(data_table, colWidths=col_widths_table, repeatRows=1)
+    t_productos = Table(data_table, colWidths=col_widths_prod, repeatRows=1)
     
-    # --- ESTILOS VISUALES (Aquí está la magia de los bordes) ---
-    estilos_tabla = [
-        # 1. Encabezado (Fondo color, texto blanco)
+    # ESTILOS COMPLETOS (Bordes, Colores y Fusión)
+    estilos = [
+        # Encabezado
         ('BACKGROUND', (0,0), (-1,0), color_primario),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,0), 'CENTER'),
         ('VALIGN', (0,0), (-1,0), 'MIDDLE'),
         
-        # 2. Rejilla (Bordes) para el CUERPO de la tabla (Items)
-        # GRID dibuja líneas verticales y horizontales en todo el rango
-        ('GRID', (0,0), (-1,-2), 0.5, colors.black),
-        
-        # 3. Alineación del cuerpo
+        # Cuerpo (Rejilla completa)
+        ('GRID', (0,0), (-1,-2), 0.5, colors.black), # Bordes en todos los items
         ('ALIGN', (1,1), (-1,-2), 'CENTER'), # Cantidad centrada
-        ('ALIGN', (2,1), (-1,-1), 'RIGHT'),  # Dineros a la derecha
+        ('ALIGN', (2,1), (-1,-1), 'RIGHT'),  # Precios a la derecha
         ('VALIGN', (0,1), (-1,-1), 'MIDDLE'),
-        
-        # 4. Estilos específicos para la fila de TOTAL (Última fila = -1)
-        ('SPAN', (0,-1), (1,-1)),            # Fusionamos las primeras 2 columnas vacías
-        ('ALIGN', (0,-1), (-1,-1), 'RIGHT'), # Alinear "TOTAL:" a la derecha
-        
-        # Borde para la celda que dice "TOTAL:"
-        ('BOX', (2,-1), (2,-1), 0.5, colors.black),
-        # Borde para la celda del VALOR ($)
-        ('BOX', (3,-1), (3,-1), 0.5, colors.black),
-        
-        # Fondo gris claro para resaltar el total
-        ('BACKGROUND', (2,-1), (-1,-1), colors.whitesmoke),
-        
-        # Padding extra para que respire
         ('TOPPADDING', (0,0), (-1,-1), 6),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        
+        # Fila de Total (Última fila)
+        ('SPAN', (0,-1), (1,-1)),            # Fusionar columnas 0 y 1
+        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black), # Línea superior gruesa
+        ('BACKGROUND', (2,-1), (-1,-1), colors.whitesmoke), # Fondo gris tenue en total
+        ('BOX', (2,-1), (3,-1), 0.5, colors.black), # Caja alrededor del total y etiqueta
     ]
     
-    t_productos.setStyle(TableStyle(estilos_tabla))
+    t_productos.setStyle(TableStyle(estilos))
     story.append(t_productos)
 
     # --- GENERAR ---
@@ -3344,6 +3331,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
