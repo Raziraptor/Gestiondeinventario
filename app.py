@@ -2295,6 +2295,16 @@ def nueva_orden_manual():
                            productos=productos,
                            almacenes=almacenes)
 
+@app.route('/orden/<int:id>')
+@login_required
+@check_permission('perm_view_dashboard')
+def ver_orden(id):
+    """ Muestra el detalle de una Orden de Compra (Solo lectura). """
+    orden = get_item_or_404(OrdenCompra, id)
+    return render_template('orden_detalle.html', 
+                           orden=orden, 
+                           titulo=f"Detalle de Orden #{orden.id}")
+
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -3331,6 +3341,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
