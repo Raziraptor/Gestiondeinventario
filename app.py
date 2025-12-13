@@ -2058,104 +2058,173 @@ def enviar_orden(id):
 def generar_oc_pdf(id):
     orden = get_item_or_404(OrdenCompra, id)
     org = orden.organizacion
+    proveedor = orden.proveedor
     
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, 
                             rightMargin=inch, leftMargin=inch,
-                            topMargin=0.5*inch, bottomMargin=inch) # Margen superior ajustado
+                            topMargin=0.5*inch, bottomMargin=inch)
     story = []
     styles = getSampleStyleSheet()
     
     # --- ESTILOS PERSONALIZADOS ---
     fuente_base = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
-    color_base = colors.HexColor(org.color_primario)
+    color_base = colors.HexColor(org.color_primario) if org.color_primario else colors.darkblue
 
-    # Estilo para el Título Grande (Al lado del logo)
     style_brand_title = ParagraphStyle(
-        name='BrandTitle', 
-        parent=styles['Heading1'], 
-        fontName=f'{fuente_base}-Bold', 
-        fontSize=22, 
-        leading=24, 
-        textColor=colors.black,
-        spaceAfter=4
+        name='BrandTitle', parent=styles['Heading1'], fontName=f'{fuente_base}-Bold', 
+        fontSize=20, leading=22, textColor=colors.black, spaceAfter=4
     )
-    
-    # Estilo para el Subtítulo (Debajo del título grande)
     style_brand_sub = ParagraphStyle(
-        name='BrandSub', 
-        parent=styles['Normal'], 
-        fontName=fuente_base, 
-        fontSize=10, 
-        leading=12, 
-        textColor=colors.gray
+        name='BrandSub', parent=styles['Normal'], fontName=fuente_base, 
+        fontSize=10, leading=12, textColor=colors.gray
     )
+    style_normal = ParagraphStyle(name='MiNormal', parent=styles['Normal'], fontName=fuente_base, fontSize=10)
+    style_th = ParagraphStyle(name='MiTH', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
 
-    # --- CONSTRUCCIÓN DEL ENCABEZADO VISUAL ---
-    # Elemento 1: El Logo
+    # ==========================================
+    # 1. ENCABEZADO (Logo + Texto Marca)
+    # ==========================================
     logo_element = []
     if org.logo_url:
         logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
         if os.path.exists(logo_path):
-            # Usamos ReportLabImage (asegúrate de tener el alias en tus imports)
             img = ReportLabImage(logo_path)
-            
-            # Ajustar tamaño proporcional (Máximo 1.2 pulgadas de alto)
-            max_h = 1.2 * inch
+            max_h = 1.0 * inch
             aspect = img.imageWidth / float(img.imageHeight)
             img.drawHeight = max_h
             img.drawWidth = max_h * aspect
             logo_element.append(img)
     
-    # Elemento 2: Los Textos (Apilados)
     text_elements = []
-    
-    # Texto Principal (Si el usuario lo definió, si no, usa el nombre de la Org)
     texto_p = org.header_titulo if org.header_titulo else org.nombre
     text_elements.append(Paragraph(texto_p, style_brand_title))
     
-    # Texto Secundario (Opcional)
     if org.header_subtitulo:
         text_elements.append(Paragraph(org.header_subtitulo, style_brand_sub))
 
-    # --- TABLA MAESTRA DEL ENCABEZADO ---
-    # Columna 1: Logo | Columna 2: Textos
-    # Si no hay logo, solo mostramos texto
+    # Tabla Header
     if logo_element:
         data_header = [[logo_element, text_elements]]
-        col_widths = [1.5*inch, 4.5*inch] # Espacio para logo, resto para texto
+        col_widths = [1.5*inch, 4.5*inch]
     else:
         data_header = [[text_elements]]
         col_widths = [6*inch]
 
     t_header = Table(data_header, colWidths=col_widths)
     t_header.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), # Alinear verticalmente al centro
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('LEFTPADDING', (0,0), (-1,-1), 0),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 20), # Espacio debajo del header
+        ('BOTTOMPADDING', (0,0), (-1,-1), 15),
     ]))
-    
     story.append(t_header)
     
-    # --- LÍNEA SEPARADORA DE COLOR ---
-    story.append(Table([['']], colWidths=[6*inch], rowHeights=[2], style=TableStyle([
+    # Línea divisoria
+    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[3], style=TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), color_base)
     ])))
     story.append(Spacer(1, 0.2*inch))
+
+    # ==========================================
+    # 2. DATOS DE LA ORDEN Y PROVEEDOR
+    # ==========================================
+    # Usaremos una tabla invisible de 2 columnas
+    # Columna Izq: Proveedor | Columna Der: Datos Orden (Fecha, ID, Almacén)
     
-    # --- DATOS DE LA ORDEN (Alineados a la derecha) ---
-    style_meta = ParagraphStyle(name='Meta', parent=styles['Normal'], alignment=TA_RIGHT, fontSize=11)
-    story.append(Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_meta))
-    story.append(Paragraph(f"Fecha: {orden.fecha_creacion.strftime('%d/%m/%Y')}", style_meta))
+    datos_proveedor = [
+        Paragraph(f"<b>PROVEEDOR:</b>", style_normal),
+        Paragraph(f"{proveedor.nombre}", style_normal),
+        Paragraph(f"Contacto: {proveedor.contacto or '-'}", style_normal),
+        Paragraph(f"Email: {proveedor.email or '-'}", style_normal),
+        Paragraph(f"Tel: {proveedor.telefono or '-'}", style_normal),
+    ]
+
+    datos_orden = [
+        Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_brand_title),
+        Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%d/%m/%Y')}", style_normal),
+        Paragraph(f"<b>Estado:</b> {orden.estado}", style_normal),
+        Paragraph(f"<b>Almacén Destino:</b> {orden.almacen.nombre if orden.almacen else 'General'}", style_normal),
+    ]
+
+    tabla_info = Table([[datos_proveedor, datos_orden]], colWidths=[3.5*inch, 2.7*inch])
+    tabla_info.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+    ]))
+    story.append(tabla_info)
+    story.append(Spacer(1, 0.3*inch))
+
+    # ==========================================
+    # 3. TABLA DE PRODUCTOS
+    # ==========================================
+    
+    # Encabezados
+    headers = [
+        Paragraph("SKU", style_th),
+        Paragraph("Producto / Descripción", style_th),
+        Paragraph("Cant.", style_th),
+        Paragraph("Costo Unit.", style_th),
+        Paragraph("Total", style_th)
+    ]
+    
+    data_productos = [headers]
+    
+    total_general = 0
+    
+    # Filas de productos
+    for detalle in orden.detalles:
+        subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
+        total_general += subtotal
+        
+        row = [
+            Paragraph(detalle.producto.codigo, style_normal),
+            Paragraph(detalle.producto.nombre, style_normal),
+            Paragraph(str(detalle.cantidad_solicitada), style_normal),
+            Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", style_normal),
+            Paragraph(f"${subtotal:,.2f}", style_normal)
+        ]
+        data_productos.append(row)
+
+    # Crear tabla de productos
+    # Ajustar anchos según necesites
+    col_widths_prod = [1.0*inch, 2.7*inch, 0.7*inch, 0.9*inch, 0.9*inch]
+    t_productos = Table(data_productos, colWidths=col_widths_prod, repeatRows=1)
+    
+    # Estilos de la tabla
+    t_productos.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), color_base),       # Fondo encabezado (Color Marca)
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),      # Texto encabezado blanco
+        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),              # Alinear números a la derecha
+        ('ALIGN', (0,0), (1,-1), 'LEFT'),                # Alinear textos a la izquierda
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),            # Centrado vertical
+        ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),# Líneas internas finas
+        ('BOX', (0,0), (-1,-1), 0.25, colors.black),     # Borde externo
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+    ]))
+    
+    story.append(t_productos)
     story.append(Spacer(1, 0.2*inch))
 
-    # ... (AQUÍ SIGUE TU CÓDIGO ACTUAL DE PROVEEDOR, PRODUCTOS Y TOTALES) ...
-    # Asegúrate de volver a pegar la parte de la tabla de productos aquí abajo.
-    # Si necesitas que te pase el código completo de la tabla de productos también, avísame.
+    # ==========================================
+    # 4. TOTALES
+    # ==========================================
+    style_total = ParagraphStyle(name='Total', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=12, alignment=TA_RIGHT)
     
+    texto_total = Paragraph(f"TOTAL: ${total_general:,.2f}", style_total)
+    
+    # Tabla simple para alinear el total a la derecha
+    t_total = Table([[texto_total]], colWidths=[6.2*inch])
+    t_total.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
+    ]))
+    
+    story.append(t_total)
+
+    # --- GENERAR PDF ---
     doc.build(story)
     buffer.seek(0)
-    filename = f"OC_{orden.id}.pdf"
+    filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
     return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
 
 @app.route('/orden/<int:id>')
@@ -3290,6 +3359,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
