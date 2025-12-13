@@ -56,6 +56,12 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as ReportLabImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
 
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
@@ -3081,7 +3087,7 @@ def account():
 
 @app.route('/configuracion/plantilla', methods=['GET', 'POST'])
 @login_required
-@admin_required (Asegúrate de tener tu decorador de admin aquí)
+@admin_required
 def configurar_plantilla():
     organizacion = current_user.organizacion
     
@@ -3284,6 +3290,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
