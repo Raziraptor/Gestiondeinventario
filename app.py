@@ -2103,7 +2103,6 @@ def generar_oc_pdf(id):
     if org.header_subtitulo:
         text_elements.append(Paragraph(org.header_subtitulo, style_brand_sub))
 
-    # Tabla Header
     if logo_element:
         data_header = [[logo_element, text_elements]]
         col_widths = [1.5*inch, 4.5*inch]
@@ -2119,24 +2118,23 @@ def generar_oc_pdf(id):
     ]))
     story.append(t_header)
     
-    # Línea divisoria
     story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[3], style=TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), color_base)
     ])))
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 2. DATOS DE LA ORDEN Y PROVEEDOR
+    # 2. DATOS DE LA ORDEN Y PROVEEDOR (CORREGIDO)
     # ==========================================
-    # Usaremos una tabla invisible de 2 columnas
-    # Columna Izq: Proveedor | Columna Der: Datos Orden (Fecha, ID, Almacén)
     
+    # He eliminado la línea de 'Contacto' que causaba el error
     datos_proveedor = [
         Paragraph(f"<b>PROVEEDOR:</b>", style_normal),
         Paragraph(f"{proveedor.nombre}", style_normal),
-        Paragraph(f"Contacto: {proveedor.contacto or '-'}", style_normal),
         Paragraph(f"Email: {proveedor.email or '-'}", style_normal),
         Paragraph(f"Tel: {proveedor.telefono or '-'}", style_normal),
+        # Si tienes campo dirección, descomenta la siguiente línea:
+        # Paragraph(f"Dir: {proveedor.direccion or '-'}", style_normal),
     ]
 
     datos_orden = [
@@ -2157,8 +2155,6 @@ def generar_oc_pdf(id):
     # ==========================================
     # 3. TABLA DE PRODUCTOS
     # ==========================================
-    
-    # Encabezados
     headers = [
         Paragraph("SKU", style_th),
         Paragraph("Producto / Descripción", style_th),
@@ -2168,10 +2164,8 @@ def generar_oc_pdf(id):
     ]
     
     data_productos = [headers]
-    
     total_general = 0
     
-    # Filas de productos
     for detalle in orden.detalles:
         subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
         total_general += subtotal
@@ -2185,20 +2179,17 @@ def generar_oc_pdf(id):
         ]
         data_productos.append(row)
 
-    # Crear tabla de productos
-    # Ajustar anchos según necesites
     col_widths_prod = [1.0*inch, 2.7*inch, 0.7*inch, 0.9*inch, 0.9*inch]
     t_productos = Table(data_productos, colWidths=col_widths_prod, repeatRows=1)
     
-    # Estilos de la tabla
     t_productos.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), color_base),       # Fondo encabezado (Color Marca)
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),      # Texto encabezado blanco
-        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),              # Alinear números a la derecha
-        ('ALIGN', (0,0), (1,-1), 'LEFT'),                # Alinear textos a la izquierda
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),            # Centrado vertical
-        ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),# Líneas internas finas
-        ('BOX', (0,0), (-1,-1), 0.25, colors.black),     # Borde externo
+        ('BACKGROUND', (0,0), (-1,0), color_base),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('ALIGN', (2,0), (-1,-1), 'RIGHT'),
+        ('ALIGN', (0,0), (1,-1), 'LEFT'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),
+        ('BOX', (0,0), (-1,-1), 0.25, colors.black),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
         ('TOPPADDING', (0,0), (-1,-1), 6),
     ]))
@@ -2210,15 +2201,12 @@ def generar_oc_pdf(id):
     # 4. TOTALES
     # ==========================================
     style_total = ParagraphStyle(name='Total', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=12, alignment=TA_RIGHT)
-    
     texto_total = Paragraph(f"TOTAL: ${total_general:,.2f}", style_total)
     
-    # Tabla simple para alinear el total a la derecha
     t_total = Table([[texto_total]], colWidths=[6.2*inch])
     t_total.setStyle(TableStyle([
         ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
     ]))
-    
     story.append(t_total)
 
     # --- GENERAR PDF ---
@@ -2226,7 +2214,6 @@ def generar_oc_pdf(id):
     buffer.seek(0)
     filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
     return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
-
 @app.route('/orden/<int:id>')
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -3359,6 +3346,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
