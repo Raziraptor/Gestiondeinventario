@@ -136,6 +136,8 @@ class Organizacion(db.Model):
     
     # --- CAMPOS DE PERSONALIZACIÓN (NUEVO) ---
     logo_url = db.Column(db.String(255), nullable=True) # Logo de la empresa
+    header_titulo = db.Column(db.String(150), nullable=True)     # Texto Grande
+    header_subtitulo = db.Column(db.String(200), nullable=True)  # Texto Pequeño
     color_primario = db.Column(db.String(7), default='#333333') # Color hex para encabezados
     tipo_letra = db.Column(db.String(50), default='Helvetica') # Fuente del PDF
     direccion = db.Column(db.Text, nullable=True) # Dirección fiscal/física
@@ -2049,96 +2051,105 @@ def enviar_orden(id):
 @check_permission('perm_create_oc_standard')
 def generar_oc_pdf(id):
     orden = get_item_or_404(OrdenCompra, id)
-    org = orden.organizacion # Obtenemos la configuración de la org
+    org = orden.organizacion
     
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, 
                             rightMargin=inch, leftMargin=inch,
-                            topMargin=inch, bottomMargin=inch)
+                            topMargin=0.5*inch, bottomMargin=inch) # Margen superior ajustado
     story = []
     styles = getSampleStyleSheet()
     
-    # --- PERSONALIZACIÓN DE ESTILOS ---
-    # Usar la fuente y color elegidos por el usuario
-    fuente_usuario = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
-    color_usuario = colors.HexColor(org.color_primario)
-    
-    style_title = ParagraphStyle(name='OrgTitle', parent=styles['Heading1'], fontName=fuente_usuario, fontSize=18, textColor=color_usuario, spaceAfter=10)
-    style_subtitle = ParagraphStyle(name='OrgSubtitle', parent=styles['Normal'], fontName=fuente_usuario, fontSize=10, textColor=colors.gray)
-    style_header = ParagraphStyle(name='Header', parent=styles['Normal'], fontName=f'{fuente_usuario}-Bold', alignment=TA_CENTER, textColor=colors.white) # Texto blanco para cabecera
-    style_cell = ParagraphStyle(name='Cell', parent=styles['Normal'], fontName=fuente_usuario, fontSize=10)
-    style_cell_right = ParagraphStyle(name='CellRight', parent=style_cell, alignment=TA_RIGHT)
+    # --- ESTILOS PERSONALIZADOS ---
+    fuente_base = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
+    color_base = colors.HexColor(org.color_primario)
 
-    # --- LOGO ---
+    # Estilo para el Título Grande (Al lado del logo)
+    style_brand_title = ParagraphStyle(
+        name='BrandTitle', 
+        parent=styles['Heading1'], 
+        fontName=f'{fuente_base}-Bold', 
+        fontSize=22, 
+        leading=24, 
+        textColor=colors.black,
+        spaceAfter=4
+    )
+    
+    # Estilo para el Subtítulo (Debajo del título grande)
+    style_brand_sub = ParagraphStyle(
+        name='BrandSub', 
+        parent=styles['Normal'], 
+        fontName=fuente_base, 
+        fontSize=10, 
+        leading=12, 
+        textColor=colors.gray
+    )
+
+    # --- CONSTRUCCIÓN DEL ENCABEZADO VISUAL ---
+    # Elemento 1: El Logo
+    logo_element = []
     if org.logo_url:
         logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
         if os.path.exists(logo_path):
-            # Dibujar logo (ajustar tamaño a 1.5 pulgadas de ancho)
-            im = ImageReader(logo_path)
-            # Truco: Usamos un 'Flowable' de imagen o una tabla invisible para el encabezado
-            # Por simplicidad, aquí lo añadimos directo si cabe, o usamos una tabla cabecera:
-            data_header = [[
-                ReportLabImage(logo_path, width=1.5*inch, height=0.8*inch, kind='proportional'), 
-                Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b><br/>Fecha: {orden.fecha_creacion.strftime('%Y-%m-%d')}", style_cell_right)
-            ]]
-            t_header = Table(data_header, colWidths=[3*inch, 3*inch])
-            t_header.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('ALIGN', (1,0), (1,0), 'RIGHT')]))
-            story.append(t_header)
+            # Usamos ReportLabImage (asegúrate de tener el alias en tus imports)
+            img = ReportLabImage(logo_path)
+            
+            # Ajustar tamaño proporcional (Máximo 1.2 pulgadas de alto)
+            max_h = 1.2 * inch
+            aspect = img.imageWidth / float(img.imageHeight)
+            img.drawHeight = max_h
+            img.drawWidth = max_h * aspect
+            logo_element.append(img)
+    
+    # Elemento 2: Los Textos (Apilados)
+    text_elements = []
+    
+    # Texto Principal (Si el usuario lo definió, si no, usa el nombre de la Org)
+    texto_p = org.header_titulo if org.header_titulo else org.nombre
+    text_elements.append(Paragraph(texto_p, style_brand_title))
+    
+    # Texto Secundario (Opcional)
+    if org.header_subtitulo:
+        text_elements.append(Paragraph(org.header_subtitulo, style_brand_sub))
+
+    # --- TABLA MAESTRA DEL ENCABEZADO ---
+    # Columna 1: Logo | Columna 2: Textos
+    # Si no hay logo, solo mostramos texto
+    if logo_element:
+        data_header = [[logo_element, text_elements]]
+        col_widths = [1.5*inch, 4.5*inch] # Espacio para logo, resto para texto
     else:
-        # Sin logo, solo texto
-        story.append(Paragraph(f"ORDEN DE COMPRA #{orden.id}", style_title))
-        story.append(Paragraph(f"Fecha: {orden.fecha_creacion.strftime('%Y-%m-%d')}", style_subtitle))
+        data_header = [[text_elements]]
+        col_widths = [6*inch]
 
-    story.append(Spacer(1, 0.2 * inch))
-
-    # --- DATOS DE LA EMPRESA ---
-    info_empresa = f"<b>{org.nombre}</b><br/>"
-    if org.direccion: info_empresa += f"{org.direccion}<br/>"
-    if org.telefono: info_empresa += f"Tel: {org.telefono}"
-    
-    story.append(Paragraph(info_empresa, style_subtitle))
-    story.append(Spacer(1, 0.3 * inch))
-
-    # --- DATOS DEL PROVEEDOR ---
-    info_proveedor = f"<b>PROVEEDOR:</b> {orden.proveedor.nombre}<br/>Email: {orden.proveedor.contacto_email}<br/>Destino: {orden.almacen.nombre}"
-    story.append(Paragraph(info_proveedor, style_cell))
-    story.append(Spacer(1, 0.2 * inch))
-
-    # --- TABLA DE PRODUCTOS ---
-    data = [[
-        Paragraph('Producto / SKU', style_header), 
-        Paragraph('Cant.', style_header), 
-        Paragraph('Precio Unit.', style_header), 
-        Paragraph('Total', style_header)
-    ]]
-    for detalle in orden.detalles:
-        prod = f"{detalle.producto.nombre}<br/><font size=8 color=grey>{detalle.producto.codigo}</font>"
-        data.append([
-            Paragraph(prod, style_cell),
-            Paragraph(str(detalle.cantidad_solicitada), style_cell_right),
-            Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", style_cell_right),
-            Paragraph(f"<b>${detalle.subtotal:,.2f}</b>", style_cell_right)
-        ])
-    
-    # Fila de Total
-    data.append(['', '', Paragraph('<b>TOTAL:</b>', style_cell_right), Paragraph(f"<b>${orden.costo_total:,.2f}</b>", style_cell_right)])
-
-    # Estilo de la tabla (Usando el color primario)
-    t = Table(data, colWidths=[3.5*inch, 0.7*inch, 1.2*inch, 1.2*inch])
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), color_usuario), # Cabecera con color de la marca
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('GRID', (0,0), (-1,-2), 0.5, colors.grey), # Líneas grises finas
-        ('BOX', (0,0), (-1,-1), 1, color_usuario), # Borde exterior
-        ('BACKGROUND', (0,-1), (-1,-1), colors.whitesmoke), # Fondo del total
+    t_header = Table(data_header, colWidths=col_widths)
+    t_header.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), # Alinear verticalmente al centro
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 20), # Espacio debajo del header
     ]))
-    story.append(t)
+    
+    story.append(t_header)
+    
+    # --- LÍNEA SEPARADORA DE COLOR ---
+    story.append(Table([['']], colWidths=[6*inch], rowHeights=[2], style=TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), color_base)
+    ])))
+    story.append(Spacer(1, 0.2*inch))
+    
+    # --- DATOS DE LA ORDEN (Alineados a la derecha) ---
+    style_meta = ParagraphStyle(name='Meta', parent=styles['Normal'], alignment=TA_RIGHT, fontSize=11)
+    story.append(Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_meta))
+    story.append(Paragraph(f"Fecha: {orden.fecha_creacion.strftime('%d/%m/%Y')}", style_meta))
+    story.append(Spacer(1, 0.2*inch))
+
+    # ... (AQUÍ SIGUE TU CÓDIGO ACTUAL DE PROVEEDOR, PRODUCTOS Y TOTALES) ...
+    # Asegúrate de volver a pegar la parte de la tabla de productos aquí abajo.
+    # Si necesitas que te pase el código completo de la tabla de productos también, avísame.
     
     doc.build(story)
     buffer.seek(0)
-    filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
+    filename = f"OC_{orden.id}.pdf"
     return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
 
 @app.route('/orden/<int:id>')
@@ -3070,33 +3081,36 @@ def account():
 
 @app.route('/configuracion/plantilla', methods=['GET', 'POST'])
 @login_required
-@admin_required # Solo el admin de la org puede cambiar esto
+@admin_required (Asegúrate de tener tu decorador de admin aquí)
 def configurar_plantilla():
-    """ Permite configurar el logo, colores y datos de la OC. """
     organizacion = current_user.organizacion
     
     if request.method == 'POST':
         try:
-            # 1. Guardar Logo
+            # 1. Guardar Logo (Código existente)
             if 'logo' in request.files:
                 file = request.files['logo']
                 if file.filename != '' and allowed_file(file.filename):
                     filename = secure_filename(f"logo_org_{organizacion.id}_{file.filename}")
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     organizacion.logo_url = filename
+
+            # 2. NUEVO: Guardar Textos Personalizados
+            organizacion.header_titulo = request.form.get('header_titulo')
+            organizacion.header_subtitulo = request.form.get('header_subtitulo')
             
-            # 2. Guardar Datos
+            # 3. Guardar otros datos (Color, Fuente, etc.)
             organizacion.color_primario = request.form.get('color_primario', '#333333')
             organizacion.tipo_letra = request.form.get('tipo_letra', 'Helvetica')
             organizacion.direccion = request.form.get('direccion')
             organizacion.telefono = request.form.get('telefono')
             
             db.session.commit()
-            flash('Plantilla actualizada correctamente.', 'success')
+            flash('Diseño de marca actualizado correctamente.', 'success')
             
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar la plantilla: {e}', 'danger')
+            flash(f'Error al guardar: {e}', 'danger')
             
         return redirect(url_for('configurar_plantilla'))
         
@@ -3270,6 +3284,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
