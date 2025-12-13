@@ -2067,7 +2067,7 @@ def generar_oc_pdf(id):
     story = []
     styles = getSampleStyleSheet()
     
-    # --- ESTILOS PERSONALIZADOS ---
+    # --- ESTILOS ---
     fuente_base = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
     color_base = colors.HexColor(org.color_primario) if org.color_primario else colors.darkblue
 
@@ -2124,18 +2124,17 @@ def generar_oc_pdf(id):
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 2. DATOS DE LA ORDEN Y PROVEEDOR (CORREGIDO)
+    # 2. DATOS (TABLA DE INFORMACIÓN)
     # ==========================================
     
-    # He eliminado la línea de 'Contacto' que causaba el error
+    # --- AQUI ESTABA EL ERROR ---
+    # He eliminado email y telefono para evitar errores de atributos inexistentes
     datos_proveedor = [
         Paragraph(f"<b>PROVEEDOR:</b>", style_normal),
         Paragraph(f"{proveedor.nombre}", style_normal),
-        Paragraph(f"Email: {proveedor.email or '-'}", style_normal),
-        Paragraph(f"Tel: {proveedor.telefono or '-'}", style_normal),
-        # Si tienes campo dirección, descomenta la siguiente línea:
-        # Paragraph(f"Dir: {proveedor.direccion or '-'}", style_normal),
+        Paragraph(f"(ID: {proveedor.id})", style_normal),
     ]
+    # ----------------------------
 
     datos_orden = [
         Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_brand_title),
@@ -2214,6 +2213,7 @@ def generar_oc_pdf(id):
     buffer.seek(0)
     filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
     return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
+    
 @app.route('/orden/<int:id>')
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -3346,6 +3346,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
