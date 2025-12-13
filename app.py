@@ -2062,16 +2062,16 @@ def generar_oc_pdf(id):
     
     # --- 1. CONFIGURACIÓN DEL DOCUMENTO ---
     buffer = io.BytesIO()
-    # Margen superior ajustado para que el header no quede pegado al borde
     doc = SimpleDocTemplate(buffer, pagesize=A4, 
                             rightMargin=inch, leftMargin=inch,
                             topMargin=0.5*inch, bottomMargin=inch)
     story = []
     styles = getSampleStyleSheet()
     
-    # --- 2. ESTILOS ---
+    # --- 2. ESTILOS DE FUENTE Y COLOR ---
     fuente_base = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
-    color_primario = colors.HexColor(org.color_primario) if org.color_primario else colors.darkblue
+    # Si no hay color definido, usamos un gris oscuro elegante por defecto
+    color_primario = colors.HexColor(org.color_primario) if org.color_primario else colors.black
 
     # Estilos de Texto
     style_brand_title = ParagraphStyle(name='BrandTitle', parent=styles['Heading1'], fontName=f'{fuente_base}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
@@ -2079,15 +2079,15 @@ def generar_oc_pdf(id):
     style_normal = ParagraphStyle(name='NormalCustom', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12)
     style_bold = ParagraphStyle(name='BoldCustom', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, leading=12)
     
-    # Estilo para los encabezados de la tabla (Texto Blanco, Centrado)
+    # Estilo para encabezados de tabla (Blanco)
     style_th = ParagraphStyle(name='TableHeader', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
     
-    # Estilo para el TOTAL (Grande, Negrita, Derecha)
-    style_total_label = ParagraphStyle(name='TotalLabel', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=12, alignment=TA_RIGHT)
-    style_total_value = ParagraphStyle(name='TotalValue', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=12, alignment=TA_RIGHT)
+    # Estilos para Total
+    style_total_label = ParagraphStyle(name='TotalLabel', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
+    style_total_value = ParagraphStyle(name='TotalValue', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
 
     # ==========================================
-    # 3. ENCABEZADO DE MARCA (NUEVO)
+    # 3. ENCABEZADO DE MARCA (PERSONALIZADO)
     # ==========================================
     logo_element = []
     if org.logo_url:
@@ -2106,7 +2106,7 @@ def generar_oc_pdf(id):
     if org.header_subtitulo:
         text_elements.append(Paragraph(org.header_subtitulo, style_brand_sub))
 
-    # Tabla Invisible para el Header
+    # Tabla Header Invisible (Solo para alinear logo y texto)
     if logo_element:
         data_header = [[logo_element, text_elements]]
         col_widths_header = [1.5*inch, 4.5*inch]
@@ -2122,23 +2122,20 @@ def generar_oc_pdf(id):
     ]))
     story.append(t_header)
     
-    # Barra de Color Separadora
-    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[3], style=TableStyle([
+    # Barra Separadora
+    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2], style=TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), color_primario)
     ])))
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 4. INFO PROVEEDOR Y ORDEN (RECUPERADO)
+    # 4. INFO PROVEEDOR Y ORDEN
     # ==========================================
-    
-    # Recuperación segura de datos (evita errores si el campo se llama distinto)
-    # Intenta buscar 'email', luego 'correo', luego 'email_contacto', si no '-'
+    # Recuperación segura de datos (evita errores si el campo no existe)
     p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'email_contacto', '-')))
     p_tel = getattr(proveedor, 'telefono', getattr(proveedor, 'celular', '-'))
     p_contacto = getattr(proveedor, 'contacto', getattr(proveedor, 'nombre_contacto', '-'))
 
-    # Bloque Izquierdo: Proveedor
     info_proveedor = [
         Paragraph("<b>PROVEEDOR:</b>", style_normal),
         Paragraph(f"{proveedor.nombre}", style_bold),
@@ -2147,7 +2144,6 @@ def generar_oc_pdf(id):
         Paragraph(f"Tel: {p_tel}", style_normal),
     ]
 
-    # Bloque Derecho: Detalles Orden
     info_orden = [
         Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_brand_title),
         Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%Y-%m-%d')}", style_normal),
@@ -2164,13 +2160,12 @@ def generar_oc_pdf(id):
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 5. TABLA DE PRODUCTOS "ELEGANTE"
+    # 5. TABLA DE PRODUCTOS (CON BORDES)
     # ==========================================
     
-    # Encabezados
     headers = [
-        Paragraph("Producto (SKU)", style_th),
-        Paragraph("Cantidad", style_th),
+        Paragraph("Producto / Descripción", style_th),
+        Paragraph("Cant.", style_th),
         Paragraph("Costo Unit.", style_th),
         Paragraph("Subtotal", style_th)
     ]
@@ -2178,13 +2173,11 @@ def generar_oc_pdf(id):
     data_table = [headers]
     total_general = 0
     
-    # Filas
     for detalle in orden.detalles:
         subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
         total_general += subtotal
         
-        # Formato de descripción: Nombre + (SKU)
-        desc_producto = f"{detalle.producto.nombre}\n({detalle.producto.codigo})"
+        desc_producto = f"{detalle.producto.nombre}\nSKU: {detalle.producto.codigo}"
         
         row = [
             Paragraph(desc_producto, style_normal),
@@ -2194,47 +2187,55 @@ def generar_oc_pdf(id):
         ]
         data_table.append(row)
 
-    # --- FILA DE TOTAL (Integrada en la tabla) ---
-    # Usamos '' en las primeras columnas porque las vamos a fusionar (SPAN)
+    # --- Fila de TOTAL (Fusionada) ---
     row_total = [
-        '', 
-        '', 
+        '', # Celda vacía (se fusionará)
+        '', # Celda vacía (se fusionará)
         Paragraph("TOTAL:", style_total_label),
         Paragraph(f"${total_general:,.2f}", style_total_value)
     ]
     data_table.append(row_total)
 
-    # Configuración de la Tabla
-    # Anchos: Producto(3in), Cant(0.8in), Costo(1.2in), Subtotal(1.2in)
-    col_widths_table = [3.0*inch, 0.8*inch, 1.2*inch, 1.2*inch]
+    # Anchos de columna
+    col_widths_table = [2.8*inch, 0.8*inch, 1.3*inch, 1.3*inch]
     
     t_productos = Table(data_table, colWidths=col_widths_table, repeatRows=1)
     
-    # Estilos de Tabla
+    # --- ESTILOS VISUALES (Aquí está la magia de los bordes) ---
     estilos_tabla = [
-        # Encabezado
+        # 1. Encabezado (Fondo color, texto blanco)
         ('BACKGROUND', (0,0), (-1,0), color_primario),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,0), 'CENTER'),
         ('VALIGN', (0,0), (-1,0), 'MIDDLE'),
         
-        # Cuerpo
-        ('ALIGN', (1,1), (-1,-1), 'CENTER'), # Cantidad centrada
+        # 2. Rejilla (Bordes) para el CUERPO de la tabla (Items)
+        # GRID dibuja líneas verticales y horizontales en todo el rango
+        ('GRID', (0,0), (-1,-2), 0.5, colors.black),
+        
+        # 3. Alineación del cuerpo
+        ('ALIGN', (1,1), (-1,-2), 'CENTER'), # Cantidad centrada
         ('ALIGN', (2,1), (-1,-1), 'RIGHT'),  # Dineros a la derecha
         ('VALIGN', (0,1), (-1,-1), 'MIDDLE'),
-        ('Grid', (0,0), (-1,-2), 0.5, colors.grey), # Rejilla para items (menos total)
         
-        # Fila de TOTAL (La última fila es -1)
-        ('SPAN', (0,-1), (2,-1)),            # Fusionar columnas 0, 1 y 2
-        ('ALIGN', (0,-1), (-1,-1), 'RIGHT'), # Alinear todo a la derecha
-        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black), # Línea negra sobre el total
-        ('BACKGROUND', (0,-1), (-1,-1), colors.whitesmoke), # Fondo gris claro sutil
-        ('BOTTOMPADDING', (0,-1), (-1,-1), 8),
-        ('TOPPADDING', (0,-1), (-1,-1), 8),
+        # 4. Estilos específicos para la fila de TOTAL (Última fila = -1)
+        ('SPAN', (0,-1), (1,-1)),            # Fusionamos las primeras 2 columnas vacías
+        ('ALIGN', (0,-1), (-1,-1), 'RIGHT'), # Alinear "TOTAL:" a la derecha
+        
+        # Borde para la celda que dice "TOTAL:"
+        ('BOX', (2,-1), (2,-1), 0.5, colors.black),
+        # Borde para la celda del VALOR ($)
+        ('BOX', (3,-1), (3,-1), 0.5, colors.black),
+        
+        # Fondo gris claro para resaltar el total
+        ('BACKGROUND', (2,-1), (-1,-1), colors.whitesmoke),
+        
+        # Padding extra para que respire
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
     ]
     
     t_productos.setStyle(TableStyle(estilos_tabla))
-    
     story.append(t_productos)
 
     # --- GENERAR ---
@@ -2242,102 +2243,6 @@ def generar_oc_pdf(id):
     buffer.seek(0)
     filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
     return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
-    
-@app.route('/orden/<int:id>')
-@login_required
-@check_permission('perm_create_oc_standard')
-def ver_orden(id):
-    orden = get_item_or_404(OrdenCompra, id)
-    return render_template('orden_detalle.html', orden=orden, titulo=f"Detalle OC #{orden.id}")
-
-@app.route('/orden/nueva_manual', methods=['GET', 'POST'])
-@login_required
-@check_org_permission
-@check_permission('perm_create_oc_standard')
-def nueva_orden_manual():
-    org_id = current_user.organizacion_id
-    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
-    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
-    
-    productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
-    productos_lista = []
-    for p in productos_query:
-        productos_lista.append({
-            'id': p.id,
-            'nombre': p.nombre,
-            'codigo': p.codigo,
-            'precio_unitario': p.precio_unitario,
-            'proveedor_id': p.proveedor_id
-        })
-
-    if request.method == 'POST':
-        try:
-            proveedor_id = request.form.get('proveedor_id')
-            almacen_id = request.form.get('almacen_id')
-            
-            if not proveedor_id or not almacen_id:
-                flash('Debes seleccionar un Proveedor Y un Almacén de Destino.', 'danger')
-                return render_template('orden_form.html',
-                                       titulo="Crear Orden de Compra Manual",
-                                       proveedores=proveedores,
-                                       productos=productos_lista,
-                                       almacenes=almacenes,
-                                       orden=None) 
-
-            nueva_oc = OrdenCompra(
-                proveedor_id=proveedor_id,
-                estado='borrador',
-                creador_id=current_user.id,
-                organizacion_id=org_id,
-                almacen_id=almacen_id
-            )
-            db.session.add(nueva_oc)
-            
-            productos_ids = request.form.getlist('producto_id[]')
-            cantidades = request.form.getlist('cantidad[]')
-            costos = request.form.getlist('costo[]')
-
-            if not productos_ids:
-                 flash('Debes añadir al menos un producto a la orden.', 'danger')
-                 return render_template('orden_form.html',
-                                       titulo="Crear Orden de Compra Manual",
-                                       proveedores=proveedores,
-                                       productos=productos_lista,
-                                       almacenes=almacenes,
-                                       orden=None)
-
-            for prod_id, cant, cost in zip(productos_ids, cantidades, costos):
-                if not prod_id or not cant or not cost:
-                    continue 
-                
-                detalle = OrdenCompraDetalle(
-                    orden=nueva_oc,
-                    producto_id=int(prod_id),
-                    cantidad_solicitada=int(cant),
-                    costo_unitario_estimado=float(cost)
-                )
-                db.session.add(detalle)
-            
-            db.session.commit()
-            flash('Orden de Compra manual creada en "Borrador".', 'success')
-            return redirect(url_for('lista_ordenes')) 
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al crear la orden: {e}', 'danger')
-            return render_template('orden_form.html',
-                                   titulo="Crear Orden de Compra Manual",
-                                   proveedores=proveedores,
-                                   productos=productos_lista,
-                                   almacenes=almacenes,
-                                   orden=None)
-    
-    return render_template('orden_form.html', 
-                           titulo="Crear Orden de Compra Manual",
-                           proveedores=proveedores,
-                           productos=productos_lista,
-                           almacenes=almacenes,
-                           orden=None)
 
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -3375,6 +3280,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
