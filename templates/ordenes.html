@@ -1,22 +1,23 @@
 {% extends 'base.html' %}
 
-{% block title %}Tablero de Órdenes{% endblock %}
+{% block title %}Órdenes de Compra{% endblock %}
 
 {% block content %}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2><i class="bi bi-grid-fill"></i> Tablero de Órdenes</h2>
+            <h2><i class="bi bi-grid-fill"></i> Órdenes de Compra</h2>
+            <p class="text-muted mb-0">Gestión visual de tus pedidos y recepciones.</p>
         </div>
+        <!-- Botón Nueva Orden (Manual) -->
         <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary btn-lg shadow-sm">
             <i class="bi bi-plus-circle-fill"></i> Nueva Orden
         </a>
     </div>
 
-    <!-- Filtros rápidos (Funcionales) -->
+    <!-- Filtros rápidos (JavaScript) -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="btn-group shadow-sm" role="group" id="filtrosContainer">
-                <!-- Se agregó 'onclick' a cada botón para llamar a la función JS -->
                 <button type="button" class="btn btn-outline-secondary active" onclick="filtrarOrdenes('Todas', this)">Todas</button>
                 <button type="button" class="btn btn-outline-warning text-dark" onclick="filtrarOrdenes('Pendiente', this)">Pendientes</button>
                 <button type="button" class="btn btn-outline-success" onclick="filtrarOrdenes('Recibida', this)">Recibidas</button>
@@ -25,158 +26,166 @@
         </div>
     </div>
 
+    <!-- GRID DE TARJETAS -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="contenedorOrdenes">
         {% for orden in ordenes %}
             
-            <!-- Lógica de Colores según Estado -->
-            {% set borde_color = 'border-secondary' %}
-            {% set bg_header = 'bg-secondary text-white' %}
-            {% set icono_estado = 'bi-question-circle' %}
+            <!-- Configuración de Colores y Estados -->
+            {% set borde_clase = 'border-top-secondary' %}
+            {% set estado_badge = 'bg-secondary' %}
+            {% set icono = 'bi-question' %}
 
             {% if orden.estado == 'Pendiente' %}
-                {% set borde_color = 'border-warning' %}
-                {% set bg_header = 'bg-warning text-dark' %}
-                {% set icono_estado = 'bi-clock-history' %}
+                {% set borde_clase = 'border-top-warning' %}
+                {% set estado_badge = 'bg-warning text-dark' %}
+                {% set icono = 'bi-clock-history' %}
+            {% elif orden.estado == 'Enviada' %}
+                {% set borde_clase = 'border-top-primary' %}
+                {% set estado_badge = 'bg-primary' %}
+                {% set icono = 'bi-send' %}
             {% elif orden.estado == 'Recibida' %}
-                {% set borde_color = 'border-success' %}
-                {% set bg_header = 'bg-success text-white' %}
-                {% set icono_estado = 'bi-check-circle-fill' %}
+                {% set borde_clase = 'border-top-success' %}
+                {% set estado_badge = 'bg-success' %}
+                {% set icono = 'bi-check-circle-fill' %}
             {% elif orden.estado == 'Cancelada' %}
-                {% set borde_color = 'border-danger' %}
-                {% set bg_header = 'bg-danger text-white' %}
-                {% set icono_estado = 'bi-x-circle-fill' %}
+                {% set borde_clase = 'border-top-danger' %}
+                {% set estado_badge = 'bg-danger' %}
+                {% set icono = 'bi-x-circle-fill' %}
             {% endif %}
 
-            <!-- Se agregó la clase 'orden-item' y el atributo 'data-estado' para el filtrado -->
             <div class="col orden-item" data-estado="{{ orden.estado }}">
-                <div class="card h-100 shadow-sm {{ borde_color }}">
+                <!-- Tarjeta con borde superior de color -->
+                <div class="card h-100 shadow-sm border-0 position-relative" style="border-top: 5px solid !important;">
                     
-                    <!-- ENCABEZADO DE LA TARJETA -->
-                    <div class="card-header {{ bg_header }} d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0 fw-bold">
-                            Orden #{{ orden.id }}
-                        </h5>
-                        <span class="badge bg-white text-dark border opacity-75">
-                            <i class="{{ icono_estado }}"></i> {{ orden.estado }}
-                        </span>
-                    </div>
+                    <!-- Aplicamos el color del borde superior dinámicamente -->
+                    <script>
+                        // Pequeño truco para inyectar el color del borde específico en esta tarjeta
+                        document.currentScript.parentElement.classList.add('{{ borde_clase }}');
+                    </script>
+                    <style>
+                        .border-top-warning { border-top-color: #ffc107 !important; }
+                        .border-top-primary { border-top-color: #0d6efd !important; }
+                        .border-top-success { border-top-color: #198754 !important; }
+                        .border-top-danger { border-top-color: #dc3545 !important; }
+                        .border-top-secondary { border-top-color: #6c757d !important; }
+                    </style>
 
-                    <!-- CUERPO DE LA TARJETA -->
                     <div class="card-body">
-                        <h5 class="card-title text-primary fw-bold mb-3">
-                            <i class="bi bi-shop"></i> {{ orden.proveedor.nombre }}
-                        </h5>
-                        
-                        <ul class="list-unstyled mb-0 small">
-                            <li class="mb-2">
-                                <i class="bi bi-calendar-event text-muted"></i> 
-                                <strong>Fecha:</strong> {{ orden.fecha_creacion.strftime('%d/%m/%Y') }}
-                            </li>
-                            <li class="mb-2">
-                                <i class="bi bi-geo-alt text-muted"></i> 
-                                <strong>Destino:</strong> 
-                                {% if orden.almacen %}
-                                    <span class="badge bg-light text-dark border">{{ orden.almacen.nombre }}</span>
-                                {% else %}
-                                    <span class="text-muted fst-italic">General</span>
-                                {% endif %}
-                            </li>
-                            <li class="mb-2">
-                                <i class="bi bi-person text-muted"></i> 
-                                <strong>Por:</strong> {{ orden.usuario.nombre if orden.usuario else 'Sistema' }}
-                            </li>
-                        </ul>
+                        <!-- Encabezado Tarjeta: ID y Estado -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title fw-bold mb-0">Orden #{{ orden.id }}</h5>
+                                <small class="text-muted">{{ orden.fecha_creacion.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                            <span class="badge {{ estado_badge }} rounded-pill">
+                                <i class="{{ icono }}"></i> {{ orden.estado }}
+                            </span>
+                        </div>
 
-                        <!-- Cálculo rápido del total (Solo visualización) -->
+                        <!-- Info Principal -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary mb-1">
+                                <i class="bi bi-building"></i> {{ orden.proveedor.nombre }}
+                            </h6>
+                            <div class="small text-muted">
+                                <i class="bi bi-person"></i> Por: {{ orden.usuario.nombre if orden.usuario else 'Sistema' }}
+                            </div>
+                            <div class="small text-muted">
+                                <i class="bi bi-geo-alt"></i> Destino: 
+                                {% if orden.almacen %}
+                                    {{ orden.almacen.nombre }}
+                                {% else %}
+                                    General
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Total (Cálculo rápido) -->
                         {% set ns = namespace(total=0) %}
                         {% for d in orden.detalles %}
                             {% set ns.total = ns.total + (d.cantidad_solicitada * d.costo_unitario_estimado) %}
                         {% endfor %}
-                        
-                        <div class="mt-3 p-2 bg-light rounded text-center border">
-                            <small class="text-muted text-uppercase" style="font-size: 0.75rem;">Total Estimado</small><br>
-                            <strong class="fs-5 text-dark">${{ "%.2f"|format(ns.total) }}</strong>
+                        <div class="bg-light p-2 rounded text-center mb-3">
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total Estimado</small>
+                            <div class="fw-bold fs-5">${{ "%.2f"|format(ns.total) }}</div>
                         </div>
+
+                        <!-- BOTONES DE ACCIÓN RÁPIDA (Cambio de Estado) -->
+                        <div class="d-grid gap-2 mb-3">
+                            {% if orden.estado == 'Pendiente' %}
+                                <!-- Botón para marcar como ENVIADA (Simulado o real si tienes la ruta) -->
+                                <!-- Si no tienes ruta específica 'marcar_enviada', puedes usar editar o dejarlo visual -->
+                                <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-pencil-square"></i> Editar / Enviar
+                                </a>
+                            {% elif orden.estado == 'Enviada' %}
+                                <!-- Botón para RECIBIR (Ir a detalle o acción directa) -->
+                                <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-success btn-sm">
+                                    <i class="bi bi-box-seam"></i> Recibir Mercancía
+                                </a>
+                            {% endif %}
+                        </div>
+
                     </div>
 
-                    <!-- PIE DE TARJETA (ACCIONES) -->
-                    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2">
-                        
-                        <!-- Grupo 1: Ver y PDF -->
+                    <!-- PIE: Acciones Secundarias (PDF, Ver, Borrar) -->
+                    <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center">
                         <div class="btn-group">
-                            <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-outline-primary btn-sm" title="Ver Detalles Completos">
-                                <i class="bi bi-eye"></i> Ver
+                            <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-link text-secondary p-0 me-3" title="Ver Detalles">
+                                <i class="bi bi-eye fs-5"></i>
                             </a>
-                            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-outline-secondary btn-sm" title="Descargar PDF" target="_blank">
-                                <i class="bi bi-file-pdf"></i> PDF
+                            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-link text-secondary p-0 me-3" title="Descargar PDF" target="_blank">
+                                <i class="bi bi-file-pdf fs-5"></i>
                             </a>
                         </div>
 
-                        <!-- Grupo 2: Acciones Críticas -->
                         <div>
                             {% if orden.estado == 'Pendiente' %}
-                                <!-- Editar -->
-                                <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-link text-warning btn-sm p-1" title="Editar">
-                                    <i class="bi bi-pencil fs-5"></i>
-                                </a>
-                                <!-- Cancelar -->
+                                <!-- Cancelar (Borrar) -->
                                 <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('¿CANCELAR Orden #{{ orden.id }}? Se eliminará permanentemente.');">
-                                    <button type="submit" class="btn btn-link text-danger btn-sm p-1" title="Cancelar Orden">
-                                        <i class="bi bi-x-circle fs-5"></i>
+                                      onsubmit="return confirm('¿CANCELAR y ELIMINAR la Orden #{{ orden.id }}?');">
+                                    <button type="submit" class="btn btn-link text-danger p-0" title="Cancelar Orden">
+                                        <i class="bi bi-trash fs-5"></i>
                                     </button>
                                 </form>
-                            {% elif orden.estado == 'Recibida' %}
+                            {% elif orden.estado == 'Recibida' or orden.estado == 'Cancelada' %}
                                 <!-- Borrar Historial -->
                                 <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('¿Borrar Orden #{{ orden.id }} del historial?');">
-                                    <button type="submit" class="btn btn-link text-secondary btn-sm p-1" title="Borrar del Historial">
-                                        <i class="bi bi-trash fs-5"></i>
+                                      onsubmit="return confirm('¿Borrar del historial?');">
+                                    <button type="submit" class="btn btn-link text-muted p-0" title="Borrar Historial">
+                                        <i class="bi bi-x-circle fs-5"></i>
                                     </button>
                                 </form>
                             {% endif %}
                         </div>
-
                     </div>
                 </div>
             </div>
         {% else %}
             <div class="col-12 text-center py-5">
-                <div class="text-muted opacity-50">
-                    <i class="bi bi-inbox fs-1 d-block mb-3" style="font-size: 4rem;"></i>
-                    <h4>No hay órdenes registradas</h4>
-                    <p>Comienza creando una nueva orden de compra manual.</p>
-                </div>
-                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary mt-2">Crear Primera Orden</a>
+                <i class="bi bi-inbox text-muted opacity-25" style="font-size: 5rem;"></i>
+                <p class="text-muted mt-3">No hay órdenes registradas.</p>
+                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary">Crear Primera Orden</a>
             </div>
         {% endfor %}
     </div>
 
-    <!-- Script para filtrar visualmente las tarjetas -->
+    <!-- Script de filtrado visual -->
     <script>
         function filtrarOrdenes(estado, btn) {
-            // 1. Actualizar estado visual de los botones
             const botones = document.querySelectorAll('#filtrosContainer button');
             botones.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            // 2. Filtrar las tarjetas
             const tarjetas = document.querySelectorAll('.orden-item');
-            let hayVisibles = false;
-
             tarjetas.forEach(tarjeta => {
                 const estadoTarjeta = tarjeta.getAttribute('data-estado');
-                
                 if (estado === 'Todas' || estadoTarjeta === estado) {
                     tarjeta.classList.remove('d-none');
-                    hayVisibles = true;
                 } else {
                     tarjeta.classList.add('d-none');
                 }
             });
-
-            // Opcional: Mostrar mensaje si no hay resultados para ese filtro
-            // (Si quisieras agregar un div de "No se encontraron resultados")
         }
     </script>
 {% endblock %}
