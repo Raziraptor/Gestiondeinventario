@@ -6,26 +6,26 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2><i class="bi bi-grid-fill"></i> Tablero de Órdenes</h2>
-            <p class="text-muted mb-0">Gestiona tus compras y recepciones de manera visual.</p>
         </div>
         <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary btn-lg shadow-sm">
             <i class="bi bi-plus-circle-fill"></i> Nueva Orden
         </a>
     </div>
 
-    <!-- Filtros rápidos (Solo visuales por ahora) -->
+    <!-- Filtros rápidos (Funcionales) -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="btn-group shadow-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary active">Todas</button>
-                <button type="button" class="btn btn-outline-warning text-dark">Pendientes</button>
-                <button type="button" class="btn btn-outline-success">Recibidas</button>
-                <button type="button" class="btn btn-outline-danger">Canceladas</button>
+            <div class="btn-group shadow-sm" role="group" id="filtrosContainer">
+                <!-- Se agregó 'onclick' a cada botón para llamar a la función JS -->
+                <button type="button" class="btn btn-outline-secondary active" onclick="filtrarOrdenes('Todas', this)">Todas</button>
+                <button type="button" class="btn btn-outline-warning text-dark" onclick="filtrarOrdenes('Pendiente', this)">Pendientes</button>
+                <button type="button" class="btn btn-outline-success" onclick="filtrarOrdenes('Recibida', this)">Recibidas</button>
+                <button type="button" class="btn btn-outline-danger" onclick="filtrarOrdenes('Cancelada', this)">Canceladas</button>
             </div>
         </div>
     </div>
 
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="contenedorOrdenes">
         {% for orden in ordenes %}
             
             <!-- Lógica de Colores según Estado -->
@@ -47,7 +47,8 @@
                 {% set icono_estado = 'bi-x-circle-fill' %}
             {% endif %}
 
-            <div class="col">
+            <!-- Se agregó la clase 'orden-item' y el atributo 'data-estado' para el filtrado -->
+            <div class="col orden-item" data-estado="{{ orden.estado }}">
                 <div class="card h-100 shadow-sm {{ borde_color }}">
                     
                     <!-- ENCABEZADO DE LA TARJETA -->
@@ -150,4 +151,32 @@
             </div>
         {% endfor %}
     </div>
+
+    <!-- Script para filtrar visualmente las tarjetas -->
+    <script>
+        function filtrarOrdenes(estado, btn) {
+            // 1. Actualizar estado visual de los botones
+            const botones = document.querySelectorAll('#filtrosContainer button');
+            botones.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // 2. Filtrar las tarjetas
+            const tarjetas = document.querySelectorAll('.orden-item');
+            let hayVisibles = false;
+
+            tarjetas.forEach(tarjeta => {
+                const estadoTarjeta = tarjeta.getAttribute('data-estado');
+                
+                if (estado === 'Todas' || estadoTarjeta === estado) {
+                    tarjeta.classList.remove('d-none');
+                    hayVisibles = true;
+                } else {
+                    tarjeta.classList.add('d-none');
+                }
+            });
+
+            // Opcional: Mostrar mensaje si no hay resultados para ese filtro
+            // (Si quisieras agregar un div de "No se encontraron resultados")
+        }
+    </script>
 {% endblock %}
