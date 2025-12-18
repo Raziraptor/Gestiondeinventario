@@ -1,97 +1,153 @@
 {% extends 'base.html' %}
 
-{% block title %}Órdenes de Compra{% endblock %}
+{% block title %}Tablero de Órdenes{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Órdenes de Compra</h2>
-        <!-- Botón a la función NUEVA MANUAL -->
-        <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-success">
-            <i class="bi bi-plus-lg"></i> Nueva Orden
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-grid-fill"></i> Tablero de Órdenes</h2>
+            <p class="text-muted mb-0">Gestiona tus compras y recepciones de manera visual.</p>
+        </div>
+        <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary btn-lg shadow-sm">
+            <i class="bi bi-plus-circle-fill"></i> Nueva Orden
         </a>
     </div>
 
-    <!-- Tabla simple y limpia -->
-    <div class="table-responsive">
-        <table class="table table-striped table-bordered align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>#</th>
-                    <th>Proveedor</th>
-                    <th>Fecha</th>
-                    <th>Almacén</th>
-                    <th>Estado</th>
-                    <th class="text-end" style="width: 180px;">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for orden in ordenes %}
-                <tr>
-                    <td>{{ orden.id }}</td>
-                    <td>{{ orden.proveedor.nombre }}</td>
-                    <td>{{ orden.fecha_creacion.strftime('%d/%m/%Y') }}</td>
-                    <td>
-                        {% if orden.almacen %}
-                            {{ orden.almacen.nombre }}
-                        {% else %}
-                            <span class="text-muted">General</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if orden.estado == 'Pendiente' %}
-                            <span class="badge bg-warning text-dark">Pendiente</span>
-                        {% elif orden.estado == 'Recibida' %}
-                            <span class="badge bg-success">Recibida</span>
-                        {% elif orden.estado == 'Cancelada' %}
-                            <span class="badge bg-danger">Cancelada</span>
-                        {% else %}
-                            <span class="badge bg-secondary">{{ orden.estado }}</span>
-                        {% endif %}
-                    </td>
-                    <td class="text-end">
-                        <div class="btn-group btn-group-sm">
-                            
-                            <!-- 1. VER DETALLE (Nuevo) -->
-                            <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-info text-white" title="Ver Detalle">
-                                <i class="bi bi-eye"></i>
-                            </a>
+    <!-- Filtros rápidos (Solo visuales por ahora) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="btn-group shadow-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary active">Todas</button>
+                <button type="button" class="btn btn-outline-warning text-dark">Pendientes</button>
+                <button type="button" class="btn btn-outline-success">Recibidas</button>
+                <button type="button" class="btn btn-outline-danger">Canceladas</button>
+            </div>
+        </div>
+    </div>
 
-                            <!-- 2. PDF (Arreglado) -->
-                            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-secondary" title="Descargar PDF" target="_blank">
-                                <i class="bi bi-file-pdf"></i>
-                            </a>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for orden in ordenes %}
+            
+            <!-- Lógica de Colores según Estado -->
+            {% set borde_color = 'border-secondary' %}
+            {% set bg_header = 'bg-secondary text-white' %}
+            {% set icono_estado = 'bi-question-circle' %}
 
-                            <!-- 3. LÓGICA DE BORRADO -->
+            {% if orden.estado == 'Pendiente' %}
+                {% set borde_color = 'border-warning' %}
+                {% set bg_header = 'bg-warning text-dark' %}
+                {% set icono_estado = 'bi-clock-history' %}
+            {% elif orden.estado == 'Recibida' %}
+                {% set borde_color = 'border-success' %}
+                {% set bg_header = 'bg-success text-white' %}
+                {% set icono_estado = 'bi-check-circle-fill' %}
+            {% elif orden.estado == 'Cancelada' %}
+                {% set borde_color = 'border-danger' %}
+                {% set bg_header = 'bg-danger text-white' %}
+                {% set icono_estado = 'bi-x-circle-fill' %}
+            {% endif %}
+
+            <div class="col">
+                <div class="card h-100 shadow-sm {{ borde_color }}">
+                    
+                    <!-- ENCABEZADO DE LA TARJETA -->
+                    <div class="card-header {{ bg_header }} d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 fw-bold">
+                            Orden #{{ orden.id }}
+                        </h5>
+                        <span class="badge bg-white text-dark border opacity-75">
+                            <i class="{{ icono_estado }}"></i> {{ orden.estado }}
+                        </span>
+                    </div>
+
+                    <!-- CUERPO DE LA TARJETA -->
+                    <div class="card-body">
+                        <h5 class="card-title text-primary fw-bold mb-3">
+                            <i class="bi bi-shop"></i> {{ orden.proveedor.nombre }}
+                        </h5>
+                        
+                        <ul class="list-unstyled mb-0 small">
+                            <li class="mb-2">
+                                <i class="bi bi-calendar-event text-muted"></i> 
+                                <strong>Fecha:</strong> {{ orden.fecha_creacion.strftime('%d/%m/%Y') }}
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-geo-alt text-muted"></i> 
+                                <strong>Destino:</strong> 
+                                {% if orden.almacen %}
+                                    <span class="badge bg-light text-dark border">{{ orden.almacen.nombre }}</span>
+                                {% else %}
+                                    <span class="text-muted fst-italic">General</span>
+                                {% endif %}
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-person text-muted"></i> 
+                                <strong>Por:</strong> {{ orden.usuario.nombre if orden.usuario else 'Sistema' }}
+                            </li>
+                        </ul>
+
+                        <!-- Cálculo rápido del total (Solo visualización) -->
+                        {% set ns = namespace(total=0) %}
+                        {% for d in orden.detalles %}
+                            {% set ns.total = ns.total + (d.cantidad_solicitada * d.costo_unitario_estimado) %}
+                        {% endfor %}
+                        
+                        <div class="mt-3 p-2 bg-light rounded text-center border">
+                            <small class="text-muted text-uppercase" style="font-size: 0.75rem;">Total Estimado</small><br>
+                            <strong class="fs-5 text-dark">${{ "%.2f"|format(ns.total) }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- PIE DE TARJETA (ACCIONES) -->
+                    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-2">
+                        
+                        <!-- Grupo 1: Ver y PDF -->
+                        <div class="btn-group">
+                            <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-outline-primary btn-sm" title="Ver Detalles Completos">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-outline-secondary btn-sm" title="Descargar PDF" target="_blank">
+                                <i class="bi bi-file-pdf"></i> PDF
+                            </a>
+                        </div>
+
+                        <!-- Grupo 2: Acciones Críticas -->
+                        <div>
                             {% if orden.estado == 'Pendiente' %}
                                 <!-- Editar -->
-                                <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-primary" title="Editar">
-                                    <i class="bi bi-pencil"></i>
+                                <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-link text-warning btn-sm p-1" title="Editar">
+                                    <i class="bi bi-pencil fs-5"></i>
                                 </a>
-                                <!-- Cancelar (Borra de la BD) -->
+                                <!-- Cancelar -->
                                 <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('¿Estás seguro de CANCELAR esta orden? Se eliminará permanentemente.');">
-                                    <button type="submit" class="btn btn-danger" title="Cancelar">
-                                        <i class="bi bi-x-lg"></i>
+                                      onsubmit="return confirm('¿CANCELAR Orden #{{ orden.id }}? Se eliminará permanentemente.');">
+                                    <button type="submit" class="btn btn-link text-danger btn-sm p-1" title="Cancelar Orden">
+                                        <i class="bi bi-x-circle fs-5"></i>
                                     </button>
                                 </form>
                             {% elif orden.estado == 'Recibida' %}
                                 <!-- Borrar Historial -->
                                 <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('¿Borrar del historial? Esto no afecta el stock.');">
-                                    <button type="submit" class="btn btn-outline-danger" title="Borrar Historial">
-                                        <i class="bi bi-trash"></i>
+                                      onsubmit="return confirm('¿Borrar Orden #{{ orden.id }} del historial?');">
+                                    <button type="submit" class="btn btn-link text-secondary btn-sm p-1" title="Borrar del Historial">
+                                        <i class="bi bi-trash fs-5"></i>
                                     </button>
                                 </form>
                             {% endif %}
                         </div>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="6" class="text-center p-4">No hay órdenes de compra registradas.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <div class="text-muted opacity-50">
+                    <i class="bi bi-inbox fs-1 d-block mb-3" style="font-size: 4rem;"></i>
+                    <h4>No hay órdenes registradas</h4>
+                    <p>Comienza creando una nueva orden de compra manual.</p>
+                </div>
+                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary mt-2">Crear Primera Orden</a>
+            </div>
+        {% endfor %}
     </div>
 {% endblock %}
