@@ -1,191 +1,191 @@
 {% extends 'base.html' %}
 
-{% block title %}Órdenes de Compra{% endblock %}
+{% block title %}Historial de Órdenes{% endblock %}
 
 {% block content %}
+    <!-- ENCABEZAO PRINCIPAL -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2><i class="bi bi-grid-fill"></i> Órdenes de Compra</h2>
-            <p class="text-muted mb-0">Gestión visual de tus pedidos y recepciones.</p>
+            <h2><i class="bi bi-journal-text"></i> Historial de Órdenes</h2>
+            <p class="text-muted mb-0">Consulta, filtra y gestiona el estado de tus compras.</p>
         </div>
-        <!-- Botón Nueva Orden (Manual) -->
-        <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary btn-lg shadow-sm">
-            <i class="bi bi-plus-circle-fill"></i> Nueva Orden
+        <!-- Botón de la nueva función Manual -->
+        <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-circle-fill"></i> Crear OC Manual
         </a>
     </div>
 
-    <!-- Filtros rápidos (JavaScript) -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="btn-group shadow-sm" role="group" id="filtrosContainer">
-                <button type="button" class="btn btn-outline-secondary active" onclick="filtrarOrdenes('Todas', this)">Todas</button>
-                <button type="button" class="btn btn-outline-warning text-dark" onclick="filtrarOrdenes('Pendiente', this)">Pendientes</button>
-                <button type="button" class="btn btn-outline-success" onclick="filtrarOrdenes('Recibida', this)">Recibidas</button>
-                <button type="button" class="btn btn-outline-danger" onclick="filtrarOrdenes('Cancelada', this)">Canceladas</button>
-            </div>
+    <!-- SECCIÓN DE FILTROS (Recuperada de tu archivo subido) -->
+    <div class="card bg-light mb-4 shadow-sm border-0">
+        <div class="card-body py-3">
+            <form method="GET" action="{{ url_for('lista_ordenes') }}" class="row g-2 align-items-end">
+                
+                <div class="col-md-3">
+                    <label for="mes" class="form-label fw-bold small text-muted">Mes</label>
+                    <select id="mes" name="mes" class="form-select form-select-sm">
+                        {% set meses = [
+                            (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+                            (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+                            (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+                        ] %}
+                        {% for num, nombre in meses %}
+                            <option value="{{ num }}" {% if request.args.get('mes')|int == num %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label for="ano" class="form-label fw-bold small text-muted">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control form-control-sm" 
+                           value="{{ request.args.get('ano', 2025) }}" min="2020" max="2050">
+                </div>
+                
+                <div class="col-md-4">
+                    <label for="proveedor_id" class="form-label fw-bold small text-muted">Proveedor</label>
+                    <select id="proveedor_id" name="proveedor_id" class="form-select form-select-sm">
+                        <option value="0">-- Todos --</option>
+                        <!-- Asumiendo que 'proveedores' se pasa al template -->
+                        {% for prov in proveedores %} 
+                            <option value="{{ prov.id }}" {% if request.args.get('proveedor_id')|int == prov.id %}selected{% endif %}>
+                                {{ prov.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-filter"></i> Filtrar Resultados
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- GRID DE TARJETAS -->
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="contenedorOrdenes">
+    <!-- GRID DE ÓRDENES -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         {% for orden in ordenes %}
             
-            <!-- Configuración de Colores y Estados -->
-            {% set borde_clase = 'border-top-secondary' %}
-            {% set estado_badge = 'bg-secondary' %}
-            {% set icono = 'bi-question' %}
-
+            <!-- Definición de estilos según estado (Diseño Visual) -->
+            {% set borde_top = 'border-top: 4px solid #6c757d;' %}
+            {% set badge_class = 'bg-secondary' %}
+            
             {% if orden.estado == 'Pendiente' %}
-                {% set borde_clase = 'border-top-warning' %}
-                {% set estado_badge = 'bg-warning text-dark' %}
-                {% set icono = 'bi-clock-history' %}
+                {% set borde_top = 'border-top: 4px solid #ffc107;' %}
+                {% set badge_class = 'bg-warning text-dark' %}
             {% elif orden.estado == 'Enviada' %}
-                {% set borde_clase = 'border-top-primary' %}
-                {% set estado_badge = 'bg-primary' %}
-                {% set icono = 'bi-send' %}
+                {% set borde_top = 'border-top: 4px solid #0d6efd;' %}
+                {% set badge_class = 'bg-primary' %}
             {% elif orden.estado == 'Recibida' %}
-                {% set borde_clase = 'border-top-success' %}
-                {% set estado_badge = 'bg-success' %}
-                {% set icono = 'bi-check-circle-fill' %}
+                {% set borde_top = 'border-top: 4px solid #198754;' %}
+                {% set badge_class = 'bg-success' %}
             {% elif orden.estado == 'Cancelada' %}
-                {% set borde_clase = 'border-top-danger' %}
-                {% set estado_badge = 'bg-danger' %}
-                {% set icono = 'bi-x-circle-fill' %}
+                {% set borde_top = 'border-top: 4px solid #dc3545;' %}
+                {% set badge_class = 'bg-danger' %}
             {% endif %}
 
-            <div class="col orden-item" data-estado="{{ orden.estado }}">
-                <!-- Tarjeta con borde superior de color -->
-                <div class="card h-100 shadow-sm border-0 position-relative" style="border-top: 5px solid !important;">
-                    
-                    <!-- Aplicamos el color del borde superior dinámicamente -->
-                    <script>
-                        // Pequeño truco para inyectar el color del borde específico en esta tarjeta
-                        document.currentScript.parentElement.classList.add('{{ borde_clase }}');
-                    </script>
-                    <style>
-                        .border-top-warning { border-top-color: #ffc107 !important; }
-                        .border-top-primary { border-top-color: #0d6efd !important; }
-                        .border-top-success { border-top-color: #198754 !important; }
-                        .border-top-danger { border-top-color: #dc3545 !important; }
-                        .border-top-secondary { border-top-color: #6c757d !important; }
-                    </style>
-
+            <div class="col">
+                <div class="card h-100 shadow-sm border-0" style="{{ borde_top }}">
                     <div class="card-body">
-                        <!-- Encabezado Tarjeta: ID y Estado -->
-                        <div class="d-flex justify-content-between align-items-start mb-3">
+                        
+                        <!-- Header Tarjeta -->
+                        <div class="d-flex justify-content-between mb-3">
                             <div>
                                 <h5 class="card-title fw-bold mb-0">Orden #{{ orden.id }}</h5>
                                 <small class="text-muted">{{ orden.fecha_creacion.strftime('%d/%m/%Y') }}</small>
                             </div>
-                            <span class="badge {{ estado_badge }} rounded-pill">
-                                <i class="{{ icono }}"></i> {{ orden.estado }}
-                            </span>
+                            <span class="badge {{ badge_class }} align-self-start">{{ orden.estado }}</span>
                         </div>
 
-                        <!-- Info Principal -->
+                        <!-- Detalles -->
                         <div class="mb-3">
-                            <h6 class="fw-bold text-primary mb-1">
+                            <h6 class="text-primary fw-bold mb-1">
                                 <i class="bi bi-building"></i> {{ orden.proveedor.nombre }}
                             </h6>
-                            <div class="small text-muted">
-                                <i class="bi bi-person"></i> Por: {{ orden.usuario.nombre if orden.usuario else 'Sistema' }}
-                            </div>
-                            <div class="small text-muted">
-                                <i class="bi bi-geo-alt"></i> Destino: 
-                                {% if orden.almacen %}
-                                    {{ orden.almacen.nombre }}
-                                {% else %}
-                                    General
-                                {% endif %}
-                            </div>
+                            <small class="text-muted d-block">
+                                <i class="bi bi-person"></i> {{ orden.usuario.nombre if orden.usuario else 'Sistema' }}
+                            </small>
+                            {% if orden.almacen %}
+                                <small class="text-muted d-block">
+                                    <i class="bi bi-geo-alt"></i> {{ orden.almacen.nombre }}
+                                </small>
+                            {% endif %}
                         </div>
 
-                        <!-- Total (Cálculo rápido) -->
+                        <!-- Total Calculado -->
                         {% set ns = namespace(total=0) %}
                         {% for d in orden.detalles %}
                             {% set ns.total = ns.total + (d.cantidad_solicitada * d.costo_unitario_estimado) %}
                         {% endfor %}
-                        <div class="bg-light p-2 rounded text-center mb-3">
-                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total Estimado</small>
+                        
+                        <div class="bg-light p-2 rounded text-center mb-3 border">
+                            <span class="text-muted small text-uppercase">Total Estimado</span>
                             <div class="fw-bold fs-5">${{ "%.2f"|format(ns.total) }}</div>
                         </div>
 
-                        <!-- BOTONES DE ACCIÓN RÁPIDA (Cambio de Estado) -->
-                        <div class="d-grid gap-2 mb-3">
+                        <!-- BOTONES DE FUNCIÓN (Lo que pediste recuperar) -->
+                        <div class="d-grid gap-2">
+                            
                             {% if orden.estado == 'Pendiente' %}
-                                <!-- Botón para marcar como ENVIADA (Simulado o real si tienes la ruta) -->
-                                <!-- Si no tienes ruta específica 'marcar_enviada', puedes usar editar o dejarlo visual -->
+                                <!-- Botón Enviar (Requiere ruta 'enviar_orden' o similar en backend) -->
+                                <!-- Si no existe la ruta, puedes usar un link a editar para cambiar estado manualmente -->
                                 <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-pencil-square"></i> Editar / Enviar
+                                    <i class="bi bi-send"></i> Gestionar / Enviar
                                 </a>
+
+                                <!-- Botón Cancelar (Usa nuestra nueva lógica de eliminar_orden) -->
+                                <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" 
+                                      onsubmit="return confirm('¿Cancelar esta orden? Se eliminará permanentemente.');">
+                                    <button type="submit" class="btn btn-warning btn-sm w-100 text-dark">
+                                        <i class="bi bi-x-circle"></i> Cancelar Orden
+                                    </button>
+                                </form>
+
                             {% elif orden.estado == 'Enviada' %}
-                                <!-- Botón para RECIBIR (Ir a detalle o acción directa) -->
+                                <!-- Botón Recibir -->
                                 <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-success btn-sm">
                                     <i class="bi bi-box-seam"></i> Recibir Mercancía
                                 </a>
+
+                            {% elif orden.estado == 'Recibida' %}
+                                <div class="alert alert-success py-1 px-2 small text-center mb-0">
+                                    <i class="bi bi-check-all"></i> Completada
+                                </div>
                             {% endif %}
                         </div>
-
                     </div>
 
-                    <!-- PIE: Acciones Secundarias (PDF, Ver, Borrar) -->
-                    <div class="card-footer bg-white border-top-0 d-flex justify-content-between align-items-center">
+                    <!-- FOOTER: Herramientas Fijas (PDF, Ver) -->
+                    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
                         <div class="btn-group">
-                            <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-link text-secondary p-0 me-3" title="Ver Detalles">
+                            <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-link text-secondary p-0 me-2" title="Ver Detalle">
                                 <i class="bi bi-eye fs-5"></i>
                             </a>
-                            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-link text-secondary p-0 me-3" title="Descargar PDF" target="_blank">
+                            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-link text-secondary p-0" title="Descargar PDF" target="_blank">
                                 <i class="bi bi-file-pdf fs-5"></i>
                             </a>
                         </div>
-
-                        <div>
-                            {% if orden.estado == 'Pendiente' %}
-                                <!-- Cancelar (Borrar) -->
-                                <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('¿CANCELAR y ELIMINAR la Orden #{{ orden.id }}?');">
-                                    <button type="submit" class="btn btn-link text-danger p-0" title="Cancelar Orden">
-                                        <i class="bi bi-trash fs-5"></i>
-                                    </button>
-                                </form>
-                            {% elif orden.estado == 'Recibida' or orden.estado == 'Cancelada' %}
-                                <!-- Borrar Historial -->
-                                <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="d-inline"
-                                      onsubmit="return confirm('¿Borrar del historial?');">
-                                    <button type="submit" class="btn btn-link text-muted p-0" title="Borrar Historial">
-                                        <i class="bi bi-x-circle fs-5"></i>
-                                    </button>
-                                </form>
-                            {% endif %}
-                        </div>
+                        
+                        <!-- Opción de Borrar Historial (Solo si está terminada/cancelada) -->
+                        {% if orden.estado in ['Recibida', 'Cancelada'] %}
+                            <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="d-inline"
+                                  onsubmit="return confirm('¿Borrar del historial?');">
+                                <button type="submit" class="btn btn-link text-muted p-0" title="Borrar Historial">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         {% else %}
             <div class="col-12 text-center py-5">
-                <i class="bi bi-inbox text-muted opacity-25" style="font-size: 5rem;"></i>
-                <p class="text-muted mt-3">No hay órdenes registradas.</p>
-                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary">Crear Primera Orden</a>
+                <i class="bi bi-filter-circle text-muted opacity-25" style="font-size: 4rem;"></i>
+                <p class="mt-3 text-muted">No se encontraron órdenes con estos filtros.</p>
+                <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary btn-sm">Limpiar Filtros</a>
             </div>
         {% endfor %}
     </div>
-
-    <!-- Script de filtrado visual -->
-    <script>
-        function filtrarOrdenes(estado, btn) {
-            const botones = document.querySelectorAll('#filtrosContainer button');
-            botones.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            const tarjetas = document.querySelectorAll('.orden-item');
-            tarjetas.forEach(tarjeta => {
-                const estadoTarjeta = tarjeta.getAttribute('data-estado');
-                if (estado === 'Todas' || estadoTarjeta === estado) {
-                    tarjeta.classList.remove('d-none');
-                } else {
-                    tarjeta.classList.add('d-none');
-                }
-            });
-        }
-    </script>
 {% endblock %}
