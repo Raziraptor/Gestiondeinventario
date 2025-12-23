@@ -15,7 +15,6 @@
     </div>
 
     <!-- SECCIÓN DE FILTROS (Funcional) -->
-    <!-- Se asegura que los 'name' coincidan con lo que espera el backend (mes, ano, proveedor_id) -->
     <div class="card bg-light mb-4 shadow-sm border-0">
         <div class="card-body py-3">
             <form method="GET" action="{{ url_for('lista_ordenes') }}" class="row g-2 align-items-end">
@@ -27,7 +26,6 @@
                             (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
                             (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
                         ] %}
-                        <!-- Detecta el mes seleccionado desde la URL (request.args) -->
                         {% for num, nombre in meses %}
                             <option value="{{ num }}" {% if request.args.get('mes')|int == num %}selected{% endif %}>
                                 {{ nombre }}
@@ -64,7 +62,7 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         {% for orden in ordenes %}
             
-            <!-- Lógica de Estilos Dinámicos (Uso |lower para evitar errores de mayúsculas/minúsculas) -->
+            <!-- Lógica de Estilos Dinámicos -->
             {% set border_class = 'border-secondary' %}
             {% set header_class = 'bg-secondary text-white' %}
             {% set text_class = 'text-secondary' %}
@@ -75,6 +73,12 @@
                 {% set header_class = 'bg-warning text-dark' %}
                 {% set text_class = 'text-dark' %}
                 {% set icon_state = 'bi-clock-history' %}
+            {% elif orden.estado|lower == 'borrador' %}
+                <!-- Estilo específico para Borrador -->
+                {% set border_class = 'border-secondary' %}
+                {% set header_class = 'bg-secondary text-white' %}
+                {% set text_class = 'text-secondary' %}
+                {% set icon_state = 'bi-pencil-square' %}
             {% elif orden.estado|lower == 'enviada' %}
                 {% set border_class = 'border-info' %}
                 {% set header_class = 'bg-info text-white' %}
@@ -127,23 +131,26 @@
                         </div>
                     </div>
 
-                    <!-- PIE DE PÁGINA: BOTONES DE ACCIÓN (Lógica Restaurada) -->
+                    <!-- PIE DE PÁGINA: BOTONES DE ACCIÓN -->
                     <div class="card-footer bg-white py-2">
                         <div class="d-grid gap-2">
                             
-                            <!-- ESTADO: PENDIENTE -->
-                            {% if orden.estado|lower == 'pendiente' %}
-                                <!-- Botones agrupados para Pendiente -->
+                            <!-- ESTADO: PENDIENTE O BORRADOR -->
+                            {% if orden.estado|lower in ['pendiente', 'borrador'] %}
                                 <div class="btn-group w-100" role="group">
-                                    <!-- 1. Marcar como Enviada -->
-                                    <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" class="btn-group w-75">
+                                    <!-- Botón Editar (Solo para Borrador/Pendiente es crucial) -->
+                                    <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-outline-secondary btn-sm fw-bold" title="Editar Orden">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+
+                                    <!-- Botón Marcar Enviada -->
+                                    <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" class="btn-group w-50">
                                         <button type="submit" class="btn btn-info btn-sm fw-bold text-white" title="Marcar como Enviada">
-                                            <i class="bi bi-send-fill"></i> Marcar Enviada
+                                            <i class="bi bi-send-fill"></i> Enviar
                                         </button>
                                     </form>
                                     
-                                    <!-- 2. Cancelar (Eliminar) -->
-                                    <!-- Usamos 'eliminar_orden' que maneja la cancelación lógica si es pendiente -->
+                                    <!-- Botón Cancelar -->
                                     <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="btn-group w-25"
                                           onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden? Se eliminará permanentemente.');">
                                         <button type="submit" class="btn btn-warning btn-sm fw-bold text-dark" title="Cancelar Orden">
@@ -166,7 +173,7 @@
                                 <div class="text-center text-success small py-1 border border-success rounded bg-light">
                                     <i class="bi bi-check-all"></i> Recibida el {{ orden.fecha_recepcion.strftime('%d/%m/%Y') if orden.fecha_recepcion else '---' }}
                                 </div>
-                                <!-- Opción de Limpiar Historial (Solo visual) -->
+                                <!-- Opción de Limpiar Historial -->
                                 <form action="{{ url_for('eliminar_orden', id=orden.id) }}" method="POST" class="text-end mt-1"
                                       onsubmit="return confirm('¿Borrar del historial visual?');">
                                     <button type="submit" class="btn btn-link text-muted btn-sm p-0" style="font-size: 0.8rem;">
@@ -174,7 +181,7 @@
                                     </button>
                                 </form>
 
-                            <!-- ESTADO: CANCELADA (Opcional si se guardan) -->
+                            <!-- ESTADO: CANCELADA -->
                             {% elif orden.estado|lower == 'cancelada' %}
                                 <div class="text-center text-danger small py-1">
                                     <i class="bi bi-x-circle"></i> Orden Cancelada
@@ -182,7 +189,7 @@
                             {% endif %}
                         </div>
 
-                        <!-- Herramientas Fijas (PDF/Ver) - Siempre Visibles -->
+                        <!-- Herramientas Fijas -->
                         <hr class="my-2">
                         <div class="d-flex justify-content-between">
                             <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-link btn-sm text-decoration-none text-secondary ps-0">
