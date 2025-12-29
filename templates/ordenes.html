@@ -153,7 +153,8 @@
                             {% endfor %}
                             <div class="bg-light p-2 rounded text-center border">
                                 <small class="text-uppercase text-muted" style="font-size: 0.7rem;">Total Estimado</small>
-                                <div class="fs-5 fw-bold text-dark">${{ "%.2f"|format(ns.total) }}</div>
+                                <!-- CORRECCIÓN: Formato con comas para miles -->
+                                <div class="fs-5 fw-bold text-dark">${{ "{:,.2f}".format(ns.total) }}</div>
                             </div>
                         </div>
 
