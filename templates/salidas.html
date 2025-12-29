@@ -3,14 +3,14 @@
 {% block title %}Historial de Salidas{% endblock %}
 
 {% block content %}
-    <!-- ENCABEZADO PRINCIPAL -->
+    <!-- ENCABEZADO -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2><i class="bi bi-box-arrow-up"></i> Historial de Salidas</h2>
+            <h2><i class="bi bi-box-arrow-right"></i> Historial de Salidas</h2>
             <p class="text-muted mb-0">Registro de movimientos de salida de almacén.</p>
         </div>
-        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger btn-lg shadow-sm">
-            <i class="bi bi-plus-circle"></i> Nueva Salida
+        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger shadow-sm">
+            <i class="bi bi-plus-lg"></i> Registrar Nueva Salida
         </a>
     </div>
 
@@ -46,17 +46,21 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         {% for salida in salidas %}
             
-            <!-- Definición de Estilos según Estado -->
-            {% set border_class = 'border-danger' %}     <!-- Rojo por defecto (Salida) -->
+            <!-- 1. DEFINICIÓN DE ESTILOS -->
+            <!-- Por defecto: Estilo "Cerrada/Procesada" (Rojo) -->
+            {% set border_class = 'border-danger' %}
             {% set header_class = 'bg-danger text-white' %}
             {% set badge_class = 'bg-white text-danger' %}
-            {% set icon_state = 'bi-box-arrow-up' %}
+            {% set icon_state = 'bi-check-circle-fill' %}
+            {% set texto_estado = 'Cerrada' %}
 
+            <!-- Caso: Cancelada -->
             {% if salida.estado == 'cancelada' %}
                 {% set border_class = 'border-secondary' %}
                 {% set header_class = 'bg-secondary text-white' %}
                 {% set badge_class = 'bg-white text-secondary' %}
-                {% set icon_state = 'bi-x-circle' %}
+                {% set icon_state = 'bi-x-circle-fill' %}
+                {% set texto_estado = 'Cancelada' %}
             {% endif %}
 
             <div class="col">
@@ -65,43 +69,47 @@
                     <!-- ENCABEZADO TARJETA -->
                     <div class="card-header {{ header_class }} d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="card-title mb-0 fw-bold fs-6">Salida #{{ salida.id }}</h5>
-                            <small class="opacity-75">{{ salida.fecha.strftime('%d/%m/%Y') }}</small>
+                            <h5 class="card-title mb-0 fw-bold">Salida #{{ salida.id }}</h5>
                         </div>
                         <span class="badge {{ badge_class }} border opacity-90">
-                            <i class="{{ icon_state }}"></i> {{ salida.estado|capitalize if salida.estado else 'Abierta' }}
+                            <i class="{{ icon_state }}"></i> {{ texto_estado }}
                         </span>
                     </div>
 
                     <!-- CUERPO TARJETA -->
                     <div class="card-body">
-                        <!-- Almacén y Usuario -->
+                        <!-- Info Principal -->
                         <div class="mb-3">
-                            <h6 class="text-dark fw-bold mb-1">
-                                <i class="bi bi-house-door-fill text-muted"></i> {{ salida.almacen.nombre }}
-                            </h6>
-                            <small class="text-muted">
-                                <i class="bi bi-person-fill"></i> Por: {{ salida.creador.username }}
-                            </small>
+                            <h5 class="text-dark fw-bold mb-1">
+                                <i class="bi bi-shop"></i> {{ salida.almacen.nombre }}
+                            </h5>
+                            <div class="text-muted small">
+                                <i class="bi bi-calendar-event"></i> {{ salida.fecha.strftime('%d/%m/%Y') }}
+                                <span class="mx-1">|</span>
+                                <i class="bi bi-person"></i> {{ salida.creador.username }}
+                            </div>
                         </div>
 
-                        <!-- Resumen de Items (Limitado a 3) -->
+                        <!-- Resumen de Items (Estilo Lista Compacta) -->
                         <div class="bg-light border rounded p-2 small mb-3">
-                            <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
-                                <span class="fw-bold text-muted">Items Retirados</span>
+                            <div class="d-flex justify-content-between border-bottom pb-1 mb-2">
+                                <strong class="text-muted text-uppercase" style="font-size: 0.7rem;">Resumen de Items</strong>
                                 <span class="badge bg-secondary rounded-pill">{{ salida.movimientos.count() }}</span>
                             </div>
+                            
                             <ul class="list-unstyled mb-0 text-muted">
                                 {% for mov in salida.movimientos.limit(3) %}
                                 <li class="d-flex justify-content-between py-1 border-bottom border-light">
-                                    <span class="text-truncate" style="max-width: 140px;">{{ mov.producto.nombre }}</span>
+                                    <span class="text-truncate" style="max-width: 150px;">
+                                        <i class="bi bi-box-seam me-1"></i> {{ mov.producto.nombre }}
+                                    </span>
                                     <span class="fw-bold text-danger">-{{ mov.cantidad | abs }}</span>
                                 </li>
                                 {% endfor %}
                                 
                                 {% if (salida.movimientos.count()) > 3 %}
-                                    <li class="text-center fst-italic pt-1 text-muted" style="font-size: 0.75rem;">
-                                        + {{ (salida.movimientos.count()) - 3 }} más...
+                                    <li class="text-center fst-italic pt-1 text-muted" style="font-size: 0.7rem;">
+                                        + {{ (salida.movimientos.count()) - 3 }} items más...
                                     </li>
                                 {% endif %}
                             </ul>
@@ -113,25 +121,35 @@
                         <div class="d-grid gap-2">
                             <!-- Botón Principal: Ver Detalle -->
                             <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-outline-secondary btn-sm fw-bold">
-                                <i class="bi bi-eye"></i> Ver Detalle / Editar
+                                <i class="bi bi-pencil-square"></i> Ver Detalle / Editar
                             </a>
                             
-                            <!-- Botón Secundario: PDF -->
-                            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-link btn-sm text-danger text-decoration-none" target="_blank">
-                                <i class="bi bi-file-earmark-pdf-fill"></i> Descargar Hoja de Salida
-                            </a>
+                            <!-- Botones Secundarios -->
+                            <div class="d-flex justify-content-between align-items-center mt-1 border-top pt-2">
+                                <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-link btn-sm text-danger text-decoration-none ps-0" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+                                </a>
+                                
+                                <!-- Opcional: Mostrar la fecha relativa con JS si quisieras "Hace 2 días" -->
+                                <small class="text-muted fst-italic" style="font-size: 0.75rem;">
+                                    Registro del {{ salida.fecha.strftime('%Y-%m-%d') }}
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
         {% else %}
-            <!-- MENSAJE SI NO HAY RESULTADOS -->
+            <!-- MENSAJE VACÍO -->
             <div class="col-12 text-center py-5">
-                <i class="bi bi-box-seam text-muted opacity-25" style="font-size: 5rem;"></i>
-                <p class="mt-3 text-muted">No se encontraron salidas registradas para este periodo.</p>
-                <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger btn-sm shadow-sm px-4">
-                    Registrar Primera Salida
+                <div class="opacity-25 mb-3">
+                    <i class="bi bi-box-arrow-right" style="font-size: 4rem;"></i>
+                </div>
+                <h5 class="text-muted">No hay salidas registradas en este periodo.</h5>
+                <p class="text-muted small">Cambia los filtros o registra una nueva salida.</p>
+                <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger mt-2">
+                    <i class="bi bi-plus-lg"></i> Registrar Salida
                 </a>
             </div>
         {% endfor %}
