@@ -42,37 +42,51 @@
         </div>
     </div>
 
-    <!-- GRID DE TARJETAS (ESTILO OC) -->
+    <!-- GRID DE TARJETAS -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         {% for salida in salidas %}
             
-            <!-- 1. DEFINICIÓN DE ESTILOS -->
-            <!-- Por defecto: Estilo "Cerrada/Procesada" (Rojo) -->
-            {% set border_class = 'border-danger' %}
-            {% set header_class = 'bg-danger text-white' %}
-            {% set badge_class = 'bg-white text-danger' %}
-            {% set icon_state = 'bi-check-circle-fill' %}
-            {% set texto_estado = 'Cerrada' %}
-
-            <!-- Caso: Cancelada -->
+            <!-- LÓGICA DE ESTADO POR DEFECTO (SERVER-SIDE) -->
+            <!-- 
+               1. Cancelada: Gris
+               2. Por defecto (Pasado): Cerrada (Rojo)
+               3. Hoy (Abierta): Se detecta con JS abajo para cambiar a Verde
+            -->
+            
+            {% set fecha_str = salida.fecha.strftime('%Y-%m-%d') %}
+            
+            <!-- Estilos Base: Asumimos que está CERRADA (Rojo) o CANCELADA -->
             {% if salida.estado == 'cancelada' %}
                 {% set border_class = 'border-secondary' %}
                 {% set header_class = 'bg-secondary text-white' %}
                 {% set badge_class = 'bg-white text-secondary' %}
                 {% set icon_state = 'bi-x-circle-fill' %}
                 {% set texto_estado = 'Cancelada' %}
+                {% set data_estado = 'cancelada' %}
+            {% else %}
+                <!-- Estilo "Cerrada" (Rojo) por defecto -->
+                {% set border_class = 'border-danger' %}
+                {% set header_class = 'bg-danger text-white' %}
+                {% set badge_class = 'bg-white text-danger' %}
+                {% set icon_state = 'bi-lock-fill' %}
+                {% set texto_estado = 'Cerrada' %}
+                {% set data_estado = 'activa' %}
             {% endif %}
 
             <div class="col">
-                <div class="card h-100 shadow-sm {{ border_class }}">
+                <!-- Agregamos clase 'salida-card' y atributos data para manipulación JS -->
+                <div class="card h-100 shadow-sm {{ border_class }} salida-card" 
+                     data-fecha="{{ fecha_str }}" 
+                     data-estado-base="{{ data_estado }}"
+                     id="card-{{ salida.id }}">
                     
                     <!-- ENCABEZADO TARJETA -->
-                    <div class="card-header {{ header_class }} d-flex justify-content-between align-items-center">
+                    <div class="card-header {{ header_class }} d-flex justify-content-between align-items-center header-area">
                         <div>
                             <h5 class="card-title mb-0 fw-bold">Salida #{{ salida.id }}</h5>
                         </div>
-                        <span class="badge {{ badge_class }} border opacity-90">
-                            <i class="{{ icon_state }}"></i> {{ texto_estado }}
+                        <span class="badge {{ badge_class }} border opacity-90 badge-area">
+                            <i class="{{ icon_state }} icon-area"></i> <span class="text-area">{{ texto_estado }}</span>
                         </span>
                     </div>
 
@@ -90,7 +104,7 @@
                             </div>
                         </div>
 
-                        <!-- Resumen de Items (Estilo Lista Compacta) -->
+                        <!-- Resumen de Items -->
                         <div class="bg-light border rounded p-2 small mb-3">
                             <div class="d-flex justify-content-between border-bottom pb-1 mb-2">
                                 <strong class="text-muted text-uppercase" style="font-size: 0.7rem;">Resumen de Items</strong>
@@ -130,9 +144,8 @@
                                     <i class="bi bi-file-earmark-pdf-fill"></i> PDF
                                 </a>
                                 
-                                <!-- Opcional: Mostrar la fecha relativa con JS si quisieras "Hace 2 días" -->
-                                <small class="text-muted fst-italic" style="font-size: 0.75rem;">
-                                    Registro del {{ salida.fecha.strftime('%Y-%m-%d') }}
+                                <small class="text-muted fst-italic label-fecha-relativa" style="font-size: 0.75rem;">
+                                    {{ salida.fecha.strftime('%d/%m/%Y') }}
                                 </small>
                             </div>
                         </div>
@@ -154,4 +167,55 @@
             </div>
         {% endfor %}
     </div>
+
+    <!-- SCRIPT: LÓGICA AUTOMÁTICA DE "HOY" -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Obtener la fecha de HOY en formato YYYY-MM-DD local
+            const hoy = new Date();
+            const year = hoy.getFullYear();
+            const month = String(hoy.getMonth() + 1).padStart(2, '0');
+            const day = String(hoy.getDate()).padStart(2, '0');
+            const fechaHoyStr = `${year}-${month}-${day}`;
+
+            // 2. Buscar todas las tarjetas
+            const tarjetas = document.querySelectorAll('.salida-card');
+
+            tarjetas.forEach(card => {
+                const fechaCard = card.getAttribute('data-fecha');
+                const estadoBase = card.getAttribute('data-estado-base');
+
+                // Si la tarjeta NO está cancelada y la fecha coincide con HOY
+                if (estadoBase === 'activa' && fechaCard === fechaHoyStr) {
+                    
+                    // CAMBIAR A ESTADO "ABIERTA" (VERDE)
+                    
+                    // 1. Borde de la tarjeta
+                    card.classList.remove('border-danger');
+                    card.classList.add('border-success');
+
+                    // 2. Encabezado (Fondo)
+                    const header = card.querySelector('.header-area');
+                    header.classList.remove('bg-danger');
+                    header.classList.add('bg-success');
+
+                    // 3. Badge (Etiqueta)
+                    const badge = card.querySelector('.badge-area');
+                    badge.classList.remove('text-danger');
+                    badge.classList.add('text-success');
+
+                    // 4. Texto e Icono
+                    const texto = card.querySelector('.text-area');
+                    texto.textContent = 'Abierta';
+                    
+                    const icono = card.querySelector('.icon-area');
+                    icono.className = 'bi bi-unlock-fill icon-area'; // Cambiar candado por candado abierto o check
+                    
+                    // 5. Etiqueta relativa (Opcional)
+                    const labelRelativa = card.querySelector('.label-fecha-relativa');
+                    if(labelRelativa) labelRelativa.textContent = 'Hoy (Activa)';
+                }
+            });
+        });
+    </script>
 {% endblock %}
