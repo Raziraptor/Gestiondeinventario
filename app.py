@@ -908,6 +908,37 @@ def dashboard():
 
 # --- Rutas de Productos ---
 
+@app.route('/api/productos/buscar')
+@login_required
+def api_buscar_productos():
+    """
+    API para buscar productos por Nombre o SKU dinámicamente.
+    Retorna JSON para ser consumido por JavaScript.
+    """
+    query = request.args.get('q', '').strip()
+    
+    if not query:
+        return jsonify([])
+
+    # Buscamos coincidencias en Nombre O Código (SKU)
+    # Usamos ilike para que no importen mayúsculas/minúsculas
+    productos = Producto.query.filter(
+        (Producto.nombre.ilike(f'%{query}%')) | 
+        (Producto.codigo.ilike(f'%{query}%'))
+    ).filter_by(organizacion_id=current_user.organizacion_id).limit(10).all()
+
+    resultados = []
+    for p in productos:
+        resultados.append({
+            'id': p.id,
+            'texto_mostrar': f"{p.nombre} (SKU: {p.codigo})", # Lo que se ve en la lista
+            'nombre': p.nombre,
+            'codigo': p.codigo,
+            'precio': p.precio_unitario
+        })
+    
+    return jsonify(resultados)
+
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
@@ -3377,6 +3408,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
