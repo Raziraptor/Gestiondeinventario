@@ -3,91 +3,247 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
+<div class="container mt-4">
+    <!-- ENCABEZADO -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>{{ titulo }}</h2>
         <a href="{{ url_for('ver_salida', id=salida_id) }}" class="btn btn-outline-secondary">
             <i class="bi bi-eye"></i> Ver Hoja de Salida de Hoy
         </a>
     </div>
-    <p class="text-muted">
-        Añade items a la hoja de salida del día. Los items se restarán del almacén: <strong>{{ almacen.nombre }}</strong>
-    </p>
-    <hr>
     
-    <form method="POST" action="{{ url_for('registrar_salida', almacen_id=almacen.id) }}">
-        
-        <h4>Productos a Retirar</h4>
-        <div id="lineas_productos_container">
+    <div class="alert alert-light border shadow-sm">
+        <i class="bi bi-info-circle-fill text-info"></i> Estás registrando salidas del almacén: <strong>{{ almacen.nombre }}</strong>.
+    </div>
+
+    <!-- SECCIÓN DE BÚSQUEDA (TIPO TYPEAHEAD) -->
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-header bg-primary text-white fw-bold">
+            <i class="bi bi-search"></i> Buscar Producto para Agregar
+        </div>
+        <div class="card-body bg-light">
+            <div class="position-relative">
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-white"><i class="bi bi-upc-scan"></i></span>
+                    <input type="text" id="buscador" class="form-control" 
+                           placeholder="Escribe Nombre del producto o Escanea el SKU..." autocomplete="off">
+                </div>
+                <!-- Lista flotante de sugerencias -->
+                <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow" 
+                     style="z-index: 1050; top: 100%; display: none; max-height: 300px; overflow-y: auto;">
+                </div>
             </div>
+            <div class="form-text mt-2">
+                <i class="bi bi-lightning-charge-fill text-warning"></i> Tip: Presiona <strong>Enter</strong> si escribes el SKU exacto para agregarlo automáticamente.
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE SALIDA -->
+    <form method="POST" action="{{ url_for('registrar_salida', almacen_id=almacen.id) }}" id="form_salida">
         
-        <button type="button" id="btn_add_producto" class="btn btn-info mt-2">
-            <i class="bi bi-plus-circle"></i> Añadir Producto
-        </button>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4><i class="bi bi-cart-dash"></i> Productos a Retirar</h4>
+            <span class="badge bg-secondary" id="contador_items">0 items</span>
+        </div>
+
+        <!-- CONTENEDOR DE ITEMS -->
+        <div id="lineas_productos_container" class="mb-4">
+            <!-- Mensaje cuando está vacío -->
+            <div id="mensaje_vacio" class="text-center text-muted py-5 border rounded bg-white border-dashed">
+                <i class="bi bi-basket fs-1 opacity-25"></i>
+                <p class="mt-2">La lista está vacía. Usa el buscador de arriba para agregar productos.</p>
+            </div>
+        </div>
         
         <hr class="my-4">
-        <div class="col-12">
-            <button type="submit" class="btn btn-danger">
+        
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="{{ url_for('historial_salidas') }}" class="btn btn-secondary btn-lg px-4">Cancelar</a>
+            <button type="submit" class="btn btn-danger btn-lg px-4">
                 <i class="bi bi-box-arrow-up"></i> Registrar Salida
             </button>
-            <a href="{{ url_for('historial_salidas') }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
+</div>
 
-    <template id="plantilla_linea">
-        <div class="row g-3 mb-3 p-2 border rounded bg-light producto-linea">
+<!-- JAVASCRIPT PARA LA LÓGICA DE BÚSQUEDA Y AGREGADO -->
+<script>
+    // Obtenemos los productos pasados desde el backend (JSON)
+    // Asegúrate de que 'productos' tenga: id, nombre, codigo, stock_actual
+    var productosDisponibles = {{ productos | tojson | safe }};
+
+    const buscador = document.getElementById('buscador');
+    const sugerencias = document.getElementById('lista_sugerencias');
+    const container = document.getElementById('lineas_productos_container');
+    const mensajeVacio = document.getElementById('mensaje_vacio');
+    const contadorItems = document.getElementById('contador_items');
+
+    // 1. EVENTO: Escribir en el buscador
+    buscador.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        sugerencias.innerHTML = ''; // Limpiar lista
+
+        if (query.length === 0) {
+            sugerencias.style.display = 'none';
+            return;
+        }
+
+        // Filtrar productos (Nombre o SKU)
+        const resultados = productosDisponibles.filter(p => 
+            p.nombre.toLowerCase().includes(query) || 
+            p.codigo.toLowerCase().includes(query)
+        );
+
+        if (resultados.length > 0) {
+            sugerencias.style.display = 'block';
+            resultados.forEach(p => {
+                // Crear elemento de lista
+                const item = document.createElement('a');
+                item.href = '#';
+                item.classList.add('list-group-item', 'list-group-item-action', 'd-flex', 'justify-content-between', 'align-items-center');
+                
+                // Estilo según stock
+                let stockBadge = `Stock: ${p.stock_actual}`;
+                let badgeClass = 'bg-success';
+                if (p.stock_actual === 0) {
+                    badgeClass = 'bg-danger';
+                    stockBadge = 'Sin Stock';
+                } else if (p.stock_actual <= 5) {
+                    badgeClass = 'bg-warning text-dark';
+                }
+
+                item.innerHTML = `
+                    <div>
+                        <strong>${p.nombre}</strong> <br>
+                        <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}</small>
+                    </div>
+                    <span class="badge ${badgeClass} rounded-pill">${stockBadge}</span>
+                `;
+
+                // Al hacer clic
+                item.onclick = (e) => {
+                    e.preventDefault();
+                    if (p.stock_actual > 0) {
+                        agregarProducto(p);
+                        limpiarBuscador();
+                    } else {
+                        alert('No puedes agregar un producto sin stock.');
+                    }
+                };
+                sugerencias.appendChild(item);
+            });
+        } else {
+            sugerencias.style.display = 'none';
+        }
+    });
+
+    // 2. EVENTO: Presionar Enter (Para escáner o selección rápida)
+    buscador.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Evitar submit del form
+            const query = this.value.toLowerCase().trim();
+
+            // Buscar coincidencia EXACTA de SKU
+            const exacto = productosDisponibles.find(p => p.codigo.toLowerCase() === query);
+
+            if (exacto) {
+                if (exacto.stock_actual > 0) {
+                    agregarProducto(exacto);
+                    limpiarBuscador();
+                } else {
+                    alert(`El producto "${exacto.nombre}" no tiene stock disponible.`);
+                    this.value = ''; // Limpiar para siguiente escaneo
+                }
+            } else if (sugerencias.children.length > 0) {
+                // Si no es exacto pero hay sugerencias visibles, seleccionar la primera
+                sugerencias.children[0].click();
+            }
+        }
+    });
+
+    // Ocultar sugerencias al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (e.target !== buscador) sugerencias.style.display = 'none';
+    });
+
+    function limpiarBuscador() {
+        buscador.value = '';
+        sugerencias.style.display = 'none';
+        buscador.focus();
+    }
+
+    // 3. FUNCIÓN: Agregar fila al formulario
+    function agregarProducto(producto) {
+        // Ocultar mensaje vacío
+        if (mensajeVacio) mensajeVacio.style.display = 'none';
+
+        // Validar si ya está en la lista para no duplicar filas (opcional, pero recomendado)
+        // Si prefieres permitir duplicados, comenta este bloque.
+        /*
+        const inputs = document.getElementsByName('producto_id[]');
+        for (let input of inputs) {
+            if (input.value == producto.id) {
+                alert('Este producto ya está en la lista. Aumenta la cantidad en la fila existente.');
+                return; // Salir
+            }
+        }
+        */
+
+        const div = document.createElement('div');
+        div.classList.add('row', 'g-3', 'mb-3', 'p-3', 'border', 'rounded', 'bg-white', 'shadow-sm', 'producto-linea', 'align-items-end');
+        
+        div.innerHTML = `
             <div class="col-md-5">
-                <label class="form-label">Producto</label>
-                <select name="producto_id[]" class="form-select" required>
-                    <option value="">-- Selecciona un producto --</option>
-                    </select>
+                <label class="form-label fw-bold text-primary small">Producto</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-box-seam"></i></span>
+                    <input type="text" class="form-control bg-white fw-bold" value="${producto.nombre}" readonly>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <small class="text-muted">SKU: ${producto.codigo}</small>
+                    <small class="text-success fw-bold">Disponible: ${producto.stock_actual}</small>
+                </div>
+                <input type="hidden" name="producto_id[]" value="${producto.id}">
             </div>
+
             <div class="col-md-2">
-                <label class="form-label">Cantidad</label>
-                <input type="number" name="cantidad[]" class="form-control" value="1" min="1" required>
+                <label class="form-label fw-bold small">Cantidad</label>
+                <input type="number" name="cantidad[]" class="form-control text-center fw-bold" value="1" min="1" max="${producto.stock_actual}" required>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Motivo</label>
-                <input type="text" name="motivo[]" class="form-control" placeholder="Ej: Venta, Merma" required>
+
+            <div class="col-md-4">
+                <label class="form-label fw-bold small">Motivo</label>
+                <input type="text" name="motivo[]" class="form-control" placeholder="Ej: Venta, Merma, Uso interno" required>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="button" class="btn btn-danger w-100" onclick="eliminarLinea(this)">
+
+            <div class="col-md-1">
+                <button type="button" class="btn btn-outline-danger w-100" onclick="eliminarLinea(this)" title="Quitar de la lista">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
-        </div>
-    </template>
+        `;
 
-    <script>
-        // (Ignora el falso error de VS Code en esta línea)
-        var productos = {{ productos | tojson | safe }};
+        container.appendChild(div);
+        actualizarContador();
+    }
 
-        function eliminarLinea(boton) {
-            boton.closest('.producto-linea').remove();
+    // 4. FUNCIÓN: Eliminar línea
+    window.eliminarLinea = function(boton) {
+        boton.closest('.producto-linea').remove();
+        
+        // Si no quedan items, mostrar mensaje vacío
+        const items = document.getElementsByName('producto_id[]');
+        if (items.length === 0 && mensajeVacio) {
+            mensajeVacio.style.display = 'block';
         }
+        actualizarContador();
+    }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const contenedor = document.getElementById('lineas_productos_container');
-            const plantilla = document.getElementById('plantilla_linea');
-            
-            function anadirNuevaLinea() {
-                const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
-                const selectProducto = nuevaLinea.querySelector('select[name="producto_id[]"]');
-                
-                productos.forEach(function(producto) {
-                    const opcion = new Option(
-                        `${producto.nombre} (Stock: ${producto.stock_actual})`, 
-                        producto.id
-                    );
-                    selectProducto.add(opcion);
-                });
-
-                contenedor.appendChild(nuevaLinea);
-            }
-
-            document.getElementById('btn_add_producto').addEventListener('click', anadirNuevaLinea);
-            
-            // Cargar la primera línea automáticamente
-            anadirNuevaLinea();
-        });
-    </script>
+    function actualizarContador() {
+        const items = document.getElementsByName('producto_id[]');
+        contadorItems.innerText = `${items.length} items`;
+    }
+</script>
 {% endblock %}
