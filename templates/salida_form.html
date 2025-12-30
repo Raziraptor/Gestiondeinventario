@@ -34,7 +34,7 @@
                 </div>
             </div>
             <div class="form-text mt-2">
-                <i class="bi bi-lightning-charge-fill text-warning"></i> Tip: Presiona <strong>Enter</strong> si escribes el SKU exacto para agregarlo automáticamente.
+                <i class="bi bi-lightning-charge-fill text-warning"></i> Tip: Presiona <strong>Enter</strong> si escribes el SKU exacto para sumar cantidad automáticamente.
             </div>
         </div>
     </div>
@@ -71,7 +71,7 @@
 <!-- JAVASCRIPT PARA LA LÓGICA DE BÚSQUEDA Y AGREGADO -->
 <script>
     // Obtenemos los productos pasados desde el backend (JSON)
-    // Asegúrate de que 'productos' tenga: id, nombre, codigo, stock_actual
+    // Flask inyecta la variable 'productos' convertida a JSON seguro
     var productosDisponibles = {{ productos | tojson | safe }};
 
     const buscador = document.getElementById('buscador');
@@ -122,7 +122,7 @@
                     <span class="badge ${badgeClass} rounded-pill">${stockBadge}</span>
                 `;
 
-                // Al hacer clic
+                // Al hacer clic en un item de la lista
                 item.onclick = (e) => {
                     e.preventDefault();
                     if (p.stock_actual > 0) {
@@ -174,23 +174,45 @@
         buscador.focus();
     }
 
-    // 3. FUNCIÓN: Agregar fila al formulario
+    // 3. FUNCIÓN: Agregar fila o sumar cantidad (LÓGICA ACTUALIZADA)
     function agregarProducto(producto) {
         // Ocultar mensaje vacío
         if (mensajeVacio) mensajeVacio.style.display = 'none';
 
-        // Validar si ya está en la lista para no duplicar filas (opcional, pero recomendado)
-        // Si prefieres permitir duplicados, comenta este bloque.
-        /*
-        const inputs = document.getElementsByName('producto_id[]');
-        for (let input of inputs) {
-            if (input.value == producto.id) {
-                alert('Este producto ya está en la lista. Aumenta la cantidad en la fila existente.');
-                return; // Salir
-            }
-        }
-        */
+        // A) BUSCAR SI YA EXISTE EN LA LISTA
+        // Buscamos un input hidden con el ID del producto
+        const existingInput = document.querySelector(`input[name="producto_id[]"][value="${producto.id}"]`);
 
+        if (existingInput) {
+            // -- EL PRODUCTO YA EXISTE: SUMAR CANTIDAD --
+            
+            // Subimos al contenedor de la fila (.producto-linea)
+            const row = existingInput.closest('.producto-linea');
+            const cantidadInput = row.querySelector('input[name="cantidad[]"]');
+            
+            let cantidadActual = parseInt(cantidadInput.value) || 0;
+            let nuevaCantidad = cantidadActual + 1;
+
+            // Validar Stock Máximo
+            if (nuevaCantidad > producto.stock_actual) {
+                alert(`No puedes agregar más. Solo hay ${producto.stock_actual} unidades disponibles.`);
+                return;
+            }
+
+            // Actualizar valor
+            cantidadInput.value = nuevaCantidad;
+
+            // Efecto visual (Flash amarillo) para indicar que se sumó
+            cantidadInput.style.backgroundColor = "#fff3cd"; // Amarillo suave
+            cantidadInput.style.transition = "background-color 0.5s";
+            setTimeout(() => {
+                cantidadInput.style.backgroundColor = "";
+            }, 500);
+
+            return; // TERMINAMOS, NO CREAMOS FILA NUEVA
+        }
+
+        // B) NO EXISTE: CREAR FILA NUEVA
         const div = document.createElement('div');
         div.classList.add('row', 'g-3', 'mb-3', 'p-3', 'border', 'rounded', 'bg-white', 'shadow-sm', 'producto-linea', 'align-items-end');
         
