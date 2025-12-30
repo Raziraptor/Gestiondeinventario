@@ -5,27 +5,30 @@
 {% block content %}
     
     <!-- Selector de Almacén -->
-    <div class="row mb-3">
+    <div class="row mb-4 align-items-end">
         <div class="col-md-6">
-            <label for="almacen_selector" class="form-label">
-                <i class="bi bi-house-door"></i> Viendo Inventario de:
+            <label for="almacen_selector" class="form-label text-muted fw-bold small text-uppercase">
+                <i class="bi bi-house-door-fill"></i> Almacén Activo
             </label>
-            <select class="form-select form-select-lg" id="almacen_selector" onchange="cambiarAlmacen(this.value)">
-                {% if not almacenes %}
-                    <option>No hay almacenes creados</option>
-                {% else %}
-                    {% for alm in almacenes %}
-                        <option value="{{ alm.id }}" {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}selected{% endif %}>
-                            {{ alm.nombre }}
-                        </option>
-                    {% endfor %}
-                {% endif %}
-            </select>
+            <div class="input-group">
+                <select class="form-select form-select-lg fw-bold border-primary" id="almacen_selector" onchange="cambiarAlmacen(this.value)">
+                    {% if not almacenes %}
+                        <option>No hay almacenes creados</option>
+                    {% else %}
+                        {% for alm in almacenes %}
+                            <option value="{{ alm.id }}" {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}selected{% endif %}>
+                                {{ alm.nombre }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+                <button class="btn btn-primary" type="button"><i class="bi bi-arrow-repeat"></i></button>
+            </div>
         </div>
-        <div class="col-md-6 d-flex align-items-end justify-content-end">
+        <div class="col-md-6 d-flex align-items-center justify-content-end mt-3 mt-md-0">
             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-            <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Agregar Nuevo Producto
+            <a href="{{ url_for('nuevo_producto') }}" class="btn btn-success shadow-sm">
+                <i class="bi bi-plus-circle-fill"></i> Nuevo Producto Global
             </a>
             {% endif %}
         </div>
@@ -33,141 +36,197 @@
     
     <!-- Si no hay almacén, no podemos mostrar nada -->
     {% if not almacen_seleccionado %}
-        <div class="alert alert-warning">
-            <h4>No hay almacenes</h4>
-            <p>No se puede mostrar el inventario porque no hay ningún almacén seleccionado o creado.
+        <div class="alert alert-warning shadow-sm border-warning">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Atención</h4>
+            <p>No se puede mostrar el inventario porque no hay ningún almacén seleccionado.</p>
             {% if current_user.rol in ['super_admin', 'admin'] %}
-                Por favor, <a href="{{ url_for('lista_almacenes') }}" class="alert-link">crea un almacén</a> primero.
+                <hr>
+                <p class="mb-0">Por favor, <a href="{{ url_for('lista_almacenes') }}" class="alert-link">crea un almacén</a> primero.</p>
             {% endif %}
-            </p>
         </div>
     {% else %}
 
-        <!-- Filtros de Búsqueda -->
-        <div class="card bg-light mb-4">
-            <div class="card-header">
-                <i class="bi bi-search"></i> Filtros y Búsqueda
-            </div>
+        <!-- Panel de Filtros y Búsqueda -->
+        <div class="card shadow-sm mb-4 border-0 bg-light">
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-12 mb-3">
-                        <label for="filtro_busqueda" class="form-label">Buscar por Nombre o SKU</label>
-                        <input type="text" class="form-control" id="filtro_busqueda" 
-                               placeholder="Escribe para buscar (ej. 'Tornillo' o 'SKU-001')...">
+                    <!-- Buscador Inteligente -->
+                    <div class="col-md-12 position-relative">
+                        <label for="filtro_busqueda" class="form-label fw-bold small text-primary">
+                            <i class="bi bi-search"></i> Buscar Producto
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="filtro_busqueda" 
+                                   placeholder="Escribe Nombre o SKU..." autocomplete="off">
+                        </div>
+                        <!-- Lista flotante de sugerencias -->
+                        <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow" 
+                             style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;">
+                        </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-2">
-                            <label for="filtro_categoria" class="form-label">Filtrar por Categoría</label>
-                            <select class="form-select" id="filtro_categoria">
-                                <option value="0">-- Todas las Categorías --</option>
-                                {% for cat in categorias %}
-                                <option value="{{ cat.id }}">{{ cat.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-2">
-                            <label for="filtro_proveedor" class="form-label">Filtrar por Proveedor</label>
-                            <select class="form-select" id="filtro_proveedor">
-                                <option value="0">-- Todos los Proveedores --</option>
-                                {% for prov in proveedores %}
-                                <option value="{{ prov.id }}">{{ prov.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    
+                    <!-- Filtros Select -->
+                    <div class="col-md-6">
+                        <label for="filtro_categoria" class="form-label fw-bold small text-muted">Categoría</label>
+                        <select class="form-select form-select-sm" id="filtro_categoria">
+                            <option value="0">-- Todas --</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="filtro_proveedor" class="form-label fw-bold small text-muted">Proveedor</label>
+                        <select class="form-select form-select-sm" id="filtro_proveedor">
+                            <option value="0">-- Todos --</option>
+                            {% for prov in proveedores %}
+                            <option value="{{ prov.id }}">{{ prov.nombre }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Tabla de Productos -->
-        <div class="card">
-            <div class="card-header">
-                Lista de Productos en: <strong>{{ almacen_seleccionado.nombre }}</strong>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary fw-bold">
+                    <i class="bi bi-list-ul"></i> Inventario: {{ almacen_seleccionado.nombre }}
+                </h5>
+                <span class="badge bg-light text-dark border" id="contador_registros">
+                    {{ items_stock|length }} Productos
+                </span>
             </div>
-            <div class="card-body table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
+            
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0 align-middle" id="tabla_inventario">
+                    <thead class="table-light text-muted text-uppercase small">
                         <tr>
-                            <th>Imagen</th>
-                            <th>Código (SKU)</th>
-                            <th>Nombre</th>
-                            <th>Categoría</th>
+                            <th class="ps-3" style="width: 80px;">Img</th>
+                            <!-- Encabezados Ordenables -->
+                            <th onclick="ordenarTabla(1)" style="cursor: pointer;">
+                                SKU <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
+                            <th onclick="ordenarTabla(2)" style="cursor: pointer;">
+                                Producto <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
+                            <th onclick="ordenarTabla(3)" style="cursor: pointer;">
+                                Categoría <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
                             <th>Ubicación</th>
                             <th>Proveedor</th>
-                            <th>Stock Actual</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
+                            <th onclick="ordenarTabla(6, 'num')" style="cursor: pointer;" class="text-center">
+                                Stock <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-end pe-3">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tabla_productos_cuerpo">
                         {% for item in items_stock %}
                         <tr class="fila-producto"
                             data-categoria-id="{{ item.producto.categoria_id or '0' }}"
-                            data-proveedor-id="{{ item.producto.proveedor_id or '0' }}">
+                            data-proveedor-id="{{ item.producto.proveedor_id or '0' }}"
+                            data-nombre="{{ item.producto.nombre|lower }}"
+                            data-sku="{{ item.producto.codigo|lower }}">
                             
-                            <td class="text-center align-middle" style="width: 70px;">
+                            <!-- Imagen -->
+                            <td class="ps-3">
                                 {% if item.producto.imagen_url %}
                                     <img src="{{ url_for('static', filename='uploads/' + item.producto.imagen_url) }}" 
-                                         alt="{{ item.producto.nombre }}" 
-                                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                         class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
                                 {% else %}
-                                    <i class="bi bi-box-seam text-muted" style="font-size: 2rem;"></i>
+                                    <div class="bg-light rounded border d-flex align-items-center justify-content-center text-muted" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
                                 {% endif %}
                             </td>
-                            <td>{{ item.producto.codigo }}</td>
+                            
+                            <!-- SKU -->
+                            <td class="fw-bold text-secondary">{{ item.producto.codigo }}</td>
+                            
+                            <!-- Nombre -->
                             <td>
-                                <a href="{{ url_for('historial_producto', id=item.producto.id) }}">
-                                    <strong>{{ item.producto.nombre }}</strong>
+                                <a href="{{ url_for('historial_producto', id=item.producto.id) }}" class="text-decoration-none text-dark fw-bold">
+                                    {{ item.producto.nombre }}
                                 </a>
                             </td>
+                            
+                            <!-- Categoría -->
                             <td>
                                 {% if item.producto.categoria %}
-                                    <span class="badge bg-secondary">{{ item.producto.categoria.nombre }}</span>
-                                {% else %}<span class="text-muted">N/A</span>{% endif %}
+                                    <span class="badge bg-light text-dark border">{{ item.producto.categoria.nombre }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
                             </td>
-                            <td>
-                                <small class="text-muted">{{ item.ubicacion or '-' }}</small>
-                            </td>
+                            
+                            <!-- Ubicación -->
+                            <td><small class="text-muted">{{ item.ubicacion or '-' }}</small></td>
+                            
+                            <!-- Proveedor -->
                             <td>
                                 {% if item.producto.proveedor %}
-                                    {{ item.producto.proveedor.nombre }}
-                                {% else %}<span class="text-muted">N/A</span>{% endif %}
+                                    <small>{{ item.producto.proveedor.nombre }}</small>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
                             </td>
-                            <td><strong>{{ item.cantidad }}</strong></td>
-                            <td>
+                            
+                            <!-- Stock -->
+                            <td class="text-center">
+                                <span class="fw-bold fs-6">{{ item.cantidad }}</span>
+                            </td>
+                            
+                            <!-- Estado -->
+                            <td class="text-center">
                                 {% if item.estado_stock == 'bajo' %}
-                                    <span class="badge bg-danger">Bajo Stock</span>
+                                    <span class="badge bg-danger">Bajo</span>
                                 {% elif item.estado_stock == 'exceso' %}
-                                    <span class="badge bg-info">Exceso</span>
+                                    <span class="badge bg-info text-dark">Exceso</span>
                                 {% else %}
                                     <span class="badge bg-success">OK</span>
                                 {% endif %}
                             </td>
-                            <td style="width: 1%; white-space: nowrap;">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{{ url_for('editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}" 
-                                       class="btn btn-secondary" title="Editar Producto y Stock">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    
-                                    <!-- ======================== -->
-                                    <!-- BOTÓN ETIQUETA MODIFICADO -->
-                                    <!-- ======================== -->
-                                    <a href="{{ url_for('configurar_etiqueta', id=item.producto.id) }}" 
-                                       class="btn btn-info" title="Imprimir Etiqueta JPG">
-                                        <i class="bi bi-printer"></i>
-                                    </a>
-                                    <!-- ======================== -->
-
-                                    <a href="{{ url_for('historial_producto', id=item.producto.id) }}" class="btn btn-outline-secondary" title="Ver Historial">
-                                        <i class="bi bi-clipboard-data"></i>
-                                    </a>
+                            
+                            <!-- Acciones -->
+                            <td class="text-end pe-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}">
+                                                <i class="bi bi-pencil me-2 text-warning"></i> Editar Stock
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('historial_producto', id=item.producto.id) }}">
+                                                <i class="bi bi-clock-history me-2 text-info"></i> Ver Kardex
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('configurar_etiqueta', id=item.producto.id) }}">
+                                                <i class="bi bi-printer me-2 text-secondary"></i> Etiqueta
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="9" class="text-center">No hay productos registrados en este almacén.</td>
+                            <td colspan="9" class="text-center py-5">
+                                <i class="bi bi-inbox fs-1 text-muted opacity-50"></i>
+                                <p class="text-muted mt-2">Este almacén está vacío.</p>
+                                <a href="{{ url_for('gestionar_inventario_almacen', id=almacen_seleccionado.id) }}" class="btn btn-outline-primary btn-sm">
+                                    Gestionar Inventario
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -176,51 +235,148 @@
         </div>
     {% endif %}
 
+    <!-- SCRIPTS PARA ORDENAR Y BUSCAR -->
     <script>
         function cambiarAlmacen(almacenId) {
             window.location.href = window.location.pathname + '?almacen_id=' + almacenId;
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const filtroBusqueda = document.getElementById('filtro_busqueda');
-            const filtroCategoria = document.getElementById('filtro_categoria');
-            const filtroProveedor = document.getElementById('filtro_proveedor');
-            const tablaCuerpo = document.getElementById('tabla_productos_cuerpo');
-            const filas = tablaCuerpo.getElementsByClassName('fila-producto');
+            // ==========================================
+            // 1. LÓGICA DE BÚSQUEDA Y FILTRADO
+            // ==========================================
+            const inputBusqueda = document.getElementById('filtro_busqueda');
+            const selectCategoria = document.getElementById('filtro_categoria');
+            const selectProveedor = document.getElementById('filtro_proveedor');
+            const filas = document.querySelectorAll('.fila-producto');
+            const listaSugerencias = document.getElementById('lista_sugerencias');
+            const contadorRegistros = document.getElementById('contador_registros');
 
-            function filtrarTabla() {
-                const textoBusqueda = filtroBusqueda.value.toLowerCase();
-                const idCategoria = filtroCategoria.value;
-                const idProveedor = filtroProveedor.value;
+            // Generamos datos para el Typeahead desde el HTML renderizado
+            let datosBuscador = [];
+            filas.forEach(fila => {
+                datosBuscador.push({
+                    nombre: fila.dataset.nombre, // lowercase
+                    sku: fila.dataset.sku,       // lowercase
+                    nombreReal: fila.querySelector('td:nth-child(3) a').innerText.trim(),
+                    skuReal: fila.querySelector('td:nth-child(2)').innerText.trim()
+                });
+            });
 
-                for (let fila of filas) {
-                    const textoFila = fila.textContent.toLowerCase(); 
-                    const catIdFila = fila.dataset.categoriaId;
-                    const provIdFila = fila.dataset.proveedorId;
+            function aplicarFiltros() {
+                const texto = inputBusqueda.value.toLowerCase().trim();
+                const catId = selectCategoria.value;
+                const provId = selectProveedor.value;
+                let visibles = 0;
 
-                    let mostrar = true; 
-                    if (textoBusqueda && !textoFila.includes(textoBusqueda)) {
-                        mostrar = false;
+                filas.forEach(fila => {
+                    const fNombre = fila.dataset.nombre;
+                    const fSku = fila.dataset.sku;
+                    const fCat = fila.dataset.categoriaId;
+                    const fProv = fila.dataset.proveedorId;
+
+                    const matchTexto = !texto || fNombre.includes(texto) || fSku.includes(texto);
+                    const matchCat = catId === '0' || fCat === catId;
+                    const matchProv = provId === '0' || fProv === provId;
+
+                    if (matchTexto && matchCat && matchProv) {
+                        fila.style.display = '';
+                        visibles++;
+                    } else {
+                        fila.style.display = 'none';
                     }
-                    if (idCategoria !== '0' && catIdFila !== idCategoria) {
-                        mostrar = false;
+                });
+                
+                // Actualizar contador visual
+                if(contadorRegistros) contadorRegistros.innerText = `${visibles} Productos`;
+            }
+
+            // Eventos de Filtro
+            if(inputBusqueda) {
+                inputBusqueda.addEventListener('input', function() {
+                    const texto = this.value.toLowerCase().trim();
+                    aplicarFiltros();
+
+                    // Lógica de Sugerencias (Typeahead)
+                    listaSugerencias.innerHTML = '';
+                    if (texto.length > 0) {
+                        const sugerencias = datosBuscador.filter(d => d.nombre.includes(texto) || d.sku.includes(texto)).slice(0, 5); // Max 5 sugerencias
+                        
+                        if (sugerencias.length > 0) {
+                            listaSugerencias.style.display = 'block';
+                            sugerencias.forEach(sug => {
+                                const item = document.createElement('a');
+                                item.href = '#';
+                                item.classList.add('list-group-item', 'list-group-item-action');
+                                item.innerHTML = `<strong>${sug.nombreReal}</strong> <small class='text-muted'>(${sug.skuReal})</small>`;
+                                item.onclick = (e) => {
+                                    e.preventDefault();
+                                    inputBusqueda.value = sug.nombreReal;
+                                    aplicarFiltros(); // Filtrar exacto
+                                    listaSugerencias.style.display = 'none';
+                                };
+                                listaSugerencias.appendChild(item);
+                            });
+                        } else {
+                            listaSugerencias.style.display = 'none';
+                        }
+                    } else {
+                        listaSugerencias.style.display = 'none';
                     }
-                    if (idProveedor !== '0' && provIdFila !== idProveedor) {
-                        mostrar = false;
+                });
+
+                // Ocultar sugerencias al hacer clic fuera
+                document.addEventListener('click', (e) => {
+                    if (e.target !== inputBusqueda) listaSugerencias.style.display = 'none';
+                });
+            }
+
+            if(selectCategoria) selectCategoria.addEventListener('change', aplicarFiltros);
+            if(selectProveedor) selectProveedor.addEventListener('change', aplicarFiltros);
+        });
+
+        // ==========================================
+        // 2. LÓGICA DE ORDENAMIENTO (SORTING)
+        // ==========================================
+        let direccionOrden = 'asc';
+        
+        function ordenarTabla(n, tipo = 'str') {
+            const tabla = document.getElementById("tabla_inventario");
+            let filas, switching, i, x, y, shouldSwitch;
+            switching = true;
+            
+            // Invertir dirección si se vuelve a hacer clic
+            direccionOrden = (direccionOrden === 'asc') ? 'desc' : 'asc';
+
+            while (switching) {
+                switching = false;
+                filas = tabla.rows;
+                // Empezamos en 1 para saltar el encabezado
+                for (i = 1; i < (filas.length - 1); i++) {
+                    shouldSwitch = false;
+                    
+                    x = filas[i].getElementsByTagName("TD")[n];
+                    y = filas[i + 1].getElementsByTagName("TD")[n];
+                    
+                    let valX = x.innerText.toLowerCase();
+                    let valY = y.innerText.toLowerCase();
+
+                    if (tipo === 'num') {
+                        valX = parseFloat(valX) || 0;
+                        valY = parseFloat(valY) || 0;
                     }
-                    fila.style.display = mostrar ? '' : 'none';
+
+                    if (direccionOrden === 'asc') {
+                        if (valX > valY) { shouldSwitch = true; break; }
+                    } else {
+                        if (valX < valY) { shouldSwitch = true; break; }
+                    }
+                }
+                if (shouldSwitch) {
+                    filas[i].parentNode.insertBefore(filas[i + 1], filas[i]);
+                    switching = true;
                 }
             }
-
-            if (filtroBusqueda) {
-                filtroBusqueda.addEventListener('keyup', filtrarTabla);
-            }
-            if (filtroCategoria) {
-                filtroCategoria.addEventListener('change', filtrarTabla);
-            }
-            if (filtroProveedor) {
-                filtroProveedor.addEventListener('change', filtrarTabla);
-            }
-        });
+        }
     </script>
 {% endblock %}
