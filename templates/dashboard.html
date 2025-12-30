@@ -89,39 +89,39 @@
             </div>
         </div>
 
-        <!-- Tabla de Productos -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <!-- Tabla de Productos (CON BORDES MARCADOS) -->
+        <div class="card shadow-sm border border-secondary">
+            <div class="card-header bg-white py-3 border-bottom border-secondary d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-primary fw-bold">
                     <i class="bi bi-list-ul"></i> Inventario: {{ almacen_seleccionado.nombre }}
                 </h5>
-                <span class="badge bg-light text-dark border" id="contador_registros">
+                <span class="badge bg-light text-dark border border-secondary" id="contador_registros">
                     {{ items_stock|length }} Productos
                 </span>
             </div>
             
             <div class="card-body p-0 table-responsive">
-                <table class="table table-hover mb-0 align-middle" id="tabla_inventario">
-                    <thead class="table-light text-muted text-uppercase small">
+                <table class="table table-bordered table-hover mb-0 align-middle border-secondary" id="tabla_inventario">
+                    <thead class="table-light text-dark text-uppercase small">
                         <tr>
-                            <th class="ps-3" style="width: 80px;">Img</th>
+                            <th class="ps-3 bg-light" style="width: 80px;">Img</th>
                             <!-- Encabezados Ordenables -->
-                            <th onclick="ordenarTabla(1)" style="cursor: pointer;" class="th-sortable">
+                            <th onclick="ordenarTabla(1)" style="cursor: pointer;" class="th-sortable bg-light">
                                 SKU <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
-                            <th onclick="ordenarTabla(2)" style="cursor: pointer;" class="th-sortable">
+                            <th onclick="ordenarTabla(2)" style="cursor: pointer;" class="th-sortable bg-light">
                                 Producto <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
-                            <th onclick="ordenarTabla(3)" style="cursor: pointer;" class="th-sortable">
+                            <th onclick="ordenarTabla(3)" style="cursor: pointer;" class="th-sortable bg-light">
                                 Categoría <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
-                            <th>Ubicación</th>
-                            <th>Proveedor</th>
-                            <th onclick="ordenarTabla(6, 'num')" style="cursor: pointer;" class="text-center th-sortable">
+                            <th class="bg-light">Ubicación</th>
+                            <th class="bg-light">Proveedor</th>
+                            <th onclick="ordenarTabla(6, 'num')" style="cursor: pointer;" class="text-center th-sortable bg-light">
                                 Stock <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
-                            <th class="text-center">Estado</th>
-                            <th class="text-end pe-3">Acciones</th>
+                            <th class="text-center bg-light">Estado</th>
+                            <th class="text-end pe-3 bg-light">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tabla_productos_cuerpo">
@@ -133,12 +133,12 @@
                             data-sku="{{ item.producto.codigo|lower }}">
                             
                             <!-- Imagen -->
-                            <td class="ps-3">
+                            <td class="ps-3 text-center">
                                 {% if item.producto.imagen_url %}
                                     <img src="{{ url_for('static', filename='uploads/' + item.producto.imagen_url) }}" 
                                          class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
                                 {% else %}
-                                    <div class="bg-light rounded border d-flex align-items-center justify-content-center text-muted" style="width: 40px; height: 40px;">
+                                    <div class="bg-light rounded border d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 40px; height: 40px;">
                                         <i class="bi bi-box-seam"></i>
                                     </div>
                                 {% endif %}
@@ -157,7 +157,7 @@
                             <!-- Categoría -->
                             <td>
                                 {% if item.producto.categoria %}
-                                    <span class="badge bg-light text-dark border">{{ item.producto.categoria.nombre }}</span>
+                                    <span class="badge bg-light text-dark border border-secondary">{{ item.producto.categoria.nombre }}</span>
                                 {% else %}
                                     <span class="text-muted small">-</span>
                                 {% endif %}
@@ -183,21 +183,21 @@
                             <!-- Estado -->
                             <td class="text-center">
                                 {% if item.estado_stock == 'bajo' %}
-                                    <span class="badge bg-danger">Bajo</span>
+                                    <span class="badge bg-danger border border-danger">Bajo</span>
                                 {% elif item.estado_stock == 'exceso' %}
-                                    <span class="badge bg-info text-dark">Exceso</span>
+                                    <span class="badge bg-info text-dark border border-info">Exceso</span>
                                 {% else %}
-                                    <span class="badge bg-success">OK</span>
+                                    <span class="badge bg-success border border-success">OK</span>
                                 {% endif %}
                             </td>
                             
                             <!-- Acciones -->
                             <td class="text-end pe-3">
                                 <div class="dropdown">
-                                    <button class="btn btn-sm btn-light border" type="button" data-bs-toggle="dropdown">
+                                    <button class="btn btn-sm btn-light border border-secondary" type="button" data-bs-toggle="dropdown">
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-secondary">
                                         <li>
                                             <a class="dropdown-item" href="{{ url_for('editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}">
                                                 <i class="bi bi-pencil me-2 text-warning"></i> Editar Stock
