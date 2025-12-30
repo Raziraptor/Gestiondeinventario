@@ -8,7 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        /* Estilo para los nuevos recuadros del dashboard */
         .dashboard-card {
             text-decoration: none;
             transition: all 0.2s ease-in-out;
@@ -25,8 +24,14 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         .dashboard-card .card-icon {
-            font-size: 3rem; /* Icono grande */
+            font-size: 3rem;
             margin-bottom: 0.5rem;
+        }
+        .card-icon.text-purple {
+            color: #6f42c1 !important;
+        }
+        .card-icon.text-indigo {
+            color: #6610f2 !important;
         }
     </style>
 </head>
@@ -41,20 +46,36 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 
+                <!-- 1. MENÚ DE LA IZQUIERDA (GESTIÓN, OPERACIONES) -->
                 {% if current_user.is_authenticated %}
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         
                         {% if request.endpoint != 'index' %}
+                            <!-- Enlace a Dashboard -->
+                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('index') }}">
+                                <a class="nav-link" href="{{ url_for('dashboard') }}">
                                     <i class="bi bi-grid-fill"></i> Dashboard
                                 </a>
                             </li>
+                            {% endif %}
+                            
+                            <!-- Dropdown de GESTIÓN -->
+                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="dropdownGestion" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-folder2-open"></i> Gestión
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownGestion">
+                                    {% if current_user.rol in ['super_admin', 'admin'] %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('lista_almacenes') }}">
+                                            <i class="bi bi-house-door"></i> Almacenes
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('lista_categorias') }}">
                                             <i class="bi bi-tags"></i> Categorías
@@ -65,50 +86,99 @@
                                             <i class="bi bi-truck"></i> Proveedores
                                         </a>
                                     </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('lista_productos_sin_almacen') }}">
+                                            <i class="bi bi-exclamation-triangle"></i> Productos Sin Almacén
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
+                            {% endif %}
+
+                            <!-- Dropdown de OPERACIONES -->
+                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas or current_user.perm_view_gastos %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="dropdownOperaciones" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-gear-wide-connected"></i> Operaciones
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="dropdownOperaciones">
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('lista_ordenes') }}">
                                             <i class="bi bi-receipt"></i> Órdenes de Compra
                                         </a>
                                     </li>
+                                    {% endif %}
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('lista_proyectos_oc') }}">
+                                            <i class="bi bi-clipboard-data"></i> OC de Proyectos
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('historial_salidas') }}">
                                             <i class="bi bi-box-arrow-right"></i> Historial de Salidas
                                         </a>
                                     </li>
+                                    {% endif %}
+                                    
+                                    {% if (current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas) and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos) %}
                                     <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
                                     <li>
                                         <a class="dropdown-item" href="{{ url_for('lista_gastos') }}">
                                             <i class="bi bi-cash-coin"></i> Control de Gastos
                                         </a>
                                     </li>
+                                    {% endif %}
                                 </ul>
                             </li>
+                            {% endif %}
                         {% endif %}
-                        </ul>
+                    </ul>
                 {% endif %}
 
+                <!-- 2. MENÚ DE LA DERECHA (USUARIO) -->
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" 
                                id="navbarDropdown" role="button" data-bs-toggle="dropdown" 
                                aria-expanded="false">
-                                
                                 <img src="{{ url_for('static', filename='uploads/profile_pics/' + current_user.image_file) }}" 
                                      alt="Perfil" 
                                      class="rounded-circle me-2" 
                                      style="width: 25px; height: 25px; object-fit: cover;">
-                                
                                 ¡Hola, {{ current_user.username }}!
                             </a>
+                            
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                {% if current_user.rol in ['super_admin', 'admin'] %}
+                                <li>
+                                    {% if current_user.rol == 'super_admin' %}
+                                    <a class="dropdown-item" href="{{ url_for('super_admin') }}">
+                                        <i class="bi bi-shield-lock"></i> Super Admin Panel
+                                    </a>
+                                    {% else %}
+                                    <a class="dropdown-item" href="{{ url_for('admin_panel') }}">
+                                        <i class="bi bi-people-fill"></i> Panel de Admin
+                                    </a>
+                                    {% endif %}
+                                </li>
+                                
+                                <!-- NUEVO: Personalizar Marca -->
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('configurar_plantilla') }}">
+                                        <i class="bi bi-palette"></i> Personalizar Marca
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('account') }}">
                                         <i class="bi bi-gear"></i> Configuración de Cuenta
@@ -158,3 +228,4 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

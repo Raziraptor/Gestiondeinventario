@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>{{ titulo }}</h2>
+                </div>
+                <div class="card-body">
+                    <p>Por favor, selecciona un almacén para continuar.</p>
+                    
+                    <form method="GET" action="{{ url_for(destino_ruta) }}">
+                        <div class="mb-3">
+                            <label for="almacen_id" class="form-label">Almacenes Disponibles</label>
+                            <select class="form-select" id="almacen_id" name="almacen_id" required>
+                                <option value="">-- Selecciona un almacén --</option>
+                                {% for alm in almacenes %}
+                                    <option value="{{ alm.id }}">{{ alm.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Continuar</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
