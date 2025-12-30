@@ -106,18 +106,18 @@
                         <tr>
                             <th class="ps-3" style="width: 80px;">Img</th>
                             <!-- Encabezados Ordenables -->
-                            <th onclick="ordenarTabla(1)" style="cursor: pointer;">
+                            <th onclick="ordenarTabla(1)" style="cursor: pointer;" class="th-sortable">
                                 SKU <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
-                            <th onclick="ordenarTabla(2)" style="cursor: pointer;">
+                            <th onclick="ordenarTabla(2)" style="cursor: pointer;" class="th-sortable">
                                 Producto <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
-                            <th onclick="ordenarTabla(3)" style="cursor: pointer;">
+                            <th onclick="ordenarTabla(3)" style="cursor: pointer;" class="th-sortable">
                                 Categoría <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
                             <th>Ubicación</th>
                             <th>Proveedor</th>
-                            <th onclick="ordenarTabla(6, 'num')" style="cursor: pointer;" class="text-center">
+                            <th onclick="ordenarTabla(6, 'num')" style="cursor: pointer;" class="text-center th-sortable">
                                 Stock <i class="bi bi-arrow-down-up ms-1 small"></i>
                             </th>
                             <th class="text-center">Estado</th>
@@ -255,12 +255,17 @@
             // Generamos datos para el Typeahead desde el HTML renderizado
             let datosBuscador = [];
             filas.forEach(fila => {
-                datosBuscador.push({
-                    nombre: fila.dataset.nombre, // lowercase
-                    sku: fila.dataset.sku,       // lowercase
-                    nombreReal: fila.querySelector('td:nth-child(3) a').innerText.trim(),
-                    skuReal: fila.querySelector('td:nth-child(2)').innerText.trim()
-                });
+                const celdaNombre = fila.querySelector('td:nth-child(3) a');
+                const celdaSku = fila.querySelector('td:nth-child(2)');
+                
+                if (celdaNombre && celdaSku) {
+                    datosBuscador.push({
+                        nombre: fila.dataset.nombre || "",
+                        sku: fila.dataset.sku || "",
+                        nombreReal: celdaNombre.innerText.trim(),
+                        skuReal: celdaSku.innerText.trim()
+                    });
+                }
             });
 
             function aplicarFiltros() {
@@ -270,8 +275,8 @@
                 let visibles = 0;
 
                 filas.forEach(fila => {
-                    const fNombre = fila.dataset.nombre;
-                    const fSku = fila.dataset.sku;
+                    const fNombre = fila.dataset.nombre || "";
+                    const fSku = fila.dataset.sku || "";
                     const fCat = fila.dataset.categoriaId;
                     const fProv = fila.dataset.proveedorId;
 
@@ -300,7 +305,7 @@
                     // Lógica de Sugerencias (Typeahead)
                     listaSugerencias.innerHTML = '';
                     if (texto.length > 0) {
-                        const sugerencias = datosBuscador.filter(d => d.nombre.includes(texto) || d.sku.includes(texto)).slice(0, 5); // Max 5 sugerencias
+                        const sugerencias = datosBuscador.filter(d => d.nombre.includes(texto) || d.sku.includes(texto)).slice(0, 5); 
                         
                         if (sugerencias.length > 0) {
                             listaSugerencias.style.display = 'block';
@@ -312,7 +317,7 @@
                                 item.onclick = (e) => {
                                     e.preventDefault();
                                     inputBusqueda.value = sug.nombreReal;
-                                    aplicarFiltros(); // Filtrar exacto
+                                    aplicarFiltros(); 
                                     listaSugerencias.style.display = 'none';
                                 };
                                 listaSugerencias.appendChild(item);
@@ -325,7 +330,6 @@
                     }
                 });
 
-                // Ocultar sugerencias al hacer clic fuera
                 document.addEventListener('click', (e) => {
                     if (e.target !== inputBusqueda) listaSugerencias.style.display = 'none';
                 });
@@ -336,47 +340,62 @@
         });
 
         // ==========================================
-        // 2. LÓGICA DE ORDENAMIENTO (SORTING)
+        // 2. LÓGICA DE ORDENAMIENTO (OPTIMIZADA)
         // ==========================================
         let direccionOrden = 'asc';
-        
+
         function ordenarTabla(n, tipo = 'str') {
-            const tabla = document.getElementById("tabla_inventario");
-            let filas, switching, i, x, y, shouldSwitch;
-            switching = true;
+            const tbody = document.getElementById("tabla_productos_cuerpo");
+            // Convertimos las filas a un Array real para ordenarlas en memoria
+            const filasArray = Array.from(tbody.rows);
             
-            // Invertir dirección si se vuelve a hacer clic
+            // Si no hay filas o solo hay 1, no hacemos nada
+            if (filasArray.length < 2) return;
+
+            // Invertir dirección
             direccionOrden = (direccionOrden === 'asc') ? 'desc' : 'asc';
+            const multiplicador = (direccionOrden === 'asc') ? 1 : -1;
 
-            while (switching) {
-                switching = false;
-                filas = tabla.rows;
-                // Empezamos en 1 para saltar el encabezado
-                for (i = 1; i < (filas.length - 1); i++) {
-                    shouldSwitch = false;
-                    
-                    x = filas[i].getElementsByTagName("TD")[n];
-                    y = filas[i + 1].getElementsByTagName("TD")[n];
-                    
-                    let valX = x.innerText.toLowerCase();
-                    let valY = y.innerText.toLowerCase();
+            // Ordenar el array en memoria (RÁPIDO)
+            filasArray.sort((filaA, filaB) => {
+                // Obtenemos el texto de la celda N
+                // Nota: Asegurarse de que 'n' corresponda al índice correcto de TD
+                const celdaA = filaA.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
+                const celdaB = filaB.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
 
-                    if (tipo === 'num') {
-                        valX = parseFloat(valX) || 0;
-                        valY = parseFloat(valY) || 0;
-                    }
+                let valorA = celdaA;
+                let valorB = celdaB;
 
-                    if (direccionOrden === 'asc') {
-                        if (valX > valY) { shouldSwitch = true; break; }
-                    } else {
-                        if (valX < valY) { shouldSwitch = true; break; }
-                    }
+                if (tipo === 'num') {
+                    valorA = parseFloat(celdaA) || 0;
+                    valorB = parseFloat(celdaB) || 0;
                 }
-                if (shouldSwitch) {
-                    filas[i].parentNode.insertBefore(filas[i + 1], filas[i]);
-                    switching = true;
-                }
-            }
+
+                if (valorA < valorB) return -1 * multiplicador;
+                if (valorA > valorB) return 1 * multiplicador;
+                return 0;
+            });
+
+            // Re-inyectar las filas ordenadas al DOM (Solo 1 reflow importante)
+            filasArray.forEach(fila => tbody.appendChild(fila));
+
+            // Actualizar iconos visuales
+            actualizarIconosOrden(n, direccionOrden);
+        }
+
+        function actualizarIconosOrden(colIndex, dir) {
+             // Resetear todos los iconos
+             const headers = document.querySelectorAll('#tabla_inventario th i');
+             headers.forEach(i => i.className = 'bi bi-arrow-down-up ms-1 small text-muted');
+             
+             // Activar el icono de la columna actual
+             const targetTh = document.querySelectorAll('#tabla_inventario th')[colIndex];
+             if(targetTh) {
+                 const icon = targetTh.querySelector('i');
+                 if(icon) {
+                     icon.className = dir === 'asc' ? 'bi bi-arrow-up ms-1 small text-primary' : 'bi bi-arrow-down ms-1 small text-primary';
+                 }
+             }
         }
     </script>
 {% endblock %}
