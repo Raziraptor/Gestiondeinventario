@@ -2008,7 +2008,7 @@ def nueva_orden():
         flash(f'Error al generar la orden: {e}', 'danger')
         return redirect(url_for('index'))
 
-@app.route('/ordenes/recibir/<int:id>', methods=['POST'])
+@app.route('/orden/recibir/<int:id>', methods=['POST'])
 @login_required
 @check_permission('perm_create_oc_standard')
 def recibir_orden(id):
@@ -3411,6 +3411,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
