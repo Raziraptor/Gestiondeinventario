@@ -2008,62 +2008,65 @@ def nueva_orden():
         flash(f'Error al generar la orden: {e}', 'danger')
         return redirect(url_for('index'))
 
-@app.route('/orden/<int:id>/recibir', methods=['POST'])
+@app.route('/ordenes/recibir/<int:id>', methods=['POST'])
 @login_required
 @check_permission('perm_create_oc_standard')
 def recibir_orden(id):
-    orden = get_item_or_404(OrdenCompra, id)
+    """
+    Marca una Orden de Compra Estándar como Recibida y suma el stock.
+    """
+    orden = OrdenCompra.query.get_or_404(id)
     
+    # 1. Validaciones de seguridad
     if orden.estado == 'recibida':
         flash('Esta orden ya fue recibida anteriormente.', 'warning')
         return redirect(url_for('lista_ordenes'))
 
+    # Asegurarnos de que la orden tenga un almacén destino
+    if not orden.almacen_id:
+        flash('Error Crítico: La orden no tiene un almacén asignado. No se puede ingresar stock.', 'danger')
+        return redirect(url_for('lista_ordenes'))
+
     try:
-        org_id = orden.organizacion_id
-        almacen_destino_id = orden.almacen_id
-        
+        # 2. Lógica de Actualización de Stock
+        # Recorremos cada producto dentro de la orden
         for detalle in orden.detalles:
+            
+            # Buscamos si ya existe registro de este producto en ESE almacén específico
             stock_item = Stock.query.filter_by(
                 producto_id=detalle.producto_id,
-                almacen_id=almacen_destino_id
+                almacen_id=orden.almacen_id
             ).first()
-            
+
             if stock_item:
+                # CASO A: El producto ya existe en el almacén -> SUMAMOS
                 stock_item.cantidad += detalle.cantidad_solicitada
-                db.session.add(stock_item)
+                # Opcional: Actualizar costo promedio si lo manejas
             else:
-                stock_item = Stock(
+                # CASO B: El producto es nuevo en este almacén -> CREAMOS REGISTRO
+                nuevo_stock = Stock(
                     producto_id=detalle.producto_id,
-                    almacen_id=almacen_destino_id,
+                    almacen_id=orden.almacen_id,
                     cantidad=detalle.cantidad_solicitada,
+                    # Valores por defecto o tomados del producto
                     stock_minimo=5, 
                     stock_maximo=100
                 )
-                db.session.add(stock_item)
+                db.session.add(nuevo_stock)
 
-            movimiento = Movimiento(
-                producto_id=detalle.producto_id,
-                cantidad=detalle.cantidad_solicitada,
-                tipo='entrada',
-                fecha=datetime.now(),
-                motivo=f'Recepción de OC #{orden.id}',
-                orden_compra_id=orden.id,
-                almacen_id=almacen_destino_id,
-                organizacion_id=org_id
-            )
-            db.session.add(movimiento)
-        
+        # 3. Actualizar el estado de la Orden
         orden.estado = 'recibida'
         orden.fecha_recepcion = datetime.now()
-        db.session.add(orden)
         
         db.session.commit()
-        flash('¡Orden recibida! El stock ha sido actualizado.', 'success')
-        
+        flash(f'Orden #{orden.id} recibida. Inventario actualizado en: {orden.almacen.nombre}', 'success')
+
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al recibir la orden: {e}', 'danger')
-    
+        # Esto te mostrará el error real en pantalla si vuelve a fallar
+        flash(f'Ocurrió un error al procesar el ingreso: {str(e)}', 'danger')
+        print(f"Error detallado: {e}") # Para ver en la consola del servidor
+
     return redirect(url_for('lista_ordenes'))
 
 @app.route('/orden/<int:id>/enviar', methods=['POST'])
@@ -3408,6 +3411,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
