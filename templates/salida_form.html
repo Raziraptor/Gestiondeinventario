@@ -3,6 +3,9 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
+<!-- Cargar librería para leer QR/Barras -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
 <div class="container mt-4">
     <!-- ENCABEZADO -->
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -16,25 +19,47 @@
         <i class="bi bi-info-circle-fill text-info"></i> Estás registrando salidas del almacén: <strong>{{ almacen.nombre }}</strong>.
     </div>
 
-    <!-- SECCIÓN DE BÚSQUEDA (TIPO TYPEAHEAD) -->
+    <!-- SECCIÓN DE BÚSQUEDA Y ESCANEO -->
     <div class="card shadow-sm mb-4 border-primary">
-        <div class="card-header bg-primary text-white fw-bold">
-            <i class="bi bi-search"></i> Buscar Producto para Agregar
+        <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-search"></i> Buscar o Escanear Producto</span>
         </div>
         <div class="card-body bg-light">
+            
+            <!-- ÁREA DE CÁMARA (Oculta por defecto) -->
+            <div id="reader-container" class="mb-3" style="display: none;">
+                <div id="reader" style="width: 100%;"></div>
+                <div class="text-center mt-2">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="detenerEscaner()">
+                        <i class="bi bi-stop-circle"></i> Detener Cámara
+                    </button>
+                    <small class="d-block text-muted mt-1">Apunta la cámara al código de barras o QR</small>
+                </div>
+            </div>
+
             <div class="position-relative">
                 <div class="input-group input-group-lg">
+                    <!-- Icono de teclado/lupa -->
                     <span class="input-group-text bg-white"><i class="bi bi-upc-scan"></i></span>
+                    
+                    <!-- Input de Texto -->
                     <input type="text" id="buscador" class="form-control" 
-                           placeholder="Escribe Nombre del producto o Escanea el SKU..." autocomplete="off">
+                           placeholder="Escribe Nombre, SKU o usa el escáner..." autocomplete="off">
+                    
+                    <!-- BOTÓN PARA ACTIVAR CÁMARA -->
+                    <button class="btn btn-outline-primary" type="button" id="btn_escanear" onclick="iniciarEscaner()" title="Escanear con cámara">
+                        <i class="bi bi-qr-code-scan"></i> Escanear
+                    </button>
                 </div>
+
                 <!-- Lista flotante de sugerencias -->
                 <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow" 
                      style="z-index: 1050; top: 100%; display: none; max-height: 300px; overflow-y: auto;">
                 </div>
             </div>
-            <div class="form-text mt-2">
-                <i class="bi bi-lightning-charge-fill text-warning"></i> Tip: Presiona <strong>Enter</strong> si escribes el SKU exacto para sumar cantidad automáticamente.
+            <div class="form-text mt-2 d-flex justify-content-between">
+                <span><i class="bi bi-lightning-charge-fill text-warning"></i> Tip: Presiona <strong>Enter</strong> si escribes el SKU exacto.</span>
+                <span id="scan_status" class="text-success fw-bold" style="display:none;">¡Código detectado!</span>
             </div>
         </div>
     </div>
@@ -52,7 +77,7 @@
             <!-- Mensaje cuando está vacío -->
             <div id="mensaje_vacio" class="text-center text-muted py-5 border rounded bg-white border-dashed">
                 <i class="bi bi-basket fs-1 opacity-25"></i>
-                <p class="mt-2">La lista está vacía. Usa el buscador de arriba para agregar productos.</p>
+                <p class="mt-2">La lista está vacía. Usa el buscador o el escáner para agregar productos.</p>
             </div>
         </div>
         
@@ -68,10 +93,12 @@
     </form>
 </div>
 
-<!-- JAVASCRIPT PARA LA LÓGICA DE BÚSQUEDA Y AGREGADO -->
+<!-- SONIDO DE BEEP (Opcional, mejora la UX al escanear) -->
+<audio id="audio_beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+
+<!-- JAVASCRIPT -->
 <script>
-    // Obtenemos los productos pasados desde el backend (JSON)
-    // Flask inyecta la variable 'productos' convertida a JSON seguro
+    // Datos de productos
     var productosDisponibles = {{ productos | tojson | safe }};
 
     const buscador = document.getElementById('buscador');
@@ -79,18 +106,111 @@
     const container = document.getElementById('lineas_productos_container');
     const mensajeVacio = document.getElementById('mensaje_vacio');
     const contadorItems = document.getElementById('contador_items');
+    const audioBeep = document.getElementById('audio_beep');
+    const scanStatus = document.getElementById('scan_status');
 
-    // 1. EVENTO: Escribir en el buscador
+    // ==========================================
+    // 1. LÓGICA DE ESCÁNER (CÁMARA)
+    // ==========================================
+    let html5QrcodeScanner = null;
+    let isScanning = false;
+    let ultimoCodigoEscaneado = null;
+    let tiempoUltimoEscaneo = 0;
+
+    function iniciarEscaner() {
+        if (isScanning) return;
+        
+        document.getElementById('reader-container').style.display = 'block';
+        
+        // Configuración del escáner
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        // Preferir cámara trasera ('environment')
+        html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+        .then(() => {
+            isScanning = true;
+            document.getElementById('btn_escanear').classList.add('disabled');
+        })
+        .catch(err => {
+            console.error("Error iniciando cámara", err);
+            alert("No se pudo acceder a la cámara. Asegúrate de dar permisos.");
+            document.getElementById('reader-container').style.display = 'none';
+        });
+    }
+
+    function detenerEscaner() {
+        if (html5QrcodeScanner && isScanning) {
+            html5QrcodeScanner.stop().then(() => {
+                document.getElementById('reader-container').style.display = 'none';
+                document.getElementById('btn_escanear').classList.remove('disabled');
+                html5QrcodeScanner.clear();
+                isScanning = false;
+            }).catch(err => {
+                console.error("Error al detener", err);
+            });
+        }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        // Evitar lecturas múltiples rapidísimas del mismo código (Cooldown de 2 seg)
+        const ahora = new Date().getTime();
+        if (decodedText === ultimoCodigoEscaneado && (ahora - tiempoUltimoEscaneo) < 2000) {
+            return; 
+        }
+
+        ultimoCodigoEscaneado = decodedText;
+        tiempoUltimoEscaneo = ahora;
+
+        // Intentar reproducir sonido
+        try { audioBeep.play(); } catch(e) {}
+
+        // Buscar producto por SKU (exacto)
+        const query = decodedText.toLowerCase().trim();
+        const exacto = productosDisponibles.find(p => p.codigo.toLowerCase() === query);
+
+        if (exacto) {
+            // Feedback visual
+            scanStatus.innerText = `¡Escaneado: ${exacto.nombre}!`;
+            scanStatus.style.display = 'block';
+            setTimeout(() => { scanStatus.style.display = 'none'; }, 2000);
+
+            if (exacto.stock_actual > 0) {
+                agregarProducto(exacto);
+            } else {
+                alert(`El producto "${exacto.nombre}" no tiene stock.`);
+            }
+        } else {
+            scanStatus.innerText = `Código no encontrado: ${decodedText}`;
+            scanStatus.style.display = 'block';
+            scanStatus.classList.remove('text-success');
+            scanStatus.classList.add('text-danger');
+            setTimeout(() => { 
+                scanStatus.style.display = 'none'; 
+                scanStatus.classList.remove('text-danger');
+                scanStatus.classList.add('text-success');
+            }, 3000);
+        }
+    }
+
+    function onScanFailure(error) {
+        // No hacer nada, es normal que falle mientras busca cuadros
+    }
+
+
+    // ==========================================
+    // 2. LÓGICA DE BÚSQUEDA MANUAL (TYPEAHEAD)
+    // ==========================================
     buscador.addEventListener('input', function() {
         const query = this.value.toLowerCase().trim();
-        sugerencias.innerHTML = ''; // Limpiar lista
+        sugerencias.innerHTML = ''; 
 
         if (query.length === 0) {
             sugerencias.style.display = 'none';
             return;
         }
 
-        // Filtrar productos (Nombre o SKU)
         const resultados = productosDisponibles.filter(p => 
             p.nombre.toLowerCase().includes(query) || 
             p.codigo.toLowerCase().includes(query)
@@ -99,20 +219,14 @@
         if (resultados.length > 0) {
             sugerencias.style.display = 'block';
             resultados.forEach(p => {
-                // Crear elemento de lista
                 const item = document.createElement('a');
                 item.href = '#';
                 item.classList.add('list-group-item', 'list-group-item-action', 'd-flex', 'justify-content-between', 'align-items-center');
                 
-                // Estilo según stock
                 let stockBadge = `Stock: ${p.stock_actual}`;
                 let badgeClass = 'bg-success';
-                if (p.stock_actual === 0) {
-                    badgeClass = 'bg-danger';
-                    stockBadge = 'Sin Stock';
-                } else if (p.stock_actual <= 5) {
-                    badgeClass = 'bg-warning text-dark';
-                }
+                if (p.stock_actual === 0) { badgeClass = 'bg-danger'; stockBadge = 'Sin Stock'; }
+                else if (p.stock_actual <= 5) { badgeClass = 'bg-warning text-dark'; }
 
                 item.innerHTML = `
                     <div>
@@ -122,7 +236,6 @@
                     <span class="badge ${badgeClass} rounded-pill">${stockBadge}</span>
                 `;
 
-                // Al hacer clic en un item de la lista
                 item.onclick = (e) => {
                     e.preventDefault();
                     if (p.stock_actual > 0) {
@@ -139,13 +252,10 @@
         }
     });
 
-    // 2. EVENTO: Presionar Enter (Para escáner o selección rápida)
     buscador.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
-            e.preventDefault(); // Evitar submit del form
+            e.preventDefault();
             const query = this.value.toLowerCase().trim();
-
-            // Buscar coincidencia EXACTA de SKU
             const exacto = productosDisponibles.find(p => p.codigo.toLowerCase() === query);
 
             if (exacto) {
@@ -154,16 +264,14 @@
                     limpiarBuscador();
                 } else {
                     alert(`El producto "${exacto.nombre}" no tiene stock disponible.`);
-                    this.value = ''; // Limpiar para siguiente escaneo
+                    this.value = '';
                 }
             } else if (sugerencias.children.length > 0) {
-                // Si no es exacto pero hay sugerencias visibles, seleccionar la primera
                 sugerencias.children[0].click();
             }
         }
     });
 
-    // Ocultar sugerencias al hacer clic fuera
     document.addEventListener('click', (e) => {
         if (e.target !== buscador) sugerencias.style.display = 'none';
     });
@@ -174,45 +282,35 @@
         buscador.focus();
     }
 
-    // 3. FUNCIÓN: Agregar fila o sumar cantidad (LÓGICA ACTUALIZADA)
+    // ==========================================
+    // 3. LÓGICA DE AGREGAR PRODUCTOS (SUMAR)
+    // ==========================================
     function agregarProducto(producto) {
-        // Ocultar mensaje vacío
         if (mensajeVacio) mensajeVacio.style.display = 'none';
 
-        // A) BUSCAR SI YA EXISTE EN LA LISTA
-        // Buscamos un input hidden con el ID del producto
         const existingInput = document.querySelector(`input[name="producto_id[]"][value="${producto.id}"]`);
 
         if (existingInput) {
-            // -- EL PRODUCTO YA EXISTE: SUMAR CANTIDAD --
-            
-            // Subimos al contenedor de la fila (.producto-linea)
             const row = existingInput.closest('.producto-linea');
             const cantidadInput = row.querySelector('input[name="cantidad[]"]');
             
             let cantidadActual = parseInt(cantidadInput.value) || 0;
             let nuevaCantidad = cantidadActual + 1;
 
-            // Validar Stock Máximo
             if (nuevaCantidad > producto.stock_actual) {
-                alert(`No puedes agregar más. Solo hay ${producto.stock_actual} unidades disponibles.`);
+                alert(`Límite alcanzado. Solo hay ${producto.stock_actual} unidades.`);
                 return;
             }
 
-            // Actualizar valor
             cantidadInput.value = nuevaCantidad;
+            
+            // Efecto Flash Visual
+            cantidadInput.style.backgroundColor = "#d1e7dd"; 
+            setTimeout(() => { cantidadInput.style.backgroundColor = ""; }, 500);
 
-            // Efecto visual (Flash amarillo) para indicar que se sumó
-            cantidadInput.style.backgroundColor = "#fff3cd"; // Amarillo suave
-            cantidadInput.style.transition = "background-color 0.5s";
-            setTimeout(() => {
-                cantidadInput.style.backgroundColor = "";
-            }, 500);
-
-            return; // TERMINAMOS, NO CREAMOS FILA NUEVA
+            return;
         }
 
-        // B) NO EXISTE: CREAR FILA NUEVA
         const div = document.createElement('div');
         div.classList.add('row', 'g-3', 'mb-3', 'p-3', 'border', 'rounded', 'bg-white', 'shadow-sm', 'producto-linea', 'align-items-end');
         
@@ -237,11 +335,11 @@
 
             <div class="col-md-4">
                 <label class="form-label fw-bold small">Motivo</label>
-                <input type="text" name="motivo[]" class="form-control" placeholder="Ej: Venta, Merma, Uso interno" required>
+                <input type="text" name="motivo[]" class="form-control" placeholder="Ej: Venta, Merma" required>
             </div>
 
             <div class="col-md-1">
-                <button type="button" class="btn btn-outline-danger w-100" onclick="eliminarLinea(this)" title="Quitar de la lista">
+                <button type="button" class="btn btn-outline-danger w-100" onclick="eliminarLinea(this)" title="Quitar">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
@@ -251,11 +349,8 @@
         actualizarContador();
     }
 
-    // 4. FUNCIÓN: Eliminar línea
     window.eliminarLinea = function(boton) {
         boton.closest('.producto-linea').remove();
-        
-        // Si no quedan items, mostrar mensaje vacío
         const items = document.getElementsByName('producto_id[]');
         if (items.length === 0 && mensajeVacio) {
             mensajeVacio.style.display = 'block';
