@@ -62,6 +62,7 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as ReportLabImage
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+from werkzeug.security import generate_password_hash
 
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
@@ -614,6 +615,94 @@ def check_permission(permission_name):
 # 8. RUTAS DE LA APLICACIÓN
 # ==============================================================================
 
+# -----------------------------------------------------------------
+# GESTIÓN DE USUARIOS Y CONTRASEÑAS (ADMIN)
+# -----------------------------------------------------------------
+
+@app.route('/usuarios')
+@login_required
+def lista_usuarios():
+    """Muestra la lista de todos los usuarios registrados (Solo Admins)."""
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('Acceso restringido a administradores.', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    usuarios = User.query.order_by(User.username).all()
+    return render_template('usuarios.html', usuarios=usuarios)
+
+@app.route('/admin/usuario/<int:id>/reset_password', methods=['POST'])
+@login_required
+def admin_reset_password(id):
+    """
+    Acción para que un Admin fuerce el cambio de contraseña de otro usuario.
+    """
+    # 1. Seguridad: Solo Admins
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('No tienes permisos para realizar esta acción.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # 2. Buscar usuario
+    usuario_objetivo = User.query.get_or_404(id)
+    
+    # 3. Obtener nueva contraseña del form
+    nueva_password = request.form.get('new_password')
+    
+    if not nueva_password or len(nueva_password) < 4:
+        flash('La contraseña es muy corta (mínimo 4 caracteres).', 'warning')
+        return redirect(url_for('lista_usuarios'))
+
+    try:
+        # 4. Sobrescribir contraseña
+        usuario_objetivo.password_hash = generate_password_hash(nueva_password)
+        db.session.commit()
+        
+        flash(f'✅ Contraseña actualizada correctamente para: {usuario_objetivo.username}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al actualizar: {e}', 'danger')
+
+    return redirect(url_for('lista_usuarios'))
+
+
+# 1. INICIALIZAR FIREBASE (Necesitas descargar el JSON de credenciales de la consola de Firebase)
+# Pon el archivo 'serviceAccountKey.json' en la carpeta de tu proyecto
+cred = credentials.Certificate("serviceAccountKey.json")
+firebase_admin.initialize_app(cred)
+
+# ... (Configuración de DB y Modelos sigue igual) ...
+
+@app.route('/login-firebase', methods=['POST'])
+def login_firebase():
+    """
+    Esta ruta recibe el TOKEN que envía el Frontend después de que 
+    Firebase validó al usuario.
+    """
+    token_id = request.json.get('token')
+    
+    try:
+        # 1. Verificar el token con Firebase (Google)
+        decoded_token = firebase_auth.verify_id_token(token_id)
+        email_usuario = decoded_token['email']
+        uid_firebase = decoded_token['uid']
+        
+        # 2. Buscar usuario en NUESTRA base de datos local
+        usuario = User.query.filter_by(email=email_usuario).first()
+        
+        if not usuario:
+            # OPCIONAL: Si el usuario existe en Firebase pero no en SQL, crearlo automáticamente
+            # usuario = User(username=email_usuario.split('@')[0], email=email_usuario, rol='user')
+            # db.session.add(usuario)
+            # db.session.commit()
+            return jsonify({'success': False, 'message': 'Usuario no registrado en el sistema interno.'}), 401
+
+        # 3. Iniciar sesión en Flask (Login tradicional)
+        login_user(usuario)
+        
+        return jsonify({'success': True, 'redirect': url_for('dashboard')})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error de autenticación: {str(e)}'}), 400
+      
 # =============================================
 # NUEVAS RUTAS PARA ETIQUETAS
 # =============================================
@@ -3393,6 +3482,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
