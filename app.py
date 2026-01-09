@@ -662,46 +662,6 @@ def admin_reset_password(id):
         flash(f'Error al actualizar: {e}', 'danger')
 
     return redirect(url_for('lista_usuarios'))
-
-
-# 1. INICIALIZAR FIREBASE (Necesitas descargar el JSON de credenciales de la consola de Firebase)
-# Pon el archivo 'serviceAccountKey.json' en la carpeta de tu proyecto
-cred = credentials.Certificate("serviceAccountKey.json")
-firebase_admin.initialize_app(cred)
-
-# ... (Configuración de DB y Modelos sigue igual) ...
-
-@app.route('/login-firebase', methods=['POST'])
-def login_firebase():
-    """
-    Esta ruta recibe el TOKEN que envía el Frontend después de que 
-    Firebase validó al usuario.
-    """
-    token_id = request.json.get('token')
-    
-    try:
-        # 1. Verificar el token con Firebase (Google)
-        decoded_token = firebase_auth.verify_id_token(token_id)
-        email_usuario = decoded_token['email']
-        uid_firebase = decoded_token['uid']
-        
-        # 2. Buscar usuario en NUESTRA base de datos local
-        usuario = User.query.filter_by(email=email_usuario).first()
-        
-        if not usuario:
-            # OPCIONAL: Si el usuario existe en Firebase pero no en SQL, crearlo automáticamente
-            # usuario = User(username=email_usuario.split('@')[0], email=email_usuario, rol='user')
-            # db.session.add(usuario)
-            # db.session.commit()
-            return jsonify({'success': False, 'message': 'Usuario no registrado en el sistema interno.'}), 401
-
-        # 3. Iniciar sesión en Flask (Login tradicional)
-        login_user(usuario)
-        
-        return jsonify({'success': True, 'redirect': url_for('dashboard')})
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'Error de autenticación: {str(e)}'}), 400
       
 # =============================================
 # NUEVAS RUTAS PARA ETIQUETAS
@@ -3482,6 +3442,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
