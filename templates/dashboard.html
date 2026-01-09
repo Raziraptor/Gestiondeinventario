@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Inventario{% endblock %}
+
+{% block content %}
+    
+    <!-- Selector de Almacén -->
+    <div class="row mb-4 align-items-end">
+        <div class="col-md-6">
+            <label for="almacen_selector" class="form-label text-muted fw-bold small text-uppercase">
+                <i class="bi bi-house-door-fill"></i> Almacén Activo
+            </label>
+            <div class="input-group">
+                <select class="form-select form-select-lg fw-bold border-primary" id="almacen_selector" onchange="cambiarAlmacen(this.value)">
+                    {% if not almacenes %}
+                        <option>No hay almacenes creados</option>
+                    {% else %}
+                        {% for alm in almacenes %}
+                            <option value="{{ alm.id }}" {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}selected{% endif %}>
+                                {{ alm.nombre }}
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+                <button class="btn btn-primary" type="button"><i class="bi bi-arrow-repeat"></i></button>
+            </div>
+        </div>
+        <div class="col-md-6 d-flex align-items-center justify-content-end mt-3 mt-md-0">
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+            <a href="{{ url_for('nuevo_producto') }}" class="btn btn-success shadow-sm">
+                <i class="bi bi-plus-circle-fill"></i> Nuevo Producto Global
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Si no hay almacén, no podemos mostrar nada -->
+    {% if not almacen_seleccionado %}
+        <div class="alert alert-warning shadow-sm border-warning">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Atención</h4>
+            <p>No se puede mostrar el inventario porque no hay ningún almacén seleccionado.</p>
+            {% if current_user.rol in ['super_admin', 'admin'] %}
+                <hr>
+                <p class="mb-0">Por favor, <a href="{{ url_for('lista_almacenes') }}" class="alert-link">crea un almacén</a> primero.</p>
+            {% endif %}
+        </div>
+    {% else %}
+
+        <!-- Panel de Filtros y Búsqueda -->
+        <div class="card shadow-sm mb-4 border-0 bg-light">
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- Buscador Inteligente -->
+                    <div class="col-md-12 position-relative">
+                        <label for="filtro_busqueda" class="form-label fw-bold small text-primary">
+                            <i class="bi bi-search"></i> Buscar Producto
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" id="filtro_busqueda" 
+                                   placeholder="Escribe Nombre o SKU..." autocomplete="off">
+                        </div>
+                        <!-- Lista flotante de sugerencias -->
+                        <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow" 
+                             style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;">
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros Select -->
+                    <div class="col-md-6">
+                        <label for="filtro_categoria" class="form-label fw-bold small text-muted">Categoría</label>
+                        <select class="form-select form-select-sm" id="filtro_categoria">
+                            <option value="0">-- Todas --</option>
+                            {% for cat in categorias %}
+                            <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="filtro_proveedor" class="form-label fw-bold small text-muted">Proveedor</label>
+                        <select class="form-select form-select-sm" id="filtro_proveedor">
+                            <option value="0">-- Todos --</option>
+                            {% for prov in proveedores %}
+                            <option value="{{ prov.id }}">{{ prov.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Productos (CON BORDES MARCADOS) -->
+        <div class="card shadow-sm border border-secondary">
+            <div class="card-header bg-white py-3 border-bottom border-secondary d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary fw-bold">
+                    <i class="bi bi-list-ul"></i> Inventario: {{ almacen_seleccionado.nombre }}
+                </h5>
+                <span class="badge bg-light text-dark border border-secondary" id="contador_registros">
+                    {{ items_stock|length }} Productos
+                </span>
+            </div>
+            
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-bordered table-hover mb-0 align-middle border-secondary" id="tabla_inventario">
+                    <thead class="table-light text-dark text-uppercase small">
+                        <tr>
+                            <th class="ps-3 bg-light" style="width: 80px;">Img</th>
+                            <!-- Encabezados Ordenables -->
+                            <th onclick="ordenarTabla(1)" style="cursor: pointer;" class="th-sortable bg-light">
+                                SKU <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
+                            <th onclick="ordenarTabla(2)" style="cursor: pointer;" class="th-sortable bg-light">
+                                Producto <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
+                            <th onclick="ordenarTabla(3)" style="cursor: pointer;" class="th-sortable bg-light">
+                                Categoría <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
+                            <th class="bg-light">Ubicación</th>
+                            <th class="bg-light">Proveedor</th>
+                            <th onclick="ordenarTabla(6, 'num')" style="cursor: pointer;" class="text-center th-sortable bg-light">
+                                Stock <i class="bi bi-arrow-down-up ms-1 small"></i>
+                            </th>
+                            <th class="text-center bg-light">Estado</th>
+                            <th class="text-end pe-3 bg-light">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla_productos_cuerpo">
+                        {% for item in items_stock %}
+                        <tr class="fila-producto"
+                            data-categoria-id="{{ item.producto.categoria_id or '0' }}"
+                            data-proveedor-id="{{ item.producto.proveedor_id or '0' }}"
+                            data-nombre="{{ item.producto.nombre|lower }}"
+                            data-sku="{{ item.producto.codigo|lower }}">
+                            
+                            <!-- Imagen -->
+                            <td class="ps-3 text-center">
+                                {% if item.producto.imagen_url %}
+                                    <img src="{{ url_for('static', filename='uploads/' + item.producto.imagen_url) }}" 
+                                         class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-light rounded border d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- SKU -->
+                            <td class="fw-bold text-secondary">{{ item.producto.codigo }}</td>
+                            
+                            <!-- Nombre -->
+                            <td>
+                                <a href="{{ url_for('historial_producto', id=item.producto.id) }}" class="text-decoration-none text-dark fw-bold">
+                                    {{ item.producto.nombre }}
+                                </a>
+                            </td>
+                            
+                            <!-- Categoría -->
+                            <td>
+                                {% if item.producto.categoria %}
+                                    <span class="badge bg-light text-dark border border-secondary">{{ item.producto.categoria.nombre }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Ubicación -->
+                            <td><small class="text-muted">{{ item.ubicacion or '-' }}</small></td>
+                            
+                            <!-- Proveedor -->
+                            <td>
+                                {% if item.producto.proveedor %}
+                                    <small>{{ item.producto.proveedor.nombre }}</small>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Stock -->
+                            <td class="text-center">
+                                <span class="fw-bold fs-6">{{ item.cantidad }}</span>
+                            </td>
+                            
+                            <!-- Estado -->
+                            <td class="text-center">
+                                {% if item.estado_stock == 'bajo' %}
+                                    <span class="badge bg-danger border border-danger">Bajo</span>
+                                {% elif item.estado_stock == 'exceso' %}
+                                    <span class="badge bg-info text-dark border border-info">Exceso</span>
+                                {% else %}
+                                    <span class="badge bg-success border border-success">OK</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Acciones -->
+                            <td class="text-end pe-3">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-light border border-secondary" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-secondary">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}">
+                                                <i class="bi bi-pencil me-2 text-warning"></i> Editar Stock
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('historial_producto', id=item.producto.id) }}">
+                                                <i class="bi bi-clock-history me-2 text-info"></i> Ver Kardex
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="{{ url_for('configurar_etiqueta', id=item.producto.id) }}">
+                                                <i class="bi bi-printer me-2 text-secondary"></i> Etiqueta
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5">
+                                <i class="bi bi-inbox fs-1 text-muted opacity-50"></i>
+                                <p class="text-muted mt-2">Este almacén está vacío.</p>
+                                <a href="{{ url_for('gestionar_inventario_almacen', id=almacen_seleccionado.id) }}" class="btn btn-outline-primary btn-sm">
+                                    Gestionar Inventario
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- SCRIPTS PARA ORDENAR Y BUSCAR -->
+    <script>
+        function cambiarAlmacen(almacenId) {
+            window.location.href = window.location.pathname + '?almacen_id=' + almacenId;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // ==========================================
+            // 1. LÓGICA DE BÚSQUEDA Y FILTRADO
+            // ==========================================
+            const inputBusqueda = document.getElementById('filtro_busqueda');
+            const selectCategoria = document.getElementById('filtro_categoria');
+            const selectProveedor = document.getElementById('filtro_proveedor');
+            const filas = document.querySelectorAll('.fila-producto');
+            const listaSugerencias = document.getElementById('lista_sugerencias');
+            const contadorRegistros = document.getElementById('contador_registros');
+
+            // Generamos datos para el Typeahead desde el HTML renderizado
+            let datosBuscador = [];
+            filas.forEach(fila => {
+                const celdaNombre = fila.querySelector('td:nth-child(3) a');
+                const celdaSku = fila.querySelector('td:nth-child(2)');
+                
+                if (celdaNombre && celdaSku) {
+                    datosBuscador.push({
+                        nombre: fila.dataset.nombre || "",
+                        sku: fila.dataset.sku || "",
+                        nombreReal: celdaNombre.innerText.trim(),
+                        skuReal: celdaSku.innerText.trim()
+                    });
+                }
+            });
+
+            function aplicarFiltros() {
+                const texto = inputBusqueda.value.toLowerCase().trim();
+                const catId = selectCategoria.value;
+                const provId = selectProveedor.value;
+                let visibles = 0;
+
+                filas.forEach(fila => {
+                    const fNombre = fila.dataset.nombre || "";
+                    const fSku = fila.dataset.sku || "";
+                    const fCat = fila.dataset.categoriaId;
+                    const fProv = fila.dataset.proveedorId;
+
+                    const matchTexto = !texto || fNombre.includes(texto) || fSku.includes(texto);
+                    const matchCat = catId === '0' || fCat === catId;
+                    const matchProv = provId === '0' || fProv === provId;
+
+                    if (matchTexto && matchCat && matchProv) {
+                        fila.style.display = '';
+                        visibles++;
+                    } else {
+                        fila.style.display = 'none';
+                    }
+                });
+                
+                // Actualizar contador visual
+                if(contadorRegistros) contadorRegistros.innerText = `${visibles} Productos`;
+            }
+
+            // Eventos de Filtro
+            if(inputBusqueda) {
+                inputBusqueda.addEventListener('input', function() {
+                    const texto = this.value.toLowerCase().trim();
+                    aplicarFiltros();
+
+                    // Lógica de Sugerencias (Typeahead)
+                    listaSugerencias.innerHTML = '';
+                    if (texto.length > 0) {
+                        const sugerencias = datosBuscador.filter(d => d.nombre.includes(texto) || d.sku.includes(texto)).slice(0, 5); 
+                        
+                        if (sugerencias.length > 0) {
+                            listaSugerencias.style.display = 'block';
+                            sugerencias.forEach(sug => {
+                                const item = document.createElement('a');
+                                item.href = '#';
+                                item.classList.add('list-group-item', 'list-group-item-action');
+                                item.innerHTML = `<strong>${sug.nombreReal}</strong> <small class='text-muted'>(${sug.skuReal})</small>`;
+                                item.onclick = (e) => {
+                                    e.preventDefault();
+                                    inputBusqueda.value = sug.nombreReal;
+                                    aplicarFiltros(); 
+                                    listaSugerencias.style.display = 'none';
+                                };
+                                listaSugerencias.appendChild(item);
+                            });
+                        } else {
+                            listaSugerencias.style.display = 'none';
+                        }
+                    } else {
+                        listaSugerencias.style.display = 'none';
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (e.target !== inputBusqueda) listaSugerencias.style.display = 'none';
+                });
+            }
+
+            if(selectCategoria) selectCategoria.addEventListener('change', aplicarFiltros);
+            if(selectProveedor) selectProveedor.addEventListener('change', aplicarFiltros);
+        });
+
+        // ==========================================
+        // 2. LÓGICA DE ORDENAMIENTO (OPTIMIZADA)
+        // ==========================================
+        let direccionOrden = 'asc';
+
+        function ordenarTabla(n, tipo = 'str') {
+            const tbody = document.getElementById("tabla_productos_cuerpo");
+            // Convertimos las filas a un Array real para ordenarlas en memoria
+            const filasArray = Array.from(tbody.rows);
+            
+            // Si no hay filas o solo hay 1, no hacemos nada
+            if (filasArray.length < 2) return;
+
+            // Invertir dirección
+            direccionOrden = (direccionOrden === 'asc') ? 'desc' : 'asc';
+            const multiplicador = (direccionOrden === 'asc') ? 1 : -1;
+
+            // Ordenar el array en memoria (RÁPIDO)
+            filasArray.sort((filaA, filaB) => {
+                // Obtenemos el texto de la celda N
+                // Nota: Asegurarse de que 'n' corresponda al índice correcto de TD
+                const celdaA = filaA.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
+                const celdaB = filaB.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
+
+                let valorA = celdaA;
+                let valorB = celdaB;
+
+                if (tipo === 'num') {
+                    valorA = parseFloat(celdaA) || 0;
+                    valorB = parseFloat(celdaB) || 0;
+                }
+
+                if (valorA < valorB) return -1 * multiplicador;
+                if (valorA > valorB) return 1 * multiplicador;
+                return 0;
+            });
+
+            // Re-inyectar las filas ordenadas al DOM (Solo 1 reflow importante)
+            filasArray.forEach(fila => tbody.appendChild(fila));
+
+            // Actualizar iconos visuales
+            actualizarIconosOrden(n, direccionOrden);
+        }
+
+        function actualizarIconosOrden(colIndex, dir) {
+             // Resetear todos los iconos
+             const headers = document.querySelectorAll('#tabla_inventario th i');
+             headers.forEach(i => i.className = 'bi bi-arrow-down-up ms-1 small text-muted');
+             
+             // Activar el icono de la columna actual
+             const targetTh = document.querySelectorAll('#tabla_inventario th')[colIndex];
+             if(targetTh) {
+                 const icon = targetTh.querySelector('i');
+                 if(icon) {
+                     icon.className = dir === 'asc' ? 'bi bi-arrow-up ms-1 small text-primary' : 'bi bi-arrow-down ms-1 small text-primary';
+                 }
+             }
+        }
+    </script>
+{% endblock %}

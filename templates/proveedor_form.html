@@ -6,16 +6,30 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
-    <form method="POST" action="{{ request.path }}">
+    <!-- El formulario ahora apunta a la ruta de edición SI el proveedor existe -->
+    <form method="POST" action="{{ url_for('editar_proveedor', id=proveedor.id) if proveedor else url_for('nuevo_proveedor') }}">
         <div class="row g-3">
             <div class="col-md-6">
                 <label for="nombre" class="form-label">Nombre del Proveedor</label>
-                <input type="text" class="form-control" id="nombre" name="nombre" required>
+                <input type="text" class="form-control" id="nombre" name="nombre" 
+                       value="{{ proveedor.nombre if proveedor else '' }}" required>
             </div>
             <div class="col-md-6">
                 <label for="contacto_email" class="form-label">Email de Contacto</label>
-                <input type="email" class="form-control" id="contacto_email" name="contacto_email">
+                <input type="email" class="form-control" id="contacto_email" name="contacto_email"
+                       value="{{ proveedor.contacto_email if proveedor else '' }}">
             </div>
+            
+            <!-- ======================== -->
+            <!-- NUEVO CAMPO DE TELÉFONO -->
+            <!-- ======================== -->
+            <div class="col-md-6">
+                <label for="contacto_telefono" class="form-label">Número de Teléfono</label>
+                <input type="tel" class="form-control" id="contacto_telefono" name="contacto_telefono"
+                       value="{{ proveedor.contacto_telefono if proveedor else '' }}"
+                       placeholder="Ej: +52 81 1234 5678">
+            </div>
+            <!-- ======================== -->
             
             <div class="col-12 mt-4">
                 <button type="submit" class="btn btn-primary">Guardar Proveedor</button>
