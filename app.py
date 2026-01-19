@@ -2084,7 +2084,7 @@ def recibir_orden(id):
             producto = detalle.producto
             cantidad = detalle.cantidad_solicitada
             
-            # 1. ACTUALIZAR STOCK DEL ALMACÉN (Lógica Nueva y Correcta)
+            # 1. ACTUALIZAR STOCK DEL ALMACÉN
             # Buscamos si el producto ya existe en ESTE almacén específico
             stock_item = Stock.query.filter_by(
                 producto_id=producto.id,
@@ -2107,8 +2107,8 @@ def recibir_orden(id):
                 )
                 db.session.add(nuevo_stock)
 
-            # 2. REGISTRAR MOVIMIENTO (Lógica Original Restaurada)
-            # Esto crea el historial en el Kardex
+            # 2. REGISTRAR MOVIMIENTO
+            # CORRECCIÓN: Se agrega 'almacen_id' obligatorio para evitar NotNullViolation
             movimiento = Movimiento(
                 producto_id=producto.id,
                 cantidad=cantidad,
@@ -2116,14 +2116,12 @@ def recibir_orden(id):
                 fecha=datetime.now(),
                 motivo=f'Recepción de OC #{orden.id}',
                 orden_compra_id=orden.id,
-                organizacion_id=org_id
-                # Nota: Si tu modelo Movimiento tiene 'almacen_id', descomenta la siguiente línea:
-                # , almacen_id=orden.almacen_id 
+                organizacion_id=org_id,
+                almacen_id=orden.almacen_id  # <--- ¡ESTA LÍNEA ES LA SOLUCIÓN!
             )
             db.session.add(movimiento)
             
             # Opcional: Si aún usas el contador global en Producto, lo actualizamos también
-            # para mantener compatibilidad con el código antiguo.
             if hasattr(producto, 'cantidad_stock'):
                 producto.cantidad_stock = (producto.cantidad_stock or 0) + cantidad
                 db.session.add(producto)
@@ -2138,8 +2136,9 @@ def recibir_orden(id):
         
     except Exception as e:
         db.session.rollback()
+        # Mejoramos el mensaje de error para que sea más legible si vuelve a pasar
         flash(f'Error al recibir la orden: {str(e)}', 'danger')
-        print(f"DEBUG ERROR RECIBIR: {e}") # Para ver en logs del servidor
+        print(f"DEBUG ERROR RECIBIR: {e}") 
     
     return redirect(url_for('lista_ordenes'))
 
@@ -3485,6 +3484,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
