@@ -2057,46 +2057,89 @@ def nueva_orden():
         flash(f'Error al generar la orden: {e}', 'danger')
         return redirect(url_for('index'))
 
-@app.route('/orden/<int:id>/recibir', methods=['POST'])
+@app.route('/ordenes/recibir/<int:id>', methods=['POST'])
 @login_required
 def recibir_orden(id):
-    """ Marca una orden como 'recibida', actualiza el stock y REGISTRA EL MOVIMIENTO. """
+    """
+    Recibe una OC y actualiza el Stock del Almacén correspondiente.
+    Genera movimientos de entrada (Kardex).
+    """
+    # Usamos la consulta estándar compatible con tu versión de Flask
     orden = OrdenCompra.query.get_or_404(id)
     
     if orden.estado == 'recibida':
         flash('Esta orden ya fue recibida anteriormente.', 'warning')
         return redirect(url_for('lista_ordenes'))
 
+    # Validación CRÍTICA: La orden debe tener un almacén destino
+    if not orden.almacen_id:
+        flash('Error: La orden no tiene un almacén asignado. No se puede ingresar el stock.', 'danger')
+        return redirect(url_for('lista_ordenes'))
+
     try:
-        # 1. Actualizar el stock de cada producto en la orden
+        org_id = orden.organizacion_id
+        
+        # Iteramos sobre los detalles (Variables originales del código que me diste)
         for detalle in orden.detalles:
             producto = detalle.producto
-            producto.cantidad_stock += detalle.cantidad_solicitada
-            db.session.add(producto)
+            cantidad = detalle.cantidad_solicitada
             
-            # --- NUEVA LÓGICA: REGISTRAR MOVIMIENTO DE ENTRADA ---
+            # 1. ACTUALIZAR STOCK DEL ALMACÉN (Lógica Nueva y Correcta)
+            # Buscamos si el producto ya existe en ESTE almacén específico
+            stock_item = Stock.query.filter_by(
+                producto_id=producto.id,
+                almacen_id=orden.almacen_id
+            ).first()
+
+            if stock_item:
+                # Si existe, sumamos
+                stock_item.cantidad += cantidad
+                db.session.add(stock_item) # Aseguramos persistencia
+            else:
+                # Si no existe, lo creamos en este almacén
+                nuevo_stock = Stock(
+                    producto_id=producto.id,
+                    almacen_id=orden.almacen_id,
+                    cantidad=cantidad,
+                    organizacion_id=org_id,
+                    stock_minimo=5,  # Valores por defecto
+                    stock_maximo=100
+                )
+                db.session.add(nuevo_stock)
+
+            # 2. REGISTRAR MOVIMIENTO (Lógica Original Restaurada)
+            # Esto crea el historial en el Kardex
             movimiento = Movimiento(
                 producto_id=producto.id,
-                cantidad=detalle.cantidad_solicitada, # Positivo
+                cantidad=cantidad,
                 tipo='entrada',
                 fecha=datetime.now(),
                 motivo=f'Recepción de OC #{orden.id}',
-                orden_compra_id=orden.id
+                orden_compra_id=orden.id,
+                organizacion_id=org_id
+                # Nota: Si tu modelo Movimiento tiene 'almacen_id', descomenta la siguiente línea:
+                # , almacen_id=orden.almacen_id 
             )
             db.session.add(movimiento)
-            # --- FIN DE LA NUEVA LÓGICA ---
+            
+            # Opcional: Si aún usas el contador global en Producto, lo actualizamos también
+            # para mantener compatibilidad con el código antiguo.
+            if hasattr(producto, 'cantidad_stock'):
+                producto.cantidad_stock = (producto.cantidad_stock or 0) + cantidad
+                db.session.add(producto)
         
-        # 2. Marcar la orden como recibida
+        # 3. Finalizar Orden
         orden.estado = 'recibida'
         orden.fecha_recepcion = datetime.now()
         db.session.add(orden)
         
         db.session.commit()
-        flash('¡Orden recibida! El stock ha sido actualizado.', 'success')
+        flash(f'¡Orden recibida! Stock ingresado correctamente al almacén: {orden.almacen.nombre}', 'success')
         
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al recibir la orden: {e}', 'danger')
+        flash(f'Error al recibir la orden: {str(e)}', 'danger')
+        print(f"DEBUG ERROR RECIBIR: {e}") # Para ver en logs del servidor
     
     return redirect(url_for('lista_ordenes'))
 
@@ -3442,6 +3485,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
