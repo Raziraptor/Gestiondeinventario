@@ -127,50 +127,56 @@
     
     <hr class="mb-4">
 
-    {% if alertas_agrupadas %}
-    <div class="alert alert-warning">
-        <h4 class="alert-heading">¡Alertas de Stock!</h4>
-        <p>Los siguientes productos están por debajo del mínimo en uno o más almacenes.</p>
-        
-        {% for (alm_id, alm_nombre, prov_id, prov_nombre), items_stock in alertas_agrupadas.items() %}
-            <div class="card my-3">
-                <div class="card-header bg-dark text-white">
-                    <strong>Almacén: {{ alm_nombre }}</strong> | 
-                    <span class="text-muted">Proveedor: {{ prov_nombre }}</span>
-                </div>
-                
-                <form action="{{ url_for('nueva_orden') }}" method="POST">
-                    <input type="hidden" name="almacen_id" value="{{ alm_id }}">
-                    
-                    {% set context = {'hay_productos': true} %}
-                    
-                    <ul class="list-group list-group-flush">
-                        {% for item in items_stock %}
-                        <li class="list-group-item">
-                            <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ item.id }}" checked>
-                            <label class="form-check-label" for="check_{{ item.id }}">
-                                <strong>{{ item.producto.nombre }}</strong> 
-                                ({{ item.cantidad }} en stock, mínimo: {{ item.stock_minimo }})
-                            </label>
-                        </li>
-                        {% endfor %}
-                    </ul>
-
-                    <div class="card-footer">
-                        {% if prov_id != 0 %}
-                            <button type="submit" class="btn btn-sm btn-success">
-                                Generar OC para {{ prov_nombre }} (en {{ alm_nombre }})
-                            </button>
-                        {% else %}
-                            <span class="text-danger">Asigna un proveedor a estos productos para poder generar una OC.</span>
-                        {% endif %}
+    <!-- SECCIÓN DE ALERTAS DE STOCK (Protegida) -->
+    <!-- Solo visible para Admins o usuarios que gestionan Órdenes de Compra -->
+    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
+    
+        {% if alertas_agrupadas %}
+        <div class="alert alert-warning shadow-sm border-warning">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> ¡Alertas de Stock!</h4>
+            <p>Los siguientes productos están por debajo del mínimo en uno o más almacenes.</p>
+            
+            {% for (alm_id, alm_nombre, prov_id, prov_nombre), items_stock in alertas_agrupadas.items() %}
+                <div class="card my-3 border-warning">
+                    <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between">
+                        <span><i class="bi bi-shop"></i> Almacén: {{ alm_nombre }}</span>
+                        <span class="text-dark opacity-75"><i class="bi bi-truck"></i> Proveedor: {{ prov_nombre }}</span>
                     </div>
-                </form>
-            </div>
-        {% endfor %}
-    </div>
+                    
+                    <form action="{{ url_for('nueva_orden') }}" method="POST">
+                        <input type="hidden" name="almacen_id" value="{{ alm_id }}">
+                        
+                        {% set context = {'hay_productos': true} %}
+                        
+                        <ul class="list-group list-group-flush">
+                            {% for item in items_stock %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ item.id }}" checked>
+                                    <label class="form-check-label" for="check_{{ item.id }}">
+                                        <strong>{{ item.producto.nombre }}</strong> 
+                                    </label>
+                                </div>
+                                <span class="badge bg-danger">Stock: {{ item.cantidad }} / Min: {{ item.stock_minimo }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+
+                        <div class="card-footer bg-light">
+                            {% if prov_id != 0 %}
+                                <button type="submit" class="btn btn-sm btn-dark">
+                                    <i class="bi bi-cart-plus"></i> Generar OC Rápida para {{ prov_nombre }}
+                                </button>
+                            {% else %}
+                                <span class="text-danger small"><i class="bi bi-info-circle"></i> Asigna un proveedor a estos productos para poder generar una OC automática.</span>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
     {% endif %}
 
 {% endblock %}
-
-
