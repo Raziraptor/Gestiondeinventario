@@ -15,7 +15,7 @@
     </p>
 
     <div class="row g-4">
-        <!-- COLUMNA IZQUIERDA: FORMULARIO DE AÑADIR (MODIFICADO CON NUEVA BÚSQUEDA) -->
+        <!-- COLUMNA IZQUIERDA: FORMULARIO DE AÑADIR -->
         <div class="col-md-5">
             <div class="card shadow-sm border-primary">
                 <div class="card-header bg-primary text-white fw-bold">
@@ -24,7 +24,7 @@
                 <div class="card-body bg-light">
                     
                     {% if productos_para_anadir_json %}
-                        <!-- 1. BUSCADOR INTELIGENTE -->
+                        <!-- 1. BUSCADOR INTELIGENTE (IZQUIERDA) -->
                         <div class="mb-3 position-relative">
                             <label for="buscador" class="form-label fw-bold small text-primary">Buscar por Nombre o SKU</label>
                             <div class="input-group">
@@ -55,7 +55,6 @@
 
                         <!-- 3. FORMULARIO DE ENVÍO -->
                         <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod">
-                            <!-- ID del producto seleccionado -->
                             <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
                             
                             <div class="mb-3">
@@ -81,23 +80,40 @@
             </div>
         </div>
 
-        <!-- COLUMNA DERECHA: TABLA DE PRODUCTOS (MANTENER IGUAL, PERO ESTILIZADA) -->
+        <!-- COLUMNA DERECHA: TABLA DE PRODUCTOS (MODIFICADA CON BUSCADOR Y ORDENAMIENTO) -->
         <div class="col-md-7">
             <div class="card shadow-sm">
-                <div class="card-header bg-white fw-bold border-bottom">
-                    <i class="bi bi-list-ul"></i> Productos en {{ almacen.nombre }}
+                <div class="card-header bg-white fw-bold border-bottom d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-ul"></i> Productos en {{ almacen.nombre }}</span>
+                    <span class="badge bg-light text-dark border">{{ almacen.stocks.count() }} Items</span>
                 </div>
+                
+                <!-- BARRA DE BÚSQUEDA INTERNA (NUEVA) -->
+                <div class="bg-light p-2 border-bottom">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-filter"></i></span>
+                        <input type="text" id="buscador_inventario" class="form-control border-start-0" 
+                               placeholder="Filtrar por nombre, SKU o ubicación...">
+                    </div>
+                </div>
+
                 <div class="card-body p-0 table-responsive">
-                    <table class="table table-striped table-hover mb-0 align-middle">
+                    <table class="table table-striped table-hover mb-0 align-middle" id="tabla_inventario">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-3">Producto</th>
+                                <!-- Encabezado Ordenable: Producto -->
+                                <th class="ps-3" style="cursor: pointer;" onclick="ordenarInventario(0)">
+                                    Producto <i class="bi bi-arrow-down-up small text-muted ms-1"></i>
+                                </th>
                                 <th>Ubicación</th>
-                                <th class="text-end">Cantidad</th>
+                                <!-- Encabezado Ordenable: Cantidad -->
+                                <th class="text-end" style="cursor: pointer;" onclick="ordenarInventario(2, 'num')">
+                                    Cantidad <i class="bi bi-arrow-down-up small text-muted ms-1"></i>
+                                </th>
                                 <th class="text-center pe-3">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tbody_inventario">
                             {% for item in almacen.stocks.all() %}
                             <tr>
                                 <td class="ps-3">
@@ -135,13 +151,19 @@
                                 </td>
                             </tr>
                             {% else %}
-                            <tr>
+                            <tr id="no-products-row">
                                 <td colspan="4" class="text-center py-5 text-muted">
                                     <i class="bi bi-box fs-1 d-block mb-2 opacity-50"></i>
                                     No hay productos asignados a este almacén.
                                 </td>
                             </tr>
                             {% endfor %}
+                            <!-- Fila oculta para "Sin resultados" en búsqueda -->
+                            <tr id="sin-resultados-busqueda" style="display: none;">
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    No se encontraron productos con ese criterio.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -149,10 +171,12 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE BÚSQUEDA -->
+    <!-- SCRIPT DE FUNCIONALIDAD -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Datos pasados desde Flask
+            // ==========================================
+            // 1. LÓGICA DE AÑADIR PRODUCTO (IZQUIERDA)
+            // ==========================================
             const productosData = {{ productos_para_anadir_json | default([]) | tojson | safe }};
             
             const buscador = document.getElementById('buscador');
@@ -164,8 +188,7 @@
             const btnSubmit = document.getElementById('btn_submit_anadir');
             const inputUbicacion = document.getElementById('ubicacion_input');
 
-            // Función para filtrar y mostrar sugerencias
-            if (buscador) { // Solo si existe el buscador (si hay productos para añadir)
+            if (buscador) {
                 buscador.addEventListener('input', function() {
                     const query = this.value.toLowerCase().trim();
                     sugerencias.innerHTML = ''; 
@@ -206,7 +229,6 @@
                     }
                 });
 
-                // Cerrar al hacer clic fuera
                 document.addEventListener('click', (e) => {
                     if (e.target !== buscador && e.target !== sugerencias) {
                         sugerencias.style.display = 'none';
@@ -215,18 +237,15 @@
             }
 
             window.seleccionarProducto = function(prod) {
-                // 1. Llenar datos ocultos y visuales
                 inputId.value = prod.id;
                 lblNombre.textContent = prod.nombre;
                 lblSku.textContent = prod.codigo;
 
-                // 2. Cambiar UI
-                buscador.value = ''; // Limpiar buscador
-                sugerencias.style.display = 'none'; // Ocultar lista
-                buscador.closest('.mb-3').style.display = 'none'; // Ocultar input buscador
-                preview.style.display = 'flex'; // Mostrar preview
+                buscador.value = ''; 
+                sugerencias.style.display = 'none'; 
+                buscador.closest('.mb-3').style.display = 'none'; 
+                preview.style.display = 'flex'; 
 
-                // 3. Activar botón y enfocar ubicación
                 btnSubmit.disabled = false;
                 inputUbicacion.focus();
             };
@@ -235,9 +254,84 @@
                 inputId.value = '0';
                 btnSubmit.disabled = true;
                 preview.style.display = 'none';
-                buscador.closest('.mb-3').style.display = 'block'; // Volver a mostrar buscador
+                buscador.closest('.mb-3').style.display = 'block'; 
                 buscador.focus();
             };
+
+            // ==========================================
+            // 2. LÓGICA DE FILTRADO Y ORDENAMIENTO (DERECHA)
+            // ==========================================
+            const buscadorInventario = document.getElementById('buscador_inventario');
+            const tbodyInv = document.getElementById('tbody_inventario');
+            const noResultsRow = document.getElementById('sin-resultados-busqueda');
+
+            if (buscadorInventario && tbodyInv) {
+                buscadorInventario.addEventListener('keyup', function() {
+                    const texto = this.value.toLowerCase();
+                    const filas = tbodyInv.querySelectorAll('tr:not(#no-products-row):not(#sin-resultados-busqueda)');
+                    let visibles = 0;
+
+                    filas.forEach(fila => {
+                        const contenido = fila.innerText.toLowerCase();
+                        if (contenido.includes(texto)) {
+                            fila.style.display = '';
+                            visibles++;
+                        } else {
+                            fila.style.display = 'none';
+                        }
+                    });
+
+                    // Mostrar mensaje si no hay resultados
+                    if (visibles === 0 && filas.length > 0) {
+                        noResultsRow.style.display = '';
+                    } else {
+                        noResultsRow.style.display = 'none';
+                    }
+                });
+            }
         });
+
+        // Función de Ordenamiento Global
+        let ordenAsc = true;
+        function ordenarInventario(colIndex, tipo = 'str') {
+            const table = document.getElementById("tabla_inventario");
+            const tbody = document.getElementById("tbody_inventario");
+            // Seleccionar solo las filas de datos reales
+            const rowsArray = Array.from(tbody.querySelectorAll('tr:not(#no-products-row):not(#sin-resultados-busqueda)'));
+            
+            if (rowsArray.length < 2) return;
+
+            ordenAsc = !ordenAsc; // Invertir orden
+            const multiplier = ordenAsc ? 1 : -1;
+
+            rowsArray.sort((a, b) => {
+                const cellA = a.children[colIndex].innerText.trim().toLowerCase();
+                const cellB = b.children[colIndex].innerText.trim().toLowerCase();
+                
+                let valA = cellA;
+                let valB = cellB;
+
+                if (tipo === 'num') {
+                    valA = parseFloat(cellA.replace(/[^0-9.-]+/g,"")) || 0;
+                    valB = parseFloat(cellB.replace(/[^0-9.-]+/g,"")) || 0;
+                }
+
+                if (valA < valB) return -1 * multiplier;
+                if (valA > valB) return 1 * multiplier;
+                return 0;
+            });
+
+            // Reordenar en el DOM
+            rowsArray.forEach(row => tbody.appendChild(row));
+            
+            // Actualizar iconos (opcional simple)
+            const icons = table.querySelectorAll('th i');
+            icons.forEach(i => i.className = 'bi bi-arrow-down-up small text-muted ms-1'); // Reset
+            
+            const targetIcon = table.querySelectorAll('th')[colIndex].querySelector('i');
+            if (targetIcon) {
+                targetIcon.className = ordenAsc ? 'bi bi-arrow-up small text-primary ms-1' : 'bi bi-arrow-down small text-primary ms-1';
+            }
+        }
     </script>
 {% endblock %}
