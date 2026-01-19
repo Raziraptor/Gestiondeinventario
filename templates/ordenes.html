@@ -64,7 +64,7 @@
             <!-- Lógica de estilos idéntica a tu código original pero adaptada a tarjetas -->
             {% set border_class = 'border-warning' %}
             {% set header_class = 'bg-warning text-dark' %}
-            {% set badge_class = 'bg-dark text-warning' %}
+            {% set badge_class = 'bg-white text-warning' %}
             {% set icon_state = 'bi-pencil-square' %}
 
             {% if orden.estado == 'recibida' %}
@@ -75,7 +75,7 @@
             {% elif orden.estado == 'enviada' %}
                 {% set border_class = 'border-info' %}
                 {% set header_class = 'bg-info text-dark' %}
-                {% set badge_class = 'bg-dark text-info' %}
+                {% set badge_class = 'bg-light text-info' %}
                 {% set icon_state = 'bi-truck' %}
             {% elif orden.estado == 'cancelada' %}
                 {% set border_class = 'border-secondary' %}
@@ -222,3 +222,4 @@
         {% endfor %}
     </div>
 {% endblock %}
+
