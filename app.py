@@ -2194,7 +2194,7 @@ def generar_oc_pdf(id):
     # ==========================================
     
     # Intento seguro de obtener datos de contacto (busca varios nombres posibles para no fallar)
-    p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'email_contacto', 'contacto_email', '-')))
+    p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'contacto_email', '-')))
     p_tel = getattr(proveedor, 'telefono', getattr(proveedor, 'celular', '-'))
     p_contacto = getattr(proveedor, 'contacto', getattr(proveedor, 'nombre_contacto', '-'))
 
@@ -3442,6 +3442,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
