@@ -1457,6 +1457,32 @@ def editar_almacen(id):
                            titulo="Editar Almacén", 
                            almacen=almacen)
 
+@app.route('/almacen/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_almacen(id):
+    # Solo administradores
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('No tienes permiso para eliminar almacenes.', 'danger')
+        return redirect(url_for('lista_almacenes'))
+
+    almacen = Almacen.query.get_or_404(id)
+
+    # Opcional: Validar que esté vacío antes de borrar
+    # stocks_activos = Stock.query.filter_by(almacen_id=id).filter(Stock.cantidad > 0).count()
+    # if stocks_activos > 0:
+    #     flash(f'No puedes eliminar "{almacen.nombre}" porque aún tiene productos con stock.', 'warning')
+    #     return redirect(url_for('lista_almacenes'))
+
+    try:
+        db.session.delete(almacen)
+        db.session.commit()
+        flash('Almacén eliminado correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar el almacén (puede tener datos relacionados): {e}', 'danger')
+
+    return redirect(url_for('lista_almacenes'))
+
 @app.route('/almacen/<int:id>/inventario', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -3484,6 +3510,7 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
 
 
 
