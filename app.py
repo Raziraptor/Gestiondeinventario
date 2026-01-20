@@ -63,6 +63,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
 from werkzeug.security import generate_password_hash
+from sqlalchemy import text
 
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
@@ -990,10 +991,13 @@ def api_buscar_productos():
 
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
-@check_org_permission
-@check_permission('perm_edit_management')
+@check_org_permission (Si usas este decorador, mantenlo)
+@check_permission('perm_edit_management') (Si usas este decorador, mantenlo)
 def nuevo_producto():
-    """ Formulario para crear un nuevo producto (Multiusuario, Multi-Almacén). """
+    """ 
+    Formulario para crear un nuevo producto (Multiusuario, Multi-Almacén). 
+    Incluye lógica de Factor de Empaque y Stock Inicial.
+    """
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
@@ -1002,13 +1006,15 @@ def nuevo_producto():
     if request.method == 'POST':
         imagen_filename = None
             
+        # Helper interno para no perder los datos si falla la validación
         def repoblar_formulario_con_error():
             producto_temporal = Producto(
                 nombre=request.form.get('nombre'),
                 codigo=request.form.get('codigo'),
                 categoria_id=int(request.form.get('categoria_id') or 0) or None,
-                precio_unitario=float(request.form.get('precio_unitario') or 0.0),
-                proveedor_id=int(request.form.get('proveedor_id') or 0) or None
+                costo_estandar=float(request.form.get('costo_estandar') or 0.0), # Ojo: nombre del campo en form
+                proveedor_id=int(request.form.get('proveedor_id') or 0) or None,
+                unidades_por_caja=int(request.form.get('unidades_por_caja') or 1) # Mantenemos el dato
             )
             return render_template('producto_form.html', 
                                    titulo="Nuevo Producto", 
@@ -1017,10 +1023,12 @@ def nuevo_producto():
                                    almacenes=almacenes, 
                                    producto=producto_temporal)
             
+        # 1. Manejo de Imagen
         if 'imagen' in request.files:
             file = request.files['imagen']
             if file.filename != '' and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
+                # Asegúrate que app.config['UPLOAD_FOLDER'] esté definido
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
             elif file.filename != '' and not allowed_file(file.filename):
@@ -1028,40 +1036,48 @@ def nuevo_producto():
                 return repoblar_formulario_con_error()
         
         try:
+            # 2. Crear Producto (Con Factor de Empaque)
             nuevo_prod = Producto(
                 nombre=request.form['nombre'],
                 codigo=request.form['codigo'],
                 categoria_id=request.form.get('categoria_id') or None,
-                precio_unitario=float(request.form.get('precio_unitario', 0.0)),
+                costo_estandar=float(request.form.get('costo_estandar', 0.0)),
                 imagen_url=imagen_filename,
                 proveedor_id=request.form.get('proveedor_id') or None,
+                unidades_por_caja=int(request.form.get('unidades_por_caja', 1)), # <--- NUEVO CAMPO
                 organizacion_id=current_user.organizacion_id
             )
             db.session.add(nuevo_prod)
             
-            # --- LÓGICA DE STOCK INICIAL ---
+            # Necesitamos hacer flush para obtener el ID del nuevo producto antes de crear stock
+            db.session.flush()
+
+            # 3. Lógica de Stock Inicial (Opcional)
             cantidad_inicial = int(request.form.get('cantidad_inicial', 0))
             almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0) or 0)
-            ubicacion_inicial = request.form.get('ubicacion_inicial') # <-- NUEVO
+            ubicacion_inicial = request.form.get('ubicacion_inicial')
 
             almacen_seleccionado = None
             if almacen_inicial_id > 0:
                 almacen_seleccionado = Almacen.query.filter_by(id=almacen_inicial_id, organizacion_id=org_id).first()
 
             if almacen_seleccionado:
+                # Crear registro de Stock
                 nuevo_stock = Stock(
-                    producto=nuevo_prod,
-                    almacen=almacen_seleccionado,
+                    producto_id=nuevo_prod.id, # Usamos el ID generado por flush()
+                    almacen_id=almacen_seleccionado.id,
                     cantidad=cantidad_inicial, 
                     stock_minimo=int(request.form.get('stock_minimo', 5)),
                     stock_maximo=int(request.form.get('stock_maximo', 100)),
-                    ubicacion=ubicacion_inicial # <-- GUARDAMOS UBICACIÓN
+                    ubicacion=ubicacion_inicial,
+                    organizacion_id=org_id
                 )
                 db.session.add(nuevo_stock)
 
+                # Si hay cantidad inicial, registrar movimiento (Kardex)
                 if cantidad_inicial > 0:
                     movimiento_inicial = Movimiento(
-                        producto=nuevo_prod,
+                        producto_id=nuevo_prod.id,
                         cantidad=cantidad_inicial,
                         tipo='entrada-inicial',
                         fecha=datetime.now(),
@@ -1077,16 +1093,17 @@ def nuevo_producto():
             db.session.commit()
             flash('Producto creado exitosamente.', 'success')
             
+            # Redirección inteligente
             if almacen_seleccionado:
-                 return redirect(url_for('dashboard', almacen_id=almacen_seleccionado.id))
-            return redirect(url_for('dashboard'))
+                 return redirect(url_for('gestionar_inventario_almacen', id=almacen_seleccionado.id))
+            return redirect(url_for('lista_productos'))
         
         except IntegrityError as e:
             db.session.rollback()
-            if "producto_codigo_key" in str(e) or "UNIQUE constraint failed: producto.codigo" in str(e):
-                flash('Error: El Código (SKU) que ingresaste ya existe.', 'danger')
+            if "producto_codigo_key" in str(e) or "UNIQUE constraint failed" in str(e):
+                flash('Error: El Código (SKU) que ingresaste ya existe. Intenta con otro.', 'danger')
             else:
-                flash(f'Error de base de datos: {e}', 'danger')
+                flash(f'Error de integridad en base de datos: {e}', 'danger')
             return repoblar_formulario_con_error()
         
         except Exception as e:
@@ -1094,6 +1111,7 @@ def nuevo_producto():
             flash(f'Error inesperado al crear el producto: {e}', 'danger')
             return repoblar_formulario_con_error()
             
+    # Renderizado GET
     return render_template('producto_form.html', 
                            titulo="Nuevo Producto", 
                            proveedores=proveedores,
@@ -1105,13 +1123,18 @@ def nuevo_producto():
 @login_required
 @check_permission('perm_edit_management')
 def editar_producto(id):
-    """ Edita un producto (Multiusuario, Multi-Almacén). """
+    """ 
+    Edita un producto (Multiusuario, Multi-Almacén). 
+    Actualizada con Factor de Empaque y corrección de Costo Estándar.
+    """
     producto = get_item_or_404(Producto, id)
     org_id = producto.organizacion_id
         
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
 
+    # Detectar si estamos editando desde el contexto de un almacén específico
+    # (Esto permite editar el stock/ubicación de ese almacén al mismo tiempo)
     almacen_id = request.args.get('almacen_id', type=int)
     if not almacen_id and request.method == 'POST':
          almacen_id = request.form.get('almacen_id', type=int)
@@ -1122,6 +1145,7 @@ def editar_producto(id):
 
     if request.method == 'POST':
         try:
+            # 1. Manejo de Imagen
             if 'imagen' in request.files:
                 file = request.files['imagen']
                 if file.filename != '' and allowed_file(file.filename):
@@ -1137,27 +1161,37 @@ def editar_producto(id):
                                            categorias=categorias,
                                            stock_item=stock_item)
 
+            # 2. Datos Generales del Producto
             producto.nombre = request.form['nombre']
             producto.codigo = request.form['codigo']
             producto.categoria_id = request.form.get('categoria_id') or None
-            producto.precio_unitario = float(request.form.get('precio_unitario', 0.0))
+            
+            # CORRECCIÓN: Usamos costo_estandar para coincidir con el formulario y nuevo_producto
+            producto.costo_estandar = float(request.form.get('costo_estandar', 0.0))
+            
             producto.proveedor_id = request.form.get('proveedor_id') or None
+            
+            # --- NUEVO: FACTOR DE EMPAQUE (Cajas) ---
+            producto.unidades_por_caja = int(request.form.get('unidades_por_caja', 1))
 
-            # --- GUARDAR STOCK Y UBICACIÓN ---
+            # 3. Guardar Stock y Ubicación (Solo si venimos de un almacén)
             if stock_item:
+                # Actualizamos límites y ubicación específicos de este almacén
                 stock_item.stock_minimo = int(request.form.get('stock_minimo', stock_item.stock_minimo))
                 stock_item.stock_maximo = int(request.form.get('stock_maximo', stock_item.stock_maximo))
                 stock_item.cantidad = int(request.form.get('cantidad', stock_item.cantidad))
-                
-                # NUEVO: Actualizar ubicación
                 stock_item.ubicacion = request.form.get('ubicacion') 
 
             db.session.commit()
             flash('Producto actualizado exitosamente', 'success')
             
+            # 4. Redirección Inteligente
             if almacen_id:
-                return redirect(url_for('dashboard', almacen_id=almacen_id))
-            return redirect(url_for('dashboard'))
+                # Si editamos desde el inventario de un almacén, volvemos ahí
+                return redirect(url_for('gestionar_inventario_almacen', id=almacen_id))
+            
+            # Si editamos desde la lista general, volvemos a la lista
+            return redirect(url_for('lista_productos'))
 
         except Exception as e:
             db.session.rollback()
@@ -1485,7 +1519,7 @@ def eliminar_almacen(id):
 
 @app.route('/almacen/<int:id>/inventario', methods=['GET', 'POST'])
 @login_required
-@admin_required
+# @admin_required # (O usa @check_permission si es lo que usas en tu sistema)
 def gestionar_inventario_almacen(id):
     almacen = get_item_or_404(Almacen, id)
     org_id = almacen.organizacion_id
@@ -1493,7 +1527,9 @@ def gestionar_inventario_almacen(id):
     if request.method == 'POST':
         try:
             producto_id = int(request.form.get('producto_id'))
-            ubicacion = request.form.get('ubicacion') # <-- NUEVO
+            ubicacion = request.form.get('ubicacion')
+            # 1. CAPTURAR CANTIDAD (Calculada por el frontend: Cajas * Factor)
+            cantidad = float(request.form.get('cantidad', 0))
 
             if not producto_id:
                 raise Exception("No se seleccionó un producto.")
@@ -1504,19 +1540,35 @@ def gestionar_inventario_almacen(id):
             ).first()
             
             if stock_existente:
-                flash('Ese producto ya está en este almacén.', 'warning')
+                flash('Ese producto ya está registrado en este almacén.', 'warning')
             else:
+                # 2. CREAR STOCK CON CANTIDAD INICIAL Y ORG_ID
                 nuevo_stock = Stock(
                     producto_id=producto_id,
                     almacen_id=id,
-                    cantidad=0,
+                    cantidad=cantidad, # <-- Usamos la cantidad del form
                     stock_minimo=5,
                     stock_maximo=100,
-                    ubicacion=ubicacion # <-- GUARDAR UBICACIÓN
+                    ubicacion=ubicacion,
+                    organizacion_id=org_id # Importante para multitenancy
                 )
                 db.session.add(nuevo_stock)
+
+                # 3. REGISTRAR MOVIMIENTO INICIAL (Si aplica)
+                if cantidad > 0:
+                    movimiento = Movimiento(
+                        producto_id=producto_id,
+                        cantidad=cantidad,
+                        tipo='entrada-inicial',
+                        fecha=datetime.now(),
+                        motivo='Stock Inicial (Alta Manual en Almacén)',
+                        almacen_id=id,
+                        organizacion_id=org_id
+                    )
+                    db.session.add(movimiento)
+
                 db.session.commit()
-                flash('Producto añadido al almacén con stock 0.', 'success')
+                flash(f'Producto añadido al almacén con stock {cantidad}.', 'success')
         
         except Exception as e:
             db.session.rollback()
@@ -1524,9 +1576,11 @@ def gestionar_inventario_almacen(id):
         
         return redirect(url_for('gestionar_inventario_almacen', id=id))
 
+    # LÓGICA GET
     productos_en_stock_ids = [s.producto_id for s in almacen.stocks]
     productos_catalogo = Producto.query.filter_by(organizacion_id=org_id).all()
     
+    # Filtrar solo productos que NO están en este almacén
     productos_para_anadir = [
         p for p in productos_catalogo if p.id not in productos_en_stock_ids
     ]
@@ -1536,7 +1590,9 @@ def gestionar_inventario_almacen(id):
         productos_para_anadir_json.append({
             "id": p.id,
             "nombre": p.nombre,
-            "codigo": p.codigo
+            "codigo": p.codigo,
+            # 4. ENVIAR FACTOR DE EMPAQUE (Para la calculadora JS)
+            "unidades_por_caja": int(p.unidades_por_caja) if p.unidades_por_caja and p.unidades_por_caja > 0 else 1
         })
     
     return render_template('almacen_inventario.html',
@@ -3510,6 +3566,34 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+
+# -----------------------------------------------------------------
+# RUTA TEMPORAL: EJECUTAR UNA SOLA VEZ
+# -----------------------------------------------------------------
+@app.route('/sistema/actualizar_bd_cajas')
+@login_required
+def actualizar_bd_cajas():
+    """
+    Ruta de utilidad para alterar la tabla de productos y agregar el campo
+    de factor de empaque sin necesidad de migraciones complejas.
+    """
+    # 1. Seguridad: Solo Admins
+    if current_user.rol not in ['super_admin', 'admin']:
+        return "Acceso Denegado: Solo administradores pueden alterar la BD."
+    
+    try:
+        with db.engine.connect() as conn:
+            # 2. Comando SQL directo para agregar la columna
+            # Se agrega 'unidades_por_caja' como entero, por defecto 1 (pieza individual)
+            conn.execute(text("ALTER TABLE producto ADD COLUMN unidades_por_caja INTEGER DEFAULT 1"))
+            conn.commit()
+            
+        return "✅ ÉXITO: Base de datos actualizada. La columna 'unidades_por_caja' ha sido agregada a la tabla 'producto'."
+    
+    except Exception as e:
+        # Si falla, probablemente es porque ya existe o hay un error de sintaxis SQL específico del motor
+        return f"⚠️ NOTA: {str(e)} (Es probable que la columna ya existiera)."
+
 
 
 
