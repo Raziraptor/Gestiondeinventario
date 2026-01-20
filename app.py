@@ -232,6 +232,7 @@ class Producto(db.Model):
     proveedor = db.relationship('Proveedor', backref='productos', lazy=True)
     
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    unidades_por_caja = db.Column(db.Integer, default=1)
     
     # --- NUEVA RELACIÓN ---
     stocks = db.relationship('Stock', backref='producto', lazy='dynamic', cascade="all, delete-orphan")
@@ -3566,96 +3567,3 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
-
-# -----------------------------------------------------------------
-# RUTA TEMPORAL: EJECUTAR UNA SOLA VEZ
-# -----------------------------------------------------------------
-@app.route('/sistema/actualizar_bd_cajas')
-@login_required
-def actualizar_bd_cajas():
-    """
-    Ruta de utilidad para alterar la tabla de productos y agregar el campo
-    de factor de empaque sin necesidad de migraciones complejas.
-    """
-    # 1. Seguridad: Solo Admins
-    if current_user.rol not in ['super_admin', 'admin']:
-        return "Acceso Denegado: Solo administradores pueden alterar la BD."
-    
-    try:
-        with db.engine.connect() as conn:
-            # 2. Comando SQL directo para agregar la columna
-            # Se agrega 'unidades_por_caja' como entero, por defecto 1 (pieza individual)
-            conn.execute(text("ALTER TABLE producto ADD COLUMN unidades_por_caja INTEGER DEFAULT 1"))
-            conn.commit()
-            
-        return "✅ ÉXITO: Base de datos actualizada. La columna 'unidades_por_caja' ha sido agregada a la tabla 'producto'."
-    
-    except Exception as e:
-        # Si falla, probablemente es porque ya existe o hay un error de sintaxis SQL específico del motor
-        return f"⚠️ NOTA: {str(e)} (Es probable que la columna ya existiera)."
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
