@@ -1010,16 +1010,18 @@ def nuevo_producto():
             
         def repoblar_formulario_con_error():
             # Creamos un objeto temporal para no perder lo que el usuario escribió
+            # IMPORTANTE: El constructor de Producto NO acepta 'costo_estandar'
             producto_temporal = Producto(
                 nombre=request.form.get('nombre'),
                 codigo=request.form.get('codigo'),
                 categoria_id=int(request.form.get('categoria_id') or 0) or None,
-                # TRUCO: Guardamos en precio_unitario lo que viene del input 'costo_estandar'
+                # MAPEAMOS: el input 'costo_estandar' al campo 'precio_unitario'
                 precio_unitario=float(request.form.get('costo_estandar') or 0.0), 
                 proveedor_id=int(request.form.get('proveedor_id') or 0) or None,
-                unidades_por_caja=int(request.form.get('unidades_por_caja') or 1)
+                unidades_por_caja=int(request.form.get('unidades_por_caja') or 1),
+                organizacion_id=org_id
             )
-            # Inyectamos el atributo 'costo_estandar' al objeto temporal para que el HTML lo lea bien
+            # Inyectamos el atributo 'costo_estandar' al objeto para que el HTML lo lea bien
             producto_temporal.costo_estandar = producto_temporal.precio_unitario
             
             return render_template('producto_form.html', 
@@ -1042,19 +1044,15 @@ def nuevo_producto():
         
         try:
             # 2. Crear Producto
+            # Aseguramos que NO se pase 'costo_estandar' como argumento del constructor
             nuevo_prod = Producto(
                 nombre=request.form['nombre'],
                 codigo=request.form['codigo'],
                 categoria_id=request.form.get('categoria_id') or None,
-                
-                # --- AQUÍ ESTÁ LA CORRECCIÓN CLAVE ---
-                # Asignamos al campo de la BD 'precio_unitario' el valor del input 'costo_estandar'
+                # MAPEAMOS: el input 'costo_estandar' al campo 'precio_unitario'
                 precio_unitario=float(request.form.get('costo_estandar', 0.0)),
-                # -------------------------------------
-
                 imagen_url=imagen_filename,
                 proveedor_id=request.form.get('proveedor_id') or None,
-                # Campo de cajas (ya existe en la BD tras la reparación)
                 unidades_por_caja=int(request.form.get('unidades_por_caja', 1)), 
                 organizacion_id=current_user.organizacion_id
             )
@@ -1100,7 +1098,7 @@ def nuevo_producto():
             # Redirección inteligente
             if almacen_seleccionado:
                  return redirect(url_for('gestionar_inventario_almacen', id=almacen_seleccionado.id))
-            return redirect(url_for('lista_productos'))
+            return redirect(url_for('dashboard'))
         
         except IntegrityError as e:
             db.session.rollback()
@@ -3607,4 +3605,5 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
