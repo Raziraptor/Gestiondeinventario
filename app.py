@@ -1126,84 +1126,59 @@ def nuevo_producto():
 @check_permission('perm_edit_management')
 def editar_producto(id):
     """ 
-    Edita un producto (Multiusuario, Multi-Almacén). 
-    Actualizada con Factor de Empaque y corrección de Costo Estándar.
+    Edita un producto.
+    CORREGIDO: Previene error 'could not convert string to float' en campos vacíos.
     """
-    producto = get_item_or_404(Producto, id)
+    producto = Producto.query.get_or_404(id)
     org_id = producto.organizacion_id
-        
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
 
-    # Detectar si estamos editando desde el contexto de un almacén específico
-    # (Esto permite editar el stock/ubicación de ese almacén al mismo tiempo)
     almacen_id = request.args.get('almacen_id', type=int)
-    if not almacen_id and request.method == 'POST':
-         almacen_id = request.form.get('almacen_id', type=int)
-
     stock_item = None
     if almacen_id:
         stock_item = Stock.query.filter_by(producto_id=producto.id, almacen_id=almacen_id).first()
 
     if request.method == 'POST':
         try:
-            # 1. Manejo de Imagen
             if 'imagen' in request.files:
                 file = request.files['imagen']
                 if file.filename != '' and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    producto.imagen_url = filename 
-                elif file.filename != '' and not allowed_file(file.filename):
-                    flash('Tipo de archivo de imagen no permitido', 'danger')
-                    return render_template('producto_form.html', 
-                                           titulo="Editar Producto", 
-                                           producto=producto,
-                                           proveedores=proveedores,
-                                           categorias=categorias,
-                                           stock_item=stock_item)
+                    producto.imagen_url = filename
 
-            # 2. Datos Generales del Producto
             producto.nombre = request.form['nombre']
             producto.codigo = request.form['codigo']
             producto.categoria_id = request.form.get('categoria_id') or None
-            
-            # CORRECCIÓN: Usamos costo_estandar para coincidir con el formulario y nuevo_producto
-            producto.costo_estandar = float(request.form.get('costo_estandar', 0.0))
-            
             producto.proveedor_id = request.form.get('proveedor_id') or None
+            producto.unidades_por_caja = int(request.form.get('unidades_por_caja') or 1)
             
-            # --- NUEVO: FACTOR DE EMPAQUE (Cajas) ---
-            producto.unidades_por_caja = int(request.form.get('unidades_por_caja', 1))
+            # CORRECCIÓN AQUÍ: Manejar el valor vacío de costo_estandar
+            costo_raw = request.form.get('costo_estandar')
+            producto.precio_unitario = float(costo_raw) if costo_raw and costo_raw.strip() else 0.0
 
-            # 3. Guardar Stock y Ubicación (Solo si venimos de un almacén)
             if stock_item:
-                # Actualizamos límites y ubicación específicos de este almacén
-                stock_item.stock_minimo = int(request.form.get('stock_minimo', stock_item.stock_minimo))
-                stock_item.stock_maximo = int(request.form.get('stock_maximo', stock_item.stock_maximo))
-                stock_item.cantidad = int(request.form.get('cantidad', stock_item.cantidad))
-                stock_item.ubicacion = request.form.get('ubicacion') 
+                stock_item.stock_minimo = int(request.form.get('stock_minimo') or 0)
+                stock_item.stock_maximo = int(request.form.get('stock_maximo') or 0)
+                stock_item.cantidad = int(request.form.get('cantidad') or 0)
+                stock_item.ubicacion = request.form.get('ubicacion')
 
             db.session.commit()
             flash('Producto actualizado exitosamente', 'success')
-            
-            # 4. Redirección Inteligente
-            if almacen_id:
-                # Si editamos desde el inventario de un almacén, volvemos ahí
-                return redirect(url_for('gestionar_inventario_almacen', id=almacen_id))
-            
-            # Si editamos desde la lista general, volvemos a la lista
-            return redirect(url_for('lista_productos'))
+            return redirect(url_for('gestionar_inventario_almacen', id=almacen_id) if almacen_id else url_for('dashboard'))
 
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar producto: {e}', 'danger')
 
+    # Preparar visualización del costo para el template
+    producto.costo_estandar = producto.precio_unitario
     return render_template('producto_form.html', 
                            titulo="Editar Producto", 
-                           producto=producto,
-                           proveedores=proveedores,
-                           categorias=categorias,
+                           producto=producto, 
+                           proveedores=proveedores, 
+                           categorias=categorias, 
                            stock_item=stock_item)
   
 @app.route('/producto/<int:id>/etiqueta')
@@ -3605,5 +3580,6 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
