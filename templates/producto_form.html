@@ -193,7 +193,8 @@
                     <button type="submit" class="btn btn-primary fw-bold py-2">
                         <i class="bi bi-save"></i> Guardar Cambios
                     </button>
-                    <a href="{{ url_for('dashboard', almacen_id=stock_item.almacen_id) if stock_item else url_for('lista_productos') }}" class="btn btn-outline-secondary">
+                    <!-- CORRECCIÓN AQUÍ: Cambiado 'dashboard' por 'gestionar_inventario_almacen' para evitar BuildError y mejorar navegación -->
+                    <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('lista_productos') }}" class="btn btn-outline-secondary">
                         Cancelar
                     </a>
                 </div>
