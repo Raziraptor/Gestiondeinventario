@@ -3567,3 +3567,40 @@ if __name__ == '__main__':
         db.create_all()
 
     app.run(debug=True, port=5000)
+@app.route('/reparar-bd-cajas')
+@login_required
+def reparar_bd_cajas():
+    """
+    Esta ruta fuerza la creación de la columna 'unidades_por_caja' en la base de datos
+    usando SQL directo, saltándose las migraciones de SQLAlchemy.
+    """
+    # 1. Seguridad: Solo Admins pueden ejecutar esto
+    if current_user.rol not in ['super_admin', 'admin']:
+        return "Acceso Denegado: Se requieren permisos de administrador."
+    
+    from sqlalchemy import text
+    try:
+        with db.engine.connect() as conn:
+            # 2. Ejecutar comando SQL para alterar la tabla
+            # Agrega la columna como entero con valor por defecto 1
+            conn.execute(text("ALTER TABLE producto ADD COLUMN unidades_por_caja INTEGER DEFAULT 1"))
+            conn.commit()
+            
+        return """
+        <div style="font-family: sans-serif; padding: 20px; color: green;">
+            <h1>✅ ÉXITO</h1>
+            <p>La columna <strong>'unidades_por_caja'</strong> ha sido agregada correctamente a la base de datos.</p>
+            <p>Ahora puedes volver al <a href="/productos">Inventario</a> y el error debería haber desaparecido.</p>
+        </div>
+        """
+    
+    except Exception as e:
+        # Si falla, mostramos el error técnico
+        return f"""
+        <div style="font-family: sans-serif; padding: 20px; color: #d9534f;">
+            <h1>⚠️ REPORTE DE ESTADO</h1>
+            <p>El sistema intentó agregar la columna, pero la base de datos respondió:</p>
+            <pre style="background: #f4f4f4; padding: 10px;">{str(e)}</pre>
+            <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
+        </div>
+        """
