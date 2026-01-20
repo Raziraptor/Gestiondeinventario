@@ -1073,8 +1073,7 @@ def nuevo_producto():
                     cantidad=cantidad_inicial, 
                     stock_minimo=int(request.form.get('stock_minimo') or 5),
                     stock_maximo=int(request.form.get('stock_maximo') or 100),
-                    ubicacion=ubicacion_inicial,
-                    organizacion_id=org_id
+                    ubicacion=ubicacion_inicial
                 )
                 db.session.add(nuevo_stock)
 
@@ -3576,6 +3575,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
