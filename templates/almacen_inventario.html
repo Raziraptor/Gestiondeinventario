@@ -15,18 +15,18 @@
     </p>
 
     <div class="row g-4">
-        <!-- COLUMNA IZQUIERDA: FORMULARIO DE AÑADIR -->
+        <!-- COLUMNA IZQUIERDA: FORMULARIO DE AÑADIR (CON CALCULADORA) -->
         <div class="col-md-5">
             <div class="card shadow-sm border-primary">
                 <div class="card-header bg-primary text-white fw-bold">
-                    <i class="bi bi-plus-circle"></i> Añadir Producto del Catálogo
+                    <i class="bi bi-plus-circle"></i> Añadir Stock Manual
                 </div>
                 <div class="card-body bg-light">
                     
                     {% if productos_para_anadir_json %}
-                        <!-- 1. BUSCADOR INTELIGENTE (IZQUIERDA) -->
+                        <!-- 1. BUSCADOR INTELIGENTE -->
                         <div class="mb-3 position-relative">
-                            <label for="buscador" class="form-label fw-bold small text-primary">Buscar por Nombre o SKU</label>
+                            <label for="buscador" class="form-label fw-bold small text-primary">Buscar Producto</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                                 <input type="text" id="buscador" class="form-control" 
@@ -57,6 +57,25 @@
                         <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod">
                             <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
                             
+                            <!-- CALCULADORA DE CAJAS (NUEVO) -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small text-muted">Cajas/Empaques</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text"><i class="bi bi-box"></i></span>
+                                        <input type="number" id="input_cajas" class="form-control" placeholder="-" disabled oninput="calcularDesdeCajas()">
+                                    </div>
+                                    <div class="form-text text-primary" style="font-size: 0.7rem;" id="info_conversion">
+                                        1 Caja = 1 Pza
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-dark">Total Unidades</label>
+                                    <input type="number" name="cantidad" id="input_unidades" class="form-control form-control-sm fw-bold border-primary" required oninput="limpiarCajas()">
+                                    <div class="form-text" style="font-size: 0.7rem;">Cantidad real a sumar.</div>
+                                </div>
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label fw-bold small">Ubicación (Opcional)</label>
                                 <input type="text" name="ubicacion" id="ubicacion_input" class="form-control" placeholder="Ej: Estante 1, Pasillo B">
@@ -80,7 +99,7 @@
             </div>
         </div>
 
-        <!-- COLUMNA DERECHA: TABLA DE PRODUCTOS (MODIFICADA CON BUSCADOR Y ORDENAMIENTO) -->
+        <!-- COLUMNA DERECHA: TABLA DE PRODUCTOS (MANTENEMOS LA FUNCIONALIDAD ANTERIOR) -->
         <div class="col-md-7">
             <div class="card shadow-sm">
                 <div class="card-header bg-white fw-bold border-bottom d-flex justify-content-between align-items-center">
@@ -88,12 +107,12 @@
                     <span class="badge bg-light text-dark border">{{ almacen.stocks.count() }} Items</span>
                 </div>
                 
-                <!-- BARRA DE BÚSQUEDA INTERNA (NUEVA) -->
+                <!-- BARRA DE BÚSQUEDA INTERNA -->
                 <div class="bg-light p-2 border-bottom">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-filter"></i></span>
                         <input type="text" id="buscador_inventario" class="form-control border-start-0" 
-                               placeholder="Filtrar por nombre, SKU o ubicación...">
+                               placeholder="Filtrar tabla por nombre, SKU o ubicación...">
                     </div>
                 </div>
 
@@ -101,15 +120,9 @@
                     <table class="table table-striped table-hover mb-0 align-middle" id="tabla_inventario">
                         <thead class="table-light">
                             <tr>
-                                <!-- Encabezado Ordenable: Producto -->
-                                <th class="ps-3" style="cursor: pointer;" onclick="ordenarInventario(0)">
-                                    Producto <i class="bi bi-arrow-down-up small text-muted ms-1"></i>
-                                </th>
+                                <th class="ps-3" style="cursor: pointer;" onclick="ordenarInventario(0)">Producto <i class="bi bi-arrow-down-up small text-muted ms-1"></i></th>
                                 <th>Ubicación</th>
-                                <!-- Encabezado Ordenable: Cantidad -->
-                                <th class="text-end" style="cursor: pointer;" onclick="ordenarInventario(2, 'num')">
-                                    Cantidad <i class="bi bi-arrow-down-up small text-muted ms-1"></i>
-                                </th>
+                                <th class="text-end" style="cursor: pointer;" onclick="ordenarInventario(2, 'num')">Cantidad <i class="bi bi-arrow-down-up small text-muted ms-1"></i></th>
                                 <th class="text-center pe-3">Acciones</th>
                             </tr>
                         </thead>
@@ -117,53 +130,26 @@
                             {% for item in almacen.stocks.all() %}
                             <tr>
                                 <td class="ps-3">
-                                    <div class="d-flex align-items-center">
-                                        <div class="ms-2">
-                                            <div class="fw-bold text-dark">{{ item.producto.nombre }}</div>
-                                            <small class="text-muted">SKU: {{ item.producto.codigo }}</small>
-                                        </div>
-                                    </div>
+                                    <div class="fw-bold text-dark">{{ item.producto.nombre }}</div>
+                                    <small class="text-muted">SKU: {{ item.producto.codigo }}</small>
                                 </td>
                                 <td>
-                                    {% if item.ubicacion %}
-                                        <span class="badge bg-light text-dark border">{{ item.ubicacion }}</span>
-                                    {% else %}
-                                        <span class="text-muted small fst-italic">Sin asignar</span>
-                                    {% endif %}
+                                    {% if item.ubicacion %}<span class="badge bg-light text-dark border">{{ item.ubicacion }}</span>{% else %}<span class="text-muted small fst-italic">Sin asignar</span>{% endif %}
                                 </td>
-                                <td class="text-end fw-bold">
-                                    {{ item.cantidad }}
-                                </td>
+                                <td class="text-end fw-bold">{{ item.cantidad }}</td>
                                 <td class="text-center pe-3">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" 
-                                           class="btn btn-outline-primary" title="Editar Stock/Detalles">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        
-                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;"
-                                              onsubmit="return confirm('¿Estás seguro de quitar este producto de ESTE almacén? El producto seguirá existiendo en el catálogo general.');">
-                                            <button type="submit" class="btn btn-outline-danger" title="Quitar del Almacén">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                        <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
+                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Quitar del almacén?');">
+                                            <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
                             {% else %}
-                            <tr id="no-products-row">
-                                <td colspan="4" class="text-center py-5 text-muted">
-                                    <i class="bi bi-box fs-1 d-block mb-2 opacity-50"></i>
-                                    No hay productos asignados a este almacén.
-                                </td>
-                            </tr>
+                            <tr id="no-products-row"><td colspan="4" class="text-center py-5 text-muted">No hay productos.</td></tr>
                             {% endfor %}
-                            <!-- Fila oculta para "Sin resultados" en búsqueda -->
-                            <tr id="sin-resultados-busqueda" style="display: none;">
-                                <td colspan="4" class="text-center py-4 text-muted">
-                                    No se encontraron productos con ese criterio.
-                                </td>
-                            </tr>
+                            <tr id="sin-resultados-busqueda" style="display: none;"><td colspan="4" class="text-center py-4 text-muted">No se encontraron productos.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -171,14 +157,14 @@
         </div>
     </div>
 
-    <!-- SCRIPT DE FUNCIONALIDAD -->
+    <!-- SCRIPTS -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // ==========================================
-            // 1. LÓGICA DE AÑADIR PRODUCTO (IZQUIERDA)
-            // ==========================================
+            // DATOS DEL BACKEND
             const productosData = {{ productos_para_anadir_json | default([]) | tojson | safe }};
-            
+            let factorActual = 1;
+
+            // ELEMENTOS DOM
             const buscador = document.getElementById('buscador');
             const sugerencias = document.getElementById('lista_sugerencias');
             const preview = document.getElementById('preview_seleccion');
@@ -187,7 +173,11 @@
             const inputId = document.getElementById('producto_id_hidden');
             const btnSubmit = document.getElementById('btn_submit_anadir');
             const inputUbicacion = document.getElementById('ubicacion_input');
+            const inputCajas = document.getElementById('input_cajas');
+            const inputUnidades = document.getElementById('input_unidades');
+            const infoConversion = document.getElementById('info_conversion');
 
+            // --- 1. LÓGICA DE BÚSQUEDA ---
             if (buscador) {
                 buscador.addEventListener('input', function() {
                     const query = this.value.toLowerCase().trim();
@@ -209,9 +199,15 @@
                             const item = document.createElement('a');
                             item.href = '#';
                             item.classList.add('list-group-item', 'list-group-item-action', 'd-flex', 'justify-content-between', 'align-items-center');
+                            
+                            // Mostrar si tiene factor de caja > 1
+                            const badgeCaja = (p.unidades_por_caja && p.unidades_por_caja > 1) 
+                                ? `<span class='badge bg-info text-dark rounded-pill'>x${p.unidades_por_caja}</span>` 
+                                : '';
+
                             item.innerHTML = `
                                 <div>
-                                    <strong>${p.nombre}</strong><br>
+                                    <strong>${p.nombre}</strong> ${badgeCaja}<br>
                                     <small class="text-muted">SKU: ${p.codigo}</small>
                                 </div>
                                 <i class="bi bi-plus-circle text-primary"></i>
@@ -229,6 +225,7 @@
                     }
                 });
 
+                // Cerrar al hacer clic fuera
                 document.addEventListener('click', (e) => {
                     if (e.target !== buscador && e.target !== sugerencias) {
                         sugerencias.style.display = 'none';
@@ -236,18 +233,43 @@
                 });
             }
 
+            // --- 2. LÓGICA DE SELECCIÓN ---
             window.seleccionarProducto = function(prod) {
+                // Llenar datos básicos
                 inputId.value = prod.id;
                 lblNombre.textContent = prod.nombre;
                 lblSku.textContent = prod.codigo;
 
+                // CONFIGURAR CALCULADORA
+                factorActual = prod.unidades_por_caja || 1;
+                
+                if (factorActual > 1) {
+                    inputCajas.disabled = false;
+                    inputCajas.placeholder = "0";
+                    infoConversion.innerHTML = `<span class="fw-bold text-primary"><i class="bi bi-box-seam"></i> 1 Caja = ${factorActual} Unidades</span>`;
+                } else {
+                    inputCajas.disabled = true;
+                    inputCajas.value = "";
+                    inputCajas.placeholder = "-";
+                    infoConversion.innerHTML = `<span class="text-muted">Se maneja por pieza individual.</span>`;
+                }
+                
+                inputUnidades.value = ""; // Limpiar unidad anterior
+
+                // Cambiar UI
                 buscador.value = ''; 
                 sugerencias.style.display = 'none'; 
                 buscador.closest('.mb-3').style.display = 'none'; 
                 preview.style.display = 'flex'; 
 
                 btnSubmit.disabled = false;
-                inputUbicacion.focus();
+                
+                // Si tiene cajas, enfocar cajas, si no, enfocar unidades
+                if (factorActual > 1) {
+                    inputCajas.focus();
+                } else {
+                    inputUnidades.focus();
+                }
             };
 
             window.limpiarSeleccion = function() {
@@ -256,11 +278,30 @@
                 preview.style.display = 'none';
                 buscador.closest('.mb-3').style.display = 'block'; 
                 buscador.focus();
+                
+                // Reset calculadora
+                inputCajas.value = "";
+                inputUnidades.value = "";
+                factorActual = 1;
             };
 
-            // ==========================================
-            // 2. LÓGICA DE FILTRADO Y ORDENAMIENTO (DERECHA)
-            // ==========================================
+            // --- 3. LÓGICA DE CÁLCULO ---
+            window.calcularDesdeCajas = function() {
+                const cajas = parseFloat(inputCajas.value);
+                if (!isNaN(cajas)) {
+                    inputUnidades.value = cajas * factorActual;
+                } else {
+                    inputUnidades.value = "";
+                }
+            };
+
+            window.limpiarCajas = function() {
+                // Si el usuario edita manual las unidades, borramos las cajas para evitar confusión visual
+                // ya que podría no ser un múltiplo exacto.
+                inputCajas.value = "";
+            };
+
+            // --- 4. FILTRO DE TABLA (DERECHA) ---
             const buscadorInventario = document.getElementById('buscador_inventario');
             const tbodyInv = document.getElementById('tbody_inventario');
             const noResultsRow = document.getElementById('sin-resultados-busqueda');
@@ -281,7 +322,6 @@
                         }
                     });
 
-                    // Mostrar mensaje si no hay resultados
                     if (visibles === 0 && filas.length > 0) {
                         noResultsRow.style.display = '';
                     } else {
@@ -290,18 +330,15 @@
                 });
             }
         });
-
-        // Función de Ordenamiento Global
+        
+        // --- 5. ORDENAMIENTO (EXTRA) ---
         let ordenAsc = true;
         function ordenarInventario(colIndex, tipo = 'str') {
-            const table = document.getElementById("tabla_inventario");
             const tbody = document.getElementById("tbody_inventario");
-            // Seleccionar solo las filas de datos reales
             const rowsArray = Array.from(tbody.querySelectorAll('tr:not(#no-products-row):not(#sin-resultados-busqueda)'));
-            
             if (rowsArray.length < 2) return;
 
-            ordenAsc = !ordenAsc; // Invertir orden
+            ordenAsc = !ordenAsc;
             const multiplier = ordenAsc ? 1 : -1;
 
             rowsArray.sort((a, b) => {
@@ -321,17 +358,7 @@
                 return 0;
             });
 
-            // Reordenar en el DOM
             rowsArray.forEach(row => tbody.appendChild(row));
-            
-            // Actualizar iconos (opcional simple)
-            const icons = table.querySelectorAll('th i');
-            icons.forEach(i => i.className = 'bi bi-arrow-down-up small text-muted ms-1'); // Reset
-            
-            const targetIcon = table.querySelectorAll('th')[colIndex].querySelector('i');
-            if (targetIcon) {
-                targetIcon.className = ordenAsc ? 'bi bi-arrow-up small text-primary ms-1' : 'bi bi-arrow-down small text-primary ms-1';
-            }
         }
     </script>
 {% endblock %}
