@@ -997,8 +997,7 @@ def api_buscar_productos():
 def nuevo_producto():
     """ 
     Crea un nuevo producto. 
-    CORREGIDO: Mapea 'costo_estandar' del form a 'precio_unitario' de la BD.
-    Incluye lógica de Factor de Empaque (Cajas) y Stock Inicial.
+    CORREGIDO: Manejo de strings vacíos en la conversión a float.
     """
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
@@ -1009,19 +1008,19 @@ def nuevo_producto():
         imagen_filename = None
             
         def repoblar_formulario_con_error():
-            # Creamos un objeto temporal para no perder lo que el usuario escribió
-            # IMPORTANTE: El constructor de Producto NO acepta 'costo_estandar'
+            # El uso de 'or 0.0' previene el error si el campo llega vacío
+            costo_val = request.form.get('costo_estandar')
+            precio_unitario_float = float(costo_val) if costo_val and costo_val.strip() else 0.0
+
             producto_temporal = Producto(
                 nombre=request.form.get('nombre'),
                 codigo=request.form.get('codigo'),
                 categoria_id=int(request.form.get('categoria_id') or 0) or None,
-                # MAPEAMOS: el input 'costo_estandar' al campo 'precio_unitario'
-                precio_unitario=float(request.form.get('costo_estandar') or 0.0), 
+                precio_unitario=precio_unitario_float, 
                 proveedor_id=int(request.form.get('proveedor_id') or 0) or None,
                 unidades_por_caja=int(request.form.get('unidades_por_caja') or 1),
                 organizacion_id=org_id
             )
-            # Inyectamos el atributo 'costo_estandar' al objeto para que el HTML lo lea bien
             producto_temporal.costo_estandar = producto_temporal.precio_unitario
             
             return render_template('producto_form.html', 
@@ -1031,7 +1030,6 @@ def nuevo_producto():
                                    almacenes=almacenes, 
                                    producto=producto_temporal)
             
-        # 1. Manejo de Imagen
         if 'imagen' in request.files:
             file = request.files['imagen']
             if file.filename != '' and allowed_file(file.filename):
@@ -1043,25 +1041,25 @@ def nuevo_producto():
                 return repoblar_formulario_con_error()
         
         try:
-            # 2. Crear Producto
-            # Aseguramos que NO se pase 'costo_estandar' como argumento del constructor
+            # CORRECCIÓN VITAL: Validar string vacío antes de float()
+            costo_raw = request.form.get('costo_estandar')
+            precio_final = float(costo_raw) if costo_raw and costo_raw.strip() else 0.0
+
             nuevo_prod = Producto(
                 nombre=request.form['nombre'],
                 codigo=request.form['codigo'],
                 categoria_id=request.form.get('categoria_id') or None,
-                # MAPEAMOS: el input 'costo_estandar' al campo 'precio_unitario'
-                precio_unitario=float(request.form.get('costo_estandar', 0.0)),
+                precio_unitario=precio_final,
                 imagen_url=imagen_filename,
                 proveedor_id=request.form.get('proveedor_id') or None,
                 unidades_por_caja=int(request.form.get('unidades_por_caja', 1)), 
                 organizacion_id=current_user.organizacion_id
             )
             db.session.add(nuevo_prod)
-            db.session.flush() # Generar ID necesario para el stock inicial
+            db.session.flush()
 
-            # 3. Stock Inicial (Opcional)
-            cantidad_inicial = int(request.form.get('cantidad_inicial', 0))
-            almacen_inicial_id = int(request.form.get('almacen_inicial_id', 0) or 0)
+            cantidad_inicial = int(request.form.get('cantidad_inicial') or 0)
+            almacen_inicial_id = int(request.form.get('almacen_inicial_id') or 0)
             ubicacion_inicial = request.form.get('ubicacion_inicial')
 
             almacen_seleccionado = None
@@ -1073,8 +1071,8 @@ def nuevo_producto():
                     producto_id=nuevo_prod.id,
                     almacen_id=almacen_seleccionado.id,
                     cantidad=cantidad_inicial, 
-                    stock_minimo=int(request.form.get('stock_minimo', 5)),
-                    stock_maximo=int(request.form.get('stock_maximo', 100)),
+                    stock_minimo=int(request.form.get('stock_minimo') or 5),
+                    stock_maximo=int(request.form.get('stock_maximo') or 100),
                     ubicacion=ubicacion_inicial,
                     organizacion_id=org_id
                 )
@@ -1095,7 +1093,6 @@ def nuevo_producto():
             db.session.commit()
             flash('Producto creado exitosamente.', 'success')
             
-            # Redirección inteligente
             if almacen_seleccionado:
                  return redirect(url_for('gestionar_inventario_almacen', id=almacen_seleccionado.id))
             return redirect(url_for('dashboard'))
@@ -1113,7 +1110,6 @@ def nuevo_producto():
             flash(f'Error inesperado: {e}', 'danger')
             return repoblar_formulario_con_error()
             
-    # GET: Mostrar formulario vacío
     return render_template('producto_form.html', 
                            titulo="Nuevo Producto", 
                            proveedores=proveedores,
@@ -3580,6 +3576,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
