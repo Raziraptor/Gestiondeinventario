@@ -991,8 +991,8 @@ def api_buscar_productos():
 
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
-@check_org_permission (Si usas este decorador, mantenlo)
-@check_permission('perm_edit_management') (Si usas este decorador, mantenlo)
+@check_org_permission #(Si usas este decorador, mantenlo)
+@check_permission('perm_edit_management') #(Si usas este decorador, mantenlo)
 def nuevo_producto():
     """ 
     Formulario para crear un nuevo producto (Multiusuario, Multi-Almacén). 
@@ -3593,6 +3593,7 @@ def actualizar_bd_cajas():
     except Exception as e:
         # Si falla, probablemente es porque ya existe o hay un error de sintaxis SQL específico del motor
         return f"⚠️ NOTA: {str(e)} (Es probable que la columna ya existiera)."
+
 
 
 
