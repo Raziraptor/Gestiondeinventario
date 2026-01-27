@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <!-- ENCABEZADO -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-briefcase-fill"></i> {{ titulo }}</h2>
+            <p class="text-muted mb-0">Gestiona las compras asignadas a proyectos específicos.</p>
+        </div>
+        <!-- Ruta corregida según tu snippet -->
+        <a href="{{ url_for('nuevo_proyecto_oc') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-lg"></i> Crear OC de Proyecto
+        </a>
+    </div>
+
+    <!-- SECCIÓN DE FILTROS (Visualmente consistente) -->
+    <div class="card bg-light mb-4 shadow-sm border-0">
+        <div class="card-body py-3">
+            <!-- Asumimos la ruta lista_proyectos_oc por consistencia, si se llama diferente ajustala -->
+            <form method="GET" action="{{ url_for('lista_proyectos_oc') if 'lista_proyectos_oc' in config else '#' }}" class="row g-2 align-items-end">
+                
+                <!-- Filtro Mes -->
+                <div class="col-md-2">
+                    <label for="mes" class="form-label fw-bold small text-muted">Mes</label>
+                    <select id="mes" name="mes" class="form-select form-select-sm">
+                        <option value="">-- Todos --</option>
+                        {% set meses = [
+                            (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+                            (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+                            (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+                        ] %}
+                        {% for num, nombre in meses %}
+                            <option value="{{ num }}" {% if request.args.get('mes') and request.args.get('mes')|int == num %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro Año -->
+                <div class="col-md-2">
+                    <label for="ano" class="form-label fw-bold small text-muted">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control form-control-sm" 
+                           value="{{ request.args.get('ano', 2025) }}" min="2020" max="2050">
+                </div>
+                
+                <!-- Filtro Proyecto (Opcional si tienes la lista disponible) -->
+                {% if proyectos %}
+                <div class="col-md-3">
+                    <label for="proyecto_id" class="form-label fw-bold small text-muted">Proyecto</label>
+                    <select id="proyecto_id" name="proyecto_id" class="form-select form-select-sm">
+                        <option value="0">-- Todos --</option>
+                        {% for proy in proyectos %} 
+                            <option value="{{ proy.id }}" {% if request.args.get('proyecto_id')|int == proy.id %}selected{% endif %}>
+                                {{ proy.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Checkbox: Ver Canceladas -->
+                <div class="col-md-2">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input" type="checkbox" id="ver_canceladas" name="ver_canceladas" 
+                               {% if request.args.get('ver_canceladas') == 'on' %}checked{% endif %}>
+                        <label class="form-check-label small" for="ver_canceladas">
+                            Ver Canceladas
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-filter"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GRID DE TARJETAS (Usando tus variables 'poc') -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        
+        {% set mostrar_canceladas = request.args.get('ver_canceladas') == 'on' %}
+
+        {% for poc in proyectos_oc %}
+            
+            {% if poc.estado|lower != 'cancelada' or mostrar_canceladas %}
+
+                <!-- Estilos Dinámicos según Estado -->
+                {% set border_class = 'border-secondary' %}
+                {% set header_class = 'bg-secondary text-white' %}
+                {% set text_class = 'text-secondary' %}
+                {% set icon_state = 'bi-question-circle' %}
+
+                {% if poc.estado == 'borrador' %}
+                    {% set border_class = 'border-warning' %}
+                    {% set header_class = 'bg-warning text-dark' %}
+                    {% set text_class = 'text-dark' %}
+                    {% set icon_state = 'bi-pencil-square' %}
+                {% elif poc.estado == 'aprobada' %}
+                    {% set border_class = 'border-info' %}
+                    {% set header_class = 'bg-info text-white' %}
+                    {% set text_class = 'text-info' %}
+                    {% set icon_state = 'bi-check-circle' %}
+                {% elif poc.estado == 'enviada' %}
+                    {% set border_class = 'border-primary' %}
+                    {% set header_class = 'bg-primary text-white' %}
+                    {% set text_class = 'text-primary' %}
+                    {% set icon_state = 'bi-send' %}
+                {% elif poc.estado == 'completada' %}
+                    {% set border_class = 'border-success' %}
+                    {% set header_class = 'bg-success text-white' %}
+                    {% set text_class = 'text-success' %}
+                    {% set icon_state = 'bi-check-all' %}
+                {% elif poc.estado == 'cancelada' %}
+                    {% set border_class = 'border-danger' %}
+                    {% set header_class = 'bg-danger text-white' %}
+                    {% set text_class = 'text-danger' %}
+                    {% set icon_state = 'bi-x-circle-fill' %}
+                {% endif %}
+
+                <div class="col">
+                    <div class="card h-100 shadow-sm {{ border_class }}">
+                        
+                        <!-- ENCABEZADO: Proyecto y Estado -->
+                        <div class="card-header {{ header_class }} d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 fw-bold text-truncate" style="max-width: 70%;" title="{{ poc.nombre_proyecto }}">
+                                {{ poc.nombre_proyecto }}
+                            </h5>
+                            <span class="badge bg-white {{ text_class }} border opacity-75">
+                                {{ poc.estado.capitalize() }}
+                            </span>
+                        </div>
+
+                        <!-- CUERPO -->
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted fw-bold">OC #{{ poc.id }}</small>
+                                <small class="text-muted">{{ poc.fecha_creacion.strftime('%Y-%m-%d') }}</small>
+                            </div>
+                            
+                            <p class="card-text text-muted mb-3 small">
+                                <i class="bi bi-person"></i> Creado por: <strong>{{ poc.creador.username }}</strong>
+                            </p>
+
+                            <!-- Resumen de Items (Primeros 2 para no saturar la tarjeta) -->
+                            <div class="mb-3 bg-white border rounded p-2 small">
+                                <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Resumen de Items:</h6>
+                                <ul class="list-unstyled mb-0 text-muted">
+                                    {% for detalle in poc.detalles %}
+                                        {% if loop.index <= 2 %}
+                                        <li class="d-flex justify-content-between">
+                                            <span class="text-truncate" style="max-width: 150px;">- {{ detalle.descripcion }}</span>
+                                            <span class="badge bg-light text-dark border">{{ detalle.cantidad }}</span>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if (poc.detalles|length) > 2 %}
+                                        <li class="text-center fst-italic text-muted" style="font-size: 0.7rem;">
+                                            + {{ (poc.detalles|length) - 2 }} más...
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+
+                            <!-- Total -->
+                            <div class="bg-light p-2 rounded text-center border">
+                                <small class="text-uppercase text-muted" style="font-size: 0.7rem;">Total Estimado</small>
+                                <div class="fs-5 fw-bold text-dark">${{ "{:,.2f}".format(poc.costo_total) }}</div>
+                            </div>
+                        </div>
+
+                        <!-- FOOTER: Acciones (Usando tus rutas) -->
+                        <div class="card-footer bg-white py-2">
+                            <div class="d-grid gap-2">
+                                
+                                {% if poc.estado == 'borrador' %}
+                                    <div class="btn-group w-100" role="group">
+                                        <!-- Editar -->
+                                        <a href="{{ url_for('editar_proyecto_oc', id=poc.id) }}" class="btn btn-outline-warning btn-sm fw-bold text-dark" title="Editar">
+                                            <i class="bi bi-pencil-square"></i> Editar
+                                        </a>
+                                        
+                                        <!-- Cancelar -->
+                                        <form action="{{ url_for('cancelar_proyecto_oc', id=poc.id) }}" method="POST" class="btn-group w-50"
+                                              onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta OC?');">
+                                            <button type="submit" class="btn btn-danger btn-sm fw-bold" title="Cancelar">
+                                                <i class="bi bi-x-circle"></i> Cancelar
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Herramientas Fijas: Ver y PDF -->
+                                <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                                    <a href="{{ url_for('ver_proyecto_oc', id=poc.id) }}" class="btn btn-link btn-sm text-decoration-none text-secondary ps-0">
+                                        <i class="bi bi-eye"></i> Ver Detalles
+                                    </a>
+                                    <a href="{{ url_for('generar_proyecto_oc_pdf', id=poc.id) }}" class="btn btn-link btn-sm text-decoration-none text-danger pe-0" target="_blank">
+                                        <i class="bi bi-file-earmark-pdf"></i> PDF
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-briefcase text-muted opacity-25" style="font-size: 5rem;"></i>
+                <p class="mt-3 text-muted">No se encontraron órdenes de proyectos.</p>
+                <a href="{{ url_for('nuevo_proyecto_oc') }}" class="btn btn-primary">Crear Primera OC</a>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

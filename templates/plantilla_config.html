@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Personalizar Marca{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2><i class="bi bi-palette"></i> Personalización de Marca (OC)</h2>
+    <hr>
+    
+    <form method="POST" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-light fw-bold">Encabezado del Documento</div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            
+                            <div class="col-md-4 text-center border-end">
+                                <label class="form-label fw-bold d-block">Logotipo</label>
+                                <div class="mb-3">
+                                    {% if org.logo_url %}
+                                        <img src="{{ url_for('static', filename='uploads/' + org.logo_url) }}" 
+                                             class="img-fluid" style="max-height: 80px;">
+                                    {% else %}
+                                        <div class="text-muted p-3 bg-light rounded">Sin Logo</div>
+                                    {% endif %}
+                                </div>
+                                <input type="file" class="form-control form-control-sm" name="logo" accept="image/*">
+                                <div class="form-text small">Aparecerá a la izquierda.</div>
+                            </div>
+
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Título Principal (Grande)</label>
+                                    <input type="text" class="form-control form-control-lg" name="header_titulo" 
+                                           value="{{ org.header_titulo or '' }}" 
+                                           placeholder="Ej. {{ org.nombre }}">
+                                    <div class="form-text">Texto grande que aparece junto al logo.</div>
+                                </div>
+                                
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold">Subtítulo / Eslogan (Pequeño)</label>
+                                    <input type="text" class="form-control form-control-sm" name="header_subtitulo" 
+                                           value="{{ org.header_subtitulo or '' }}" 
+                                           placeholder="Ej. Soluciones Industriales S.A. de C.V.">
+                                    <div class="form-text">Aparece debajo del título principal.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-light fw-bold">Estilos Globales</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Color Corporativo</label>
+                            <input type="color" class="form-control form-control-color w-100" 
+                                   name="color_primario" value="{{ org.color_primario }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipografía</label>
+                            <select class="form-select" name="tipo_letra">
+                                <option value="Helvetica" {% if org.tipo_letra == 'Helvetica' %}selected{% endif %}>Helvetica (Moderna)</option>
+                                <option value="Times-Roman" {% if org.tipo_letra == 'Times-Roman' %}selected{% endif %}>Times New Roman (Clásica)</option>
+                                <option value="Courier" {% if org.tipo_letra == 'Courier' %}selected{% endif %}>Courier (Máquina)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

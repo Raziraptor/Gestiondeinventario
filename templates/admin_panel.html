@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+    <h2>{{ titulo }}</h2>
+    <p class="text-muted">
+        Gestiona los permisos de los usuarios de tu organización: 
+        <strong>{{ current_user.organizacion.nombre }}</strong>
+    </p>
+
+    <div class="alert alert-info">
+        <h4 class="alert-heading">Código de Invitación</h4>
+        <p>Comparte este código con los nuevos usuarios para que se unan automáticamente a tu organización:</p>
+        <h3><span class="badge bg-primary">{{ current_user.organizacion.codigo_invitacion }}</span></h3>
+    </div>
+
+    <hr>
+
+    <div class="card">
+        <div class="card-header">
+            Usuarios de la Organización
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-striped table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th class="text-center" title="Ver Inventario">
+                            <i class="bi bi-grid-fill"></i>
+                        </th>
+                        <th class="text-center" title="Editar Gestión/Inventario">
+                            <i class="bi bi-pencil-square"></i>
+                        </th>
+                        <th class="text-center" title="Crear OC Normal">
+                            <i class="bi bi-receipt"></i>
+                        </th>
+                        <th class="text-center" title="Crear OC Proyecto">
+                            <i class="bi bi-clipboard-data"></i>
+                        </th>
+                        <th class="text-center" title="Registrar Salidas">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </th>
+                        <th class="text-center" title="Ver Gastos">
+                            <i class="bi bi-cash-coin"></i>
+                        </th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in usuarios %}
+                    {% if user.rol == 'user' %}
+                    <tr>
+                        <form action="{{ url_for('update_user_permissions', user_id=user.id) }}" method="POST">
+                            {{ forms[user.id].hidden_tag() }}
+                            
+                            <td class="align-middle">
+                                <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
+                                     class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                {{ user.username }}
+                            </td>
+                            <td class="align-middle">
+                                <span class="badge bg-secondary">{{ user.rol.capitalize() }}</span>
+                            </td>
+                            
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    {{ forms[user.id].perm_view_dashboard(class="form-check-input") }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    {{ forms[user.id].perm_edit_management(class="form-check-input") }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    {{ forms[user.id].perm_create_oc_standard(class="form-check-input") }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    {{ forms[user.id].perm_create_oc_proyecto(class="form-check-input") }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    {{ forms[user.id].perm_do_salidas(class="form-check-input") }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center">
+                                    {{ forms[user.id].perm_view_gastos(class="form-check-input") }}
+                                </div>
+                            </td>
+                            
+                            <td class="align-middle">
+                                <button type="submit" class="btn btn-success btn-sm">Guardar</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% elif user.rol == 'admin' %}
+                    <tr class="table-info">
+                        <td class="align-middle">
+                            <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
+                                     class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                            {{ user.username }}
+                        </td>
+                        <td class="align-middle">
+                            <span class="badge bg-primary">{{ user.rol.capitalize() }}</span>
+                        </td>
+                        <td colspan="7" class="text-center align-middle fst-italic">
+                            Los permisos de administrador solo pueden ser modificados por un Super Admin.
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

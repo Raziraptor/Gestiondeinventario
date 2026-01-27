@@ -6,82 +6,213 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
-    <form method="POST" action="{{ request.path }}" enctype="multipart/form-data">
+    <!-- Acción del formulario dinámica: maneja edición normal, edición desde inventario o creación -->
+    <form method="POST" action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto')) }}" enctype="multipart/form-data">
+        
+        {% if stock_item %}
+            <input type="hidden" name="almacen_id" value="{{ stock_item.almacen_id }}">
+        {% endif %}
+
         <div class="row g-3">
-            <div class="col-md-6">
-                <label for="nombre" class="form-label">Nombre del Producto</label>
-                <input type="text" class="form-control" id="nombre" name="nombre" value="{{ producto.nombre if producto else '' }}" required>
-            </div>
-            <div class="col-md-6">
-                <label for="codigo" class="form-label">Código (SKU)</label>
-                <input type="text" class="form-control" id="codigo" name="codigo" value="{{ producto.codigo if producto else '' }}" required>
-            </div>
-            <div class="col-md-6">
-                <label for="categoria_id" class="form-label">Categoría</label>
-                <select class="form-select" id="categoria_id" name="categoria_id">
-                    <option value="">-- Sin asignar --</option>
-                    {% for cat in categorias %}
-                        <option value="{{ cat.id }}" 
-                                {% if producto and producto.categoria_id == cat.id %}selected{% endif %}>
-                            {{ cat.nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <small class="form-text text-muted">Puedes <a href="{{ url_for('nueva_categoria') }}" target="_blank">agregar una nueva categoría aquí</a>.</small>
-            </div>
-            <div class="col-md-6">
-                <label for="precio_unitario" class="form-label">Precio Unitario</label>
-                <input type="number" step="0.01" class="form-control" id="precio_unitario" name="precio_unitario" value="{{ producto.precio_unitario if producto else 0.0 }}">
-            </div>
-            <div class="col-md-6">
-                <label for="proveedor_id" class="form-label">Proveedor</label>
-                <select class="form-select" id="proveedor_id" name="proveedor_id">
-                    <option value="">-- Sin asignar --</option>
-                    {% for prov in proveedores %}
-                        <option value="{{ prov.id }}" 
-                                {% if producto and producto.proveedor_id == prov.id %}selected{% endif %}>
-                            {{ prov.nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <small class="form-text text-muted">Puedes <a href="{{ url_for('nuevo_proveedor') }}" target="_blank">agregar un nuevo proveedor aquí</a>.</small>
-            </div>
-            <div class="col-md-6">
-                <label for="imagen" class="form-label">Imagen del Producto</label>
-                <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
-                <div class="mt-2">
-                {% if producto and producto.imagen_url %}
-                    <small class="form-text text-muted">Imagen actual:</small><br>
-                    <a href="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" target="_blank">
-                        <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" alt="Imagen del producto" class="img-thumbnail" style="max-width: 100px;">
-                    </a>
-                {% elif producto %} <small class="form-text text-muted">Imagen actual:</small><br>
-                    <i class="bi bi-box-seam text-muted" style="font-size: 3rem; vertical-align: middle;"></i>
-                {% endif %}
+            <!-- COLUMNA IZQUIERDA: DATOS -->
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">Detalles del Producto</div>
+                    <div class="card-body">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="nombre" class="form-label fw-bold">Nombre del Producto</label>
+                                <input type="text" class="form-control" id="nombre" name="nombre" 
+                                       value="{{ producto.nombre if producto else '' }}" required placeholder="Ej: Tornillo de 1/2 pulgada">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="codigo" class="form-label fw-bold">Código (SKU)</label>
+                                <input type="text" class="form-control" id="codigo" name="codigo" 
+                                       value="{{ producto.codigo if producto else '' }}" required placeholder="Ej: TOR-001-A">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="categoria_id" class="form-label fw-bold">Categoría</label>
+                                <select class="form-select" id="categoria_id" name="categoria_id">
+                                    <option value="">-- Sin Categoría --</option>
+                                    {% for cat in categorias %}
+                                    <option value="{{ cat.id }}" 
+                                            {% if producto and producto.categoria_id == cat.id %}selected{% endif %}>
+                                            {{ cat.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="proveedor_id" class="form-label fw-bold">Proveedor</label>
+                                <select class="form-select" id="proveedor_id" name="proveedor_id">
+                                    <option value="">-- Sin Proveedor --</option>
+                                    {% for prov in proveedores %}
+                                    <option value="{{ prov.id }}" 
+                                            {% if producto and producto.proveedor_id == prov.id %}selected{% endif %}>
+                                            {{ prov.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- CORRECCIÓN Y AGREGADO: COSTO Y FACTOR DE EMPAQUE -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="costo_estandar" class="form-label fw-bold">Costo Estándar</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <!-- Usamos costo_estandar para coincidir con backend -->
+                                    <input type="number" class="form-control" id="costo_estandar" name="costo_estandar" 
+                                           value="{{ producto.costo_estandar if producto else '0.00' }}" 
+                                           step="0.01" min="0">
+                                </div>
+                                <div class="form-text small">Costo unitario promedio.</div>
+                            </div>
+                            
+                            <!-- NUEVO CAMPO NECESARIO -->
+                            <div class="col-md-6">
+                                <label for="unidades_por_caja" class="form-label fw-bold text-primary">
+                                    <i class="bi bi-box"></i> Unidades por Caja/Empaque
+                                </label>
+                                <input type="number" class="form-control border-primary" id="unidades_por_caja" name="unidades_por_caja" 
+                                       value="{{ producto.unidades_por_caja if producto and producto.unidades_por_caja else '1' }}" 
+                                       min="1" required>
+                                <div class="form-text text-primary small">
+                                    Si compras por caja, ¿cuántas piezas trae?
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- LÓGICA DE STOCK INICIAL (SOLO CREACIÓN) -->
+                        {% if not producto or not producto.id %} 
+                        <div class="alert alert-info py-2 mt-4">
+                            <small><strong>Niveles de Stock:</strong> Valores por defecto para nuevos almacenes.</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="stock_minimo" class="form-label small fw-bold">Stock Mínimo</label>
+                                <input type="number" class="form-control form-control-sm" id="stock_minimo" name="stock_minimo" value="5" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="stock_maximo" class="form-label small fw-bold">Stock Máximo</label>
+                                <input type="number" class="form-control form-control-sm" id="stock_maximo" name="stock_maximo" value="100" min="0">
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        <div class="alert alert-success py-2">
+                            <small><strong>Stock Inicial (Opcional):</strong> Asigna el producto a un almacén de inmediato.</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="almacen_inicial_id" class="form-label small fw-bold">Almacén</label>
+                                <select class="form-select form-select-sm" id="almacen_inicial_id" name="almacen_inicial_id">
+                                    <option value="">-- No asignar --</option>
+                                    {% for alm in almacenes %}
+                                    <option value="{{ alm.id }}">{{ alm.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="ubicacion_inicial" class="form-label small fw-bold">Ubicación</label>
+                                <input type="text" class="form-control form-control-sm" id="ubicacion_inicial" name="ubicacion_inicial" placeholder="Ej: Pasillo 5">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="cantidad_inicial" class="form-label small fw-bold">Cantidad</label>
+                                <input type="number" class="form-control form-control-sm" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
+                            </div>
+                        </div>
+
+                        <!-- LÓGICA DE EDICIÓN DE STOCK ESPECÍFICO (SOLO SI SE LLAMA DESDE ALMACÉN) -->
+                        {% elif stock_item %} 
+                        <hr>
+                        <h5 class="text-primary"><i class="bi bi-geo-alt"></i> Inventario en: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Cantidad Actual</label>
+                                <input type="number" class="form-control border-warning" name="cantidad" 
+                                       value="{{ stock_item.cantidad }}" min="0" required>
+                                <small class="text-warning fw-bold">
+                                    <i class="bi bi-exclamation-triangle"></i> Ajuste manual de inventario.
+                                </small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Ubicación / Coordenada</label>
+                                <input type="text" class="form-control" name="ubicacion" 
+                                       value="{{ stock_item.ubicacion or '' }}" placeholder="Ej: A-12-B">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="stock_minimo" class="form-label small">Stock Mínimo (Almacén)</label>
+                                <input type="number" class="form-control form-control-sm" id="stock_minimo" name="stock_minimo" value="{{ stock_item.stock_minimo }}" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="stock_maximo" class="form-label small">Stock Máximo (Almacén)</label>
+                                <input type="number" class="form-control form-control-sm" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
+                            </div>
+                        </div>
+
+                        {% else %} 
+                        <!-- MENSAJE INFORMATIVO CUANDO ES EDICIÓN GENERAL -->
+                        <div class="alert alert-light border mt-3 text-muted">
+                            <i class="bi bi-info-circle"></i> Este producto no tiene stock específico cargado en esta vista. Para editar cantidades, ve a <a href="{{ url_for('lista_almacenes') }}">Almacenes</a>.
+                        </div>
+                        {% endif %}
+
+                    </div>
                 </div>
             </div>
-
-            <hr class="my-4">
             
-            <hr class="my-4">
-            
+            <!-- COLUMNA DERECHA: IMAGEN -->
             <div class="col-md-4">
-                <label for="cantidad_stock" class="form-label">Stock Actual</label>
-                <input type="number" class="form-control" id="cantidad_stock" name="cantidad_stock" value="{{ producto.cantidad_stock if producto else 0 }}" required>
-            </div>
-            <div class="col-md-4">
-                <label for="stock_minimo" class="form-label">Stock Mínimo (Alerta)</label>
-                <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" value="{{ producto.stock_minimo if producto else 5 }}" required>
-            </div>
-            <div class="col-md-4">
-                <label for="stock_maximo" class="form-label">Stock Máximo</label>
-                <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="{{ producto.stock_maximo if producto else 100 }}" required>
-            </div>
-            
-            <div class="col-12 mt-4">
-                <button type="submit" class="btn btn-primary">Guardar Producto</button>
-                <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white fw-bold">Imagen del Producto</div>
+                    <div class="card-body text-center">
+                        {% if producto and producto.imagen_url %}
+                            <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" 
+                                 id="img_preview" class="img-thumbnail mb-2 shadow-sm" alt="Imagen del Producto" 
+                                 style="max-height: 200px; object-fit: cover;">
+                        {% else %}
+                            <img src="" id="img_preview" class="img-thumbnail mb-2" alt="Vista previa" 
+                                 style="max-height: 200px; object-fit: cover; display: none;">
+                            <div id="placeholder_img" class="text-muted py-5 border rounded bg-light mb-2">
+                                <i class="bi bi-image fs-1"></i><br>Sin imagen
+                            </div>
+                        {% endif %}
+                        <input class="form-control form-control-sm mt-2" type="file" id="imagen" name="imagen" onchange="previsualizarImagen(event)" accept="image/*">
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary fw-bold py-2">
+                        <i class="bi bi-save"></i> Guardar Cambios
+                    </button>
+                    <!-- CORRECCIÓN: Usamos 'dashboard' como fallback seguro en lugar de 'lista_productos' -->
+                    <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}" class="btn btn-outline-secondary">
+                        Cancelar
+                    </a>
+                </div>
             </div>
         </div>
     </form>
+    
+    <script>
+        function previsualizarImagen(event) {
+            const preview = document.getElementById('img_preview');
+            const placeholder = document.getElementById('placeholder_img');
+            
+            if (event.target.files && event.target.files[0]) {
+                preview.style.display = 'block';
+                if(placeholder) placeholder.style.display = 'none';
+                preview.src = URL.createObjectURL(event.target.files[0]);
+                preview.onload = () => URL.revokeObjectURL(preview.src);
+            }
+        }
+    </script>
 {% endblock %}
