@@ -2155,7 +2155,6 @@ def recibir_orden(id):
                     producto_id=producto.id,
                     almacen_id=orden.almacen_id,
                     cantidad=cantidad,
-                    organizacion_id=org_id,
                     stock_minimo=5,  # Valores por defecto
                     stock_maximo=100
                 )
@@ -3575,6 +3574,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
