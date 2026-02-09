@@ -1521,8 +1521,7 @@ def gestionar_inventario_almacen(id):
                     cantidad=cantidad, # <-- Usamos la cantidad del form
                     stock_minimo=5,
                     stock_maximo=100,
-                    ubicacion=ubicacion,
-                    organizacion_id=org_id # Importante para multitenancy
+                    ubicacion=ubicacion
                 )
                 db.session.add(nuevo_stock)
 
@@ -3574,6 +3573,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
