@@ -8,6 +8,7 @@
     
     <!-- El formulario ahora apunta a la ruta de edición SI el proveedor existe -->
     <form method="POST" action="{{ url_for('editar_proveedor', id=proveedor.id) if proveedor else url_for('nuevo_proveedor') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row g-3">
             <div class="col-md-6">
                 <label for="nombre" class="form-label">Nombre del Proveedor</label>
@@ -38,3 +39,4 @@
         </div>
     </form>
 {% endblock %}
+
