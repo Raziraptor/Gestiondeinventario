@@ -537,7 +537,7 @@ def send_async_email(app, msg):
         except Exception as e:
             print(f"Error enviando correo de recuperación: {str(e)}")
 
-d    app_actual = current_app._get_current_object()
+    app_actual = current_app._get_current_object()
     
     # Usamos URLSafeTimedSerializer para generar un token directamente desde el email
     s = URLSafeTimedSerializer(app_actual.config['SECRET_KEY'])
@@ -3609,6 +3609,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
