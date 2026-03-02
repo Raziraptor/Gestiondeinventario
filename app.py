@@ -2460,7 +2460,7 @@ def nueva_orden_manual():
             nueva_orden = OrdenCompra(
                 proveedor_id=proveedor_id,
                 organizacion_id=current_user.organizacion_id,
-                creador_id=current_user.id
+                creador_id=current_user.id,
                 estado='Pendiente',
                 almacen_id=almacen_id if almacen_id else None # Guardamos el almacén destino
             )
@@ -3655,6 +3655,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
