@@ -7,6 +7,7 @@
     <hr>
     
     <form method="POST" action="{{ url_for('editar_almacen', id=almacen.id) if almacen else url_for('nuevo_almacen') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row g-3">
             <div class="col-md-6">
                 <label for="nombre" class="form-label">Nombre del Almacén</label>
