@@ -16,6 +16,7 @@
             </a>
             <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;" 
                   onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger">
                     <i class="bi bi-x-circle"></i> Cancelar OC
                 </button>
@@ -92,3 +93,4 @@
         </div>
     </div>
 {% endblock %}
+
