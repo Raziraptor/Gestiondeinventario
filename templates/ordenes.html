@@ -18,6 +18,7 @@
     <div class="card bg-light mb-4 shadow-sm border-0">
         <div class="card-body py-3">
             <form method="GET" action="{{ url_for('lista_ordenes') }}" class="row g-2 align-items-end">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <div class="col-md-3">
                     <label for="mes" class="form-label fw-bold small text-muted">Mes</label>
@@ -222,4 +223,5 @@
         {% endfor %}
     </div>
 {% endblock %}
+
 
