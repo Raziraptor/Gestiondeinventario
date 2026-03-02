@@ -2198,7 +2198,10 @@ def recibir_orden(id):
 @login_required
 @check_permission('perm_create_oc_standard')
 def enviar_orden(id):
-    orden = get_item_or_404(OrdenCompra, id)
+    orden = OrdenCompra.query.filter_by(
+        id=id, 
+        organizacion_id=current_user.organizacion_id
+    ).first_or_404()
 
     if orden.estado == 'borrador':
         try:
@@ -2215,7 +2218,10 @@ def enviar_orden(id):
 @login_required
 @check_permission('perm_create_oc_standard')
 def generar_oc_pdf(id):
-    orden = get_item_or_404(OrdenCompra, id)
+    orden = OrdenCompra.query.filter_by(
+        id=id, 
+        organizacion_id=current_user.organizacion_id
+    ).first_or_404()
     org = orden.organizacion
     proveedor = orden.proveedor
     
@@ -2470,7 +2476,10 @@ def nueva_orden_manual():
 @check_permission('perm_view_dashboard')
 def ver_orden(id):
     """ Muestra el detalle de una Orden de Compra (Solo lectura). """
-    orden = get_item_or_404(OrdenCompra, id)
+    orden = OrdenCompra.query.filter_by(
+        id=id, 
+        organizacion_id=current_user.organizacion_id
+    ).first_or_404()
     return render_template('orden_detalle.html', 
                            orden=orden, 
                            titulo=f"Detalle de Orden #{orden.id}")
@@ -2479,7 +2488,10 @@ def ver_orden(id):
 @login_required
 @check_permission('perm_create_oc_standard')
 def editar_orden(id):
-    orden = get_item_or_404(OrdenCompra, id)
+    orden = OrdenCompra.query.filter_by(
+        id=id, 
+        organizacion_id=current_user.organizacion_id
+    ).first_or_404()
 
     if orden.estado != 'borrador':
         flash('Solo se pueden editar órdenes en estado "Borrador".', 'warning')
@@ -2581,7 +2593,10 @@ def eliminar_orden(id):
     - Si estaba Pendiente: Funciona como 'Cancelar y Eliminar' (Automático).
     - Si estaba Recibida: Funciona como 'Limpiar Historial'.
     """
-    orden = get_item_or_404(OrdenCompra, id)
+    orden = OrdenCompra.query.filter_by(
+        id=id, 
+        organizacion_id=current_user.organizacion_id
+    ).first_or_404()
     
     # Validaciones de seguridad opcionales
     # (Por ejemplo, impedir borrar si ya tiene movimientos de stock complejos asociados, 
@@ -3584,6 +3599,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
