@@ -28,6 +28,9 @@ from flask_wtf.csrf import CSRFProtect
 from threading import Thread
 from flask import current_app
 from itsdangerous.url_safe import URLSafeTimedSerializer
+from functools import wraps
+from flask import flash, redirect, url_for
+from flask_login import current_user
 
 # --- Formularios (WTForms) ---
 from wtforms import StringField, PasswordField, SubmitField, BooleanField # <-- AÑADIDO BooleanField
@@ -510,6 +513,15 @@ class AdminPermissionForm(FlaskForm):
 # ==============================================================================
 # 7. FUNCIONES AUXILIARES (Decoradores, Subida de Imágenes)
 # ==============================================================================
+
+def super_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.rol != 'super_admin':
+            flash('Acceso denegado. Se requieren privilegios de Super Administrador.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def allowed_file(filename):
     """Verifica si la extensión del archivo es válida."""
@@ -3399,15 +3411,7 @@ def configurar_plantilla():
         
     return render_template('plantilla_config.html', org=organizacion)
 
-    def super_admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.rol != 'super_admin':
-            flash('Acceso denegado. Se requieren privilegios de Super Administrador.', 'danger')
-            return redirect(url_for('index')) # o 'dashboard', dependiendo de tu ruta principal
-        return f(*args, **kwargs)
-    return decorated_function
-
+    
 # --- RUTAS DEL SUPER ADMIN ---
 
 @app.route('/superadmin', methods=['GET'])
@@ -3618,6 +3622,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
