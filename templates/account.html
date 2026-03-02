@@ -18,6 +18,7 @@
                     <div class="text-center mb-3">
                         <form action="{{ url_for('delete_picture') }}" method="POST" 
                               onsubmit="return confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-trash"></i> Eliminar Foto
                             </button>
@@ -25,6 +26,7 @@
                     </div>
                     {% endif %}
                     <form method="POST" action="" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {{ form_account.hidden_tag() }}
                         
                         <div class="mb-3">
@@ -84,6 +86,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {{ form_password.hidden_tag() }}
                         
                         <div class="mb-3">
@@ -118,4 +121,5 @@
             </div>
         </div>
     </div>
+
 {% endblock %}
