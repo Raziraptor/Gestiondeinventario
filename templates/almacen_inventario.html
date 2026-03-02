@@ -29,7 +29,7 @@
                             <label for="buscador" class="form-label fw-bold small text-primary">Buscar Producto</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                                <input type="text" id="buscador" class="form-control" 
+                                <input type="text" id="buscador" class="-control" 
                                        placeholder="Escribe para buscar..." autocomplete="off">
                             </div>
                             <!-- Lista flotante de sugerencias -->
@@ -53,7 +53,7 @@
                             <button type="button" class="btn-close" onclick="limpiarSeleccion()" title="Cambiar producto"></button>
                         </div>
 
-                        <!-- 3. FORMULARIO DE ENVÍO -->
+                        <!-- 3. ULARIO DE ENVÍO -->
                         <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod">
                             <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
                             
@@ -141,6 +141,7 @@
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
                                         <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Quitar del almacén?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </div>
