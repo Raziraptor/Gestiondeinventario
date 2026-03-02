@@ -3,20 +3,24 @@
 {% block title %}Historial de Salidas{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Historial de Salidas</h2>
-        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger">
-            <i class="bi bi-box-arrow-up"></i> Registrar Nueva Salida
+    <!-- ENCABEZADO -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-box-arrow-right"></i> Historial de Salidas</h2>
+            <p class="text-muted mb-0">Registro de movimientos de salida de almacén.</p>
+        </div>
+        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger shadow-sm">
+            <i class="bi bi-plus-lg"></i> Registrar Nueva Salida
         </a>
     </div>
 
-    <div class="card bg-light mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ url_for('historial_salidas') }}" class="row g-3 align-items-end">
-                
-                <div class="col-md-5">
-                    <label for="mes" class="form-label">Mes</label>
-                    <select id="mes" name="mes" class="form-select">
+    <!-- SECCIÓN DE FILTROS -->
+    <div class="card bg-light mb-4 shadow-sm border-0">
+        <div class="card-body py-3">
+            <form method="GET" action="{{ url_for('historial_salidas') }}" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label for="mes" class="form-label fw-bold small text-muted">Mes</label>
+                    <select id="mes" name="mes" class="form-select form-select-sm">
                         {% for num, nombre in meses_lista %}
                             <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
                                 {{ nombre }}
@@ -24,92 +28,194 @@
                         {% endfor %}
                     </select>
                 </div>
-                
-                <div class="col-md-4">
-                    <label for="ano" class="form-label">Año</label>
-                    <input type="number" id="ano" name="ano" class="form-control" value="{{ ano_seleccionado }}" min="2020" max="2050">
+                <div class="col-md-2">
+                    <label for="ano" class="form-label fw-bold small text-muted">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control form-control-sm" 
+                           value="{{ ano_seleccionado }}" min="2020" max="2050">
                 </div>
-                
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-filter"></i> Filtrar
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        <i class="bi bi-filter"></i> Filtrar Resultados
                     </button>
                 </div>
             </form>
         </div>
     </div>
-    {% for salida in salidas %}
-    <div class="card mb-3">
-        
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div>
-                <strong>Salida #{{ salida.id }}</strong>
-                <br>
-                <small>Fecha: {{ salida.fecha.strftime('%Y-%m-%d %H:%M') }}</small>
-            </div>
-            <h4>
-                {% if salida.estado == 'cancelada' %}
-                    <span class="badge bg-secondary">Cancelada</span>
-                {% else %}
-                    <span class="badge bg-danger">Completada</span>
-                {% endif %}
-            </h4>
-        </div>
-        
-        <div class="card-body">
-            <h5 class="card-title">Motivo: {{ salida.motivo }}</h5>
+
+    <!-- GRID DE TARJETAS -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for salida in salidas %}
             
-            <p class="card-text text-muted mb-2">
-                <small>Creada por: <i class="bi bi-person"></i> {{ salida.creador.username }}</small>
-            </p>
-
-            <h6 class="card-subtitle mb-2">Productos Incluidos:</h6>
-            <ul class="list-group list-group-flush">
-                
-                {% for mov in salida.movimientos %}
-                    {% if loop.index <= 3 %}
-                    <li class="list-group-item py-1 px-0 d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="badge bg-danger rounded-pill me-2">
-                                {{ mov.cantidad | abs }}
-                            </span>
-                            {{ mov.producto.nombre }}
-                        </div>
-                        <small class="text-muted">SKU: {{ mov.producto.codigo }}</small>
-                    </li>
-                    {% endif %}
-                {% endfor %}
-                
-                {% if (salida.movimientos | length) > 3 %}
-                    <li class="list-group-item py-1 px-0 text-muted">
-                        ... y {{ (salida.movimientos | length) - 3 }} producto(s) más.
-                    </li>
-                {% endif %}
-            </ul>
-        </div>
-        
-        <div class="card-footer text-end">
-            <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-outline-secondary">
-                <i class="bi bi-eye"></i> Ver Detalle
-            </a>
-            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-outline-danger" title="Imprimir PDF" target="_blank">
-                <i class="bi bi-file-earmark-pdf"></i>
-            </a>
-            {% if salida.estado != 'cancelada' %}
-            <form action="{{ url_for('cancelar_salida', id=salida.id) }}" method="POST" style="display: inline;" 
-                  onsubmit="return confirm('¿Estás seguro? Esta acción cancelará la salida y DEVOLVERÁ el stock al inventario.');">
-                <button type="submit" class="btn btn-warning" title="Cancelar Salida">
-                    <i class="bi bi-x-circle"></i>
-                </button>
-            </form>
+            <!-- LÓGICA DE ESTADO POR DEFECTO (SERVER-SIDE) -->
+            <!-- 
+               1. Cancelada: Gris
+               2. Por defecto (Pasado): Cerrada (Rojo)
+               3. Hoy (Abierta): Se detecta con JS abajo para cambiar a Verde
+            -->
+            
+            {% set fecha_str = salida.fecha.strftime('%Y-%m-%d') %}
+            
+            <!-- Estilos Base: Asumimos que está CERRADA (Rojo) o CANCELADA -->
+            {% if salida.estado == 'cancelada' %}
+                {% set border_class = 'border-secondary' %}
+                {% set header_class = 'bg-secondary text-white' %}
+                {% set badge_class = 'bg-white text-secondary' %}
+                {% set icon_state = 'bi-x-circle-fill' %}
+                {% set texto_estado = 'Cancelada' %}
+                {% set data_estado = 'cancelada' %}
+            {% else %}
+                <!-- Estilo "Cerrada" (Rojo) por defecto -->
+                {% set border_class = 'border-danger' %}
+                {% set header_class = 'bg-danger text-white' %}
+                {% set badge_class = 'bg-white text-danger' %}
+                {% set icon_state = 'bi-lock-fill' %}
+                {% set texto_estado = 'Cerrada' %}
+                {% set data_estado = 'activa' %}
             {% endif %}
-        </div>
-    </div>
-    
-    {% else %}
-    <div class="alert alert-info">
-        No se encontraron salidas para <strong>{{ meses_lista[mes_seleccionado-1][1] }} de {{ ano_seleccionado }}</strong>.
-    </div>
-    {% endfor %}
 
+            <div class="col">
+                <!-- Agregamos clase 'salida-card' y atributos data para manipulación JS -->
+                <div class="card h-100 shadow-sm {{ border_class }} salida-card" 
+                     data-fecha="{{ fecha_str }}" 
+                     data-estado-base="{{ data_estado }}"
+                     id="card-{{ salida.id }}">
+                    
+                    <!-- ENCABEZADO TARJETA -->
+                    <div class="card-header {{ header_class }} d-flex justify-content-between align-items-center header-area">
+                        <div>
+                            <h5 class="card-title mb-0 fw-bold">Salida #{{ salida.id }}</h5>
+                        </div>
+                        <span class="badge {{ badge_class }} border opacity-90 badge-area">
+                            <i class="{{ icon_state }} icon-area"></i> <span class="text-area">{{ texto_estado }}</span>
+                        </span>
+                    </div>
+
+                    <!-- CUERPO TARJETA -->
+                    <div class="card-body">
+                        <!-- Info Principal -->
+                        <div class="mb-3">
+                            <h5 class="text-dark fw-bold mb-1">
+                                <i class="bi bi-shop"></i> {{ salida.almacen.nombre }}
+                            </h5>
+                            <div class="text-muted small">
+                                <i class="bi bi-calendar-event"></i> {{ salida.fecha.strftime('%d/%m/%Y') }}
+                                <span class="mx-1">|</span>
+                                <i class="bi bi-person"></i> {{ salida.creador.username }}
+                            </div>
+                        </div>
+
+                        <!-- Resumen de Items -->
+                        <div class="bg-light border rounded p-2 small mb-3">
+                            <div class="d-flex justify-content-between border-bottom pb-1 mb-2">
+                                <strong class="text-muted text-uppercase" style="font-size: 0.7rem;">Resumen de Items</strong>
+                                <span class="badge bg-secondary rounded-pill">{{ salida.movimientos.count() }}</span>
+                            </div>
+                            
+                            <ul class="list-unstyled mb-0 text-muted">
+                                {% for mov in salida.movimientos.limit(3) %}
+                                <li class="d-flex justify-content-between py-1 border-bottom border-light">
+                                    <span class="text-truncate" style="max-width: 150px;">
+                                        <i class="bi bi-box-seam me-1"></i> {{ mov.producto.nombre }}
+                                    </span>
+                                    <span class="fw-bold text-danger">-{{ mov.cantidad | abs }}</span>
+                                </li>
+                                {% endfor %}
+                                
+                                {% if (salida.movimientos.count()) > 3 %}
+                                    <li class="text-center fst-italic pt-1 text-muted" style="font-size: 0.7rem;">
+                                        + {{ (salida.movimientos.count()) - 3 }} items más...
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- PIE DE TARJETA: ACCIONES -->
+                    <div class="card-footer bg-white py-2">
+                        <div class="d-grid gap-2">
+                            <!-- Botón Principal: Ver Detalle -->
+                            <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-outline-secondary btn-sm fw-bold">
+                                <i class="bi bi-pencil-square"></i> Ver Detalle / Editar
+                            </a>
+                            
+                            <!-- Botones Secundarios -->
+                            <div class="d-flex justify-content-between align-items-center mt-1 border-top pt-2">
+                                <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-link btn-sm text-danger text-decoration-none ps-0" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf-fill"></i> PDF
+                                </a>
+                                
+                                <small class="text-muted fst-italic label-fecha-relativa" style="font-size: 0.75rem;">
+                                    {{ salida.fecha.strftime('%d/%m/%Y') }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- MENSAJE VACÍO -->
+            <div class="col-12 text-center py-5">
+                <div class="opacity-25 mb-3">
+                    <i class="bi bi-box-arrow-right" style="font-size: 4rem;"></i>
+                </div>
+                <h5 class="text-muted">No hay salidas registradas en este periodo.</h5>
+                <p class="text-muted small">Cambia los filtros o registra una nueva salida.</p>
+                <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger mt-2">
+                    <i class="bi bi-plus-lg"></i> Registrar Salida
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- SCRIPT: LÓGICA AUTOMÁTICA DE "HOY" -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Obtener la fecha de HOY en formato YYYY-MM-DD local
+            const hoy = new Date();
+            const year = hoy.getFullYear();
+            const month = String(hoy.getMonth() + 1).padStart(2, '0');
+            const day = String(hoy.getDate()).padStart(2, '0');
+            const fechaHoyStr = `${year}-${month}-${day}`;
+
+            // 2. Buscar todas las tarjetas
+            const tarjetas = document.querySelectorAll('.salida-card');
+
+            tarjetas.forEach(card => {
+                const fechaCard = card.getAttribute('data-fecha');
+                const estadoBase = card.getAttribute('data-estado-base');
+
+                // Si la tarjeta NO está cancelada y la fecha coincide con HOY
+                if (estadoBase === 'activa' && fechaCard === fechaHoyStr) {
+                    
+                    // CAMBIAR A ESTADO "ABIERTA" (VERDE)
+                    
+                    // 1. Borde de la tarjeta
+                    card.classList.remove('border-danger');
+                    card.classList.add('border-success');
+
+                    // 2. Encabezado (Fondo)
+                    const header = card.querySelector('.header-area');
+                    header.classList.remove('bg-danger');
+                    header.classList.add('bg-success');
+
+                    // 3. Badge (Etiqueta)
+                    const badge = card.querySelector('.badge-area');
+                    badge.classList.remove('text-danger');
+                    badge.classList.add('text-success');
+
+                    // 4. Texto e Icono
+                    const texto = card.querySelector('.text-area');
+                    texto.textContent = 'Abierta';
+                    
+                    const icono = card.querySelector('.icon-area');
+                    icono.className = 'bi bi-unlock-fill icon-area'; // Cambiar candado por candado abierto o check
+                    
+                    // 5. Etiqueta relativa (Opcional)
+                    const labelRelativa = card.querySelector('.label-fecha-relativa');
+                    if(labelRelativa) labelRelativa.textContent = 'Hoy (Activa)';
+                }
+            });
+        });
+    </script>
 {% endblock %}
