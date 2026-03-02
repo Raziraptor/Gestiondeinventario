@@ -625,6 +625,41 @@ def check_permission(permission_name):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+  
+# ==============================================================================
+# 🛡️ CABECERAS DE SEGURIDAD (SECURITY HEADERS)
+# ==============================================================================
+@app.after_request
+def add_security_headers(response):
+    # 1. Prevenir Clickjacking
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    
+    # 2. Prevenir MIME-sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    
+    # 3. Forzar conexiones seguras HTTPS (HSTS)
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    # 4. Política de Referencia
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    
+    # 5. Desactivar hardware innecesario en el navegador
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    
+    # 6. Content Security Policy (CSP)
+    # Nota: Permitimos 'unsafe-inline' porque el HTML tiene etiquetas <script> e imágenes en base64. 
+    # También permitimos cdn.jsdelivr.net para los estilos de Bootstrap e íconos.
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' [https://cdn.jsdelivr.net](https://cdn.jsdelivr.net); "
+        "style-src 'self' 'unsafe-inline' [https://cdn.jsdelivr.net](https://cdn.jsdelivr.net) [https://fonts.googleapis.com](https://fonts.googleapis.com); "
+        "font-src 'self' data: [https://cdn.jsdelivr.net](https://cdn.jsdelivr.net) [https://fonts.gstatic.com](https://fonts.gstatic.com); "
+        "img-src 'self' data: blob: https:; "
+        "connect-src 'self';"
+    )
+    response.headers['Content-Security-Policy'] = csp
+    
+    return response
 
 # ==============================================================================
 # 8. RUTAS DE LA APLICACIÓN
@@ -3623,6 +3658,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
