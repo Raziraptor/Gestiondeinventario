@@ -8,7 +8,6 @@
     
     <!-- Acción del formulario dinámica: maneja edición normal, edición desde inventario o creación -->
     <form method="POST" action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto')) }}" enctype="multipart/form-data">
-
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
         {% if stock_item %}
@@ -218,4 +217,5 @@
         }
     </script>
 {% endblock %}
+
 
