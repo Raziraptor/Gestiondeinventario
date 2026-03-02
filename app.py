@@ -3399,6 +3399,15 @@ def configurar_plantilla():
         
     return render_template('plantilla_config.html', org=organizacion)
 
+    def super_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.rol != 'super_admin':
+            flash('Acceso denegado. Se requieren privilegios de Super Administrador.', 'danger')
+            return redirect(url_for('index')) # o 'dashboard', dependiendo de tu ruta principal
+        return f(*args, **kwargs)
+    return decorated_function
+
 # --- RUTAS DEL SUPER ADMIN ---
 
 @app.route('/superadmin', methods=['GET'])
@@ -3609,6 +3618,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
