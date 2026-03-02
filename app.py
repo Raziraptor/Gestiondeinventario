@@ -31,6 +31,7 @@ from itsdangerous.url_safe import URLSafeTimedSerializer
 from functools import wraps
 from flask import flash, redirect, url_for
 from flask_login import current_user
+from flask_mail import Message
 
 # --- Formularios (WTForms) ---
 from wtforms import StringField, PasswordField, SubmitField, BooleanField # <-- AÑADIDO BooleanField
@@ -549,6 +550,7 @@ def send_async_email(app, msg):
         except Exception as e:
             print(f"Error enviando correo de recuperación: {str(e)}")
 
+def send_reset_email(user):
     app_actual = current_app._get_current_object()
     
     # Usamos URLSafeTimedSerializer para generar un token directamente desde el email
@@ -558,7 +560,6 @@ def send_async_email(app, msg):
     msg = Message('Petición de Restablecimiento de Contraseña',
                   recipients=[user.email])
     
-    # Corrección: Uso de paréntesis y f-strings simples para evitar errores de sintaxis al copiar/pegar
     msg.body = (
         f"Para restablecer tu contraseña, visita el siguiente enlace:\n"
         f"{url_for('reset_password', token=token, _external=True)}\n\n"
@@ -3622,6 +3623,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
