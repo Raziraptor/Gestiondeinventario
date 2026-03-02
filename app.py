@@ -649,16 +649,15 @@ def add_security_headers(response):
     # 6. Content Security Policy (CSP)
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' [https://cdn.jsdelivr.net](https://cdn.jsdelivr.net); "
-        "style-src 'self' 'unsafe-inline' [https://cdn.jsdelivr.net](https://cdn.jsdelivr.net) [https://fonts.googleapis.com](https://fonts.googleapis.com); "
-        "font-src 'self' data: [https://cdn.jsdelivr.net](https://cdn.jsdelivr.net) [https://fonts.gstatic.com](https://fonts.gstatic.com); "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
+        "font-src 'self' data: cdn.jsdelivr.net fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
         "connect-src 'self';"
     )
     response.headers['Content-Security-Policy'] = csp
     
     return response
-
 # ==============================================================================
 # 8. RUTAS DE LA APLICACIÓN
 # ==============================================================================
@@ -3656,6 +3655,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
