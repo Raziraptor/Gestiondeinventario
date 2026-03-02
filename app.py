@@ -537,8 +537,7 @@ def send_async_email(app, msg):
         except Exception as e:
             print(f"Error enviando correo de recuperación: {str(e)}")
 
-def send_reset_email(user):
-    app_actual = current_app._get_current_object()
+d    app_actual = current_app._get_current_object()
     
     # Usamos URLSafeTimedSerializer para generar un token directamente desde el email
     s = URLSafeTimedSerializer(app_actual.config['SECRET_KEY'])
@@ -547,34 +546,15 @@ def send_reset_email(user):
     msg = Message('Petición de Restablecimiento de Contraseña',
                   recipients=[user.email])
     
-    # Corrección: El endpoint es 'reset_password', no 'reset_token'
-    msg.body = f'''Para restablecer tu contraseña, visita el siguiente enlace:
-{url_for('reset_password', token=token, _external=True)}
-
-Si no solicitaste este cambio, por favor ignora este e-mail.
-El enlace expirará en 30 minutos.
-"""
-    try:
-        mail.send(msg)
-    except Exception as e:
-        flash(f'Error al enviar el correo: {e}', 'danger')
-        print(f"Error de Mail: {e}")
-
-def super_admin_required(f):
-    """
-    Decorador personalizado para verificar que el usuario
-    sea 'super_admin'.
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if current_user.rol != 'super_admin':
-            flash('No tienes permiso para acceder a esta página.', 'danger')
-            return redirect(url_for('index'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-# Lanzar el hilo (Thread)
-Thread(target=send_async_email, args=(app_actual, msg)).start()
+    # Corrección: Uso de paréntesis y f-strings simples para evitar errores de sintaxis al copiar/pegar
+    msg.body = (
+        f"Para restablecer tu contraseña, visita el siguiente enlace:\n"
+        f"{url_for('reset_password', token=token, _external=True)}\n\n"
+        f"Si no hiciste esta petición, simplemente ignora este correo y no habrá cambios."
+    )
+    
+    # Lanzar el hilo (Thread)
+    Thread(target=send_async_email, args=(app_actual, msg)).start()
 
 def check_org_permission(f):
     """
@@ -3629,6 +3609,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
