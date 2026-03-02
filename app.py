@@ -22,6 +22,7 @@ from flask_login import (LoginManager, UserMixin, login_user, logout_user,
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from flask_mail import Mail, Message
+from flask_wtf.csrf import CSRFProtect
 
 # --- Formularios (WTForms) ---
 from wtforms import StringField, PasswordField, SubmitField, BooleanField # <-- AÑADIDO BooleanField
@@ -72,6 +73,7 @@ from sqlalchemy import text
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
 app.jinja_env.add_extension('jinja2.ext.do') # Para la lógica de 'set' en bucles
 
 # --- Configuración de Variables de Entorno ---
@@ -3599,6 +3601,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
