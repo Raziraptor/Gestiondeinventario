@@ -2444,14 +2444,25 @@ def nueva_orden_manual():
     # --- MÉTODO GET: Renderizar el formulario ---
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
-    productos = Producto.query.filter_by(organizacion_id=org_id).all()
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
 
+    # CORRECCIÓN AQUÍ: Convertir productos a diccionario para que tojson funcione
+    productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
+    productos_lista = []
+    for p in productos_query:
+        productos_lista.append({
+            'id': p.id,
+            'nombre': p.nombre,
+            'codigo': p.codigo,
+            'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
+            'proveedor_id': p.proveedor_id
+        })
+    
     return render_template('orden_form.html', 
                            titulo="Nueva Orden de Compra",
                            orden=None,
                            proveedores=proveedores,
-                           productos=productos,
+                           productos=productos_lista,
                            almacenes=almacenes)
 
 @app.route('/orden/<int:id>')
@@ -3573,6 +3584,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
