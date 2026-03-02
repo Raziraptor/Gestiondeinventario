@@ -7,6 +7,8 @@ import os
 import io
 import csv
 import secrets
+from dotenv import load_dotenv
+load_dotenv()
 from functools import wraps
 from datetime import datetime
 from collections import defaultdict
@@ -77,7 +79,7 @@ csrf = CSRFProtect(app)
 app.jinja_env.add_extension('jinja2.ext.do') # Para la lógica de 'set' en bucles
 
 # --- Configuración de Variables de Entorno ---
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'una-llave-secreta-de-desarrollo-muy-dificil')
+app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
 db_url = os.environ.get('DATABASE_URL')
 if db_url:
@@ -91,12 +93,13 @@ app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+# --- Configuración de Flask-Mail ---
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'lucho.lugo81@gmail.com'
+# Lee la contraseña del correo desde el archivo .env
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -3560,10 +3563,15 @@ def update_user_permissions(user_id):
 
 # --- Inicialización ---
 if __name__ == '__main__':
+    # Creación del superadmin solo se hace dentro del contexto si es necesario
     with app.app_context():
-        db.create_all()
-
+        crear_superadmin()
+        
+    # Lee el modo debug del archivo .env (Por defecto será False por seguridad)
+    modo_debug = os.environ.get('FLASK_DEBUG', 'False') == 'True'
+    app.run(host='0.0.0.0', port=5000, debug=modo_debug)
     app.run(debug=True, port=5000)
+    
 @app.route('/reparar-bd-cajas')
 @login_required
 def reparar_bd_cajas():
@@ -3601,6 +3609,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
