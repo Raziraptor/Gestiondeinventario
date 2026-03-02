@@ -25,6 +25,9 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from flask_mail import Mail, Message
 from flask_wtf.csrf import CSRFProtect
+from threading import Thread
+from flask import current_app
+from itsdangerous.url_safe import URLSafeTimedSerializer
 
 # --- Formularios (WTForms) ---
 from wtforms import StringField, PasswordField, SubmitField, BooleanField # <-- AÑADIDO BooleanField
@@ -527,17 +530,26 @@ def save_picture(form_picture):
 
     return picture_fn
 
-def send_reset_email(user):
-    """Función auxiliar para generar y enviar el e-mail."""
-    token = s.dumps(user.email, salt='password-reset-salt')
-    reset_url = url_for('reset_password', token=token, _external=True)
-    msg = Message('[Gestor Inventario] Solicitud de Reseteo de Contraseña',
-                  sender=app.config['MAIL_DEFAULT_SENDER'],
-                  recipients=[user.email])
-    msg.body = f"""Hola {user.username},
+def send_async_email(app, msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+        except Exception as e:
+            print(f"Error enviando correo de recuperación: {str(e)}")
 
-Para restablecer tu contraseña, haz clic en el siguiente enlace:
-{reset_url}
+def send_reset_email(user):
+    app_actual = current_app._get_current_object()
+    
+    # Usamos URLSafeTimedSerializer para generar un token directamente desde el email
+    s = URLSafeTimedSerializer(app_actual.config['SECRET_KEY'])
+    token = s.dumps(user.email, salt='password-reset-salt')
+    
+    msg = Message('Petición de Restablecimiento de Contraseña',
+                  recipients=[user.email])
+    
+    # Corrección: El endpoint es 'reset_password', no 'reset_token'
+    msg.body = f'''Para restablecer tu contraseña, visita el siguiente enlace:
+{url_for('reset_password', token=token, _external=True)}
 
 Si no solicitaste este cambio, por favor ignora este e-mail.
 El enlace expirará en 30 minutos.
@@ -560,6 +572,9 @@ def super_admin_required(f):
             return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated_function
+
+# Lanzar el hilo (Thread)
+Thread(target=send_async_email, args=(app_actual, msg)).start()
 
 def check_org_permission(f):
     """
@@ -3276,6 +3291,7 @@ def forgot_password():
         user = User.query.filter_by(email=form.email.data).first()
         if user:
             send_reset_email(user)
+        # Siempre mostramos el mismo mensaje para no revelar si un email está registrado (Buena práctica de seguridad)
         flash('Si existe una cuenta con ese e-mail, recibirás un correo con las instrucciones.', 'info')
         return redirect(url_for('login'))
         
@@ -3287,9 +3303,12 @@ def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    
     try:
+        # Intentamos decodificar el token con un máximo de 30 minutos (1800 segundos) de validez
         email = s.loads(token, salt='password-reset-salt', max_age=1800)
-    except:
+    except Exception:
         flash('El enlace de reseteo no es válido o ha expirado.', 'danger')
         return redirect(url_for('forgot_password'))
         
@@ -3301,7 +3320,8 @@ def reset_password(token):
     form = ResetPasswordForm()
     if form.validate_on_submit():
         try:
-            user.set_password(form.password.data)
+            # Usar set_password si lo tienes en el modelo, o generate_password_hash directo
+            user.password_hash = generate_password_hash(form.password.data)
             db.session.commit()
             flash('¡Tu contraseña ha sido actualizada! Ya puedes iniciar sesión.', 'success')
             return redirect(url_for('login'))
@@ -3310,7 +3330,7 @@ def reset_password(token):
             flash(f'Error al actualizar la contraseña: {e}', 'danger')
 
     return render_template('reset_password.html', titulo="Restablecer Contraseña", form=form, token=token)
-
+  
 @app.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
@@ -3609,6 +3629,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
