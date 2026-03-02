@@ -647,8 +647,6 @@ def add_security_headers(response):
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
     
     # 6. Content Security Policy (CSP)
-    # Nota: Permitimos 'unsafe-inline' porque el HTML tiene etiquetas <script> e imágenes en base64. 
-    # También permitimos cdn.jsdelivr.net para los estilos de Bootstrap e íconos.
     csp = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' [https://cdn.jsdelivr.net](https://cdn.jsdelivr.net); "
@@ -3658,6 +3656,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
