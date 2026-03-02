@@ -166,6 +166,7 @@
                                         <i class="bi bi-pencil"></i> Editar
                                     </a>
                                     <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" class="btn-group">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-info btn-sm fw-bold text-dark">
                                             <i class="bi bi-send"></i> Enviar
                                         </button>
@@ -184,6 +185,7 @@
                                 <!-- El action debe ser exactamente este: -->
                                 <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" class="d-grid"
                                       onsubmit="return confirm('¿Confirmas que la mercancía ha llegado físicamente al almacén?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-success btn-sm fw-bold shadow-sm">
                                         <i class="bi bi-box-seam"></i> Marcar como "Recibida"
                                     </button>
@@ -224,6 +226,7 @@
         {% endfor %}
     </div>
 {% endblock %}
+
 
 
 
