@@ -16,6 +16,7 @@
                 <div class="card-header">Crear Nueva Organización</div>
                 <div class="card-body">
                     <form action="{{ url_for('nueva_organizacion') }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <label for="nombre" class="form-label">Nombre de la Organización</label>
                         <input type="text" class="form-control mb-2" id="nombre" name="nombre" required>
                         <button type="submit" class="btn btn-primary">Crear</button>
@@ -53,6 +54,7 @@
                             {% for user in usuarios %}
                             <tr>
                                 <form action="{{ url_for('asignar_usuario', user_id=user.id) }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <td class="align-middle">
                                         <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
                                              class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
@@ -94,4 +96,5 @@
             </div>
         </div>
     </div>
+
 {% endblock %}
