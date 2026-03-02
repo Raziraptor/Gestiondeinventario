@@ -11,7 +11,8 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('editar_gasto', id=gasto.id) if gasto else url_for('nuevo_gasto') }}">
-                        
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                         <div class="mb-3">
                             <label for="fecha" class="form-label">Fecha del Gasto</label>
                             <input type="date" class="form-control" id="fecha" name="fecha" 
@@ -74,3 +75,4 @@
         </div>
     </div>
 {% endblock %}
+
