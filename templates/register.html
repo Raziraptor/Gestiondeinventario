@@ -11,6 +11,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('register') }}" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {{ form.hidden_tag() }}
                         
                         <div class="mb-3">
@@ -87,3 +88,4 @@
         </div>
     </div>
 {% endblock %}
+
