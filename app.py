@@ -644,7 +644,7 @@ def add_security_headers(response):
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     
     # 5. Desactivar hardware innecesario en el navegador
-    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=()'
     
     # 6. Content Security Policy (CSP)
     csp = (
@@ -3655,6 +3655,7 @@ def reparar_bd_cajas():
             <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
         </div>
         """
+
 
 
 
