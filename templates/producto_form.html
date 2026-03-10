@@ -6,9 +6,16 @@
     <h2>{{ titulo }}</h2>
     <hr>
     
-    <!-- Acción del formulario dinámica: maneja edición normal, edición desde inventario o creación -->
-    <form method="POST" action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto')) }}" enctype="multipart/form-data">
+    <!-- Acción del formulario dinámica. Añadimos id="formulario_producto" -->
+    <form id="formulario_producto" method="POST" action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto')) }}" enctype="multipart/form-data">
+        
+        <!-- Token CSRF estándar -->
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        
+        <!-- Soporte para WTForms (Si usas ProductoForm en app.py, esto imprime su propio token) -->
+        {% if form %}
+            {{ form.hidden_tag() }}
+        {% endif %}
         
         {% if stock_item %}
             <input type="hidden" name="almacen_id" value="{{ stock_item.almacen_id }}">
@@ -42,7 +49,7 @@
                                     {% for cat in categorias %}
                                     <option value="{{ cat.id }}" 
                                             {% if producto and producto.categoria_id == cat.id %}selected{% endif %}>
-                                            {{ cat.nombre }}
+                                        {{ cat.nombre }}
                                     </option>
                                     {% endfor %}
                                 </select>
@@ -54,7 +61,7 @@
                                     {% for prov in proveedores %}
                                     <option value="{{ prov.id }}" 
                                             {% if producto and producto.proveedor_id == prov.id %}selected{% endif %}>
-                                            {{ prov.nombre }}
+                                        {{ prov.nombre }}
                                     </option>
                                     {% endfor %}
                                 </select>
@@ -67,7 +74,6 @@
                                 <label for="costo_estandar" class="form-label fw-bold">Costo Estándar</label>
                                 <div class="input-group">
                                     <span class="input-group-text">$</span>
-                                    <!-- Usamos costo_estandar para coincidir con backend -->
                                     <input type="number" class="form-control" id="costo_estandar" name="costo_estandar" 
                                            value="{{ producto.costo_estandar if producto else '0.00' }}" 
                                            step="0.01" min="0">
@@ -129,7 +135,7 @@
                             </div>
                         </div>
 
-                        <!-- LÓGICA DE EDICIÓN DE STOCK ESPECÍFICO (SOLO SI SE LLAMA DESDE ALMACÉN) -->
+                        <!-- LÓGICA DE EDICIÓN DE STOCK ESPECÍFICO -->
                         {% elif stock_item %} 
                         <hr>
                         <h5 class="text-primary"><i class="bi bi-geo-alt"></i> Inventario en: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
@@ -160,7 +166,7 @@
                         </div>
 
                         {% else %} 
-                        <!-- MENSAJE INFORMATIVO CUANDO ES EDICIÓN GENERAL -->
+                        <!-- MENSAJE INFORMATIVO -->
                         <div class="alert alert-light border mt-3 text-muted">
                             <i class="bi bi-info-circle"></i> Este producto no tiene stock específico cargado en esta vista. Para editar cantidades, ve a <a href="{{ url_for('lista_almacenes') }}">Almacenes</a>.
                         </div>
@@ -191,10 +197,10 @@
                 </div>
                 
                 <div class="d-grid gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary fw-bold py-2">
+                    <!-- ENLACE DIRECTO AL FORMULARIO POR SEGURIDAD -->
+                    <button type="submit" form="formulario_producto" class="btn btn-primary fw-bold py-2">
                         <i class="bi bi-save"></i> Guardar Cambios
                     </button>
-                    <!-- CORRECCIÓN: Usamos 'dashboard' como fallback seguro en lugar de 'lista_productos' -->
                     <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}" class="btn btn-outline-secondary">
                         Cancelar
                     </a>
@@ -217,5 +223,3 @@
         }
     </script>
 {% endblock %}
-
-
