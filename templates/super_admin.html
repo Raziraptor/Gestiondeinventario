@@ -52,42 +52,48 @@
                         </thead>
                         <tbody>
                             {% for user in usuarios %}
+                            
+                            <!-- TRUCO HTML5: El formulario va afuera del TR. Le damos un ID único basado en el usuario -->
+                            <form id="form-asignar-{{ user.id }}" action="{{ url_for('asignar_usuario', user_id=user.id) }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            </form>
+
                             <tr>
-                                <form action="{{ url_for('asignar_usuario', user_id=user.id) }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <td class="align-middle">
-                                        <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
-                                             class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                        {{ user.username }}
-                                    </td>
-                                    <td class="align-middle">{{ user.email }}</td>
-                                    
-                                    <td class="align-middle">
-                                        <select class="form-select form-select-sm" name="organizacion_id">
-                                            <option value="0">-- Ninguna --</option>
-                                            {% for org in organizaciones %}
-                                            <option value="{{ org.id }}" 
-                                                    {% if user.organizacion_id == org.id %}selected{% endif %}>
-                                                {{ org.nombre }}
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    
-                                    <td class="align-middle">
-                                        <select class="form-select form-select-sm" name="rol">
-                                            <option value="user" {% if user.rol == 'user' %}selected{% endif %}>Usuario</option>
-                                            <option value="admin" {% if user.rol == 'admin' %}selected{% endif %}>Admin</option>
-                                            <option value="super_admin" {% if user.rol == 'super_admin' %}selected{% endif %}>Super Admin</option>
-                                        </select>
-                                    </td>
-                                    
-                                    <td class="align-middle">
-                                        <button type="submit" class="btn btn-success btn-sm">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button>
-                                    </td>
-                                </form>
+                                <td class="align-middle">
+                                    <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
+                                         class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                    {{ user.username }}
+                                </td>
+                                <td class="align-middle">{{ user.email }}</td>
+                                
+                                <td class="align-middle">
+                                    <!-- Le decimos a este select que pertenece al formulario oculto usando form="..." -->
+                                    <select class="form-select form-select-sm" name="organizacion_id" form="form-asignar-{{ user.id }}">
+                                        <option value="0">-- Ninguna --</option>
+                                        {% for org in organizaciones %}
+                                        <option value="{{ org.id }}" 
+                                                {% if user.organizacion_id == org.id %}selected{% endif %}>
+                                            {{ org.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                
+                                <td class="align-middle">
+                                    <!-- Lo mismo aquí -->
+                                    <select class="form-select form-select-sm" name="rol" form="form-asignar-{{ user.id }}">
+                                        <option value="user" {% if user.rol == 'user' %}selected{% endif %}>Usuario</option>
+                                        <option value="admin" {% if user.rol == 'admin' %}selected{% endif %}>Admin</option>
+                                        <option value="super_admin" {% if user.rol == 'super_admin' %}selected{% endif %}>Super Admin</option>
+                                    </select>
+                                </td>
+                                
+                                <td class="align-middle">
+                                    <!-- El botón también debe saber a qué formulario hace submit -->
+                                    <button type="submit" class="btn btn-success btn-sm" form="form-asignar-{{ user.id }}">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
