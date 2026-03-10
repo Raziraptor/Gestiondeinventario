@@ -7,6 +7,7 @@
     <hr>
     
     <form method="POST" action="{{ url_for('editar_categoria', id=categoria.id) if categoria else url_for('nueva_categoria') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row g-3">
             <div class="col-md-6">
                 <label for="nombre" class="form-label">Nombre de la Categoría</label>
@@ -25,4 +26,5 @@
             </div>
         </div>
     </form>
+
 {% endblock %}
