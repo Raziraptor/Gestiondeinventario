@@ -1,82 +1,117 @@
 {% extends 'base.html' %}
-{% block title %}Personalizar Marca{% endblock %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2><i class="bi bi-palette"></i> Personalización de Marca (OC)</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-palette"></i> {{ titulo }}</h2>
+    </div>
+    <p class="text-muted">Personaliza la apariencia de tus documentos exportables (como Órdenes de Compra).</p>
     <hr>
     
-    <form method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card mb-4">
-                    <div class="card-header bg-light fw-bold">Encabezado del Documento</div>
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            
-                            <div class="col-md-4 text-center border-end">
-                                <label class="form-label fw-bold d-block">Logotipo</label>
-                                <div class="mb-3">
-                                    {% if org.logo_url %}
-                                        <img src="{{ url_for('static', filename='uploads/' + org.logo_url) }}" 
-                                             class="img-fluid" style="max-height: 80px;">
-                                    {% else %}
-                                        <div class="text-muted p-3 bg-light rounded">Sin Logo</div>
-                                    {% endif %}
-                                </div>
-                                <input type="file" class="form-control form-control-sm" name="logo" accept="image/*">
-                                <div class="form-text small">Aparecerá a la izquierda.</div>
-                            </div>
+    <div class="row">
+        <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form action="{{ url_for('configurar_plantilla') }}" method="POST" enctype="multipart/form-data" id="formConfiguracion">
+                        
+                        <!-- TOKEN CSRF DE SEGURIDAD -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                            <div class="col-md-8">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold">Título Principal (Grande)</label>
-                                    <input type="text" class="form-control form-control-lg" name="header_titulo" 
-                                           value="{{ org.header_titulo or '' }}" 
-                                           placeholder="Ej. {{ org.nombre }}">
-                                    <div class="form-text">Texto grande que aparece junto al logo.</div>
-                                </div>
-                                
-                                <div class="mb-0">
-                                    <label class="form-label fw-bold">Subtítulo / Eslogan (Pequeño)</label>
-                                    <input type="text" class="form-control form-control-sm" name="header_subtitulo" 
-                                           value="{{ org.header_subtitulo or '' }}" 
-                                           placeholder="Ej. Soluciones Industriales S.A. de C.V.">
-                                    <div class="form-text">Aparece debajo del título principal.</div>
-                                </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-dark">Nombre de la Organización</label>
+                            <input type="text" name="nombre" class="form-control border-primary" value="{{ org.nombre }}" required>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Título del Encabezado (PDF)</label>
+                                <input type="text" name="header_titulo" class="form-control" value="{{ org.header_titulo or '' }}" placeholder="Ej: Mi Empresa S.A.">
+                                <div class="form-text small">Si se deja en blanco, se usará el nombre de la organización.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Subtítulo del Encabezado</label>
+                                <input type="text" name="header_subtitulo" class="form-control" value="{{ org.header_subtitulo or '' }}" placeholder="Ej: NIT: 12345678-9 / Tel: 555-0000">
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
 
-            <div class="col-md-4">
-                <div class="card mb-4">
-                    <div class="card-header bg-light fw-bold">Estilos Globales</div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Color Corporativo</label>
-                            <input type="color" class="form-control form-control-color w-100" 
-                                   name="color_primario" value="{{ org.color_primario }}">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Color Primario</label>
+                                <div class="d-flex align-items-center">
+                                    <input type="color" name="color_primario" class="form-control form-control-color" value="{{ org.color_primario or '#000000' }}" title="Elige un color corporativo">
+                                    <span class="ms-2 small text-muted">Aplica a tablas y separadores.</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Tipo de Letra</label>
+                                <select name="tipo_letra" class="form-select">
+                                    <option value="Helvetica" {% if org.tipo_letra == 'Helvetica' %}selected{% endif %}>Helvetica (Moderna)</option>
+                                    <option value="Times-Roman" {% if org.tipo_letra == 'Times-Roman' %}selected{% endif %}>Times New Roman (Formal)</option>
+                                    <option value="Courier" {% if org.tipo_letra == 'Courier' %}selected{% endif %}>Courier (Máquina de escribir)</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Tipografía</label>
-                            <select class="form-select" name="tipo_letra">
-                                <option value="Helvetica" {% if org.tipo_letra == 'Helvetica' %}selected{% endif %}>Helvetica (Moderna)</option>
-                                <option value="Times-Roman" {% if org.tipo_letra == 'Times-Roman' %}selected{% endif %}>Times New Roman (Clásica)</option>
-                                <option value="Courier" {% if org.tipo_letra == 'Courier' %}selected{% endif %}>Courier (Máquina)</option>
-                            </select>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Subir Nuevo Logo</label>
+                            <input type="file" name="logo" class="form-control" accept="image/png, image/jpeg, image/jpg">
+                            <div class="form-text">Recomendado: Formato PNG o JPG. Se escalará automáticamente en el PDF.</div>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-save"></i> Guardar Cambios
-                    </button>
+
+                        <!-- Checkbox oculto para eliminar el logo -->
+                        <input type="checkbox" name="eliminar_logo" id="check_eliminar_logo" class="d-none" value="1">
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end border-top pt-3">
+                            <button type="submit" class="btn btn-primary px-4 fw-bold">
+                                <i class="bi bi-save"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-    </form>
+
+        <!-- COLUMNA DERECHA: LOGO ACTUAL -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-secondary">
+                <div class="card-header bg-secondary text-white fw-bold">
+                    Logo Actual
+                </div>
+                <div class="card-body text-center bg-light">
+                    {% if org.logo_url %}
+                        <!-- Visualización del Logo -->
+                        <div class="bg-white p-2 border rounded mb-3 shadow-sm d-inline-block">
+                            <img src="{{ url_for('static', filename='uploads/' + org.logo_url) }}" alt="Logo de la Empresa" class="img-fluid" style="max-height: 150px; object-fit: contain;">
+                        </div>
+                        
+                        <!-- Botón para Eliminar Logo -->
+                        <button type="button" class="btn btn-outline-danger btn-sm w-100 fw-bold shadow-sm" onclick="confirmarEliminarLogo()">
+                            <i class="bi bi-trash"></i> Eliminar Logo Actual
+                        </button>
+                    {% else %}
+                        <!-- Estado vacío -->
+                        <div class="text-muted py-5 border rounded bg-white shadow-sm">
+                            <i class="bi bi-image fs-1 d-block mb-2 opacity-25"></i>
+                            <span class="small fw-semibold">Sin logo asignado</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    function confirmarEliminarLogo() {
+        if(confirm('¿Estás seguro de que deseas eliminar el logo de la empresa? El cambio se guardará inmediatamente.')) {
+            // Se marca la casilla oculta para indicarle al backend que debe borrar
+            document.getElementById('check_eliminar_logo').checked = true;
+            // Se envía el formulario automáticamente
+            document.getElementById('formConfiguracion').submit();
+        }
+    }
+</script>
 {% endblock %}
