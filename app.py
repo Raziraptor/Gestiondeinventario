@@ -325,6 +325,7 @@ class OrdenCompraDetalle(db.Model):
     producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=False)
     producto = db.relationship('Producto')
     cantidad_solicitada = db.Column(db.Integer, nullable=False, default=1)
+    cajas = db.Column(db.Float, nullable=True, default=0.0)
     costo_unitario_estimado = db.Column(db.Float, nullable=True, default=0.0)
 
     @property
@@ -2138,11 +2139,21 @@ def nueva_orden():
             else:
                 cantidad_sugerida = 5
             
+            cantidad_final = max(1, cantidad_sugerida)
+            
+            # NUEVO: Calculamos las cajas basadas en el empaque
+            factor_empaque = getattr(prod, 'unidades_por_caja', 1) or 1
+            cajas_calculadas = cantidad_final / factor_empaque
+            
+            # Usamos costo en lugar de precio_unitario por si tu base de datos usa costo
+            costo_unitario = getattr(prod, 'precio_unitario', getattr(prod, 'costo', 0))
+            
             detalle = OrdenCompraDetalle(
                 orden=nueva_oc,
                 producto_id=prod.id,
-                cantidad_solicitada=max(1, cantidad_sugerida),
-                costo_unitario_estimado=prod.precio_unitario
+                cantidad_solicitada=cantidad_final,
+                costo_unitario_estimado=costo_unitario,
+                cajas=cajas_calculadas # <- Aquí guardamos las cajas
             )
             db.session.add(detalle)
         
@@ -2154,7 +2165,7 @@ def nueva_orden():
         db.session.rollback()
         flash(f'Error al generar la orden: {e}', 'danger')
         return redirect(url_for('index'))
-
+        
 @app.route('/ordenes/recibir/<int:id>', methods=['POST'])
 @login_required
 def recibir_orden(id):
@@ -2338,7 +2349,7 @@ def generar_oc_pdf(id):
     # 2. INFORMACIÓN (PROVEEDOR Y ORDEN)
     # ==========================================
     
-    # Intento seguro de obtener datos de contacto (busca varios nombres posibles para no fallar)
+    # Intento seguro de obtener datos de contacto
     p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'contacto_email', '-')))
     p_tel = getattr(proveedor, 'telefono', getattr(proveedor, 'celular', '-'))
     p_contacto = getattr(proveedor, 'contacto', getattr(proveedor, 'nombre_contacto', '-'))
@@ -2367,13 +2378,14 @@ def generar_oc_pdf(id):
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 3. TABLA DE PRODUCTOS (ESTILO CLÁSICO)
+    # 3. TABLA DE PRODUCTOS (ACTUALIZADA CON CAJAS)
     # ==========================================
     
     headers = [
         Paragraph("Producto / SKU", style_th),
-        Paragraph("Cant.", style_th),
-        Paragraph("Costo Unit.", style_th),
+        Paragraph("Cajas", style_th),
+        Paragraph("Unidades", style_th),
+        Paragraph("Costo U.", style_th),
         Paragraph("Subtotal", style_th)
     ]
     
@@ -2384,28 +2396,35 @@ def generar_oc_pdf(id):
         subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
         total_general += subtotal
         
-        # Descripción con salto de línea para SKU
-        desc = f"{detalle.producto.nombre}\nSKU: {detalle.producto.codigo}"
+        # Extraemos las cajas y factor de empaque de forma segura
+        factor_empaque = getattr(detalle.producto, 'unidades_por_caja', 1) or 1
+        cajas = getattr(detalle, 'cajas', 0)
+        cajas_str = f"{cajas:g}" if cajas else "0"
+        
+        # Descripción con salto de línea para SKU y Factor
+        desc = f"<b>{detalle.producto.nombre}</b><br/>SKU: {detalle.producto.codigo}<br/><font color='gray'>Empaque: {factor_empaque} ud(s)</font>"
         
         row = [
             Paragraph(desc, style_normal),
+            Paragraph(cajas_str, style_normal),
             Paragraph(str(detalle.cantidad_solicitada), style_normal),
             Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", style_normal),
             Paragraph(f"${subtotal:,.2f}", style_normal)
         ]
         data_table.append(row)
 
-    # --- FILA DE TOTAL (INTEGRADA) ---
+    # --- FILA DE TOTAL (INTEGRADA Y ADAPTADA) ---
     row_total = [
-        '', # Vacío (se fusiona)
-        '', # Vacío (se fusiona)
-        Paragraph("TOTAL:", style_total_label),
-        Paragraph(f"${total_general:,.2f}", style_total_value)
+        '', # 0
+        '', # 1
+        '', # 2
+        Paragraph("TOTAL:", style_total_label), # 3
+        Paragraph(f"${total_general:,.2f}", style_total_value) # 4
     ]
     data_table.append(row_total)
 
-    # Configuración de Anchos
-    col_widths_prod = [2.8*inch, 0.8*inch, 1.3*inch, 1.3*inch]
+    # Configuración de Anchos (Ajustado para 5 columnas, Total = 6.2 inches)
+    col_widths_prod = [2.4*inch, 0.8*inch, 0.8*inch, 1.0*inch, 1.2*inch]
     
     t_productos = Table(data_table, colWidths=col_widths_prod, repeatRows=1)
     
@@ -2418,18 +2437,18 @@ def generar_oc_pdf(id):
         ('VALIGN', (0,0), (-1,0), 'MIDDLE'),
         
         # Cuerpo (Rejilla completa)
-        ('GRID', (0,0), (-1,-2), 0.5, colors.black), # Bordes en todos los items
-        ('ALIGN', (1,1), (-1,-2), 'CENTER'), # Cantidad centrada
-        ('ALIGN', (2,1), (-1,-1), 'RIGHT'),  # Precios a la derecha
+        ('GRID', (0,0), (-1,-2), 0.5, colors.black), 
+        ('ALIGN', (1,1), (2,-2), 'CENTER'), # Centrar Cajas y Unidades
+        ('ALIGN', (3,1), (-1,-1), 'RIGHT'),  # Precios a la derecha
         ('VALIGN', (0,1), (-1,-1), 'MIDDLE'),
         ('TOPPADDING', (0,0), (-1,-1), 6),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
         
-        # Fila de Total (Última fila)
-        ('SPAN', (0,-1), (1,-1)),            # Fusionar columnas 0 y 1
+        # Fila de Total (Última fila adaptada a las nuevas columnas)
+        ('SPAN', (0,-1), (2,-1)),            # Fusionar columnas 0, 1 y 2
         ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black), # Línea superior gruesa
-        ('BACKGROUND', (2,-1), (-1,-1), colors.whitesmoke), # Fondo gris tenue en total
-        ('BOX', (2,-1), (3,-1), 0.5, colors.black), # Caja alrededor del total y etiqueta
+        ('BACKGROUND', (3,-1), (-1,-1), colors.whitesmoke), # Fondo gris tenue en total
+        ('BOX', (3,-1), (4,-1), 0.5, colors.black), # Caja alrededor del total y etiqueta
     ]
     
     t_productos.setStyle(TableStyle(estilos))
@@ -2471,15 +2490,24 @@ def nueva_orden_manual():
             productos_ids = request.form.getlist('producto_id[]')
             cantidades = request.form.getlist('cantidad[]')
             costos = request.form.getlist('costo[]')
+            cajas_lista = request.form.getlist('cajas[]') # <-- ¡NUEVO! Capturamos las cajas
 
             for i in range(len(productos_ids)):
                 if productos_ids[i] and float(cantidades[i]) > 0:
-                    detalle = OrdenDetalle(
+                    
+                    # Extraer el valor de las cajas de forma segura
+                    try:
+                        cajas_val = float(cajas_lista[i])
+                    except (IndexError, ValueError, TypeError):
+                        cajas_val = 0.0
+                    
+                    detalle = OrdenCompraDetalle( # <-- Nombre de modelo corregido
                         orden_id=nueva_orden.id,
                         producto_id=productos_ids[i],
                         cantidad_solicitada=float(cantidades[i]),
                         cantidad_recibida=0,
-                        costo_unitario_estimado=float(costos[i])
+                        costo_unitario_estimado=float(costos[i]),
+                        cajas=cajas_val # <-- Guardamos las cajas
                     )
                     db.session.add(detalle)
 
@@ -2497,7 +2525,7 @@ def nueva_orden_manual():
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
 
-    # CORRECCIÓN AQUÍ: Convertir productos a diccionario para que tojson funcione
+    # Convertir productos a diccionario para que tojson funcione
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
@@ -2506,7 +2534,8 @@ def nueva_orden_manual():
             'nombre': p.nombre,
             'codigo': p.codigo,
             'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
-            'proveedor_id': p.proveedor_id
+            'proveedor_id': p.proveedor_id,
+            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1) # <-- ¡NUEVO! Enviamos el factor de empaque al JS
         })
     
     return render_template('orden_form.html', 
@@ -2545,6 +2574,8 @@ def editar_orden(id):
     org_id = orden.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
+    
+    # NUEVO: Lista de productos construida como diccionarios (igual que en crear manual)
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
@@ -2552,45 +2583,62 @@ def editar_orden(id):
             'id': p.id,
             'nombre': p.nombre,
             'codigo': p.codigo,
-            'precio_unitario': p.precio_unitario,
-            'proveedor_id': p.proveedor_id
+            'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
+            'proveedor_id': p.proveedor_id,
+            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1) # <-- Aseguramos que el frontend sepa cuantas cajas
         })
     
     if request.method == 'POST':
         try:
             orden.proveedor_id = request.form.get('proveedor_id')
             
+            # Borramos detalles anteriores
             OrdenCompraDetalle.query.filter_by(orden_id=orden.id).delete()
             
+            # Capturamos del formulario
             productos_ids = request.form.getlist('producto_id[]')
             cantidades = request.form.getlist('cantidad[]')
             costos = request.form.getlist('costo[]')
+            cajas_lista = request.form.getlist('cajas[]') # <-- ¡NUEVO! Capturamos cajas editadas
 
             if not productos_ids:
                  flash('La orden debe tener al menos un producto.', 'danger')
                  db.session.rollback()
                  return render_template('orden_form.html',
-                                       titulo=f"Editar Orden de Compra #{orden.id}",
-                                       proveedores=proveedores,
-                                       productos=productos_lista,
-                                       almacenes=almacenes,
-                                       orden=orden)
+                                        titulo=f"Editar Orden de Compra #{orden.id}",
+                                        proveedores=proveedores,
+                                        productos=productos_lista,
+                                        almacenes=almacenes,
+                                        orden=orden)
             
-            for prod_id, cant, cost in zip(productos_ids, cantidades, costos):
+            # Llenamos los nuevos detalles usando el loop seguro por índices
+            for i in range(len(productos_ids)):
+                prod_id = productos_ids[i]
+                cant = cantidades[i]
+                cost = costos[i]
+
                 if not prod_id or not cant or not cost:
                     continue 
                 
+                # Extraer el valor de cajas protegiendo contra listas vacías
+                try:
+                    cajas_val = float(cajas_lista[i])
+                except (IndexError, ValueError, TypeError):
+                    cajas_val = 0.0
+
                 detalle = OrdenCompraDetalle(
                     orden_id=orden.id,
                     producto_id=int(prod_id),
                     cantidad_solicitada=int(cant),
-                    costo_unitario_estimado=float(cost)
+                    costo_unitario_estimado=float(cost),
+                    cajas=cajas_val # <-- Lo guardamos en BD
                 )
                 db.session.add(detalle)
             
             db.session.commit()
             flash('Orden de Compra actualizada exitosamente.', 'success')
             return redirect(url_for('ver_orden', id=id))
+            
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar la orden: {e}', 'danger')
@@ -2604,7 +2652,7 @@ def editar_orden(id):
     return render_template('orden_form.html', 
                            titulo=f"Editar Orden de Compra #{orden.id}",
                            proveedores=proveedores,
-                           productos=productos_lista,
+                           productos=productos_lista, # <-- Mandamos lista de diccionarios
                            almacenes=almacenes,
                            orden=orden)
 
