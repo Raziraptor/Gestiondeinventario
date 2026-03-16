@@ -144,6 +144,8 @@
                     </div>
                     
                     <form action="{{ url_for('nueva_orden') }}" method="POST">
+                        <!-- EL TOKEN CSRF HA SIDO AGREGADO AQUÍ -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="almacen_id" value="{{ alm_id }}">
                         
                         {% set context = {'hay_productos': true} %}
