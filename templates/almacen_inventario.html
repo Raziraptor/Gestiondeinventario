@@ -3,95 +3,122 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
+    <!-- Cargar librería para leer QR/Barras -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js" type="text/javascript"></script>
+
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>{{ titulo }}</h2>
-        <a href="{{ url_for('lista_almacenes') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('lista_almacenes') }}" class="btn btn-outline-secondary shadow-sm">
             <i class="bi bi-arrow-left"></i> Volver a Almacenes
         </a>
     </div>
     <p class="text-muted">
         Aquí puedes ver y gestionar qué productos existen en este almacén. 
-        Los productos añadidos aquí comenzarán con un stock de 0.
+        Los productos añadidos aquí comenzarán con un stock de 0 hasta que registres una Orden de Compra o Ajuste.
     </p>
 
     <div class="row g-4">
-        <!-- COLUMNA IZQUIERDA: FORMULARIO DE AÑADIR (CON CALCULADORA) -->
+        <!-- COLUMNA IZQUIERDA: FORMULARIO DE AÑADIR -->
         <div class="col-md-5">
-            <div class="card shadow-sm border-primary">
-                <div class="card-header bg-primary text-white fw-bold">
-                    <i class="bi bi-plus-circle"></i> Añadir Stock Manual
+            <div class="card shadow-sm border-primary h-100">
+                <div class="card-header bg-primary text-white fw-bold d-flex align-items-center">
+                    <i class="bi bi-plus-circle me-2"></i> Añadir Producto al Almacén
                 </div>
                 <div class="card-body bg-light">
                     
                     {% if productos_para_anadir_json %}
-                        <!-- 1. BUSCADOR INTELIGENTE -->
-                        <div class="mb-3 position-relative">
-                            <label for="buscador" class="form-label fw-bold small text-primary">Buscar Producto</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                                <input type="text" id="buscador" class="-control" 
-                                       placeholder="Escribe para buscar..." autocomplete="off">
+                        <!-- 1. BUSCADOR INTELIGENTE Y ESCÁNER -->
+                        <div class="mb-4 position-relative">
+                            
+                            <!-- ÁREA DE CÁMARA (Oculta por defecto) -->
+                            <div id="reader-container" class="mb-3 shadow-sm border rounded bg-white p-2" style="display: none;">
+                                <div id="reader" style="width: 100%;"></div>
+                                <div class="text-center mt-2">
+                                    <button type="button" class="btn btn-danger btn-sm fw-bold" onclick="detenerEscaner()">
+                                        <i class="bi bi-stop-circle"></i> Detener Cámara
+                                    </button>
+                                </div>
                             </div>
+
+                            <label for="buscador" class="form-label fw-bold small text-primary">Buscar o Escanear Producto</label>
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-white text-muted"><i class="bi bi-upc-scan"></i></span>
+                                <input type="text" id="buscador" class="form-control" 
+                                       placeholder="Escribe Nombre, SKU o escanea..." autocomplete="off">
+                                <button class="btn btn-outline-primary fw-bold bg-white" type="button" id="btn_escanear" onclick="iniciarEscaner()" title="Escanear con cámara">
+                                    <i class="bi bi-qr-code-scan"></i> Escanear
+                                </button>
+                            </div>
+                            
                             <!-- Lista flotante de sugerencias -->
-                            <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow" 
-                                 style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto;">
+                            <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg" 
+                                 style="z-index: 1050; display: none; max-height: 250px; overflow-y: auto; top: 100%;">
+                            </div>
+                            <div class="form-text mt-1 text-muted" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle"></i> Tip: Presiona <strong>Enter</strong> para seleccionar rápido el SKU exacto.
                             </div>
                         </div>
 
                         <!-- 2. VISUALIZACIÓN DE SELECCIÓN -->
-                        <div id="preview_seleccion" class="alert alert-light border d-flex align-items-center shadow-sm" style="display: none;">
+                        <div id="preview_seleccion" class="alert alert-primary border border-primary d-flex align-items-center shadow-sm mb-4" style="display: none;">
                             <div class="me-3">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="bi bi-box-seam"></i>
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 45px; height: 45px;">
+                                    <i class="bi bi-box-seam fs-5"></i>
                                 </div>
                             </div>
                             <div class="flex-grow-1">
-                                <small class="text-muted text-uppercase" style="font-size: 0.65rem;">Producto Seleccionado</small><br>
-                                <strong id="lbl_nombre_prod" class="text-primary d-block text-truncate" style="max-width: 200px;">---</strong>
-                                <small id="lbl_sku_prod" class="text-muted">---</small>
+                                <small class="text-primary text-uppercase fw-bold" style="font-size: 0.65rem;">Producto Seleccionado</small><br>
+                                <strong id="lbl_nombre_prod" class="text-dark d-block text-truncate" style="max-width: 200px; font-size: 1.1rem;">---</strong>
+                                <span class="badge bg-light border text-dark mt-1" id="lbl_sku_prod">---</span>
                             </div>
                             <button type="button" class="btn-close" onclick="limpiarSeleccion()" title="Cambiar producto"></button>
                         </div>
 
-                        <!-- 3. ULARIO DE ENVÍO -->
-                        <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod">
+                        <!-- 3. FORMULARIO DE ENVÍO -->
+                        <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod" class="bg-white p-3 rounded border shadow-sm">
+                            
+                            <!-- TOKEN CSRF AÑADIDO POR SEGURIDAD -->
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
                             
-                            <!-- CALCULADORA DE CAJAS (NUEVO) -->
+                            <!-- CALCULADORA DE CAJAS -->
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
-                                    <label class="form-label small text-muted">Cajas/Empaques</label>
+                                    <label class="form-label small fw-bold text-muted">Cajas / Empaques</label>
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text"><i class="bi bi-box"></i></span>
-                                        <input type="number" id="input_cajas" class="form-control" placeholder="-" disabled oninput="calcularDesdeCajas()">
+                                        <span class="input-group-text bg-light"><i class="bi bi-box"></i></span>
+                                        <input type="number" id="input_cajas" class="form-control text-center fw-bold" placeholder="-" disabled oninput="calcularDesdeCajas()" step="0.01" min="0">
                                     </div>
-                                    <div class="form-text text-primary" style="font-size: 0.7rem;" id="info_conversion">
+                                    <div class="form-text text-info fw-semibold" style="font-size: 0.7rem;" id="info_conversion">
                                         1 Caja = 1 Pza
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label small fw-bold text-dark">Total Unidades</label>
-                                    <input type="number" name="cantidad" id="input_unidades" class="form-control form-control-sm fw-bold border-primary" required oninput="limpiarCajas()">
-                                    <div class="form-text" style="font-size: 0.7rem;">Cantidad real a sumar.</div>
+                                    <input type="number" name="cantidad" id="input_unidades" class="form-control form-control-sm text-center fw-bold border-primary" required oninput="limpiarCajas()" min="0">
+                                    <div class="form-text text-muted" style="font-size: 0.7rem;">Cantidad inicial.</div>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
+                            <div class="mb-4">
                                 <label class="form-label fw-bold small">Ubicación (Opcional)</label>
-                                <input type="text" name="ubicacion" id="ubicacion_input" class="form-control" placeholder="Ej: Estante 1, Pasillo B">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
+                                    <input type="text" name="ubicacion" id="ubicacion_input" class="form-control" placeholder="Ej: Estante 1, Pasillo B">
+                                </div>
                             </div>
 
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-primary" id="btn_submit_anadir" disabled>
-                                    <i class="bi bi-plus-lg"></i> Añadir al Inventario
+                                <button type="submit" class="btn btn-primary fw-bold shadow-sm" id="btn_submit_anadir" disabled>
+                                    <i class="bi bi-save"></i> Guardar en Almacén
                                 </button>
                             </div>
                         </form>
                     {% else %}
-                        <div class="text-center py-4 text-muted">
-                            <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
-                            <p class="mb-0">¡Excelente!</p>
-                            <small>Todos los productos del catálogo ya están registrados en este almacén.</small>
+                        <div class="text-center py-5 text-muted bg-white rounded border border-dashed">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                            <h5 class="mt-3 fw-bold text-dark">¡Catálogo Completo!</h5>
+                            <p class="mb-0 small">Todos los productos existentes ya han sido registrados en este almacén.</p>
                         </div>
                     {% endif %}
 
@@ -99,64 +126,90 @@
             </div>
         </div>
 
-        <!-- COLUMNA DERECHA: TABLA DE PRODUCTOS (MANTENEMOS LA FUNCIONALIDAD ANTERIOR) -->
+        <!-- COLUMNA DERECHA: TABLA DE PRODUCTOS -->
         <div class="col-md-7">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white fw-bold border-bottom d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-list-ul"></i> Productos en {{ almacen.nombre }}</span>
-                    <span class="badge bg-light text-dark border">{{ almacen.stocks.count() }} Items</span>
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white fw-bold border-bottom d-flex justify-content-between align-items-center py-3">
+                    <span class="fs-5"><i class="bi bi-list-ul text-primary"></i> Inventario Local</span>
+                    <span class="badge bg-primary rounded-pill shadow-sm">{{ almacen.stocks.count() }} Items</span>
                 </div>
                 
                 <!-- BARRA DE BÚSQUEDA INTERNA -->
-                <div class="bg-light p-2 border-bottom">
-                    <div class="input-group">
+                <div class="bg-light p-3 border-bottom">
+                    <div class="input-group shadow-sm">
                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-filter"></i></span>
-                        <input type="text" id="buscador_inventario" class="form-control border-start-0" 
+                        <input type="text" id="buscador_inventario" class="form-control border-start-0 py-2" 
                                placeholder="Filtrar tabla por nombre, SKU o ubicación...">
                     </div>
                 </div>
 
                 <div class="card-body p-0 table-responsive">
-                    <table class="table table-striped table-hover mb-0 align-middle" id="tabla_inventario">
+                    <table class="table table-hover table-striped mb-0 align-middle" id="tabla_inventario">
                         <thead class="table-light">
                             <tr>
-                                <th class="ps-3" style="cursor: pointer;" onclick="ordenarInventario(0)">Producto <i class="bi bi-arrow-down-up small text-muted ms-1"></i></th>
-                                <th>Ubicación</th>
-                                <th class="text-end" style="cursor: pointer;" onclick="ordenarInventario(2, 'num')">Cantidad <i class="bi bi-arrow-down-up small text-muted ms-1"></i></th>
-                                <th class="text-center pe-3">Acciones</th>
+                                <th class="ps-3 border-0 text-secondary" style="cursor: pointer;" onclick="ordenarInventario(0)">Producto <i class="bi bi-arrow-down-up small ms-1"></i></th>
+                                <th class="border-0 text-secondary">Ubicación</th>
+                                <th class="text-end border-0 text-secondary" style="cursor: pointer;" onclick="ordenarInventario(2, 'num')">Stock <i class="bi bi-arrow-down-up small ms-1"></i></th>
+                                <th class="text-center pe-3 border-0 text-secondary">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tbody_inventario">
                             {% for item in almacen.stocks.all() %}
                             <tr>
-                                <td class="ps-3">
+                                <td class="ps-3 py-3">
                                     <div class="fw-bold text-dark">{{ item.producto.nombre }}</div>
-                                    <small class="text-muted">SKU: {{ item.producto.codigo }}</small>
+                                    <small class="text-muted"><i class="bi bi-upc"></i> {{ item.producto.codigo }}</small>
                                 </td>
                                 <td>
-                                    {% if item.ubicacion %}<span class="badge bg-light text-dark border">{{ item.ubicacion }}</span>{% else %}<span class="text-muted small fst-italic">Sin asignar</span>{% endif %}
+                                    {% if item.ubicacion %}
+                                        <span class="badge bg-light text-dark border px-2 py-1"><i class="bi bi-geo-alt"></i> {{ item.ubicacion }}</span>
+                                    {% else %}
+                                        <span class="text-muted small fst-italic">Sin asignar</span>
+                                    {% endif %}
                                 </td>
-                                <td class="text-end fw-bold">{{ item.cantidad }}</td>
+                                <td class="text-end fw-bold fs-5 {% if item.cantidad == 0 %}text-danger{% elif item.cantidad <= item.stock_minimo %}text-warning{% else %}text-success{% endif %}">
+                                    {{ item.cantidad }}
+                                </td>
                                 <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-primary" title="Editar"><i class="bi bi-pencil"></i></a>
-                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Quitar del almacén?');">
+                                    <div class="btn-group shadow-sm">
+                                        <!-- Botón de Edición -->
+                                        <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-primary btn-sm" title="Editar Cantidad/Ubicación">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <!-- NUEVO: Botón de Etiqueta -->
+                                        <a href="{{ url_for('configurar_etiqueta', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-secondary btn-sm" title="Imprimir Etiqueta">
+                                            <i class="bi bi-upc-scan"></i>
+                                        </a>
+                                        <!-- Botón de Eliminar -->
+                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Quitar del almacén? Se perderá el historial de esta ubicación.');">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Quitar de Almacén"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
                             </tr>
                             {% else %}
-                            <tr id="no-products-row"><td colspan="4" class="text-center py-5 text-muted">No hay productos.</td></tr>
+                            <tr id="no-products-row">
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                                    Este almacén está vacío.
+                                </td>
+                            </tr>
                             {% endfor %}
-                            <tr id="sin-resultados-busqueda" style="display: none;"><td colspan="4" class="text-center py-4 text-muted">No se encontraron productos.</td></tr>
+                            <tr id="sin-resultados-busqueda" style="display: none;">
+                                <td colspan="4" class="text-center py-4 text-muted border-bottom-0">
+                                    No se encontraron productos en la tabla.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- SONIDO DE BEEP PARA ESCÁNER -->
+    <audio id="audio_beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
     <!-- SCRIPTS -->
     <script>
@@ -173,12 +226,58 @@
             const lblSku = document.getElementById('lbl_sku_prod');
             const inputId = document.getElementById('producto_id_hidden');
             const btnSubmit = document.getElementById('btn_submit_anadir');
-            const inputUbicacion = document.getElementById('ubicacion_input');
             const inputCajas = document.getElementById('input_cajas');
             const inputUnidades = document.getElementById('input_unidades');
             const infoConversion = document.getElementById('info_conversion');
+            const audioBeep = document.getElementById('audio_beep');
+            const btnEscanear = document.getElementById('btn_escanear');
 
-            // --- 1. LÓGICA DE BÚSQUEDA ---
+            // --- 1. LÓGICA DE ESCÁNER (CÁMARA) ---
+            let html5QrcodeScanner = null;
+            let isScanning = false;
+
+            window.iniciarEscaner = function() {
+                if (isScanning) return;
+                document.getElementById('reader-container').style.display = 'block';
+                html5QrcodeScanner = new Html5Qrcode("reader");
+                
+                html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {})
+                .then(() => {
+                    isScanning = true;
+                    btnEscanear.classList.add('disabled');
+                })
+                .catch(err => {
+                    alert("No se pudo acceder a la cámara.");
+                    document.getElementById('reader-container').style.display = 'none';
+                });
+            }
+
+            window.detenerEscaner = function() {
+                if (html5QrcodeScanner && isScanning) {
+                    html5QrcodeScanner.stop().then(() => {
+                        document.getElementById('reader-container').style.display = 'none';
+                        btnEscanear.classList.remove('disabled');
+                        html5QrcodeScanner.clear();
+                        isScanning = false;
+                    });
+                }
+            }
+
+            function onScanSuccess(decodedText) {
+                try { audioBeep.play(); } catch(e) {}
+                
+                const exact = productosData.find(p => p.codigo.toLowerCase() === decodedText.toLowerCase());
+                
+                if (exact) {
+                    seleccionarProducto(exact);
+                    detenerEscaner(); // Detenemos la cámara automáticamente al encontrarlo
+                } else {
+                    alert(`El código ${decodedText} no pertenece a los productos pendientes por añadir.`);
+                    detenerEscaner();
+                }
+            }
+
+            // --- 2. LÓGICA DE BÚSQUEDA (TYPEAHEAD Y ENTER) ---
             if (buscador) {
                 buscador.addEventListener('input', function() {
                     const query = this.value.toLowerCase().trim();
@@ -199,19 +298,18 @@
                         resultados.forEach(p => {
                             const item = document.createElement('a');
                             item.href = '#';
-                            item.classList.add('list-group-item', 'list-group-item-action', 'd-flex', 'justify-content-between', 'align-items-center');
+                            item.classList.add('list-group-item', 'list-group-item-action', 'd-flex', 'justify-content-between', 'align-items-center', 'py-3');
                             
-                            // Mostrar si tiene factor de caja > 1
                             const badgeCaja = (p.unidades_por_caja && p.unidades_por_caja > 1) 
-                                ? `<span class='badge bg-info text-dark rounded-pill'>x${p.unidades_por_caja}</span>` 
+                                ? `<span class='badge bg-info text-dark rounded-pill ms-2'><i class="bi bi-box"></i> x${p.unidades_por_caja}</span>` 
                                 : '';
 
                             item.innerHTML = `
                                 <div>
-                                    <strong>${p.nombre}</strong> ${badgeCaja}<br>
-                                    <small class="text-muted">SKU: ${p.codigo}</small>
+                                    <strong class="text-dark">${p.nombre}</strong> ${badgeCaja}<br>
+                                    <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}</small>
                                 </div>
-                                <i class="bi bi-plus-circle text-primary"></i>
+                                <i class="bi bi-plus-circle-fill text-primary fs-5"></i>
                             `;
                             
                             item.onclick = (e) => {
@@ -226,7 +324,24 @@
                     }
                 });
 
-                // Cerrar al hacer clic fuera
+                // Detección de "Enter" (Como pistola lectora o escritura rápida)
+                buscador.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const query = this.value.toLowerCase().trim();
+                        const exact = productosData.find(p => p.codigo.toLowerCase() === query);
+
+                        if (exact) {
+                            seleccionarProducto(exact);
+                        } else if (sugerencias.children.length > 0) {
+                            sugerencias.children[0].click(); // Elige la primera sugerencia si no hay exacto
+                        } else {
+                            alert("Producto no encontrado.");
+                        }
+                    }
+                });
+
+                // Cerrar sugerencias al hacer clic fuera
                 document.addEventListener('click', (e) => {
                     if (e.target !== buscador && e.target !== sugerencias) {
                         sugerencias.style.display = 'none';
@@ -234,7 +349,7 @@
                 });
             }
 
-            // --- 2. LÓGICA DE SELECCIÓN ---
+            // --- 3. LÓGICA DE SELECCIÓN Y CALCULADORA ---
             window.seleccionarProducto = function(prod) {
                 // Llenar datos básicos
                 inputId.value = prod.id;
@@ -247,7 +362,7 @@
                 if (factorActual > 1) {
                     inputCajas.disabled = false;
                     inputCajas.placeholder = "0";
-                    infoConversion.innerHTML = `<span class="fw-bold text-primary"><i class="bi bi-box-seam"></i> 1 Caja = ${factorActual} Unidades</span>`;
+                    infoConversion.innerHTML = `<i class="bi bi-arrow-return-right"></i> 1 Caja = ${factorActual} Unidades`;
                 } else {
                     inputCajas.disabled = true;
                     inputCajas.value = "";
@@ -255,21 +370,21 @@
                     infoConversion.innerHTML = `<span class="text-muted">Se maneja por pieza individual.</span>`;
                 }
                 
-                inputUnidades.value = ""; // Limpiar unidad anterior
+                inputUnidades.value = "0"; // Inicializar en 0
 
                 // Cambiar UI
                 buscador.value = ''; 
                 sugerencias.style.display = 'none'; 
-                buscador.closest('.mb-3').style.display = 'none'; 
+                buscador.closest('.mb-4').style.display = 'none'; 
                 preview.style.display = 'flex'; 
-
                 btnSubmit.disabled = false;
                 
-                // Si tiene cajas, enfocar cajas, si no, enfocar unidades
+                // Enfocar automáticamente el input para que el usuario teclee de inmediato
                 if (factorActual > 1) {
                     inputCajas.focus();
                 } else {
                     inputUnidades.focus();
+                    inputUnidades.select();
                 }
             };
 
@@ -277,7 +392,7 @@
                 inputId.value = '0';
                 btnSubmit.disabled = true;
                 preview.style.display = 'none';
-                buscador.closest('.mb-3').style.display = 'block'; 
+                buscador.closest('.mb-4').style.display = 'block'; 
                 buscador.focus();
                 
                 // Reset calculadora
@@ -286,19 +401,16 @@
                 factorActual = 1;
             };
 
-            // --- 3. LÓGICA DE CÁLCULO ---
             window.calcularDesdeCajas = function() {
                 const cajas = parseFloat(inputCajas.value);
                 if (!isNaN(cajas)) {
-                    inputUnidades.value = cajas * factorActual;
+                    inputUnidades.value = Math.ceil(cajas * factorActual);
                 } else {
                     inputUnidades.value = "";
                 }
             };
 
             window.limpiarCajas = function() {
-                // Si el usuario edita manual las unidades, borramos las cajas para evitar confusión visual
-                // ya que podría no ser un múltiplo exacto.
                 inputCajas.value = "";
             };
 
@@ -332,7 +444,7 @@
             }
         });
         
-        // --- 5. ORDENAMIENTO (EXTRA) ---
+        // --- 5. ORDENAMIENTO DE TABLAS ---
         let ordenAsc = true;
         function ordenarInventario(colIndex, tipo = 'str') {
             const tbody = document.getElementById("tbody_inventario");
