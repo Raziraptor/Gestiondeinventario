@@ -2259,7 +2259,7 @@ def enviar_orden(id):
         organizacion_id=current_user.organizacion_id
     ).first_or_404()
 
-    if orden.estado in ['borrador', 'pendiente']:
+    if orden.estado in ['borrador', 'Pendiente']:
         try:
             orden.estado = 'enviada'
             db.session.commit()
@@ -2567,7 +2567,7 @@ def editar_orden(id):
         organizacion_id=current_user.organizacion_id
     ).first_or_404()
 
-    if orden.estado != 'pendiente':
+    if orden.estado != 'Pendiente':
         flash('Solo se pueden editar órdenes en estado "Borrador".', 'warning')
         return redirect(url_for('ver_orden', id=id))
 
