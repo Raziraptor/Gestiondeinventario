@@ -2490,7 +2490,7 @@ def nueva_orden_manual():
             productos_ids = request.form.getlist('producto_id[]')
             cantidades = request.form.getlist('cantidad[]')
             costos = request.form.getlist('costo[]')
-            cajas_lista = request.form.getlist('cajas[]') # <-- ¡NUEVO! Capturamos las cajas
+            cajas_lista = request.form.getlist('cajas[]') # <-- Capturamos las cajas
 
             for i in range(len(productos_ids)):
                 if productos_ids[i] and float(cantidades[i]) > 0:
@@ -2501,11 +2501,10 @@ def nueva_orden_manual():
                     except (IndexError, ValueError, TypeError):
                         cajas_val = 0.0
                     
-                    detalle = OrdenCompraDetalle( # <-- Nombre de modelo corregido
+                    detalle = OrdenCompraDetalle( 
                         orden_id=nueva_orden.id,
                         producto_id=productos_ids[i],
                         cantidad_solicitada=float(cantidades[i]),
-                        cantidad_recibida=0,
                         costo_unitario_estimado=float(costos[i]),
                         cajas=cajas_val # <-- Guardamos las cajas
                     )
@@ -2535,7 +2534,7 @@ def nueva_orden_manual():
             'codigo': p.codigo,
             'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
             'proveedor_id': p.proveedor_id,
-            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1) # <-- ¡NUEVO! Enviamos el factor de empaque al JS
+            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1) 
         })
     
     return render_template('orden_form.html', 
