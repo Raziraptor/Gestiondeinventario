@@ -5,21 +5,39 @@
 {% block content %}
 <div class="row justify-content-center mt-5">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h4>Configurar Etiqueta</h4>
+        <div class="card shadow-sm border-primary">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-tags"></i> Configurar Etiqueta</h4>
             </div>
             <div class="card-body">
-                <h5 class="card-title">{{ producto.nombre }}</h5>
-                <p class="text-muted">SKU: {{ producto.codigo }} | Ubicación: {{ ubicacion }}</p>
+                <h5 class="card-title fw-bold text-dark">{{ producto.nombre }}</h5>
+                <p class="text-muted mb-4"><i class="bi bi-upc"></i> SKU: {{ producto.codigo }}</p>
                 
                 <form action="{{ url_for('generar_etiqueta_personalizada', id=producto.id) }}" method="POST" target="_blank">
                     
-                    <!-- TOKEN CSRF AÑADIDO AQUÍ -->
+                    <!-- TOKEN CSRF DE SEGURIDAD -->
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+                    <!-- SELECCIÓN DINÁMICA DE ALMACÉN Y UBICACIÓN -->
                     <div class="mb-4">
-                        <label class="form-label">Selecciona el Tamaño:</label>
+                        <label class="form-label fw-bold">Almacén a imprimir (Ubicación):</label>
+                        <select class="form-select border-primary bg-light" name="almacen_id" required>
+                            <!-- Iteramos sobre todos los registros de stock de este producto -->
+                            {% if producto.stocks %}
+                                {% for stock in producto.stocks %}
+                                    <option value="{{ stock.almacen_id }}" {% if stock.almacen_id == almacen_seleccionado %}selected{% endif %}>
+                                        {{ stock.almacen.nombre }} - Ubicación: {{ stock.ubicacion or 'Sin asignar' }}
+                                    </option>
+                                {% endfor %}
+                            {% else %}
+                                <option value="">-- Sin inventario registrado --</option>
+                            {% endif %}
+                        </select>
+                        <div class="form-text">La etiqueta imprimirá la ubicación exacta del almacén que selecciones.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Selecciona el Tamaño:</label>
                         
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tamano" id="size1" value="1x3" checked>
@@ -36,15 +54,15 @@
                         </div>
                     </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold">
                             <i class="bi bi-printer"></i> Generar etiqueta
                         </button>
                     </div>
                 </form>
             </div>
-            <div class="card-footer text-center">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-link">Cancelar</a>
+            <div class="card-footer bg-white text-center border-0 pt-0 pb-3">
+                <a href="javascript:history.back()" class="btn btn-link text-secondary text-decoration-none">Cancelar</a>
             </div>
         </div>
     </div>
