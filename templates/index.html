@@ -136,46 +136,66 @@
             <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> ¡Alertas de Stock!</h4>
             <p>Los siguientes productos están por debajo del mínimo en uno o más almacenes.</p>
             
-            {% for (alm_id, alm_nombre, prov_id, prov_nombre), items_stock in alertas_agrupadas.items() %}
-                <div class="card my-3 border-warning">
-                    <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between">
-                        <span><i class="bi bi-shop"></i> Almacén: {{ alm_nombre }}</span>
-                        <span class="text-dark opacity-75"><i class="bi bi-truck"></i> Proveedor: {{ prov_nombre }}</span>
-                    </div>
-                    
-                    <form action="{{ url_for('nueva_orden') }}" method="POST">
-                        <!-- EL TOKEN CSRF HA SIDO AGREGADO AQUÍ -->
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="almacen_id" value="{{ alm_id }}">
-                        
-                        {% set context = {'hay_productos': true} %}
-                        
-                        <ul class="list-group list-group-flush">
-                            {% for item in items_stock %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ item.id }}" checked>
-                                    <label class="form-check-label" for="check_{{ item.id }}">
-                                        <strong>{{ item.producto.nombre }}</strong> 
-                                    </label>
+            <div class="row">
+                {% for (alm_id, alm_nombre, prov_id, prov_nombre), items_stock in alertas_agrupadas.items() %}
+                    <div class="col-12 mb-3">
+                        <div class="card border-warning shadow-sm">
+                            <div class="card-header bg-warning text-dark fw-bold d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                                <span><i class="bi bi-shop"></i> Almacén: {{ alm_nombre }}</span>
+                                <span class="text-dark opacity-75 mt-1 mt-md-0"><i class="bi bi-truck"></i> Proveedor: {{ prov_nombre }}</span>
+                            </div>
+                            
+                            <form action="{{ url_for('nueva_orden') }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="almacen_id" value="{{ alm_id }}">
+                                
+                                <div class="card-body p-0">
+                                    <!-- Botón Desplegable -->
+                                    <div class="d-grid">
+                                        <button class="btn btn-light text-start rounded-0 border-bottom d-flex justify-content-between align-items-center py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlert_{{ loop.index }}" aria-expanded="false" aria-controls="collapseAlert_{{ loop.index }}">
+                                            <span class="fw-semibold text-secondary">
+                                                <i class="bi bi-box-seam text-warning me-2"></i> 
+                                                Ver {{ items_stock|length }} producto(s) por debajo del mínimo
+                                            </span>
+                                            <i class="bi bi-chevron-down text-muted"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Lista Plegable -->
+                                    <div class="collapse" id="collapseAlert_{{ loop.index }}">
+                                        <ul class="list-group list-group-flush">
+                                            {% for item in items_stock %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center bg-light bg-opacity-25">
+                                                <div>
+                                                    <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ alm_id }}_{{ item.id }}" checked>
+                                                    <label class="form-check-label" for="check_{{ alm_id }}_{{ item.id }}">
+                                                        <strong>{{ item.producto.nombre }}</strong> 
+                                                        <small class="text-muted d-block d-md-inline ms-md-2">(SKU: {{ item.producto.codigo }})</small>
+                                                    </label>
+                                                </div>
+                                                <span class="badge bg-danger rounded-pill">Stock: {{ item.cantidad }} / Min: {{ item.stock_minimo }}</span>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
                                 </div>
-                                <span class="badge bg-danger">Stock: {{ item.cantidad }} / Min: {{ item.stock_minimo }}</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
 
-                        <div class="card-footer bg-light">
-                            {% if prov_id != 0 %}
-                                <button type="submit" class="btn btn-sm btn-dark">
-                                    <i class="bi bi-cart-plus"></i> Generar OC Rápida para {{ prov_nombre }}
-                                </button>
-                            {% else %}
-                                <span class="text-danger small"><i class="bi bi-info-circle"></i> Asigna un proveedor a estos productos para poder generar una OC automática.</span>
-                            {% endif %}
+                                <div class="card-footer bg-white border-top-0 pt-3 pb-3">
+                                    {% if prov_id != 0 %}
+                                        <button type="submit" class="btn btn-dark shadow-sm">
+                                            <i class="bi bi-cart-plus"></i> Generar OC Rápida para {{ prov_nombre }}
+                                        </button>
+                                    {% else %}
+                                        <div class="alert alert-danger mb-0 py-2 small">
+                                            <i class="bi bi-info-circle"></i> Asigna un proveedor a estos productos para poder generar una OC automática.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </form>
                         </div>
-                    </form>
-                </div>
-            {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
         </div>
         {% endif %}
         
