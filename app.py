@@ -2472,7 +2472,7 @@ def nueva_orden_manual():
             almacen_id = request.form.get('almacen_id') # Nuevo campo Multi-Almacén
             
             if not proveedor_id:
-                flash('Debes seleccionar un proveedor.', 'warning')
+                flash("Debes seleccionar un proveedor.", "warning")
                 return redirect(request.url)
 
             # 1. Crear la Cabecera de la Orden
@@ -2480,7 +2480,7 @@ def nueva_orden_manual():
                 proveedor_id=proveedor_id,
                 organizacion_id=current_user.organizacion_id,
                 creador_id=current_user.id,
-                estado='Pendiente',
+                estado='borrador', # <-- CORRECCIÓN: Debe nacer como borrador
                 almacen_id=almacen_id if almacen_id else None # Guardamos el almacén destino
             )
             db.session.add(nueva_orden)
@@ -2511,12 +2511,12 @@ def nueva_orden_manual():
                     db.session.add(detalle)
 
             db.session.commit()
-            flash(f'Orden #{nueva_orden.id} creada exitosamente.', 'success')
+            flash(f"Orden #{nueva_orden.id} creada exitosamente en estado borrador.", "success")
             return redirect(url_for('lista_ordenes'))
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear orden: {e}', 'danger')
+            flash(f"Error al crear orden: {e}", "danger")
             return redirect(request.url)
 
     # --- MÉTODO GET: Renderizar el formulario ---
@@ -2543,6 +2543,7 @@ def nueva_orden_manual():
                            proveedores=proveedores,
                            productos=productos_lista,
                            almacenes=almacenes)
+
 
 @app.route('/orden/<int:id>')
 @login_required
