@@ -3654,6 +3654,17 @@ def update_user_permissions(user_id):
             
     return redirect(url_for('admin_panel'))
 
+@app.route('/fix-db')
+def fix_db():
+    from sqlalchemy import text
+    try:
+        db.session.execute(text("ALTER TABLE orden_compra_detalle ADD COLUMN cajas FLOAT DEFAULT 0.0;"))
+        db.session.commit()
+        return "<h1>¡Éxito! Columna 'cajas' agregada a PostgreSQL.</h1>"
+    except Exception as e:
+        db.session.rollback()
+        return f"<h1>Error:</h1> <p>{str(e)}</p>"
+
 
 # --- Inicialización ---
 if __name__ == '__main__':
