@@ -2662,7 +2662,7 @@ def editar_orden(id):
 def cancelar_orden(id):
     orden = get_item_or_404(OrdenCompra, id)
     
-    if orden.estado != 'pendiente':
+    if orden.estado != 'Pendiente':
         flash('Error: Solo se pueden cancelar órdenes en estado "Pendiente".', 'danger')
         return redirect(url_for('lista_ordenes'))
 
