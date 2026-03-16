@@ -158,11 +158,13 @@
                         <!-- NUEVO BLOQUE DE ALMACÉN DESPLEGABLE -->
                         <div class="accordion-item border border-warning rounded mb-3 overflow-hidden shadow-sm">
                             <h2 class="accordion-header" id="headingAlm_{{ alm_id }}">
-                                <button class="accordion-button bg-warning bg-opacity-25 text-dark fw-bold fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlm_{{ alm_id }}" aria-expanded="true" aria-controls="collapseAlm_{{ alm_id }}">
+                                <!-- Cambios aplicados: Se añadió 'collapsed' y aria-expanded="false" -->
+                                <button class="accordion-button collapsed bg-warning bg-opacity-25 text-dark fw-bold fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlm_{{ alm_id }}" aria-expanded="false" aria-controls="collapseAlm_{{ alm_id }}">
                                     <i class="bi bi-shop me-2"></i> Almacén: {{ alm_nombre }}
                                 </button>
                             </h2>
-                            <div id="collapseAlm_{{ alm_id }}" class="accordion-collapse collapse show" aria-labelledby="headingAlm_{{ alm_id }}">
+                            <!-- Cambios aplicados: Se removió la clase 'show' para que inicie cerrado -->
+                            <div id="collapseAlm_{{ alm_id }}" class="accordion-collapse collapse" aria-labelledby="headingAlm_{{ alm_id }}">
                                 <div class="accordion-body bg-light pb-2 pt-4">
                         
                         <!-- Actualizamos el id del almacen actual -->
