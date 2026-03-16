@@ -721,12 +721,16 @@ def admin_reset_password(id):
 def configurar_etiqueta(id):
     """ Muestra el formulario para elegir tamaño de etiqueta. """
     producto = get_item_or_404(Producto, id)
-    # Necesitamos saber si el producto tiene stock en algún lado para mostrar la ubicación
-    # (Tomaremos la primera ubicación disponible o "Sin Ubicación")
-    stock_item = Stock.query.filter_by(producto_id=id).first()
-    ubicacion = stock_item.ubicacion if stock_item else "N/A"
     
-    return render_template('etiqueta_config.html', producto=producto, ubicacion=ubicacion)
+    # Atrapamos de qué almacén viene el usuario (por la URL)
+    almacen_seleccionado = request.args.get('almacen_id', type=int)
+    
+    # La ubicación específica ahora se maneja dinámicamente en la plantilla HTML
+    # iterando sobre producto.stocks, así que ya no necesitamos buscarla aquí.
+    
+    return render_template('etiqueta_config.html', 
+                           producto=producto, 
+                           almacen_seleccionado=almacen_seleccionado)
 
 @app.route('/producto/<int:id>/etiqueta/generar', methods=['POST'])
 @login_required
@@ -735,9 +739,14 @@ def generar_etiqueta_personalizada(id):
     """ Genera etiqueta JPG. QR abajo-derecha para dar espacio al Nombre arriba (Full Width). """
     producto = get_item_or_404(Producto, id)
     
-    # Obtener datos de ubicación
-    stock_item = Stock.query.filter_by(producto_id=id).first()
-    ubicacion = stock_item.ubicacion if stock_item and stock_item.ubicacion else ""
+    # --- NUEVO: Obtener datos de ubicación específicos del almacén seleccionado ---
+    almacen_id = request.form.get('almacen_id')
+    ubicacion = "N/A"
+    
+    if almacen_id:
+        stock_especifico = Stock.query.filter_by(producto_id=id, almacen_id=almacen_id).first()
+        if stock_especifico and stock_especifico.ubicacion:
+            ubicacion = stock_especifico.ubicacion
 
     tamano = request.form.get('tamano') # '1x3' o '1.75x4'
     DPI = 300 
@@ -849,7 +858,7 @@ def generar_etiqueta_personalizada(id):
     # --- C. Ubicación / ID ---
     current_y += int(font_size_codigo + 5)
     
-    texto_inferior = f"UBIC: {ubicacion}" if ubicacion else f"ID: {producto.id}"
+    texto_inferior = f"UBIC: {ubicacion}" if ubicacion and ubicacion != "N/A" else f"ID: {producto.id}"
     while d.textlength(texto_inferior, font=fnt_ubic) > max_std_width and len(texto_inferior) > 0:
          texto_inferior = texto_inferior[:-1]
          
