@@ -132,68 +132,106 @@
     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
     
         {% if alertas_agrupadas %}
-        <div class="alert alert-warning shadow-sm border-warning">
-            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> ¡Alertas de Stock!</h4>
-            <p>Los siguientes productos están por debajo del mínimo en uno o más almacenes.</p>
+        <div class="alert alert-warning shadow-sm border-warning mb-5">
+            <h4 class="alert-heading fw-bold mb-3"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> ¡Alertas de Stock!</h4>
+            <p class="text-dark">Los siguientes productos están por debajo del mínimo. Se han agrupado por almacén para facilitar su gestión.</p>
             
-            <div class="row">
-                {% for (alm_id, alm_nombre, prov_id, prov_nombre), items_stock in alertas_agrupadas.items() %}
-                    <div class="col-12 mb-3">
-                        <div class="card border-warning shadow-sm">
-                            <div class="card-header bg-warning text-dark fw-bold d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-                                <span><i class="bi bi-shop"></i> Almacén: {{ alm_nombre }}</span>
-                                <span class="text-dark opacity-75 mt-1 mt-md-0"><i class="bi bi-truck"></i> Proveedor: {{ prov_nombre }}</span>
-                            </div>
-                            
-                            <form action="{{ url_for('nueva_orden') }}" method="POST">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="almacen_id" value="{{ alm_id }}">
-                                
-                                <div class="card-body p-0">
-                                    <!-- Botón Desplegable -->
-                                    <div class="d-grid">
-                                        <button class="btn btn-light text-start rounded-0 border-bottom d-flex justify-content-between align-items-center py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlert_{{ loop.index }}" aria-expanded="false" aria-controls="collapseAlert_{{ loop.index }}">
-                                            <span class="fw-semibold text-secondary">
-                                                <i class="bi bi-box-seam text-warning me-2"></i> 
-                                                Ver {{ items_stock|length }} producto(s) por debajo del mínimo
-                                            </span>
-                                            <i class="bi bi-chevron-down text-muted"></i>
-                                        </button>
-                                    </div>
-                                    
-                                    <!-- Lista Plegable -->
-                                    <div class="collapse" id="collapseAlert_{{ loop.index }}">
-                                        <ul class="list-group list-group-flush">
-                                            {% for item in items_stock %}
-                                            <li class="list-group-item d-flex justify-content-between align-items-center bg-light bg-opacity-25">
-                                                <div>
-                                                    <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ alm_id }}_{{ item.id }}" checked>
-                                                    <label class="form-check-label" for="check_{{ alm_id }}_{{ item.id }}">
-                                                        <strong>{{ item.producto.nombre }}</strong> 
-                                                        <small class="text-muted d-block d-md-inline ms-md-2">(SKU: {{ item.producto.codigo }})</small>
-                                                    </label>
-                                                </div>
-                                                <span class="badge bg-danger rounded-pill">Stock: {{ item.cantidad }} / Min: {{ item.stock_minimo }}</span>
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div class="card-footer bg-white border-top-0 pt-3 pb-3">
-                                    {% if prov_id != 0 %}
-                                        <button type="submit" class="btn btn-dark shadow-sm">
-                                            <i class="bi bi-cart-plus"></i> Generar OC Rápida para {{ prov_nombre }}
-                                        </button>
-                                    {% else %}
-                                        <div class="alert alert-danger mb-0 py-2 small">
-                                            <i class="bi bi-info-circle"></i> Asigna un proveedor a estos productos para poder generar una OC automática.
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </form>
+            <div class="accordion" id="accordionAlmacenes">
+                <!-- Usamos namespace para recordar en qué almacén estamos durante el loop -->
+                {% set current_alm = namespace(id=-1) %}
+                
+                <!-- Ordenamos por las claves (tupla) para que todos los del mismo almacén queden juntos -->
+                {% for key, items_stock in alertas_agrupadas.items() | sort(attribute='0') %}
+                    {% set alm_id = key[0] %}
+                    {% set alm_nombre = key[1] %}
+                    {% set prov_id = key[2] %}
+                    {% set prov_nombre = key[3] %}
+                    
+                    {% if current_alm.id != alm_id %}
+                        <!-- Si no es el primero, cerramos las etiquetas del almacén anterior -->
+                        {% if not loop.first %}
+                                </div> <!-- Cierra el accordion-body del almacen -->
+                            </div> <!-- Cierra el collapse del almacen -->
+                        </div> <!-- Cierra el accordion-item del almacen -->
+                        {% endif %}
+                        
+                        <!-- NUEVO BLOQUE DE ALMACÉN DESPLEGABLE -->
+                        <div class="accordion-item border border-warning rounded mb-3 overflow-hidden shadow-sm">
+                            <h2 class="accordion-header" id="headingAlm_{{ alm_id }}">
+                                <button class="accordion-button bg-warning bg-opacity-25 text-dark fw-bold fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlm_{{ alm_id }}" aria-expanded="true" aria-controls="collapseAlm_{{ alm_id }}">
+                                    <i class="bi bi-shop me-2"></i> Almacén: {{ alm_nombre }}
+                                </button>
+                            </h2>
+                            <div id="collapseAlm_{{ alm_id }}" class="accordion-collapse collapse show" aria-labelledby="headingAlm_{{ alm_id }}">
+                                <div class="accordion-body bg-light pb-2 pt-4">
+                        
+                        <!-- Actualizamos el id del almacen actual -->
+                        {% set current_alm.id = alm_id %}
+                    {% endif %}
+                    
+                    <!-- TARJETA DEL PROVEEDOR (Dentro del Almacén) -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-bottom text-dark fw-bold d-flex align-items-center py-3">
+                            <i class="bi bi-truck text-info fs-4 me-2"></i> 
+                            <span class="fs-5">Proveedor: {{ prov_nombre }}</span>
                         </div>
+                        
+                        <form action="{{ url_for('nueva_orden') }}" method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="almacen_id" value="{{ alm_id }}">
+                            
+                            <div class="card-body p-0">
+                                <!-- Botón Desplegable de Productos -->
+                                <div class="d-grid">
+                                    <button class="btn btn-light text-start rounded-0 border-bottom d-flex justify-content-between align-items-center py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProd_{{ alm_id }}_{{ prov_id }}" aria-expanded="false" aria-controls="collapseProd_{{ alm_id }}_{{ prov_id }}">
+                                        <span class="fw-semibold text-secondary">
+                                            <i class="bi bi-box-seam text-warning me-2"></i> 
+                                            Ver {{ items_stock|length }} producto(s) por debajo del mínimo
+                                        </span>
+                                        <i class="bi bi-chevron-down text-muted"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Lista Plegable de Productos -->
+                                <div class="collapse" id="collapseProd_{{ alm_id }}_{{ prov_id }}">
+                                    <ul class="list-group list-group-flush">
+                                        {% for item in items_stock %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-light bg-opacity-25 py-3">
+                                            <div>
+                                                <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ alm_id }}_{{ prov_id }}_{{ item.id }}" checked>
+                                                <label class="form-check-label" for="check_{{ alm_id }}_{{ prov_id }}_{{ item.id }}">
+                                                    <strong>{{ item.producto.nombre }}</strong> 
+                                                    <small class="text-muted d-block d-md-inline ms-md-2">(SKU: {{ item.producto.codigo }})</small>
+                                                </label>
+                                            </div>
+                                            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">Stock: {{ item.cantidad }} / Min: {{ item.stock_minimo }}</span>
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="card-footer bg-white border-top-0 pt-3 pb-3 text-end rounded-bottom">
+                                {% if prov_id != 0 %}
+                                    <button type="submit" class="btn btn-dark shadow-sm px-4">
+                                        <i class="bi bi-cart-plus me-1"></i> Generar OC Rápida
+                                    </button>
+                                {% else %}
+                                    <div class="alert alert-danger mb-0 py-2 small text-start shadow-sm">
+                                        <i class="bi bi-exclamation-circle-fill me-1"></i> Asigna un proveedor a estos productos para poder generar una OC.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </form>
                     </div>
+
+                    <!-- Si es el último elemento de todas las alertas, debemos cerrar el bloque final -->
+                    {% if loop.last %}
+                                </div> <!-- Cierra el accordion-body del almacen -->
+                            </div> <!-- Cierra el collapse del almacen -->
+                        </div> <!-- Cierra el accordion-item del almacen -->
+                    {% endif %}
+                    
                 {% endfor %}
             </div>
         </div>
