@@ -3,140 +3,216 @@
 {% block title %}Inicio - Gestor de Inventario{% endblock %}
 
 {% block content %}
+<style>
+    /* ==========================================
+       ESTILOS PERSONALIZADOS (MODO CLARO/OSCURO)
+       ========================================== */
+    /* Ajustes profundos para Modo Oscuro (Pure Black) */
+    [data-bs-theme="dark"] body {
+        background-color: #000000 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .app-card, 
+    [data-bs-theme="dark"] .accordion-item,
+    [data-bs-theme="dark"] .accordion-button {
+        background-color: #121212 !important;
+        color: #e0e0e0 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        box-shadow: inset 0 -1px 0 rgba(255,255,255,0.1);
+    }
+    [data-bs-theme="dark"] .section-title {
+        color: #ffffff;
+    }
+    [data-bs-theme="dark"] .text-muted {
+        color: #888888 !important;
+    }
+    [data-bs-theme="dark"] .list-group-item {
+        background-color: transparent !important;
+        border-color: #2a2a2a !important;
+        color: #e0e0e0;
+    }
 
-    <h2 class="mb-3">Menú Principal</h2>
-    <div class="row g-3 mb-4">
-        
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('dashboard') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-grid-fill card-icon text-primary"></i>
-                    <h5 class="card-title">Dashboard</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
+    /* Ajustes para Modo Claro */
+    [data-bs-theme="light"] body {
+        background-color: #f8f9fa !important;
+        color: #212529;
+    }
+    [data-bs-theme="light"] .app-card {
+        background-color: #ffffff;
+        border-color: #dee2e6;
+    }
+    [data-bs-theme="light"] .section-title {
+        color: #000000;
+    }
+    [data-bs-theme="light"] .accordion-button:not(.collapsed) {
+        background-color: #fff8e1 !important; /* Tono cálido para alertas */
+        color: #000000 !important;
+    }
 
-        {% if current_user.rol in ['super_admin', 'admin'] %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_almacenes') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-house-door card-icon text-purple" style="color: #6610f2;"></i>
-                    <h5 class="card-title">Almacenes</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
-        
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('nuevo_producto') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-plus-circle card-icon text-success"></i>
-                    <h5 class="card-title">Agregar Producto</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
-        
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_categorias') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-tags card-icon text-secondary"></i>
-                    <h5 class="card-title">Categorías</h5>
-                </div>
-            </a>
-        </div>
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_proveedores') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-truck card-icon text-info"></i>
-                    <h5 class="card-title">Proveedores</h5>
-                </div>
-            </a>
-        </div>
-        
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_productos_sin_almacen') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-exclamation-triangle-fill card-icon text-warning"></i>
-                    <h5 class="card-title">Sin Almacén</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
-        
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_ordenes') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-receipt card-icon text-success"></i>
-                    <h5 class="card-title">Órdenes de Compra</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
+    /* Títulos de Sección */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
 
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_proyectos_oc') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-clipboard-data card-icon text-purple" style="color: #6f42c1;"></i>
-                    <h5 class="card-title">OC de Proyectos</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
+    /* Accesos Rápidos (Cuadros Estilo Botón) */
+    .quick-action-square {
+        flex: 0 0 auto;
+        width: 140px;
+        height: 140px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+        text-align: center;
+        padding: 10px;
+    }
+    .quick-action-square i {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+    .quick-action-square:hover {
+        background-color: #0d6efd !important;
+        color: #ffffff !important;
+        border-color: #0d6efd !important;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .quick-action-square:hover i {
+        color: #ffffff !important;
+    }
 
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('historial_salidas') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-box-arrow-right card-icon text-danger"></i>
-                    <h5 class="card-title">Salidas</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
+    /* Contenedor de Cuadros (Flex Wrap) */
+    .quick-actions-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
 
-        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('lista_gastos') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-cash-coin card-icon text-warning"></i>
-                    <h5 class="card-title">Control de Gastos</h5>
-                </div>
-            </a>
-        </div>
-        {% endif %}
+    /* Botón Flotante del Tema */
+    .theme-toggle-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+</style>
 
-        {% if current_user.rol in ['super_admin', 'admin'] %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <a href="{{ url_for('configurar_plantilla') }}" class="dashboard-card card text-dark">
-                <div class="card-body">
-                    <i class="bi bi-palette card-icon text-info"></i>
-                    <h5 class="card-title">Personalizar Marca</h5>
-                </div>
+<!-- BOTÓN PARA CAMBIAR EL TEMA (LIGHT/DARK) -->
+<button id="theme-toggle" class="btn btn-outline-secondary rounded-circle theme-toggle-btn shadow-sm" title="Cambiar Tema">
+    <i id="theme-icon" class="bi bi-moon-fill"></i>
+</button>
+
+<div class="container-fluid mt-3">
+
+    <!-- ENCABEZADO CENTRADO -->
+    <div class="text-center mb-5 mt-4">
+        <h1 class="fw-bold" style="font-size: 2.5rem;">Centro de Control</h1>
+        <p class="text-muted fs-5">Selecciona un módulo para comenzar a trabajar</p>
+    </div>
+
+    <!-- SECCIÓN 1: MENÚ PRINCIPAL (ACCESOS RÁPIDOS) -->
+    <div class="mb-5">
+        <h4 class="section-title">Módulos Principales</h4>
+        <div class="quick-actions-container justify-content-center justify-content-md-start">
+            
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
+            <a href="{{ url_for('dashboard') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-grid-fill text-primary"></i>
+                <span class="small fw-bold">Dashboard</span>
             </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] %}
+            <a href="{{ url_for('lista_almacenes') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-house-door text-purple" style="color: #6610f2;"></i>
+                <span class="small fw-bold">Almacenes</span>
+            </a>
+            {% endif %}
+            
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+            <a href="{{ url_for('nuevo_producto') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-plus-circle text-success"></i>
+                <span class="small fw-bold text-wrap">Agregar Producto</span>
+            </a>
+            {% endif %}
+            
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+            <a href="{{ url_for('lista_categorias') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-tags text-secondary"></i>
+                <span class="small fw-bold">Categorías</span>
+            </a>
+            
+            <a href="{{ url_for('lista_proveedores') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-truck text-info"></i>
+                <span class="small fw-bold">Proveedores</span>
+            </a>
+            
+            <a href="{{ url_for('lista_productos_sin_almacen') }}" class="app-card quick-action-square border text-body shadow-sm position-relative">
+                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                <span class="small fw-bold text-wrap">Sin Almacén</span>
+            </a>
+            {% endif %}
+            
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
+            <a href="{{ url_for('lista_ordenes') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-receipt text-success"></i>
+                <span class="small fw-bold">Órdenes de Compra</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
+            <a href="{{ url_for('lista_proyectos_oc') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-clipboard-data text-purple" style="color: #6f42c1;"></i>
+                <span class="small fw-bold text-wrap">OC de Proyectos</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+            <a href="{{ url_for('historial_salidas') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-box-arrow-right text-danger"></i>
+                <span class="small fw-bold">Salidas</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
+            <a href="{{ url_for('lista_gastos') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-cash-coin text-warning"></i>
+                <span class="small fw-bold text-wrap">Control de Gastos</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] %}
+            <a href="{{ url_for('configurar_plantilla') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-palette text-info"></i>
+                <span class="small fw-bold text-wrap">Personalizar Marca</span>
+            </a>
+            {% endif %}
+            
         </div>
-        {% endif %}
-        
     </div>
     
-    <hr class="mb-4">
+    <hr class="mb-5 border-secondary border-opacity-25">
 
-    <!-- SECCIÓN DE ALERTAS DE STOCK (Protegida) -->
-    <!-- Solo visible para Admins o usuarios que gestionan Órdenes de Compra -->
+    <!-- SECCIÓN 2: ALERTAS DE STOCK (Protegida) -->
     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
     
         {% if alertas_agrupadas %}
-        <div class="alert alert-warning shadow-sm border-warning mb-5">
-            <h4 class="alert-heading fw-bold mb-3"><i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> ¡Alertas de Stock!</h4>
-            <p class="text-dark">Los siguientes productos están por debajo del mínimo. Se han agrupado por almacén para facilitar su gestión.</p>
+        <div class="mb-5">
+            <h4 class="section-title text-warning mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> Alertas de Stock
+            </h4>
+            <p class="text-muted mb-4">Los siguientes productos están por debajo del mínimo. Se han agrupado por almacén para facilitar su gestión rápida.</p>
             
-            <div class="accordion" id="accordionAlmacenes">
+            <div class="accordion shadow-sm" id="accordionAlmacenes">
                 <!-- Usamos namespace para recordar en qué almacén estamos durante el loop -->
                 {% set current_alm = namespace(id=-1) %}
                 
@@ -156,24 +232,22 @@
                         {% endif %}
                         
                         <!-- NUEVO BLOQUE DE ALMACÉN DESPLEGABLE -->
-                        <div class="accordion-item border border-warning rounded mb-3 overflow-hidden shadow-sm">
+                        <div class="accordion-item border mb-3 overflow-hidden rounded">
                             <h2 class="accordion-header" id="headingAlm_{{ alm_id }}">
-                                <!-- Cambios aplicados: Se añadió 'collapsed' y aria-expanded="false" -->
-                                <button class="accordion-button collapsed bg-warning bg-opacity-25 text-dark fw-bold fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlm_{{ alm_id }}" aria-expanded="false" aria-controls="collapseAlm_{{ alm_id }}">
-                                    <i class="bi bi-shop me-2"></i> Almacén: {{ alm_nombre }}
+                                <button class="accordion-button collapsed fw-bold fs-5 bg-transparent text-body" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlm_{{ alm_id }}" aria-expanded="false" aria-controls="collapseAlm_{{ alm_id }}">
+                                    <i class="bi bi-shop text-primary me-2"></i> Almacén: {{ alm_nombre }}
                                 </button>
                             </h2>
-                            <!-- Cambios aplicados: Se removió la clase 'show' para que inicie cerrado -->
                             <div id="collapseAlm_{{ alm_id }}" class="accordion-collapse collapse" aria-labelledby="headingAlm_{{ alm_id }}">
-                                <div class="accordion-body bg-light pb-2 pt-4">
+                                <div class="accordion-body pb-2 pt-4">
                         
                         <!-- Actualizamos el id del almacen actual -->
                         {% set current_alm.id = alm_id %}
                     {% endif %}
                     
                     <!-- TARJETA DEL PROVEEDOR (Dentro del Almacén) -->
-                    <div class="card border-0 shadow-sm mb-4">
-                        <div class="card-header bg-white border-bottom text-dark fw-bold d-flex align-items-center py-3">
+                    <div class="app-card border rounded shadow-sm mb-4">
+                        <div class="card-header border-bottom border-secondary border-opacity-25 fw-bold d-flex align-items-center py-3 bg-transparent text-body">
                             <i class="bi bi-truck text-info fs-4 me-2"></i> 
                             <span class="fs-5">Proveedor: {{ prov_nombre }}</span>
                         </div>
@@ -185,8 +259,8 @@
                             <div class="card-body p-0">
                                 <!-- Botón Desplegable de Productos -->
                                 <div class="d-grid">
-                                    <button class="btn btn-light text-start rounded-0 border-bottom d-flex justify-content-between align-items-center py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProd_{{ alm_id }}_{{ prov_id }}" aria-expanded="false" aria-controls="collapseProd_{{ alm_id }}_{{ prov_id }}">
-                                        <span class="fw-semibold text-secondary">
+                                    <button class="btn bg-transparent text-start rounded-0 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProd_{{ alm_id }}_{{ prov_id }}" aria-expanded="false" aria-controls="collapseProd_{{ alm_id }}_{{ prov_id }}">
+                                        <span class="fw-semibold text-body">
                                             <i class="bi bi-box-seam text-warning me-2"></i> 
                                             Ver {{ items_stock|length }} producto(s) por debajo del mínimo
                                         </span>
@@ -196,12 +270,12 @@
                                 
                                 <!-- Lista Plegable de Productos -->
                                 <div class="collapse" id="collapseProd_{{ alm_id }}_{{ prov_id }}">
-                                    <ul class="list-group list-group-flush">
+                                    <ul class="list-group list-group-flush rounded-0">
                                         {% for item in items_stock %}
-                                        <li class="list-group-item d-flex justify-content-between align-items-center bg-light bg-opacity-25 py-3">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center py-3">
                                             <div>
                                                 <input class="form-check-input me-2" type="checkbox" name="producto_id" value="{{ item.producto.id }}" id="check_{{ alm_id }}_{{ prov_id }}_{{ item.id }}" checked>
-                                                <label class="form-check-label" for="check_{{ alm_id }}_{{ prov_id }}_{{ item.id }}">
+                                                <label class="form-check-label text-body" for="check_{{ alm_id }}_{{ prov_id }}_{{ item.id }}">
                                                     <strong>{{ item.producto.nombre }}</strong> 
                                                     <small class="text-muted d-block d-md-inline ms-md-2">(SKU: {{ item.producto.codigo }})</small>
                                                 </label>
@@ -213,13 +287,13 @@
                                 </div>
                             </div>
 
-                            <div class="card-footer bg-white border-top-0 pt-3 pb-3 text-end rounded-bottom">
+                            <div class="card-footer bg-transparent border-top-0 pt-3 pb-3 text-end rounded-bottom">
                                 {% if prov_id != 0 %}
-                                    <button type="submit" class="btn btn-dark shadow-sm px-4">
+                                    <button type="submit" class="btn btn-primary shadow-sm px-4 fw-bold">
                                         <i class="bi bi-cart-plus me-1"></i> Generar OC Rápida
                                     </button>
                                 {% else %}
-                                    <div class="alert alert-danger mb-0 py-2 small text-start shadow-sm">
+                                    <div class="alert alert-danger mb-0 py-2 small text-start shadow-sm rounded">
                                         <i class="bi bi-exclamation-circle-fill me-1"></i> Asigna un proveedor a estos productos para poder generar una OC.
                                     </div>
                                 {% endif %}
@@ -241,4 +315,40 @@
         
     {% endif %}
 
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    // ==========================================
+    // 1. SISTEMA DE TEMA (MODO CLARO / OSCURO)
+    // ==========================================
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+        
+        if(theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+            themeToggleBtn.classList.replace('btn-outline-secondary', 'btn-outline-light');
+        } else {
+            themeIcon.className = 'bi bi-moon-stars-fill text-dark';
+            themeToggleBtn.classList.replace('btn-outline-light', 'btn-outline-secondary');
+        }
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}
