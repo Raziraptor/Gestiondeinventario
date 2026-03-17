@@ -133,7 +133,7 @@
                             </div>
                         </div>
 
-                        <div class="row g-4">
+                        <div class="row g-4 mb-2">
                             <div class="col-md-6">
                                 <label for="categoria_id" class="form-label fw-bold small text-muted">Categoría</label>
                                 <div class="input-group">
@@ -163,6 +163,20 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- NUEVO CAMPO: ENLACE DEL PROVEEDOR -->
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <label for="enlace_proveedor" class="form-label fw-bold small text-muted">Enlace del Proveedor (Opcional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-link-45deg text-secondary fs-5"></i></span>
+                                    <input type="url" class="form-control bg-light border-secondary border-opacity-25" id="enlace_proveedor" name="enlace_proveedor" 
+                                           value="{{ producto.enlace_proveedor if producto and producto.enlace_proveedor else '' }}" placeholder="Ej: https://www.proveedor.com/mi-producto">
+                                </div>
+                                <div class="form-text small opacity-75">URL directa para consultar o comprar el producto rápidamente.</div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
