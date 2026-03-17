@@ -70,7 +70,7 @@
                     </div>
                 </div>
 
-                <!-- NUEVA SECCIÓN: PRECIOS Y EMPAQUE CON CALCULADORA -->
+                <!-- SECCIÓN: PRECIOS Y EMPAQUE CON CALCULADORA -->
                 <div class="card shadow-sm mb-4 border-secondary border-opacity-25 bg-light">
                     <div class="card-header bg-transparent fw-bold text-dark border-bottom-0 pt-3">
                         <i class="bi bi-cash-coin text-success me-1"></i> Costos y Empaque
@@ -139,7 +139,7 @@
                             <small><strong>Stock Inicial (Opcional):</strong> Asigna el producto a un almacén de inmediato.</small>
                         </div>
                         <div class="row">
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="almacen_inicial_id" class="form-label small fw-bold">Almacén</label>
                                 <select class="form-select form-select-sm" id="almacen_inicial_id" name="almacen_inicial_id">
                                     <option value="">-- No asignar --</option>
@@ -148,13 +148,31 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label for="ubicacion_inicial" class="form-label small fw-bold">Ubicación</label>
                                 <input type="text" class="form-control form-control-sm" id="ubicacion_inicial" name="ubicacion_inicial" placeholder="Ej: Pasillo 5">
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="cantidad_inicial" class="form-label small fw-bold">Cantidad Inicial</label>
-                                <input type="number" class="form-control form-control-sm border-success" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
+                        </div>
+
+                        <!-- NUEVA CALCULADORA DE STOCK INICIAL -->
+                        <div class="row align-items-start">
+                            <!-- Cajas Iniciales (Virtual) -->
+                            <div class="col-md-6 mb-3">
+                                <label for="cajas_iniciales_virtual" class="form-label small fw-bold text-muted">Cajas Iniciales</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white"><i class="bi bi-box"></i></span>
+                                    <input type="number" class="form-control" id="cajas_iniciales_virtual" min="0" step="0.01" placeholder="N/A">
+                                </div>
+                                <div class="form-text" style="font-size: 0.7rem;">Cajas a ingresar (Opcional).</div>
+                            </div>
+                            <!-- Unidades Totales Iniciales (Real a BD) -->
+                            <div class="col-md-6 mb-3">
+                                <label for="cantidad_inicial" class="form-label small fw-bold text-success">Total Unidades Iniciales</label>
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-white text-success">#</span>
+                                    <input type="number" class="form-control border-success fw-bold" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
+                                </div>
+                                <div class="form-text text-success" style="font-size: 0.7rem;">Cantidad real a registrar en BD.</div>
                             </div>
                         </div>
                     </div>
@@ -165,31 +183,55 @@
                 <div class="card shadow-sm mb-3 border-warning border-opacity-50">
                     <div class="card-body">
                         <h5 class="text-primary mb-3"><i class="bi bi-geo-alt"></i> Inventario en: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
+                        
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Cantidad Actual</label>
-                                <input type="number" class="form-control border-warning bg-warning bg-opacity-10" name="cantidad" 
-                                       value="{{ stock_item.cantidad }}" min="0" required>
-                                <small class="text-warning text-dark fw-bold">
-                                    <i class="bi bi-exclamation-triangle"></i> Ajuste manual de inventario.
-                                </small>
+                                <label for="stock_minimo" class="form-label small fw-bold">Stock Mínimo (Almacén)</label>
+                                <input type="number" class="form-control form-control-sm" id="stock_minimo" name="stock_minimo" value="{{ stock_item.stock_minimo }}" min="0">
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label for="stock_maximo" class="form-label small fw-bold">Stock Máximo (Almacén)</label>
+                                <input type="number" class="form-control form-control-sm" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
+                            </div>
+                        </div>
+
+                        <hr>
+                        
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label fw-bold">Ubicación / Coordenada</label>
                                 <input type="text" class="form-control" name="ubicacion" 
                                        value="{{ stock_item.ubicacion or '' }}" placeholder="Ej: A-12-B">
                             </div>
                         </div>
-                        <div class="row">
+
+                        <!-- NUEVA CALCULADORA DE EDICIÓN DE STOCK -->
+                        <div class="row align-items-start mb-2">
                             <div class="col-md-6 mb-3">
-                                <label for="stock_minimo" class="form-label small">Stock Mínimo (Almacén)</label>
-                                <input type="number" class="form-control form-control-sm" id="stock_minimo" name="stock_minimo" value="{{ stock_item.stock_minimo }}" min="0">
+                                <label for="cajas_actuales_virtual" class="form-label small fw-bold text-muted">Cajas Actuales</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-white"><i class="bi bi-box"></i></span>
+                                    <input type="number" class="form-control" id="cajas_actuales_virtual" min="0" step="0.01" placeholder="N/A">
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="stock_maximo" class="form-label small">Stock Máximo (Almacén)</label>
-                                <input type="number" class="form-control form-control-sm" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
+                                <label class="form-label fw-bold text-warning text-dark">Total Unidades</label>
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-warning text-dark border-warning">#</span>
+                                    <input type="number" class="form-control border-warning bg-warning bg-opacity-10 fw-bold" id="cantidad_actual" name="cantidad" 
+                                           value="{{ stock_item.cantidad }}" min="0" required>
+                                </div>
                             </div>
                         </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <small class="text-warning text-dark fw-bold">
+                                    <i class="bi bi-exclamation-triangle"></i> Ajuste manual de inventario.
+                                </small>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -250,14 +292,16 @@
             }
         }
 
-        // --- 2. CALCULADORA DE COSTOS BIDIRECCIONAL ---
         document.addEventListener('DOMContentLoaded', function() {
-            const inputUnidades = document.getElementById('unidades_por_caja');
+            // Referencias comunes
+            const inputUnidadesPorCaja = document.getElementById('unidades_por_caja');
+            
+            // --- 2. CALCULADORA DE COSTOS BIDIRECCIONAL ---
             const inputCostoCaja = document.getElementById('costo_caja_virtual');
             const inputCostoUnitario = document.getElementById('costo_estandar');
 
             function calcularCostos(origenModificado) {
-                const unidades = parseFloat(inputUnidades.value) || 0;
+                const unidades = parseFloat(inputUnidadesPorCaja.value) || 0;
                 const costoCaja = parseFloat(inputCostoCaja.value) || 0;
                 const costoUnitario = parseFloat(inputCostoUnitario.value) || 0;
 
@@ -269,21 +313,17 @@
                     return;
                 } 
 
-                // Si se compra por caja (2 o más unidades), habilitar el campo
+                // Si se compra por caja, habilitar el campo
                 inputCostoCaja.disabled = false;
                 inputCostoCaja.placeholder = '0.00';
 
-                // Lógica Bidireccional
                 if (origenModificado === 'caja') {
-                    // Escribió en Costo por Caja -> Calculamos el Unitario
                     inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
                 } 
                 else if (origenModificado === 'unitario') {
-                    // Escribió en Unitario -> Calculamos la Caja
                     inputCostoCaja.value = (costoUnitario * unidades).toFixed(2);
                 } 
                 else if (origenModificado === 'unidades') {
-                    // Cambió las unidades -> Recalculamos el costo de la caja basado en el unitario actual
                     if (costoUnitario > 0) {
                         inputCostoCaja.value = (costoUnitario * unidades).toFixed(2);
                     } else if (costoCaja > 0) {
@@ -292,13 +332,66 @@
                 }
             }
 
-            // Inicializar al cargar la página (por si estamos editando)
-            calcularCostos('unidades');
+            // --- 3. CALCULADORA DE STOCK BIDIRECCIONAL (CAJAS VS UNIDADES) ---
+            // Detecta automáticamente si estamos en la vista de Crear o Editar
+            const inputCajasStock = document.getElementById('cajas_iniciales_virtual') || document.getElementById('cajas_actuales_virtual');
+            const inputUnidadesStock = document.getElementById('cantidad_inicial') || document.getElementById('cantidad_actual');
 
-            // Listeners
-            inputUnidades.addEventListener('input', () => calcularCostos('unidades'));
+            function calcularStock(origenModificado) {
+                if (!inputCajasStock || !inputUnidadesStock) return;
+
+                const unidadesPorCaja = parseFloat(inputUnidadesPorCaja.value) || 0;
+                const cajasStock = parseFloat(inputCajasStock.value) || 0;
+                const unidadesStockTotales = parseFloat(inputUnidadesStock.value) || 0;
+
+                // Si no se usa caja (0 o 1), desactivamos el campo virtual de cajas de stock
+                if (unidadesPorCaja <= 1) {
+                    inputCajasStock.disabled = true;
+                    inputCajasStock.value = '';
+                    inputCajasStock.placeholder = 'N/A';
+                    return;
+                }
+
+                inputCajasStock.disabled = false;
+                inputCajasStock.placeholder = '0.00';
+
+                if (origenModificado === 'caja_stock') {
+                    // Escribió en Cajas -> Calculamos el Unitario Total
+                    inputUnidadesStock.value = Math.ceil(cajasStock * unidadesPorCaja);
+                } 
+                else if (origenModificado === 'unidad_stock') {
+                    // Escribió en Unidad Total -> Calculamos las Cajas
+                    inputCajasStock.value = (unidadesStockTotales / unidadesPorCaja).toFixed(2);
+                } 
+                else if (origenModificado === 'unidades') {
+                    // Cambió el "Unidades por Caja" principal -> Recalculamos las cajas basándonos en las unidades totales
+                    if (unidadesStockTotales > 0) {
+                        inputCajasStock.value = (unidadesStockTotales / unidadesPorCaja).toFixed(2);
+                    } else if (cajasStock > 0) {
+                        inputUnidadesStock.value = Math.ceil(cajasStock * unidadesPorCaja);
+                    }
+                }
+            }
+
+            // Inicializar ambas calculadoras al cargar
+            calcularCostos('unidades');
+            calcularStock('unidades');
+
+            // Listeners Generales
+            inputUnidadesPorCaja.addEventListener('input', () => {
+                calcularCostos('unidades');
+                calcularStock('unidades');
+            });
+
+            // Listeners Costos
             inputCostoCaja.addEventListener('input', () => calcularCostos('caja'));
             inputCostoUnitario.addEventListener('input', () => calcularCostos('unitario'));
+
+            // Listeners Stock
+            if (inputCajasStock && inputUnidadesStock) {
+                inputCajasStock.addEventListener('input', () => calcularStock('caja_stock'));
+                inputUnidadesStock.addEventListener('input', () => calcularStock('unidad_stock'));
+            }
         });
     </script>
 {% endblock %}
