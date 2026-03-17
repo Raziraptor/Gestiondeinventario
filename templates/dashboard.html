@@ -3,6 +3,121 @@
 {% block title %}Dashboard - Inventario{% endblock %}
 
 {% block content %}
+<style>
+    /* ==========================================
+       ESTILOS PERSONALIZADOS (MODO CLARO/OSCURO)
+       ========================================== */
+       
+    /* --- AJUSTES GLOBALES PARA LA BARRA DE NAVEGACIÓN SUPERIOR (NAVBAR) --- */
+    [data-bs-theme="dark"] .navbar {
+        background-color: #121212 !important;
+        border-bottom: 1px solid #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-brand,
+    [data-bs-theme="dark"] .navbar .nav-link,
+    [data-bs-theme="dark"] .navbar .navbar-text {
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .navbar .nav-link:hover {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-toggler {
+        border-color: #444 !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-toggler-icon {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    /* --- AJUSTES PARA MODO OSCURO (Pure Black) --- */
+    [data-bs-theme="dark"] body {
+        background-color: #000000 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .card-header {
+        background-color: transparent !important;
+        border-bottom-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-white {
+        background-color: #1a1a1a !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .text-muted {
+        color: #888888 !important;
+    }
+    [data-bs-theme="dark"] .border-secondary,
+    [data-bs-theme="dark"] .border-bottom {
+        border-color: #2a2a2a !important;
+    }
+    
+    /* Inputs y Selects en Modo Oscuro */
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #222 !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+    }
+
+    /* Tabla en Modo Oscuro */
+    [data-bs-theme="dark"] .table {
+        color: #e0e0e0;
+        border-color: #2a2a2a;
+    }
+    [data-bs-theme="dark"] .table-light th {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border-bottom: 2px solid #333 !important;
+    }
+    [data-bs-theme="dark"] .table-hover tbody tr:hover td {
+        background-color: rgba(255,255,255,0.05) !important;
+        color: #ffffff;
+    }
+    [data-bs-theme="dark"] .table td {
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .list-group-item {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .list-group-item:hover {
+        background-color: #2a2a2a !important;
+    }
+
+    /* --- AJUSTES PARA MODO CLARO --- */
+    [data-bs-theme="light"] body {
+        background-color: #f8f9fa !important;
+        color: #212529;
+    }
+    [data-bs-theme="light"] .card {
+        background-color: #ffffff;
+        border-color: #dee2e6;
+    }
+</style>
+
+<div class="container-fluid mt-3">
+
+    <!-- BOTÓN DE TEMA INTEGRADO EN EL FLUJO (Alineado a la derecha) -->
+    <div class="d-flex justify-content-end mb-2">
+        <button id="theme-toggle" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 rounded-pill shadow-sm px-3 py-2" title="Cambiar Tema">
+            <i id="theme-icon" class="bi bi-moon-fill"></i>
+            <span id="theme-text" class="fw-bold small">Modo Oscuro</span>
+        </button>
+    </div>
     
     <!-- CABECERA Y SELECTOR DE ALMACÉN -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
@@ -54,8 +169,8 @@
     {% else %}
 
         <!-- PANEL DE BÚSQUEDA Y FILTROS -->
-        <div class="card shadow-sm mb-4 border-0 bg-light">
-            <div class="card-body p-3 p-md-4">
+        <div class="card shadow-sm mb-4 border-0">
+            <div class="card-body p-3 p-md-4 bg-light rounded">
                 <div class="row g-3">
                     <!-- Buscador Inteligente -->
                     <div class="col-md-6 position-relative">
@@ -97,7 +212,7 @@
         </div>
 
         <!-- TABLA DE PRODUCTOS (DISEÑO MODERNO) -->
-        <div class="card shadow-sm border-0 h-100">
+        <div class="card shadow-sm border-0 mb-5">
             <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 text-dark fw-bold">
                     <i class="bi bi-box-seam text-primary me-2"></i> Inventario Local
@@ -247,166 +362,204 @@
             </div>
         </div>
     {% endif %}
+</div>
 
-    <!-- SCRIPTS PARA ORDENAR Y BUSCAR -->
-    <script>
-        function cambiarAlmacen(almacenId) {
-            window.location.href = window.location.pathname + '?almacen_id=' + almacenId;
+<!-- SCRIPTS PARA ORDENAR Y BUSCAR -->
+<script>
+    // ==========================================
+    // 0. SISTEMA DE TEMA (MODO CLARO / OSCURO)
+    // ==========================================
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeText = document.getElementById('theme-text');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+        
+        if(theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+            if(themeText) themeText.innerText = 'Modo Claro';
+            themeToggleBtn.classList.remove('btn-outline-secondary');
+            themeToggleBtn.classList.add('btn-outline-light');
+        } else {
+            themeIcon.className = 'bi bi-moon-stars-fill text-dark';
+            if(themeText) themeText.innerText = 'Modo Oscuro';
+            themeToggleBtn.classList.remove('btn-outline-light');
+            themeToggleBtn.classList.add('btn-outline-secondary');
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // ==========================================
-            // 1. LÓGICA DE BÚSQUEDA Y FILTRADO
-            // ==========================================
-            const inputBusqueda = document.getElementById('filtro_busqueda');
-            const selectCategoria = document.getElementById('filtro_categoria');
-            const selectProveedor = document.getElementById('filtro_proveedor');
-            const filas = document.querySelectorAll('.fila-producto');
-            const listaSugerencias = document.getElementById('lista_sugerencias');
-            const contadorRegistros = document.getElementById('contador_registros');
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
 
-            // Generamos datos para el Typeahead desde el HTML renderizado
-            let datosBuscador = [];
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+
+    // ==========================================
+    // 1. NAVEGACIÓN Y BÚSQUEDA
+    // ==========================================
+    function cambiarAlmacen(almacenId) {
+        window.location.href = window.location.pathname + '?almacen_id=' + almacenId;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputBusqueda = document.getElementById('filtro_busqueda');
+        const selectCategoria = document.getElementById('filtro_categoria');
+        const selectProveedor = document.getElementById('filtro_proveedor');
+        const filas = document.querySelectorAll('.fila-producto');
+        const listaSugerencias = document.getElementById('lista_sugerencias');
+        const contadorRegistros = document.getElementById('contador_registros');
+
+        // Generamos datos para el Typeahead desde el HTML renderizado
+        let datosBuscador = [];
+        filas.forEach(fila => {
+            const celdaNombre = fila.querySelector('td:nth-child(3) a');
+            const celdaSku = fila.querySelector('td:nth-child(2)');
+            
+            if (celdaNombre && celdaSku) {
+                datosBuscador.push({
+                    nombre: fila.dataset.nombre || "",
+                    sku: fila.dataset.sku || "",
+                    nombreReal: celdaNombre.innerText.trim(),
+                    skuReal: celdaSku.innerText.trim()
+                });
+            }
+        });
+
+        function aplicarFiltros() {
+            const texto = inputBusqueda.value.toLowerCase().trim();
+            const catId = selectCategoria.value;
+            const provId = selectProveedor.value;
+            let visibles = 0;
+
             filas.forEach(fila => {
-                const celdaNombre = fila.querySelector('td:nth-child(3) a');
-                const celdaSku = fila.querySelector('td:nth-child(2)');
-                
-                if (celdaNombre && celdaSku) {
-                    datosBuscador.push({
-                        nombre: fila.dataset.nombre || "",
-                        sku: fila.dataset.sku || "",
-                        nombreReal: celdaNombre.innerText.trim(),
-                        skuReal: celdaSku.innerText.trim()
-                    });
+                const fNombre = fila.dataset.nombre || "";
+                const fSku = fila.dataset.sku || "";
+                const fCat = fila.dataset.categoriaId;
+                const fProv = fila.dataset.proveedorId;
+
+                const matchTexto = !texto || fNombre.includes(texto) || fSku.includes(texto);
+                const matchCat = catId === '0' || fCat === catId;
+                const matchProv = provId === '0' || fProv === provId;
+
+                if (matchTexto && matchCat && matchProv) {
+                    fila.style.display = '';
+                    visibles++;
+                } else {
+                    fila.style.display = 'none';
                 }
             });
+            
+            // Actualizar contador visual
+            if(contadorRegistros) contadorRegistros.innerText = `${visibles} Productos`;
+        }
 
-            function aplicarFiltros() {
-                const texto = inputBusqueda.value.toLowerCase().trim();
-                const catId = selectCategoria.value;
-                const provId = selectProveedor.value;
-                let visibles = 0;
+        // Eventos de Filtro
+        if(inputBusqueda) {
+            inputBusqueda.addEventListener('input', function() {
+                const texto = this.value.toLowerCase().trim();
+                aplicarFiltros();
 
-                filas.forEach(fila => {
-                    const fNombre = fila.dataset.nombre || "";
-                    const fSku = fila.dataset.sku || "";
-                    const fCat = fila.dataset.categoriaId;
-                    const fProv = fila.dataset.proveedorId;
-
-                    const matchTexto = !texto || fNombre.includes(texto) || fSku.includes(texto);
-                    const matchCat = catId === '0' || fCat === catId;
-                    const matchProv = provId === '0' || fProv === provId;
-
-                    if (matchTexto && matchCat && matchProv) {
-                        fila.style.display = '';
-                        visibles++;
-                    } else {
-                        fila.style.display = 'none';
-                    }
-                });
-                
-                // Actualizar contador visual
-                if(contadorRegistros) contadorRegistros.innerText = `${visibles} Productos`;
-            }
-
-            // Eventos de Filtro
-            if(inputBusqueda) {
-                inputBusqueda.addEventListener('input', function() {
-                    const texto = this.value.toLowerCase().trim();
-                    aplicarFiltros();
-
-                    // Lógica de Sugerencias (Typeahead)
-                    listaSugerencias.innerHTML = '';
-                    if (texto.length > 0) {
-                        const sugerencias = datosBuscador.filter(d => d.nombre.includes(texto) || d.sku.includes(texto)).slice(0, 5); 
-                        
-                        if (sugerencias.length > 0) {
-                            listaSugerencias.style.display = 'block';
-                            sugerencias.forEach(sug => {
-                                const item = document.createElement('a');
-                                item.href = '#';
-                                item.classList.add('list-group-item', 'list-group-item-action', 'py-3');
-                                item.innerHTML = `<strong>${sug.nombreReal}</strong> <small class='text-muted ms-2'><i class="bi bi-upc"></i> ${sug.skuReal}</small>`;
-                                item.onclick = (e) => {
-                                    e.preventDefault();
-                                    inputBusqueda.value = sug.nombreReal;
-                                    aplicarFiltros(); 
-                                    listaSugerencias.style.display = 'none';
-                                };
-                                listaSugerencias.appendChild(item);
-                            });
-                        } else {
-                            listaSugerencias.style.display = 'none';
-                        }
+                // Lógica de Sugerencias (Typeahead)
+                listaSugerencias.innerHTML = '';
+                if (texto.length > 0) {
+                    const sugerencias = datosBuscador.filter(d => d.nombre.includes(texto) || d.sku.includes(texto)).slice(0, 5); 
+                    
+                    if (sugerencias.length > 0) {
+                        listaSugerencias.style.display = 'block';
+                        sugerencias.forEach(sug => {
+                            const item = document.createElement('a');
+                            item.href = '#';
+                            item.classList.add('list-group-item', 'list-group-item-action', 'py-3');
+                            item.innerHTML = `<strong>${sug.nombreReal}</strong> <small class='text-muted ms-2'><i class="bi bi-upc"></i> ${sug.skuReal}</small>`;
+                            item.onclick = (e) => {
+                                e.preventDefault();
+                                inputBusqueda.value = sug.nombreReal;
+                                aplicarFiltros(); 
+                                listaSugerencias.style.display = 'none';
+                            };
+                            listaSugerencias.appendChild(item);
+                        });
                     } else {
                         listaSugerencias.style.display = 'none';
                     }
-                });
-
-                document.addEventListener('click', (e) => {
-                    if (e.target !== inputBusqueda) listaSugerencias.style.display = 'none';
-                });
-            }
-
-            if(selectCategoria) selectCategoria.addEventListener('change', aplicarFiltros);
-            if(selectProveedor) selectProveedor.addEventListener('change', aplicarFiltros);
-        });
-
-        // ==========================================
-        // 2. LÓGICA DE ORDENAMIENTO (OPTIMIZADA)
-        // ==========================================
-        let direccionOrden = 'asc';
-
-        function ordenarTabla(n, tipo = 'str') {
-            const tbody = document.getElementById("tabla_productos_cuerpo");
-            // Convertimos las filas a un Array real para ordenarlas en memoria
-            const filasArray = Array.from(tbody.querySelectorAll('tr.fila-producto'));
-            
-            // Si no hay filas o solo hay 1, no hacemos nada
-            if (filasArray.length < 2) return;
-
-            // Invertir dirección
-            direccionOrden = (direccionOrden === 'asc') ? 'desc' : 'asc';
-            const multiplicador = (direccionOrden === 'asc') ? 1 : -1;
-
-            // Ordenar el array en memoria (RÁPIDO)
-            filasArray.sort((filaA, filaB) => {
-                const celdaA = filaA.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
-                const celdaB = filaB.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
-
-                let valorA = celdaA;
-                let valorB = celdaB;
-
-                if (tipo === 'num') {
-                    valorA = parseFloat(celdaA.replace(/[^0-9.-]+/g,"")) || 0;
-                    valorB = parseFloat(celdaB.replace(/[^0-9.-]+/g,"")) || 0;
+                } else {
+                    listaSugerencias.style.display = 'none';
                 }
-
-                if (valorA < valorB) return -1 * multiplicador;
-                if (valorA > valorB) return 1 * multiplicador;
-                return 0;
             });
 
-            // Re-inyectar las filas ordenadas al DOM
-            filasArray.forEach(fila => tbody.appendChild(fila));
-
-            // Actualizar iconos visuales
-            actualizarIconosOrden(n, direccionOrden);
+            document.addEventListener('click', (e) => {
+                if (e.target !== inputBusqueda) listaSugerencias.style.display = 'none';
+            });
         }
 
-        function actualizarIconosOrden(colIndex, dir) {
-             // Resetear todos los iconos
-             const headers = document.querySelectorAll('#tabla_inventario th i');
-             headers.forEach(i => i.className = 'bi bi-arrow-down-up ms-1 small text-muted opacity-50');
-             
-             // Activar el icono de la columna actual
-             const targetTh = document.querySelectorAll('#tabla_inventario th')[colIndex];
-             if(targetTh) {
-                 const icon = targetTh.querySelector('i');
-                 if(icon) {
-                     icon.className = dir === 'asc' ? 'bi bi-arrow-up ms-1 small text-primary fw-bold' : 'bi bi-arrow-down ms-1 small text-primary fw-bold';
-                 }
+        if(selectCategoria) selectCategoria.addEventListener('change', aplicarFiltros);
+        if(selectProveedor) selectProveedor.addEventListener('change', aplicarFiltros);
+    });
+
+    // ==========================================
+    // 2. LÓGICA DE ORDENAMIENTO (OPTIMIZADA)
+    // ==========================================
+    let direccionOrden = 'asc';
+
+    function ordenarTabla(n, tipo = 'str') {
+        const tbody = document.getElementById("tabla_productos_cuerpo");
+        // Convertimos las filas a un Array real para ordenarlas en memoria
+        const filasArray = Array.from(tbody.querySelectorAll('tr.fila-producto'));
+        
+        // Si no hay filas o solo hay 1, no hacemos nada
+        if (filasArray.length < 2) return;
+
+        // Invertir dirección
+        direccionOrden = (direccionOrden === 'asc') ? 'desc' : 'asc';
+        const multiplicador = (direccionOrden === 'asc') ? 1 : -1;
+
+        // Ordenar el array en memoria (RÁPIDO)
+        filasArray.sort((filaA, filaB) => {
+            const celdaA = filaA.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
+            const celdaB = filaB.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
+
+            let valorA = celdaA;
+            let valorB = celdaB;
+
+            if (tipo === 'num') {
+                valorA = parseFloat(celdaA.replace(/[^0-9.-]+/g,"")) || 0;
+                valorB = parseFloat(celdaB.replace(/[^0-9.-]+/g,"")) || 0;
+            }
+
+            if (valorA < valorB) return -1 * multiplicador;
+            if (valorA > valorB) return 1 * multiplicador;
+            return 0;
+        });
+
+        // Re-inyectar las filas ordenadas al DOM
+        filasArray.forEach(fila => tbody.appendChild(fila));
+
+        // Actualizar iconos visuales
+        actualizarIconosOrden(n, direccionOrden);
+    }
+
+    function actualizarIconosOrden(colIndex, dir) {
+         // Resetear todos los iconos
+         const headers = document.querySelectorAll('#tabla_inventario th i');
+         headers.forEach(i => i.className = 'bi bi-arrow-down-up ms-1 small text-muted opacity-50');
+         
+         // Activar el icono de la columna actual
+         const targetTh = document.querySelectorAll('#tabla_inventario th')[colIndex];
+         if(targetTh) {
+             const icon = targetTh.querySelector('i');
+             if(icon) {
+                 icon.className = dir === 'asc' ? 'bi bi-arrow-up ms-1 small text-primary fw-bold' : 'bi bi-arrow-down ms-1 small text-primary fw-bold';
              }
-        }
-    </script>
+         }
+    }
+</script>
 {% endblock %}
