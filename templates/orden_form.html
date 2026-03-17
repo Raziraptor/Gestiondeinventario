@@ -239,6 +239,9 @@
                     {% set p_match = productos | selectattr("id", "equalto", detalle.producto_id) | first %}
                     {% set factor = p_match.unidades_por_caja if p_match and 'unidades_por_caja' in p_match else 1 %}
                     
+                    <!-- Verificamos si hay un enlace en el detalle o si no, heredamos el del producto original -->
+                    {% set enlace_actual = detalle.enlace if detalle.enlace else (p_match.get('enlace', '') if p_match else '') %}
+                    
                     <div class="producto-linea border border-secondary border-opacity-25 p-4 rounded-4 shadow-sm mb-3">
                         <div class="row g-3 align-items-center">
                             <!-- Producto Info -->
@@ -288,16 +291,18 @@
                                 </button>
                             </div>
                             
-                            <!-- NUEVO: Campo de Enlace Opcional -->
+                            <!-- Campo de Enlace Opcional -->
                             <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary" style="font-size: 0.75rem;">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25 {% if enlace_actual %}text-primary fw-bold{% else %}text-secondary{% endif %}" style="font-size: 0.75rem;">
                                         <i class="bi bi-link-45deg me-1"></i> Enlace
                                     </span>
-                                    <!-- Si el detalle ya tuviera un enlace guardado, lo mostraría aquí -->
                                     <input type="url" name="enlace[]" class="form-control bg-light border-secondary border-opacity-25" 
-                                           placeholder="https://ejemplo.com/producto (Opcional)" value="{{ detalle.enlace if detalle.enlace else '' }}">
+                                           placeholder="https://ejemplo.com/producto (Opcional)" value="{{ enlace_actual }}">
                                 </div>
+                                {% if enlace_actual %}
+                                    <div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace recuperado.</div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -487,7 +492,7 @@
                 
                 const factorTexto = p.unidades_por_caja ? ` (Caja: ${p.unidades_por_caja} uds)` : '';
                 // Asumimos que si existe un enlace base en el producto, lo mostramos como hint
-                const linkIcon = p.enlace ? '<i class="bi bi-link-45deg text-primary ms-2" title="Tiene enlace"></i>' : '';
+                const linkIcon = p.enlace ? '<i class="bi bi-link-45deg text-primary ms-2" title="Tiene enlace automático"></i>' : '';
                 
                 item.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
@@ -543,8 +548,11 @@
 
         const factor = producto.unidades_por_caja || 1;
         const costo = parseFloat(producto.precio_unitario || producto.costo || 0).toFixed(2);
-        // Pre-cargar el enlace del producto si existe
+        
+        // Pre-cargar el enlace del producto si existe en el catálogo
         const enlace = producto.enlace || '';
+        const linkEstilos = enlace ? 'text-primary fw-bold' : 'text-secondary';
+        const linkMensaje = enlace ? `<div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace auto-detectado.</div>` : '';
 
         const div = document.createElement('div');
         div.classList.add('producto-linea', 'border', 'border-secondary', 'border-opacity-25', 'p-4', 'rounded-4', 'shadow-sm', 'mb-3');
@@ -595,15 +603,16 @@
                     </button>
                 </div>
 
-                <!-- Campo de Enlace Opcional -->
+                <!-- Campo de Enlace (Auto-Completado si existe) -->
                 <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary" style="font-size: 0.75rem;">
+                        <span class="input-group-text bg-light border-secondary border-opacity-25 ${linkEstilos}" style="font-size: 0.75rem;">
                             <i class="bi bi-link-45deg me-1"></i> Enlace
                         </span>
                         <input type="url" name="enlace[]" class="form-control bg-light border-secondary border-opacity-25" 
                                placeholder="https://ejemplo.com/producto (Opcional)" value="${enlace}">
                     </div>
+                    ${linkMensaje}
                 </div>
             </div>
         `;
