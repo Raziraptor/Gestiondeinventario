@@ -24,7 +24,7 @@
         <div class="row g-3">
             <!-- COLUMNA IZQUIERDA: DATOS -->
             <div class="col-md-8">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm mb-3">
                     <div class="card-header bg-primary text-white">Detalles del Producto</div>
                     <div class="card-body">
                         
@@ -67,37 +67,60 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- CORRECCIÓN Y AGREGADO: COSTO Y FACTOR DE EMPAQUE -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="costo_estandar" class="form-label fw-bold">Costo Estándar</label>
+                <!-- NUEVA SECCIÓN: PRECIOS Y EMPAQUE CON CALCULADORA -->
+                <div class="card shadow-sm mb-4 border-secondary border-opacity-25 bg-light">
+                    <div class="card-header bg-transparent fw-bold text-dark border-bottom-0 pt-3">
+                        <i class="bi bi-cash-coin text-success me-1"></i> Costos y Empaque
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="row g-3 align-items-start">
+                            <!-- Unidades por Caja -->
+                            <div class="col-md-4">
+                                <label for="unidades_por_caja" class="form-label fw-bold small text-muted">Unidades por Caja</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    <input type="number" class="form-control" id="costo_estandar" name="costo_estandar" 
+                                    <span class="input-group-text bg-white"><i class="bi bi-box-seam"></i></span>
+                                    <!-- Si es None o 0, mostramos 0 para que no estorbe -->
+                                    <input type="number" class="form-control" id="unidades_por_caja" name="unidades_por_caja" 
+                                           value="{{ producto.unidades_por_caja if producto and producto.unidades_por_caja else '0' }}" 
+                                           min="0">
+                                </div>
+                                <div class="form-text" style="font-size: 0.7rem;">Deja en 0 si es pieza suelta.</div>
+                            </div>
+                            
+                            <!-- Costo por Caja (Campo Virtual, solo para la vista) -->
+                            <div class="col-md-4">
+                                <label for="costo_caja_virtual" class="form-label fw-bold small text-muted">Costo por Caja</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white">$</span>
+                                    <input type="number" class="form-control" id="costo_caja_virtual" 
+                                           step="0.01" min="0" placeholder="N/A">
+                                </div>
+                                <div class="form-text" style="font-size: 0.7rem;">Costo total del empaque.</div>
+                            </div>
+
+                            <!-- Costo Unitario (Campo Real a BD) -->
+                            <div class="col-md-4">
+                                <label for="costo_estandar" class="form-label fw-bold small text-primary">Costo Unitario</label>
+                                <div class="input-group shadow-sm">
+                                    <span class="input-group-text bg-white text-primary">$</span>
+                                    <input type="number" class="form-control border-primary fw-bold" id="costo_estandar" name="costo_estandar" 
                                            value="{{ producto.costo_estandar if producto else '0.00' }}" 
                                            step="0.01" min="0">
                                 </div>
-                                <div class="form-text small">Costo unitario promedio.</div>
-                            </div>
-                            
-                            <!-- NUEVO CAMPO NECESARIO -->
-                            <div class="col-md-6">
-                                <label for="unidades_por_caja" class="form-label fw-bold text-primary">
-                                    <i class="bi bi-box"></i> Unidades por Caja/Empaque
-                                </label>
-                                <input type="number" class="form-control border-primary" id="unidades_por_caja" name="unidades_por_caja" 
-                                       value="{{ producto.unidades_por_caja if producto and producto.unidades_por_caja else '1' }}" 
-                                       min="1" required>
-                                <div class="form-text text-primary small">
-                                    Si compras por caja, ¿cuántas piezas trae?
-                                </div>
+                                <div class="form-text text-primary" style="font-size: 0.7rem;">Costo real por pieza.</div>
                             </div>
                         </div>
+                    </div>
+                </div>
                         
-                        <!-- LÓGICA DE STOCK INICIAL (SOLO CREACIÓN) -->
-                        {% if not producto or not producto.id %} 
-                        <div class="alert alert-info py-2 mt-4">
+                <!-- LÓGICA DE STOCK INICIAL (SOLO CREACIÓN) -->
+                {% if not producto or not producto.id %} 
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <div class="alert alert-info py-2 mb-3">
                             <small><strong>Niveles de Stock:</strong> Valores por defecto para nuevos almacenes.</small>
                         </div>
                         <div class="row">
@@ -112,7 +135,7 @@
                         </div>
                         
                         <hr>
-                        <div class="alert alert-success py-2">
+                        <div class="alert alert-success py-2 mb-3">
                             <small><strong>Stock Inicial (Opcional):</strong> Asigna el producto a un almacén de inmediato.</small>
                         </div>
                         <div class="row">
@@ -130,21 +153,24 @@
                                 <input type="text" class="form-control form-control-sm" id="ubicacion_inicial" name="ubicacion_inicial" placeholder="Ej: Pasillo 5">
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="cantidad_inicial" class="form-label small fw-bold">Cantidad</label>
-                                <input type="number" class="form-control form-control-sm" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
+                                <label for="cantidad_inicial" class="form-label small fw-bold">Cantidad Inicial</label>
+                                <input type="number" class="form-control form-control-sm border-success" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- LÓGICA DE EDICIÓN DE STOCK ESPECÍFICO -->
-                        {% elif stock_item %} 
-                        <hr>
-                        <h5 class="text-primary"><i class="bi bi-geo-alt"></i> Inventario en: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
+                <!-- LÓGICA DE EDICIÓN DE STOCK ESPECÍFICO -->
+                {% elif stock_item %} 
+                <div class="card shadow-sm mb-3 border-warning border-opacity-50">
+                    <div class="card-body">
+                        <h5 class="text-primary mb-3"><i class="bi bi-geo-alt"></i> Inventario en: <strong>{{ stock_item.almacen.nombre }}</strong></h5>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Cantidad Actual</label>
-                                <input type="number" class="form-control border-warning" name="cantidad" 
+                                <input type="number" class="form-control border-warning bg-warning bg-opacity-10" name="cantidad" 
                                        value="{{ stock_item.cantidad }}" min="0" required>
-                                <small class="text-warning fw-bold">
+                                <small class="text-warning text-dark fw-bold">
                                     <i class="bi bi-exclamation-triangle"></i> Ajuste manual de inventario.
                                 </small>
                             </div>
@@ -164,52 +190,54 @@
                                 <input type="number" class="form-control form-control-sm" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
                             </div>
                         </div>
-
-                        {% else %} 
-                        <!-- MENSAJE INFORMATIVO -->
-                        <div class="alert alert-light border mt-3 text-muted">
-                            <i class="bi bi-info-circle"></i> Este producto no tiene stock específico cargado en esta vista. Para editar cantidades, ve a <a href="{{ url_for('lista_almacenes') }}">Almacenes</a>.
-                        </div>
-                        {% endif %}
-
                     </div>
                 </div>
+
+                {% else %} 
+                <!-- MENSAJE INFORMATIVO -->
+                <div class="alert alert-light border shadow-sm text-muted">
+                    <i class="bi bi-info-circle text-primary"></i> Este producto no tiene stock específico cargado en esta vista. Para editar cantidades, ve a la sección de <a href="{{ url_for('lista_almacenes') }}">Almacenes</a>.
+                </div>
+                {% endif %}
+
             </div>
             
             <!-- COLUMNA DERECHA: IMAGEN -->
             <div class="col-md-4">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm sticky-top" style="top: 20px;">
                     <div class="card-header bg-white fw-bold">Imagen del Producto</div>
                     <div class="card-body text-center">
                         {% if producto and producto.imagen_url %}
                             <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" 
-                                 id="img_preview" class="img-thumbnail mb-2 shadow-sm" alt="Imagen del Producto" 
-                                 style="max-height: 200px; object-fit: cover;">
+                                 id="img_preview" class="img-thumbnail mb-3 shadow-sm" alt="Imagen del Producto" 
+                                 style="max-height: 250px; object-fit: cover; width: 100%;">
                         {% else %}
-                            <img src="" id="img_preview" class="img-thumbnail mb-2" alt="Vista previa" 
-                                 style="max-height: 200px; object-fit: cover; display: none;">
-                            <div id="placeholder_img" class="text-muted py-5 border rounded bg-light mb-2">
-                                <i class="bi bi-image fs-1"></i><br>Sin imagen
+                            <img src="" id="img_preview" class="img-thumbnail mb-3 shadow-sm" alt="Vista previa" 
+                                 style="max-height: 250px; object-fit: cover; width: 100%; display: none;">
+                            <div id="placeholder_img" class="text-muted py-5 border rounded bg-light mb-3">
+                                <i class="bi bi-image" style="font-size: 4rem;"></i><br>Sin imagen
                             </div>
                         {% endif %}
-                        <input class="form-control form-control-sm mt-2" type="file" id="imagen" name="imagen" onchange="previsualizarImagen(event)" accept="image/*">
+                        <input class="form-control form-control-sm" type="file" id="imagen" name="imagen" onchange="previsualizarImagen(event)" accept="image/*">
                     </div>
-                </div>
-                
-                <div class="d-grid gap-2 mt-3">
-                    <!-- ENLACE DIRECTO AL FORMULARIO POR SEGURIDAD -->
-                    <button type="submit" form="formulario_producto" class="btn btn-primary fw-bold py-2">
-                        <i class="bi bi-save"></i> Guardar Cambios
-                    </button>
-                    <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}" class="btn btn-outline-secondary">
-                        Cancelar
-                    </a>
+                    <div class="card-footer bg-transparent border-0 pb-3">
+                        <div class="d-grid gap-2">
+                            <!-- ENLACE DIRECTO AL FORMULARIO POR SEGURIDAD -->
+                            <button type="submit" form="formulario_producto" class="btn btn-primary fw-bold py-2 shadow-sm">
+                                <i class="bi bi-save"></i> Guardar Producto
+                            </button>
+                            <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </form>
     
     <script>
+        // --- 1. PREVISUALIZACIÓN DE IMAGEN ---
         function previsualizarImagen(event) {
             const preview = document.getElementById('img_preview');
             const placeholder = document.getElementById('placeholder_img');
@@ -221,5 +249,56 @@
                 preview.onload = () => URL.revokeObjectURL(preview.src);
             }
         }
+
+        // --- 2. CALCULADORA DE COSTOS BIDIRECCIONAL ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputUnidades = document.getElementById('unidades_por_caja');
+            const inputCostoCaja = document.getElementById('costo_caja_virtual');
+            const inputCostoUnitario = document.getElementById('costo_estandar');
+
+            function calcularCostos(origenModificado) {
+                const unidades = parseFloat(inputUnidades.value) || 0;
+                const costoCaja = parseFloat(inputCostoCaja.value) || 0;
+                const costoUnitario = parseFloat(inputCostoUnitario.value) || 0;
+
+                // Si no se compra por caja (0 o 1 unidad)
+                if (unidades <= 1) {
+                    inputCostoCaja.disabled = true;
+                    inputCostoCaja.value = '';
+                    inputCostoCaja.placeholder = 'N/A';
+                    return;
+                } 
+
+                // Si se compra por caja (2 o más unidades), habilitar el campo
+                inputCostoCaja.disabled = false;
+                inputCostoCaja.placeholder = '0.00';
+
+                // Lógica Bidireccional
+                if (origenModificado === 'caja') {
+                    // Escribió en Costo por Caja -> Calculamos el Unitario
+                    inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
+                } 
+                else if (origenModificado === 'unitario') {
+                    // Escribió en Unitario -> Calculamos la Caja
+                    inputCostoCaja.value = (costoUnitario * unidades).toFixed(2);
+                } 
+                else if (origenModificado === 'unidades') {
+                    // Cambió las unidades -> Recalculamos el costo de la caja basado en el unitario actual
+                    if (costoUnitario > 0) {
+                        inputCostoCaja.value = (costoUnitario * unidades).toFixed(2);
+                    } else if (costoCaja > 0) {
+                        inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
+                    }
+                }
+            }
+
+            // Inicializar al cargar la página (por si estamos editando)
+            calcularCostos('unidades');
+
+            // Listeners
+            inputUnidades.addEventListener('input', () => calcularCostos('unidades'));
+            inputCostoCaja.addEventListener('input', () => calcularCostos('caja'));
+            inputCostoUnitario.addEventListener('input', () => calcularCostos('unitario'));
+        });
     </script>
 {% endblock %}
