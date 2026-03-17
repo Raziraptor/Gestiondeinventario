@@ -94,16 +94,72 @@
     [data-bs-theme="light"] .table-info td {
         background-color: #e7f1ff !important;
     }
+
+    /* ==========================================
+       ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA)
+       ========================================== */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        /* Efecto de rebote (bouncy) al girar */
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    /* Estado inicial: MODO CLARO (Muestra el Sol, oculta la Luna) */
+    .theme-switch-sun {
+        color: #ffc107; /* Amarillo Sol */
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e0e0e0; /* Color Luna */
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    
+    /* Estado: MODO OSCURO (Oculta el Sol, muestra la Luna) */
+    [data-bs-theme="dark"] .theme-switch-wrapper {
+        background-color: #1a1a1a;
+        border-color: #333;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper:hover {
+        box-shadow: 0 4px 8px rgba(255,255,255,0.05) !important;
+    }
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
 </style>
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- BOTÓN DE TEMA INTEGRADO -->
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
     <div class="d-flex justify-content-end mb-2">
-        <button id="theme-toggle" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 rounded-pill shadow-sm px-3 py-2" title="Cambiar Tema">
-            <i id="theme-icon" class="bi bi-moon-fill"></i>
-            <span id="theme-text" class="fw-bold small">Modo Oscuro</span>
-        </button>
+        <div id="theme-toggle" class="theme-switch-wrapper shadow-sm" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
     </div>
 
     <!-- ENCABEZADO -->
@@ -248,25 +304,12 @@
 <!-- SCRIPT DEL TEMA OSCURO/CLARO -->
 <script>
     const themeToggleBtn = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-    const themeText = document.getElementById('theme-text');
     const htmlElement = document.documentElement;
 
     function applyTheme(theme) {
         htmlElement.setAttribute('data-bs-theme', theme);
         localStorage.setItem('app_theme', theme);
-        
-        if(theme === 'dark') {
-            themeIcon.className = 'bi bi-sun-fill text-warning';
-            if(themeText) themeText.innerText = 'Modo Claro';
-            themeToggleBtn.classList.remove('btn-outline-secondary');
-            themeToggleBtn.classList.add('btn-outline-light');
-        } else {
-            themeIcon.className = 'bi bi-moon-stars-fill text-dark';
-            if(themeText) themeText.innerText = 'Modo Oscuro';
-            themeToggleBtn.classList.remove('btn-outline-light');
-            themeToggleBtn.classList.add('btn-outline-secondary');
-        }
+        // ¡La magia de la animación ahora la hace completamente el CSS!
     }
 
     // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
