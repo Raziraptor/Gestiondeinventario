@@ -3,75 +3,229 @@
 {% block title %}Detalle de: {{ producto.nombre }}{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h2>{{ producto.nombre }}</h2>
-            <h5 class="text-muted">SKU: {{ producto.codigo }}</h5>
+<style>
+    /* ==========================================
+       ESTILOS PERSONALIZADOS (MODO CLARO/OSCURO)
+       ========================================== */
+       
+    /* --- AJUSTES GLOBALES PARA LA BARRA DE NAVEGACIÓN --- */
+    [data-bs-theme="dark"] .navbar {
+        background-color: #121212 !important;
+        border-bottom: 1px solid #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-brand,
+    [data-bs-theme="dark"] .navbar .nav-link,
+    [data-bs-theme="dark"] .navbar .navbar-text {
+        color: #e0e0e0 !important;
+    }
+
+    /* --- AJUSTES PARA MODO OSCURO (Pure Black) --- */
+    [data-bs-theme="dark"] body {
+        background-color: #000000 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .card-header {
+        background-color: transparent !important;
+        border-bottom-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .bg-light {
+        background-color: #1a1a1a !important;
+    }
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .text-muted {
+        color: #888888 !important;
+    }
+    [data-bs-theme="dark"] .border {
+        border-color: #2a2a2a !important;
+    }
+
+    /* --- TABLAS EN MODO OSCURO --- */
+    [data-bs-theme="dark"] .table {
+        color: #e0e0e0;
+        border-color: #2a2a2a;
+    }
+    [data-bs-theme="dark"] .table-light th {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border-bottom: 2px solid #333 !important;
+    }
+    [data-bs-theme="dark"] .table-hover tbody tr:hover td {
+        background-color: rgba(255,255,255,0.05) !important;
+        color: #ffffff;
+    }
+    [data-bs-theme="dark"] .table td {
+        border-color: #2a2a2a !important;
+    }
+
+    /* --- ACORDEONES EN MODO OSCURO --- */
+    [data-bs-theme="dark"] .accordion-item,
+    [data-bs-theme="dark"] .accordion-button {
+        background-color: #121212 !important;
+        color: #e0e0e0 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        box-shadow: inset 0 -1px 0 rgba(255,255,255,0.1);
+    }
+    [data-bs-theme="dark"] .accordion-button::after {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    /* --- AJUSTES PARA MODO CLARO --- */
+    [data-bs-theme="light"] body {
+        background-color: #f8f9fa !important;
+        color: #212529;
+    }
+    [data-bs-theme="light"] .card {
+        background-color: #ffffff;
+        border-color: #dee2e6;
+    }
+    [data-bs-theme="light"] .accordion-button:not(.collapsed) {
+        background-color: #f8f9fa !important;
+        color: #000000 !important;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA INTEGRADO -->
+    <div class="d-flex justify-content-end mb-2">
+        <button id="theme-toggle" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 rounded-pill shadow-sm px-3 py-2" title="Cambiar Tema">
+            <i id="theme-icon" class="bi bi-moon-fill"></i>
+            <span id="theme-text" class="fw-bold small">Modo Oscuro</span>
+        </button>
+    </div>
+
+    <!-- ENCABEZADO Y BOTÓN DE RETORNO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div class="d-flex align-items-center">
+            {% if producto.imagen_url %}
+                <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" 
+                     class="rounded-circle border shadow-sm me-3" style="width: 70px; height: 70px; object-fit: cover; background-color: white;">
+            {% else %}
+                <div class="bg-light rounded-circle border shadow-sm d-flex align-items-center justify-content-center text-muted me-3" style="width: 70px; height: 70px;">
+                    <i class="bi bi-image fs-3"></i>
+                </div>
+            {% endif %}
+            <div>
+                <h2 class="mb-0 fw-bold">{{ producto.nombre }}</h2>
+                <h5 class="text-muted mb-0 font-monospace fs-6"><i class="bi bi-upc me-1"></i>{{ producto.codigo }}</h5>
+            </div>
         </div>
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Volver al Dashboard
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Dashboard
         </a>
     </div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card h-100 border-primary">
-                <div class="card-header bg-primary text-white">
-                    Total Global
+    <!-- SECCIÓN DE RESUMEN Y ALMACENES -->
+    <div class="row g-4 mb-5">
+        
+        <!-- TARJETA: RESUMEN GLOBAL -->
+        <div class="col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-2 border-0 text-center">
+                    <h5 class="fw-bold text-primary mb-0"><i class="bi bi-globe me-2"></i>Resumen Global</h5>
                 </div>
-                <div class="card-body text-center d-flex flex-column justify-content-center">
-                    <h1 class="display-4 fw-bold text-primary">{{ total_global }}</h1>
-                    <small class="text-muted">Unidades en total</small>
+                <div class="card-body text-center d-flex flex-column justify-content-center pt-0">
+                    <h1 class="display-3 fw-bold text-primary mb-0">{{ total_global }}</h1>
+                    <span class="text-muted fw-bold text-uppercase small">Unidades Totales</span>
+                    
+                    {% if producto.unidades_por_caja and producto.unidades_por_caja > 1 %}
+                    <div class="mt-2">
+                        <span class="badge bg-info text-dark rounded-pill px-3 py-2 shadow-sm">
+                            <i class="bi bi-box-seam me-1"></i> {{ (total_global / producto.unidades_por_caja) | round(2) }} Cajas equivalentes
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <hr class="w-75 mx-auto border-secondary border-opacity-25 my-4">
+
+                    <ul class="list-unstyled text-start w-100 px-3 mb-4">
+                        <li class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small fw-bold">Categoría:</span>
+                            <span class="fw-bold">{{ producto.categoria.nombre if producto.categoria else 'N/A' }}</span>
+                        </li>
+                        <li class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small fw-bold">Proveedor:</span>
+                            <span class="fw-bold">{{ producto.proveedor.nombre if producto.proveedor else 'N/A' }}</span>
+                        </li>
+                        <li class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small fw-bold">Costo Aprox:</span>
+                            <span class="fw-bold text-success">${{ producto.precio_unitario or producto.costo or '0.00' }}</span>
+                        </li>
+                    </ul>
+
+                    <!-- ENLACE DEL PROVEEDOR -->
+                    {% if producto.enlace_proveedor %}
+                    <div class="mt-auto px-3 pb-2">
+                        <a href="{{ producto.enlace_proveedor }}" target="_blank" class="btn btn-outline-primary w-100 rounded-pill shadow-sm fw-bold">
+                            <i class="bi bi-box-arrow-up-right me-2"></i> Ir al Proveedor
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="col-md-8">
-            <div class="card h-100">
-                <div class="card-header">
-                    Distribución por Almacén
+        <!-- TARJETA: DISTRIBUCIÓN POR ALMACÉN -->
+        <div class="col-lg-8">
+            <div class="card h-100 shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-building me-2"></i>Distribución por Almacén</h4>
                 </div>
                 <div class="card-body p-0 table-responsive">
-                    <table class="table table-striped mb-0 align-middle">
-                        <thead class="table-light">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary text-uppercase small">
                             <tr>
-                                <th>Almacén</th>
-                                <th class="text-end">Stock Actual</th>
-                                <th class="text-center">Niveles (Mín / Máx)</th>
-                                <th class="text-end">Acción</th>
+                                <th class="ps-4 border-0">Almacén</th>
+                                <th class="text-center border-0">Mín / Máx</th>
+                                <th class="text-center border-0">Stock Actual</th>
+                                <th class="text-end pe-4 border-0">Acción</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for stock in stocks_actuales %}
                             <tr>
-                                <td>
-                                    <i class="bi bi-house-door-fill text-secondary"></i> 
-                                    {{ stock.almacen.nombre }}
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3">
+                                            <i class="bi bi-shop fs-5"></i>
+                                        </div>
+                                        <span class="fw-bold text-body">{{ stock.almacen.nombre }}</span>
+                                    </div>
                                 </td>
-                                <td class="text-end">
-                                    <span class="badge fs-6 
+                                <td class="text-center text-muted small fw-bold">
+                                    {{ stock.stock_minimo }} / {{ stock.stock_maximo }}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill px-3 py-2 shadow-sm fs-6
                                         {% if stock.cantidad < stock.stock_minimo %}bg-danger
                                         {% elif stock.cantidad > stock.stock_maximo %}bg-warning text-dark
                                         {% else %}bg-success{% endif %}">
-                                        {{ stock.cantidad }}
+                                        {{ stock.cantidad }} Uds
                                     </span>
                                 </td>
-                                <td class="text-center text-muted">
-                                    {{ stock.stock_minimo }} / {{ stock.stock_maximo }}
-                                </td>
-                                <td class="text-end">
+                                <td class="text-end pe-4">
                                     <a href="{{ url_for('editar_producto', id=producto.id, almacen_id=stock.almacen_id) }}" 
-                                       class="btn btn-sm btn-outline-secondary" title="Ajustar Stock">
-                                        <i class="bi bi-pencil"></i>
+                                       class="btn btn-sm btn-outline-primary rounded-pill shadow-sm" title="Ajustar Stock Físico">
+                                        <i class="bi bi-pencil-square me-1"></i> Ajustar
                                     </a>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
-                                    <i class="bi bi-exclamation-circle fs-4"></i><br>
-                                    Este producto no está asignado a ningún almacén.<br>
-                                    <a href="{{ url_for('lista_productos_sin_almacen') }}">Asignar ahora</a>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="bi bi-exclamation-circle fs-2 d-block mb-2 opacity-50"></i>
+                                    Este producto no está asignado a ningún almacén físico.<br>
+                                    <a href="{{ url_for('lista_productos_sin_almacen') }}" class="btn btn-sm btn-primary mt-3 rounded-pill shadow-sm">Asignar ahora</a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -81,58 +235,70 @@
             </div>
         </div>
     </div>
-    <hr>
 
-    <h3 class="mb-3"><i class="bi bi-clock-history"></i> Historial de Movimientos</h3>
+    <!-- SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
+    <h3 class="mb-4 fw-bold text-body"><i class="bi bi-clock-history text-primary me-2"></i>Kárdex / Historial de Movimientos</h3>
     
     {% if not historial_por_almacen %}
-        <div class="alert alert-light border text-center py-4">
-            No hay movimientos registrados para este producto todavía.
+        <div class="alert alert-light border border-secondary border-opacity-25 rounded-4 shadow-sm text-center py-5 text-muted">
+            <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-25"></i>
+            <h5 class="fw-bold text-body">Sin Movimientos</h5>
+            <p class="mb-0">No hay entradas ni salidas registradas para este producto todavía.</p>
         </div>
     {% endif %}
 
-    <div class="accordion" id="accordionHistorial">
+    <div class="accordion shadow-sm rounded-4 overflow-hidden" id="accordionHistorial">
         {% for almacen_nombre, movimientos in historial_por_almacen.items() %}
-        <div class="accordion-item">
+        <div class="accordion-item border-secondary border-opacity-25 border-bottom">
             <h2 class="accordion-header" id="heading{{ loop.index }}">
-                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
-                    <strong>{{ almacen_nombre }}</strong> &nbsp; <span class="badge bg-secondary rounded-pill">{{ movimientos|length }} movs</span>
+                <button class="accordion-button fw-bold fs-5 {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                    <i class="bi bi-shop me-2 text-primary"></i> {{ almacen_nombre }} 
+                    <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill ms-3 shadow-sm border border-secondary border-opacity-25" style="font-size: 0.8rem;">{{ movimientos|length }} movs</span>
                 </button>
             </h2>
             <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#accordionHistorial">
-                <div class="accordion-body p-0">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="table-light">
+                <div class="accordion-body p-0 table-responsive border-top border-secondary border-opacity-25">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary text-uppercase small">
                             <tr>
-                                <th>Fecha</th>
-                                <th>Tipo</th>
-                                <th class="text-end">Cant.</th>
-                                <th>Referencia / Motivo</th>
+                                <th class="ps-4 border-0">Fecha / Hora</th>
+                                <th class="border-0">Tipo de Mov.</th>
+                                <th class="text-center border-0">Cant.</th>
+                                <th class="text-end pe-4 border-0">Referencia / Motivo</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for mov in movimientos %}
                             <tr>
-                                <td>{{ mov.fecha.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td class="ps-4 text-muted small fw-bold">
+                                    <i class="bi bi-calendar-event me-1"></i> {{ mov.fecha.strftime('%d/%m/%Y') }} <br>
+                                    <i class="bi bi-clock me-1"></i> {{ mov.fecha.strftime('%H:%M') }}
+                                </td>
                                 <td>
                                     {% if 'entrada' in mov.tipo %}
-                                        <span class="text-success"><i class="bi bi-arrow-down-circle"></i> Entrada</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-2 shadow-sm">
+                                            <i class="bi bi-arrow-down-circle-fill me-1"></i> Entrada
+                                        </span>
                                     {% else %}
-                                        <span class="text-danger"><i class="bi bi-arrow-up-circle"></i> Salida</span>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-2 shadow-sm">
+                                            <i class="bi bi-arrow-up-circle-fill me-1"></i> Salida
+                                        </span>
                                     {% endif %}
                                 </td>
-                                <td class="text-end fw-bold {{ 'text-success' if mov.cantidad > 0 else 'text-danger' }}">
-                                    {{ mov.cantidad }}
+                                <td class="text-center fs-5 fw-bold {{ 'text-success' if mov.cantidad > 0 else 'text-danger' }}">
+                                    {{ '+' if mov.cantidad > 0 else '' }}{{ mov.cantidad }}
                                 </td>
-                                <td>
-                                    <small>
-                                    {% if mov.orden_compra_id %}
-                                        <a href="{{ url_for('ver_orden', id=mov.orden_compra_id) }}">OC #{{ mov.orden_compra_id }}</a>
-                                    {% elif mov.salida_id %}
-                                        <a href="{{ url_for('ver_salida', id=mov.salida_id) }}">Salida #{{ mov.salida_id }}</a>
-                                    {% endif %}
-                                    {{ mov.motivo }}
-                                    </small>
+                                <td class="text-end pe-4">
+                                    <div class="text-body fw-bold">
+                                        {% if mov.orden_compra_id %}
+                                            <a href="{{ url_for('ver_orden', id=mov.orden_compra_id) }}" class="text-decoration-none">OC #{{ mov.orden_compra_id }}</a>
+                                        {% elif mov.salida_id %}
+                                            <a href="{{ url_for('ver_salida', id=mov.salida_id) }}" class="text-decoration-none">Salida #{{ mov.salida_id }}</a>
+                                        {% else %}
+                                            Ajuste Manual
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted fst-italic">{{ mov.motivo }}</small>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -144,4 +310,42 @@
         {% endfor %}
     </div>
 
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeText = document.getElementById('theme-text');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+        
+        if(theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+            if(themeText) themeText.innerText = 'Modo Claro';
+            themeToggleBtn.classList.remove('btn-outline-secondary');
+            themeToggleBtn.classList.add('btn-outline-light');
+        } else {
+            themeIcon.className = 'bi bi-moon-stars-fill text-dark';
+            if(themeText) themeText.innerText = 'Modo Oscuro';
+            themeToggleBtn.classList.remove('btn-outline-light');
+            themeToggleBtn.classList.add('btn-outline-secondary');
+        }
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}
