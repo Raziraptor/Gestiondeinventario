@@ -231,12 +231,12 @@
                             
                             <!-- Costo Unitario -->
                             <td class="text-end text-muted">
-                                ${{ "%.2f"|format(detalle.costo_unitario_estimado) }}
+                                ${{ "{:,.2f}".format(detalle.costo_unitario_estimado) }}
                             </td>
                             
                             <!-- Subtotal -->
                             <td class="text-end pe-4 fw-bold text-body">
-                                ${{ "%.2f"|format(detalle.subtotal) }}
+                                ${{ "{:,.2f}".format(detalle.subtotal) }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -249,7 +249,7 @@
                                 Total Estimado:
                             </td>
                             <td class="text-end pe-4 py-3 fs-4 fw-bold text-success">
-                                ${{ "%.2f"|format(orden.costo_total) }}
+                                ${{ "{:,.2f}".format(orden.costo_total) }}
                             </td>
                         </tr>
                     </tfoot>
