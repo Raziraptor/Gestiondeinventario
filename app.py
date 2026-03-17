@@ -2549,7 +2549,8 @@ def nueva_orden_manual():
             'codigo': p.codigo,
             'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
             'proveedor_id': p.proveedor_id,
-            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1) 
+            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1),
+            'enlace': getattr(p, 'enlace', '')
         })
     
     return render_template('orden_form.html', 
@@ -2600,7 +2601,8 @@ def editar_orden(id):
             'codigo': p.codigo,
             'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
             'proveedor_id': p.proveedor_id,
-            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1) # <-- Aseguramos que el frontend sepa cuantas cajas
+            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1), # <-- Aseguramos que el frontend sepa cuantas cajas
+            'enlace': getattr(p, 'enlace', '')
         })
     
     if request.method == 'POST':
