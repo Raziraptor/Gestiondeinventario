@@ -28,31 +28,77 @@
 
     <style>
         /* ==========================================
-           ESTILOS GLOBALES PREMIUM
+           PALETA DE COLORES PREMIUM Y CONTRASTANTES
+           ========================================== */
+        
+        /* --- MODO CLARO (Elegante, fresco y nítido) --- */
+        :root {
+            --bs-primary: #4f46e5; /* Índigo profundo y elegante */
+            --bs-primary-rgb: 79, 70, 229;
+            --bs-body-bg: #f8fafc; /* Fondo Slate muy sutil, no blanco puro */
+            --bs-body-color: #334155; /* Texto principal Slate suave */
+            --bs-dark: #0f172a; 
+            --bs-secondary: #64748b; 
+            
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(15, 23, 42, 0.08);
+            --card-bg: #ffffff;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --hover-bg: rgba(79, 70, 229, 0.05); /* Hover índigo claro */
+        }
+
+        /* --- MODO OSCURO (Profundo, rico y moderno) --- */
+        [data-bs-theme="dark"] {
+            --bs-primary: #818cf8; /* Índigo pastel brillante para buen contraste en negro */
+            --bs-primary-rgb: 129, 140, 248;
+            --bs-body-bg: #0b0f19; /* Azul/Gris noche ultra oscuro (mejor que negro puro) */
+            --bs-body-color: #e2e8f0; /* Texto claro grisáceo, reduce fatiga visual */
+            --bs-dark: #1e293b; 
+            --bs-secondary: #94a3b8; 
+            
+            --glass-bg: rgba(11, 15, 25, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --card-bg: #111827; /* Tarjetas ligeramente más claras que el fondo para destacar */
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+            --hover-bg: rgba(129, 140, 248, 0.1); /* Hover índigo oscuro */
+        }
+
+        /* ==========================================
+           ESTILOS GLOBALES
            ========================================== */
         body {
-            font-family: 'Inter', sans-serif; /* Tipografía limpia y moderna */
+            font-family: 'Inter', sans-serif; 
             transition: background-color 0.3s ease, color 0.3s ease;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
         }
 
         main {
-            flex: 1; /* Empuja el footer o fondo hacia abajo */
+            flex: 1; 
         }
+
+        /* Redefinición de botones primarios para respetar nuestra paleta */
+        .btn-primary {
+            background-color: var(--bs-primary) !important;
+            border-color: var(--bs-primary) !important;
+            color: #ffffff !important;
+        }
+        [data-bs-theme="dark"] .btn-primary {
+            color: #0b0f19 !important; /* Texto oscuro sobre botón claro en modo oscuro */
+            font-weight: 600;
+        }
+        .text-primary { color: var(--bs-primary) !important; }
 
         /* --- NAVBAR GLASSMORPHISM --- */
         .glass-navbar {
-            background: rgba(255, 255, 255, 0.85) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--glass-border);
             transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        [data-bs-theme="dark"] .glass-navbar {
-            background: rgba(18, 18, 18, 0.85) !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         .navbar-brand {
@@ -62,64 +108,65 @@
 
         /* Menús Desplegables Modernos */
         .dropdown-menu {
-            border: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid var(--glass-border);
+            background-color: var(--card-bg);
+            box-shadow: var(--card-shadow);
             border-radius: 1rem;
             padding: 0.5rem;
-        }
-        [data-bs-theme="dark"] .dropdown-menu {
-            background-color: #1e1e1e;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: background-color 0.3s ease;
         }
         .dropdown-item {
+            color: var(--bs-body-color);
             border-radius: 0.5rem;
             padding: 0.5rem 1rem;
             font-weight: 500;
             transition: all 0.2s;
         }
+        .dropdown-item:hover {
+            background-color: var(--hover-bg);
+            color: var(--bs-primary);
+        }
+        [data-bs-theme="dark"] .dropdown-divider { border-color: rgba(255,255,255,0.05); }
 
         /* --- ALERTAS FLASH MODERNIZADAS --- */
         .alert-premium {
+            background-color: var(--card-bg);
+            color: var(--bs-body-color);
             border-radius: 1rem;
-            border: none;
+            border: 1px solid var(--glass-border);
             border-left: 6px solid;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: var(--card-shadow);
             font-weight: 500;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
         }
-        [data-bs-theme="dark"] .alert-premium {
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .alert-success.alert-premium { border-left-color: #198754; }
-        .alert-danger.alert-premium  { border-left-color: #dc3545; }
-        .alert-warning.alert-premium { border-left-color: #ffc107; }
-        .alert-info.alert-premium    { border-left-color: #0dcaf0; }
+        .alert-success.alert-premium { border-left-color: #10b981; } /* Emerald */
+        .alert-danger.alert-premium  { border-left-color: #ef4444; } /* Red */
+        .alert-warning.alert-premium { border-left-color: #f59e0b; } /* Amber */
+        .alert-info.alert-premium    { border-left-color: #3b82f6; } /* Blue */
 
         /* --- DASHBOARD CARDS GLOBALES --- */
         .dashboard-card {
             text-decoration: none;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        [data-bs-theme="dark"] .dashboard-card {
-            border-color: rgba(255,255,255,0.05);
-            background-color: #121212;
+            background-color: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--card-shadow);
+            border-radius: 1rem;
         }
         .dashboard-card .card-body {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1.5rem;
+            padding: 2.5rem 1.5rem;
         }
         .dashboard-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            border-color: var(--bs-primary);
         }
         [data-bs-theme="dark"] .dashboard-card:hover {
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3) !important;
-            background-color: #1a1a1a;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
         }
         .dashboard-card .card-icon {
             font-size: 3rem;
@@ -127,21 +174,17 @@
             transition: transform 0.3s ease;
         }
         .dashboard-card:hover .card-icon {
-            transform: scale(1.1);
+            transform: scale(1.15) rotate(-3deg);
         }
-        .card-icon.text-purple { color: #6f42c1 !important; }
-        .card-icon.text-indigo { color: #6610f2 !important; }
 
         /* Icono de Perfil en Navbar */
         .profile-img-nav {
             width: 32px; 
             height: 32px; 
             object-fit: cover;
-            border: 2px solid transparent;
+            border: 2px solid var(--glass-border);
             transition: border-color 0.3s ease;
         }
-        [data-bs-theme="light"] .profile-img-nav { border-color: #e9ecef; }
-        [data-bs-theme="dark"] .profile-img-nav { border-color: #333; }
         
     </style>
 </head>
@@ -261,7 +304,7 @@
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 fw-medium align-items-lg-center">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 bg-secondary bg-opacity-10 px-3 py-2 rounded-pill" href="#" 
+                            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" style="background-color: var(--hover-bg); padding: 0.5rem 1rem; border-radius: 50rem;" href="#" 
                                id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <img src="{{ url_for('static', filename='uploads/profile_pics/' + current_user.image_file) }}" 
                                      alt="Perfil" class="rounded-circle profile-img-nav shadow-sm">
@@ -310,7 +353,7 @@
                         </li>
                         <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
                             <a class="btn btn-primary rounded-pill px-4 shadow-sm" href="{{ url_for('register') }}">
-                                <i class="bi bi-person-plus me-1"></i> Registrarse
+                                <i class="bi bi-person-plus me-1 text-white"></i> <span class="text-white">Registrarse</span>
                             </a>
                         </li>
                     {% endif %}
