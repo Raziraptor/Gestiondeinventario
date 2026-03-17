@@ -3,28 +3,164 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <h2>{{ titulo }}</h2>
-    <hr>
-    
-    <form method="POST" action="{{ url_for('editar_categoria', id=categoria.id) if categoria else url_for('nueva_categoria') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label for="nombre" class="form-label">Nombre de la Categoría</label>
-                <input type="text" class="form-control" id="nombre" name="nombre" 
-                       value="{{ categoria.nombre if categoria else '' }}" required>
-            </div>
-            <div class="col-md-6">
-                <label for="descripcion" class="form-label">Descripción (Opcional)</label>
-                <input type="text" class="form-control" id="descripcion" name="descripcion" 
-                       value="{{ categoria.descripcion if categoria else '' }}">
-            </div>
-            
-            <div class="col-12 mt-4">
-                <button type="submit" class="btn btn-primary">Guardar Categoría</button>
-                <a href="{{ url_for('lista_categorias') }}" class="btn btn-secondary">Cancelar</a>
-            </div>
-        </div>
-    </form>
+<style>
+    /* ==========================================
+       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+       ========================================== */
+       
+    /* Ajustes específicos para inputs en modo oscuro */
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: var(--card-bg) !important;
+        border-color: var(--glass-border) !important;
+        color: var(--bs-body-color) !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus {
+        background-color: #1f2937 !important; /* Un poco más claro al enfocar */
+        border-color: var(--bs-primary) !important;
+        color: #ffffff !important;
+    }
 
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    /* Estado inicial: MODO CLARO */
+    .theme-switch-sun {
+        color: #f59e0b; /* Amber */
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e2e8f0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    
+    /* Estado: MODO OSCURO */
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-tags text-primary me-2"></i>{{ titulo }}</h2>
+        <p class="text-muted fs-5">
+            Organiza tu inventario agrupando productos de forma inteligente
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- TARJETA DEL FORMULARIO -->
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-info-circle text-primary me-2"></i>Información de la Categoría</h4>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{{ url_for('editar_categoria', id=categoria.id) if categoria else url_for('nueva_categoria') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row g-4">
+                            <!-- CAMPO: Nombre -->
+                            <div class="col-md-6">
+                                <label for="nombre" class="form-label fw-bold small text-muted">Nombre de la Categoría</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-tag text-secondary"></i></span>
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="nombre" name="nombre" 
+                                           value="{{ categoria.nombre if categoria else '' }}" placeholder="Ej: Electrónica, Herramientas" required>
+                                </div>
+                            </div>
+                            
+                            <!-- CAMPO: Descripción -->
+                            <div class="col-md-6">
+                                <label for="descripcion" class="form-label fw-bold small text-muted">Descripción (Opcional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-card-text text-secondary"></i></span>
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="descripcion" name="descripcion" 
+                                           value="{{ categoria.descripcion if categoria else '' }}" placeholder="Breve detalle de la categoría">
+                                </div>
+                            </div>
+                            
+                            <!-- SEPARADOR Y BOTONES -->
+                            <div class="col-12 mt-5">
+                                <hr class="border-secondary border-opacity-25 mb-4">
+                                <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('lista_categorias') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2 shadow-sm">
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                        <i class="bi bi-save me-2"></i> Guardar Categoría
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}
