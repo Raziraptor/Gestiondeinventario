@@ -3,68 +3,226 @@
 {% block title %}Imprimir Etiqueta{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-sm border-primary">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="bi bi-tags"></i> Configurar Etiqueta</h4>
-            </div>
-            <div class="card-body">
-                <h5 class="card-title fw-bold text-dark">{{ producto.nombre }}</h5>
-                <p class="text-muted mb-4"><i class="bi bi-upc"></i> SKU: {{ producto.codigo }}</p>
+<style>
+    /* ==========================================
+       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+       ========================================== */
+       
+    /* Ajustes específicos para selects en modo oscuro */
+    [data-bs-theme="dark"] .form-select {
+        background-color: var(--card-bg) !important;
+        border-color: var(--glass-border) !important;
+        color: var(--bs-body-color) !important;
+    }
+
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    /* Estado inicial: MODO CLARO */
+    .theme-switch-sun {
+        color: #f59e0b; /* Amber */
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e2e8f0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    
+    /* Estado: MODO OSCURO */
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+
+    /* --- TARJETAS INTERACTIVAS PARA RADIO BUTTONS --- */
+    .custom-radio-card {
+        border: 2px solid var(--glass-border);
+        border-radius: 1rem;
+        padding: 1.5rem 1rem;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+        background-color: var(--card-bg);
+    }
+    .custom-radio-card:hover {
+        border-color: var(--bs-primary);
+        background-color: var(--hover-bg);
+    }
+    /* El selector "input:checked + .custom-radio-card" se aplica cuando seleccionas un tamaño */
+    .form-check-input:checked + .custom-radio-card {
+        border-color: var(--bs-primary);
+        background-color: var(--hover-bg);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+    }
+    [data-bs-theme="dark"] .form-check-input:checked + .custom-radio-card {
+        box-shadow: 0 4px 12px rgba(129, 140, 248, 0.2);
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-upc-scan text-primary me-2"></i>Imprimir Etiqueta</h2>
+        <p class="text-muted fs-5">
+            Genera etiquetas físicas con códigos QR para pegar en tu inventario
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            
+            <!-- TARJETA DEL FORMULARIO -->
+            <div class="card shadow-sm border-0 rounded-4">
                 
-                <form action="{{ url_for('generar_etiqueta_personalizada', id=producto.id) }}" method="POST" target="_blank">
-                    
-                    <!-- TOKEN CSRF DE SEGURIDAD -->
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                    <!-- SELECCIÓN DINÁMICA DE ALMACÉN Y UBICACIÓN -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Almacén a imprimir (Ubicación):</label>
-                        <select class="form-select border-primary bg-light" name="almacen_id" required>
-                            <!-- Iteramos sobre todos los registros de stock de este producto -->
-                            {% if producto.stocks %}
-                                {% for stock in producto.stocks %}
-                                    <option value="{{ stock.almacen_id }}" {% if stock.almacen_id == almacen_seleccionado %}selected{% endif %}>
-                                        {{ stock.almacen.nombre }} - Ubicación: {{ stock.ubicacion or 'Sin asignar' }}
-                                    </option>
-                                {% endfor %}
-                            {% else %}
-                                <option value="">-- Sin inventario registrado --</option>
-                            {% endif %}
-                        </select>
-                        <div class="form-text">La etiqueta imprimirá la ubicación exacta del almacén que selecciones.</div>
+                <!-- Cabecera de la Tarjeta con Detalles del Producto -->
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center px-4 px-md-5">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 55px; height: 55px;">
+                        <i class="bi bi-box-seam fs-3"></i>
                     </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Selecciona el Tamaño:</label>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-body">{{ producto.nombre }}</h4>
+                        <span class="badge bg-light text-dark border border-secondary border-opacity-25 mt-1 font-monospace px-2 py-1 shadow-sm">
+                            <i class="bi bi-upc me-1"></i>SKU: {{ producto.codigo }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form action="{{ url_for('generar_etiqueta_personalizada', id=producto.id) }}" method="POST" target="_blank">
                         
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tamano" id="size1" value="1x3" checked>
-                            <label class="form-check-label" for="size1">
-                                <strong>1" x 3"</strong> (Pequeña - Estándar)
-                            </label>
-                        </div>
-                        
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="tamano" id="size2" value="1.75x4">
-                            <label class="form-check-label" for="size2">
-                                <strong>1.75" x 4"</strong> (Grande - Detallada)
-                            </label>
-                        </div>
-                    </div>
+                        <!-- TOKEN CSRF DE SEGURIDAD -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                            <i class="bi bi-printer"></i> Generar etiqueta
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="card-footer bg-white text-center border-0 pt-0 pb-3">
-                <a href="javascript:history.back()" class="btn btn-link text-secondary text-decoration-none">Cancelar</a>
+                        <!-- SELECCIÓN DINÁMICA DE ALMACÉN Y UBICACIÓN -->
+                        <div class="mb-5">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">1. Almacén a imprimir (Ubicación)</label>
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-geo-alt text-danger"></i></span>
+                                <select class="form-select bg-light border-secondary border-opacity-25 fs-6" name="almacen_id" required>
+                                    <!-- Iteramos sobre todos los registros de stock de este producto -->
+                                    {% if producto.stocks %}
+                                        {% for stock in producto.stocks %}
+                                            <option value="{{ stock.almacen_id }}" {% if stock.almacen_id == almacen_seleccionado %}selected{% endif %}>
+                                                {{ stock.almacen.nombre }} - Ubicación: {{ stock.ubicacion or 'Sin asignar' }}
+                                            </option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="">-- Sin inventario registrado --</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="form-text mt-2 small"><i class="bi bi-info-circle text-info me-1"></i>La etiqueta imprimirá la ubicación exacta del almacén que selecciones.</div>
+                        </div>
+
+                        <!-- SELECCIÓN DE TAMAÑO (TARJETAS INTERACTIVAS) -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-3">2. Selecciona el Tamaño</label>
+                            
+                            <div class="row g-3">
+                                <!-- Opción 1 -->
+                                <div class="col-sm-6">
+                                    <label class="w-100 m-0 position-relative">
+                                        <!-- Radio button oculto -->
+                                        <input class="form-check-input position-absolute" type="radio" name="tamano" id="size1" value="1x3" checked style="opacity: 0;">
+                                        <!-- Tarjeta visible -->
+                                        <div class="custom-radio-card text-center h-100">
+                                            <i class="bi bi-aspect-ratio fs-1 text-primary d-block mb-2"></i>
+                                            <h5 class="fw-bold mb-1 text-body">1" x 3"</h5>
+                                            <span class="text-muted small">Pequeña - Estándar</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <!-- Opción 2 -->
+                                <div class="col-sm-6">
+                                    <label class="w-100 m-0 position-relative">
+                                        <!-- Radio button oculto -->
+                                        <input class="form-check-input position-absolute" type="radio" name="tamano" id="size2" value="1.75x4" style="opacity: 0;">
+                                        <!-- Tarjeta visible -->
+                                        <div class="custom-radio-card text-center h-100">
+                                            <i class="bi bi-aspect-ratio fs-1 text-primary d-block mb-2" style="transform: scale(1.3);"></i>
+                                            <h5 class="fw-bold mb-1 text-body">1.75" x 4"</h5>
+                                            <span class="text-muted small">Grande - Detallada</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEPARADOR Y BOTONES -->
+                        <div class="col-12 mt-5">
+                            <hr class="border-secondary border-opacity-25 mb-4">
+                            <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                                <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2 shadow-sm">
+                                    Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                    <i class="bi bi-printer me-2"></i> Generar Etiqueta
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}
