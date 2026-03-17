@@ -237,6 +237,9 @@ class Producto(db.Model):
     precio_unitario = db.Column(db.Float, default=0.0)
     imagen_url = db.Column(db.String(255), nullable=True)
     
+    # --- NUEVO CAMPO ---
+    enlace_proveedor = db.Column(db.String(500), nullable=True)
+    
     categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=True)
     categoria = db.relationship('Categoria', backref='productos', lazy=True)
     
@@ -252,6 +255,7 @@ class Producto(db.Model):
     def get_stock_total(self):
         """ Suma el stock de este producto en TODOS los almacenes. """
         return db.session.query(db.func.sum(Stock.cantidad)).filter_by(producto_id=self.id).scalar() or 0
+
 
 # --- NUEVO MODELO 'Almacen' ---
 class Almacen(db.Model):
@@ -1108,7 +1112,8 @@ def nuevo_producto():
                 imagen_url=imagen_filename,
                 proveedor_id=request.form.get('proveedor_id') or None,
                 unidades_por_caja=int(request.form.get('unidades_por_caja', 1)), 
-                organizacion_id=current_user.organizacion_id
+                organizacion_id=current_user.organizacion_id,
+                enlace_proveedor=request.form.get('enlace_proveedor')
             )
             db.session.add(nuevo_prod)
             db.session.flush()
@@ -1203,6 +1208,7 @@ def editar_producto(id):
             producto.categoria_id = request.form.get('categoria_id') or None
             producto.proveedor_id = request.form.get('proveedor_id') or None
             producto.unidades_por_caja = int(request.form.get('unidades_por_caja') or 1)
+            producto.enlace_proveedor = request.form.get('enlace_proveedor')
             
             # CORRECCIÓN AQUÍ: Manejar el valor vacío de costo_estandar
             costo_raw = request.form.get('costo_estandar')
