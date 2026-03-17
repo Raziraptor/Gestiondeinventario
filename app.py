@@ -3669,18 +3669,6 @@ def update_user_permissions(user_id):
             
     return redirect(url_for('admin_panel'))
 
-@app.route('/fix-db')
-def fix_db():
-    from sqlalchemy import text
-    try:
-        db.session.execute(text("ALTER TABLE orden_compra_detalle ADD COLUMN cajas FLOAT DEFAULT 0.0;"))
-        db.session.commit()
-        return "<h1>¡Éxito! Columna 'cajas' agregada a PostgreSQL.</h1>"
-    except Exception as e:
-        db.session.rollback()
-        return f"<h1>Error:</h1> <p>{str(e)}</p>"
-
-
 # --- Inicialización ---
 if __name__ == '__main__':
     # Creación del superadmin solo se hace dentro del contexto si es necesario
@@ -3691,45 +3679,17 @@ if __name__ == '__main__':
     modo_debug = os.environ.get('FLASK_DEBUG', 'False') == 'True'
     app.run(host='0.0.0.0', port=5000, debug=modo_debug)
     app.run(debug=True, port=5000)
-    
-@app.route('/reparar-bd-cajas')
-@login_required
-def reparar_bd_cajas():
-    """
-    Esta ruta fuerza la creación de la columna 'unidades_por_caja' en la base de datos
-    usando SQL directo, saltándose las migraciones de SQLAlchemy.
-    """
-    # 1. Seguridad: Solo Admins pueden ejecutar esto
-    if current_user.rol not in ['super_admin', 'admin']:
-        return "Acceso Denegado: Se requieren permisos de administrador."
-    
-    from sqlalchemy import text
-    try:
-        with db.engine.connect() as conn:
-            # 2. Ejecutar comando SQL para alterar la tabla
-            # Agrega la columna como entero con valor por defecto 1
-            conn.execute(text("ALTER TABLE producto ADD COLUMN unidades_por_caja INTEGER DEFAULT 1"))
-            conn.commit()
-            
-        return """
-        <div style="font-family: sans-serif; padding: 20px; color: green;">
-            <h1>✅ ÉXITO</h1>
-            <p>La columna <strong>'unidades_por_caja'</strong> ha sido agregada correctamente a la base de datos.</p>
-            <p>Ahora puedes volver al <a href="/productos">Inventario</a> y el error debería haber desaparecido.</p>
-        </div>
-        """
-    
-    except Exception as e:
-        # Si falla, mostramos el error técnico
-        return f"""
-        <div style="font-family: sans-serif; padding: 20px; color: #d9534f;">
-            <h1>⚠️ REPORTE DE ESTADO</h1>
-            <p>El sistema intentó agregar la columna, pero la base de datos respondió:</p>
-            <pre style="background: #f4f4f4; padding: 10px;">{str(e)}</pre>
-            <p><strong>Nota:</strong> Si el error dice "column already exists", entonces el problema ya está resuelto y puedes ignorar esto.</p>
-        </div>
-        """
 
+@app.route('/actualizar_bd_enlace')
+def actualizar_bd_enlace():
+    try:
+        # Ejecutar el comando SQL directamente en PostgreSQL
+        db.session.execute(text("ALTER TABLE producto ADD COLUMN enlace_proveedor VARCHAR(500);"))
+        db.session.commit()
+        return "<h3>¡Éxito! Columna 'enlace_proveedor' añadida a la tabla Producto.</h3><p>Ya puedes borrar esta ruta de tu archivo app.py por seguridad.</p>"
+    except Exception as e:
+        db.session.rollback()
+        return f"<h3>Aviso o Error:</h3><p>{str(e)}</p><p>(Si dice 'column already exists', significa que ya se había añadido).</p>"
 
 
 
