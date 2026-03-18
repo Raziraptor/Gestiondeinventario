@@ -5,15 +5,14 @@
 {% block content %}
 <style>
     /* ==========================================
-       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+       ESTILOS COMPLEMENTARIOS Y UI MODERNA
        ========================================== */
        
-    /* Ajustes específicos para inputs/selects en modo oscuro */
     [data-bs-theme="dark"] .form-control,
     [data-bs-theme="dark"] .form-select,
     [data-bs-theme="dark"] .input-group-text {
-        background-color: var(--card-bg) !important;
-        border-color: var(--glass-border) !important;
+        background-color: var(--card-bg, #1a1a1a) !important;
+        border-color: var(--glass-border, #333) !important;
         color: var(--bs-body-color) !important;
     }
     [data-bs-theme="dark"] .form-control:focus,
@@ -22,34 +21,25 @@
         border-color: var(--bs-primary) !important;
         color: #ffffff !important;
     }
-    [data-bs-theme="dark"] .form-control:disabled,
-    [data-bs-theme="dark"] .form-select:disabled {
-        background-color: #111827 !important;
-        opacity: 0.7;
-    }
     [data-bs-theme="dark"] .list-group-item {
-        background-color: var(--card-bg) !important;
-        border-color: var(--glass-border) !important;
-        color: var(--bs-body-color);
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0;
     }
     [data-bs-theme="dark"] .list-group-item:hover {
-        background-color: var(--hover-bg) !important;
+        background-color: #2a2a2a !important;
     }
 
-    /* Tarjetas de Producto (Líneas del carrito) */
     .producto-linea {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition: all 0.2s ease;
         background-color: var(--card-bg);
     }
     .producto-linea:hover {
         border-color: var(--bs-primary) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
-    }
-    [data-bs-theme="dark"] .producto-linea:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
     }
 
-    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA --- */
     .theme-switch-wrapper {
         position: relative;
         width: 44px;
@@ -61,49 +51,30 @@
         justify-content: center;
         background-color: var(--card-bg);
         border: 1px solid var(--glass-border);
-        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        transition: transform 0.2s ease;
         overflow: hidden;
-        box-shadow: var(--card-shadow);
     }
-    .theme-switch-wrapper:hover {
-        transform: scale(1.08);
-    }
+    .theme-switch-wrapper:hover { transform: scale(1.08); }
     .theme-switch-icon {
         position: absolute;
         font-size: 1.3rem;
         transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
     }
-    /* Estado inicial: MODO CLARO */
-    .theme-switch-sun {
-        color: #f59e0b; /* Amber */
-        transform: translateY(0) rotate(0deg);
-        opacity: 1;
-    }
-    .theme-switch-moon {
-        color: #e2e8f0;
-        transform: translateY(30px) rotate(90deg);
-        opacity: 0;
-    }
+    .theme-switch-sun { color: #f59e0b; opacity: 1; }
+    .theme-switch-moon { color: #e2e8f0; transform: translateY(30px); opacity: 0; }
     
-    /* Estado: MODO OSCURO */
-    [data-bs-theme="dark"] .theme-switch-sun {
-        transform: translateY(-30px) rotate(-90deg);
-        opacity: 0;
-    }
-    [data-bs-theme="dark"] .theme-switch-moon {
-        transform: translateY(0) rotate(0deg);
-        opacity: 1;
-    }
+    [data-bs-theme="dark"] .theme-switch-sun { transform: translateY(-30px); opacity: 0; }
+    [data-bs-theme="dark"] .theme-switch-moon { transform: translateY(0); opacity: 1; }
 </style>
 
-<!-- Cargar librería para leer QR/Barras -->
+<!-- Librería para QR -->
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js" type="text/javascript"></script>
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <!-- BOTÓN DE TEMA -->
     <div class="d-flex justify-content-end mb-2">
-        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+        <div id="theme-toggle" class="theme-switch-wrapper shadow-sm" title="Alternar Tema">
             <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
             <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
         </div>
@@ -112,24 +83,19 @@
     <!-- ENCABEZADO -->
     <div class="text-center mb-5">
         <h2 class="fw-bold fs-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ titulo }}</h2>
-        <p class="text-muted fs-5">
-            Genera una nueva solicitud de abastecimiento para tus almacenes
-        </p>
+        <p class="text-muted fs-5">Genera o edita solicitudes de abastecimiento para tus almacenes</p>
     </div>
 
     <form method="POST" action="{{ url_for('editar_orden', id=orden.id) if orden else url_for('nueva_orden_manual') }}" id="form_orden">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
-        <!-- ==========================================
-             SECCIÓN 1: DATOS GENERALES
-             ========================================== -->
+        <!-- SECCIÓN 1: DATOS GENERALES -->
         <div class="card shadow-sm mb-4 border-0 rounded-4">
             <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center">
                 <h5 class="mb-0 fw-bold text-body"><i class="bi bi-info-circle text-primary me-2"></i>Datos de la Orden</h5>
             </div>
             <div class="card-body p-4 p-md-5">
                 <div class="row g-4">
-                    <!-- Proveedor -->
                     <div class="col-md-6">
                         <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Proveedor</label>
                         <div class="input-group input-group-lg shadow-sm">
@@ -138,21 +104,17 @@
                                     {% if orden %}disabled{% endif %} required>
                                 <option value="">-- Selecciona un proveedor --</option>
                                 {% for prov in proveedores %}
-                                    <option value="{{ prov.id }}" 
-                                            {% if orden and orden.proveedor_id == prov.id %}selected{% endif %}>
+                                    <option value="{{ prov.id }}" {% if orden and orden.proveedor_id == prov.id %}selected{% endif %}>
                                         {{ prov.nombre }}
                                     </option>
                                 {% endfor %}
                             </select>
                         </div>
                         {% if orden %}
-                            <!-- Input oculto para que el servidor reciba el dato aunque el select esté disabled -->
                             <input type="hidden" id="hidden_proveedor_id" name="proveedor_id" value="{{ orden.proveedor_id }}">
-                            <div class="form-text text-muted mt-2"><i class="bi bi-lock-fill me-1"></i>No se puede cambiar el proveedor de una orden existente.</div>
                         {% endif %}
                     </div>
                     
-                    <!-- Almacén -->
                     <div class="col-md-6">
                         <label for="almacen_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Almacén de Destino</label>
                         <div class="input-group input-group-lg shadow-sm">
@@ -161,8 +123,7 @@
                                     {% if orden %}disabled{% endif %} required>
                                 <option value="">-- Selecciona un almacén --</option>
                                 {% for alm in almacenes %}
-                                    <option value="{{ alm.id }}" 
-                                            {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>
+                                    <option value="{{ alm.id }}" {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>
                                         {{ alm.nombre }}
                                     </option>
                                 {% endfor %}
@@ -170,28 +131,23 @@
                         </div>
                         {% if orden %}
                             <input type="hidden" name="almacen_id" value="{{ orden.almacen_id }}">
-                            <div class="form-text text-muted mt-2"><i class="bi bi-lock-fill me-1"></i>No se puede cambiar el almacén de una orden existente.</div>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ==========================================
-             SECCIÓN 2: BÚSQUEDA Y ESCANEO
-             ========================================== -->
+        <!-- SECCIÓN 2: BUSCADOR -->
         <div class="card shadow-sm mb-5 border-0 rounded-4">
             <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-info border-opacity-50 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-body"><i class="bi bi-search text-info me-2"></i>Buscar o Escanear Producto</h5>
             </div>
             <div class="card-body p-4 p-md-5">
-                
                 <div id="mensaje_bloqueo_buscador" class="alert alert-warning border-warning border-opacity-25 shadow-sm rounded-3 py-3 mb-4 d-flex align-items-center" style="display: none;">
                     <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
-                    <div>Primero selecciona un <strong>Proveedor</strong> y un <strong>Almacén</strong> en la parte superior para habilitar el buscador.</div>
+                    <div>Selecciona Proveedor y Almacén para habilitar el buscador.</div>
                 </div>
 
-                <!-- ÁREA DE CÁMARA (Oculta por defecto) -->
                 <div id="reader-container" class="mb-4 shadow-sm border border-secondary border-opacity-25 rounded-4 bg-light p-3" style="display: none;">
                     <div id="reader" style="width: 100%; max-width: 600px; margin: 0 auto; border-radius: 8px; overflow: hidden;"></div>
                     <div class="text-center mt-3">
@@ -205,14 +161,11 @@
                     <div class="input-group input-group-lg shadow-sm">
                         <span class="input-group-text bg-light border-secondary border-opacity-25 text-primary"><i class="bi bi-upc-scan"></i></span>
                         <input type="text" id="buscador" class="form-control bg-light border-secondary border-opacity-25 fs-6" 
-                               placeholder="Escribe Nombre, SKU o escanea un código..." autocomplete="off" disabled>
-                        
+                               placeholder="Nombre, SKU o escanea un código..." autocomplete="off" disabled>
                         <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" onclick="iniciarEscaner()" disabled>
-                            <i class="bi bi-qr-code-scan me-1"></i> <span class="d-none d-sm-inline">Escanear</span>
+                            <i class="bi bi-qr-code-scan me-1"></i> <span>Escanear</span>
                         </button>
                     </div>
-
-                    <!-- Lista flotante de sugerencias -->
                     <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg border-secondary border-opacity-25 rounded-3" 
                          style="z-index: 1050; top: 100%; display: none; max-height: 300px; overflow-y: auto; margin-top: 5px;">
                     </div>
@@ -220,85 +173,70 @@
             </div>
         </div>
 
-        <!-- ==========================================
-             SECCIÓN 3: LISTA DE PRODUCTOS (CARRITO)
-             ========================================== -->
+        <!-- SECCIÓN 3: LISTA (CARRITO) -->
         <div class="d-flex justify-content-between align-items-end mb-3 mt-5 px-2">
             <h4 class="fw-bold mb-0 text-body"><i class="bi bi-box-seam text-primary me-2"></i>Artículos Solicitados</h4>
             <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3 px-4 py-2 shadow-sm text-center">
-                <small class="text-uppercase text-success fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Total Estimado</small>
+                <small class="text-uppercase text-success fw-bold" style="font-size: 0.7rem;">Total Estimado</small>
                 <h3 class="text-success fw-bold mb-0">$<span id="gran_total">0.00</span></h3>
             </div>
         </div>
 
         <div id="lineas_productos_container" class="mb-5">
-            
             {% if orden %}
-                <!-- CARGA DE PRODUCTOS EXISTENTES (EDICIÓN) -->
                 {% for detalle in orden.detalles %}
                     {% set p_match = productos | selectattr("id", "equalto", detalle.producto_id) | first %}
                     {% set factor = p_match.unidades_por_caja if p_match and 'unidades_por_caja' in p_match else 1 %}
-                    
-                    <!-- Verificamos si hay un enlace en el detalle o si no, heredamos el del producto original -->
-                    {% set enlace_actual = detalle.enlace if detalle.enlace else (p_match.get('enlace', '') if p_match else '') %}
+                    {% set enlace_actual = detalle.enlace_proveedor if detalle.enlace_proveedor else (p_match.get('enlace', '') if p_match else '') %}
                     
                     <div class="producto-linea border border-secondary border-opacity-25 p-4 rounded-4 shadow-sm mb-3">
                         <div class="row g-3 align-items-center">
-                            <!-- Producto Info -->
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Producto</label>
-                                <div class="fw-bold fs-6 text-body">{{ p_match.nombre if p_match else 'Producto ' ~ detalle.producto_id }}</div>
+                                <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem;">Producto</label>
+                                <div class="fw-bold fs-6 text-body">{{ p_match.nombre if p_match else 'ID: ' ~ detalle.producto_id }}</div>
                                 <div class="d-flex align-items-center gap-2 mt-1">
-                                    <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25 font-monospace"><i class="bi bi-upc opacity-50 me-1"></i>{{ p_match.codigo if p_match else 'N/A' }}</span>
-                                    <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.65rem;"><i class="bi bi-box-seam me-1"></i>Caja: {{ factor }} ud(s)</span>
+                                    <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary font-monospace">{{ p_match.codigo if p_match else 'N/A' }}</span>
+                                    <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.65rem;">Caja: {{ factor }} uds</span>
                                 </div>
                                 <input type="hidden" name="producto_id[]" value="{{ detalle.producto_id }}">
                                 <input type="hidden" class="factor-empaque" value="{{ factor }}">
                             </div>
                             
-                            <!-- Cajas -->
                             <div class="col-md-2">
-                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cajas</label>
-                                <div class="input-group input-group-sm shadow-sm">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
-                                    <input type="number" name="cajas[]" class="form-control bg-light border-secondary border-opacity-25 cajas-input text-center fw-bold" 
-                                           value="{{ (detalle.cantidad_solicitada / factor) | round(2, 'floor') }}" min="0" step="0.01">
-                                </div>
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Cajas</label>
+                                <input type="number" name="cajas[]" class="form-control bg-light border-secondary cajas-input text-center fw-bold" 
+                                       value="{{ (detalle.cantidad_solicitada / factor) | round(2, 'floor') }}" step="0.01">
                             </div>
 
-                            <!-- Unidades -->
                             <div class="col-md-2">
-                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Total Unid.</label>
-                                <input type="number" name="cantidad[]" class="form-control form-control-sm bg-light border-secondary border-opacity-25 unidades-input text-center fw-bold shadow-sm" 
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Total Unid.</label>
+                                <input type="number" name="cantidad[]" class="form-control form-control-sm bg-light border-secondary unidades-input text-center fw-bold shadow-sm" 
                                        value="{{ detalle.cantidad_solicitada }}" min="1" required>
                             </div>
 
-                            <!-- Costo Unitario -->
                             <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Costo Unit.</label>
-                                <div class="input-group input-group-sm shadow-sm">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25 text-success fw-bold">$</span>
-                                    <input type="number" name="costo[]" class="form-control bg-light border-secondary border-opacity-25 costo-input fw-bold text-dark" 
-                                           value="{{ '%.2f'|format(detalle.costo_unitario_estimado) }}" step="0.01" min="0" required>
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Costo Unit.</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light text-success fw-bold">$</span>
+                                    <input type="number" name="costo[]" class="form-control bg-light border-secondary costo-input fw-bold" 
+                                           value="{{ '%.2f'|format(detalle.costo_unitario_estimado) }}" step="0.01" required>
                                 </div>
                                 <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
                             </div>
 
-                            <!-- Botón Quitar -->
                             <div class="col-md-2 text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm fw-bold w-100" onclick="eliminarLinea(this)">
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">
                                     <i class="bi bi-trash"></i> Quitar
                                 </button>
                             </div>
                             
-                            <!-- Campo de Enlace Opcional -->
                             <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
                                 <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25 {% if enlace_actual %}text-primary fw-bold{% else %}text-secondary{% endif %}" style="font-size: 0.75rem;">
+                                    <span class="input-group-text bg-light border-secondary {% if enlace_actual %}text-primary fw-bold{% endif %}" style="font-size: 0.75rem;">
                                         <i class="bi bi-link-45deg me-1"></i> Enlace
                                     </span>
-                                    <input type="url" name="enlace[]" class="form-control bg-light border-secondary border-opacity-25" 
-                                           placeholder="https://ejemplo.com/producto (Opcional)" value="{{ enlace_actual }}">
+                                    <input type="url" name="enlace[]" class="form-control bg-light border-secondary" 
+                                           placeholder="https://ejemplo.com/producto" value="{{ enlace_actual }}">
                                 </div>
                                 {% if enlace_actual %}
                                     <div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace recuperado.</div>
@@ -308,49 +246,36 @@
                     </div>
                 {% endfor %}
             {% else %}
-                <!-- Mensaje vacío inicial -->
                 <div id="mensaje_vacio" class="text-center text-muted py-5 border border-secondary border-opacity-25 rounded-4 border-dashed" style="background-color: var(--card-bg);">
                     <i class="bi bi-cart shadow-sm p-4 rounded-circle fs-1 opacity-25 d-inline-block mb-3 bg-light"></i>
                     <h5 class="fw-bold text-body">El carrito está vacío</h5>
-                    <p class="mb-0">Usa el buscador o escáner de arriba para agregar productos a esta orden.</p>
+                    <p class="mb-0">Usa el buscador para agregar productos.</p>
                 </div>
             {% endif %}
         </div>
         
-        <!-- ==========================================
-             SECCIÓN 4: BOTONES FINALES
-             ========================================== -->
         <hr class="border-secondary border-opacity-25 mb-4">
         <div class="d-grid gap-3 d-md-flex justify-content-md-end mb-5">
-            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm px-4 py-3">
-                Cancelar
-            </a>
-            <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-5 py-3">
+            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary rounded-pill px-4 py-3 fw-bold shadow-sm">Cancelar</a>
+            <button type="submit" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
                 <i class="bi bi-save me-2"></i> Guardar Orden de Compra
             </button>
         </div>
     </form>
 </div>
 
-<!-- SONIDO DE BEEP -->
 <audio id="audio_beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
-<!-- JAVASCRIPT -->
 <script>
-    // ==========================================
-    // 0. SISTEMA DE TEMA (MODO CLARO / OSCURO)
-    // ==========================================
+    // 0. SISTEMA DE TEMA
     const themeToggleBtn = document.getElementById('theme-toggle');
     const htmlElement = document.documentElement;
-
     function applyTheme(theme) {
         htmlElement.setAttribute('data-bs-theme', theme);
         localStorage.setItem('app_theme', theme);
     }
-
     const savedTheme = localStorage.getItem('app_theme') || 'dark';
     applyTheme(savedTheme);
-
     if(themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
             const currentTheme = htmlElement.getAttribute('data-bs-theme');
@@ -358,11 +283,8 @@
         });
     }
 
-    // ==========================================
-    // 1. INICIALIZACIÓN DE VARIABLES Y LÓGICA OC
-    // ==========================================
+    // 1. LÓGICA DE NEGOCIO
     const todosLosProductos = {{ productos | tojson | safe }};
-    
     const selectProveedor = document.getElementById('proveedor_id');
     const hiddenProveedor = document.getElementById('hidden_proveedor_id');
     const selectAlmacen = document.getElementById('almacen_id');
@@ -375,16 +297,13 @@
     const granTotalSpan = document.getElementById('gran_total');
     const audioBeep = document.getElementById('audio_beep');
 
-    // Función auxiliar para obtener el ID del proveedor
     function getProveedorId() {
         return selectProveedor.value || (hiddenProveedor ? hiddenProveedor.value : "");
     }
 
-    // --- ACTIVAR/DESACTIVAR BUSCADOR ---
     function verificarEstadoBuscador() {
         const provId = getProveedorId();
         const almId = selectAlmacen.value;
-
         if (provId && almId) {
             buscador.disabled = false;
             btnEscanear.disabled = false;
@@ -397,35 +316,20 @@
     }
 
     if(selectProveedor) {
-        selectProveedor.addEventListener('change', function() {
-            const lineas = container.querySelectorAll('.producto-linea');
-            if(lineas.length > 0) {
-                if(confirm("Si cambias de proveedor, se borrarán los productos actuales de la orden. ¿Continuar?")) {
+        selectProveedor.addEventListener('change', () => {
+            if(container.querySelectorAll('.producto-linea').length > 0) {
+                if(confirm("¿Cambiar de proveedor? Se vaciará la lista actual.")) {
                     container.innerHTML = '';
-                    if(mensajeVacio) {
-                        container.appendChild(mensajeVacio);
-                        mensajeVacio.style.display = 'block';
-                    }
+                    if(mensajeVacio) { container.appendChild(mensajeVacio); mensajeVacio.style.display = 'block'; }
                     recalcularTotales();
-                } else {
-                    // Revertir no es trivial, se asume que el usuario acepta
                 }
             }
             verificarEstadoBuscador();
         });
     }
-    
     if(selectAlmacen) selectAlmacen.addEventListener('change', verificarEstadoBuscador);
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        verificarEstadoBuscador();
-        recalcularTotales();
-    });
+    document.addEventListener('DOMContentLoaded', () => { verificarEstadoBuscador(); recalcularTotales(); });
 
-
-    // ==========================================
-    // 2. LÓGICA DE BÚSQUEDA Y ESCÁNER
-    // ==========================================
     let html5QrcodeScanner = null;
     let isScanning = false;
     let ultimoCodigo = null;
@@ -436,7 +340,7 @@
         html5QrcodeScanner = new Html5Qrcode("reader");
         html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess, () => {})
         .then(() => { isScanning = true; btnEscanear.classList.add('disabled'); })
-        .catch(err => { alert("No se pudo acceder a la cámara."); document.getElementById('reader-container').style.display = 'none'; });
+        .catch(() => { document.getElementById('reader-container').style.display = 'none'; });
     }
 
     function detenerEscaner() {
@@ -451,172 +355,91 @@
     }
 
     function onScanSuccess(decodedText) {
-        if (decodedText === ultimoCodigo) return; 
+        if (decodedText === ultimoCodigo) return;
         ultimoCodigo = decodedText;
         setTimeout(() => ultimoCodigo = null, 2000);
-
         try { audioBeep.play(); } catch(e) {}
-
         const provId = getProveedorId();
-        const producto = todosLosProductos.find(p => p.codigo.toLowerCase() === decodedText.toLowerCase() && p.proveedor_id == provId);
-        
-        if (producto) {
-            agregarProducto(producto);
-        } else {
-            alert(`El código ${decodedText} no existe o no pertenece a este proveedor.`);
-        }
+        const p = todosLosProductos.find(p => p.codigo.toLowerCase() === decodedText.toLowerCase() && p.proveedor_id == provId);
+        if (p) agregarProducto(p);
     }
 
-    // Buscador manual (Typeahead)
     buscador.addEventListener('input', function() {
         const query = this.value.toLowerCase().trim();
         const provId = getProveedorId();
         sugerencias.innerHTML = ''; 
-
-        if (query.length === 0 || !provId) {
-            sugerencias.style.display = 'none';
-            return;
-        }
-
-        const resultados = todosLosProductos.filter(p => 
-            p.proveedor_id == provId && 
-            (p.nombre.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query))
-        );
-
+        if (!query || !provId) { sugerencias.style.display = 'none'; return; }
+        const resultados = todosLosProductos.filter(p => p.proveedor_id == provId && (p.nombre.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query)));
         if (resultados.length > 0) {
             sugerencias.style.display = 'block';
             resultados.forEach(p => {
                 const item = document.createElement('a');
-                item.href = '#';
-                item.classList.add('list-group-item', 'list-group-item-action', 'py-3');
-                
-                const factorTexto = p.unidades_por_caja ? ` (Caja: ${p.unidades_por_caja} uds)` : '';
-                // Asumimos que si existe un enlace base en el producto, lo mostramos como hint
-                const linkIcon = p.enlace ? '<i class="bi bi-link-45deg text-primary ms-2" title="Tiene enlace automático"></i>' : '';
-                
-                item.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong class="text-body">${p.nombre}</strong> ${linkIcon}<br>
-                            <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}${factorTexto}</small>
-                        </div>
-                        <span class="badge bg-success shadow-sm px-2 py-1">$${p.precio_unitario || p.costo || '0.00'}</span>
-                    </div>
-                `;
-
-                item.onclick = (e) => {
-                    e.preventDefault();
-                    agregarProducto(p);
-                    buscador.value = '';
-                    sugerencias.style.display = 'none';
-                    buscador.focus();
-                };
+                item.href = '#'; item.classList.add('list-group-item', 'list-group-item-action', 'py-3');
+                const icon = p.enlace ? '<i class="bi bi-link-45deg text-primary ms-2"></i>' : '';
+                item.innerHTML = `<div><strong>${p.nombre}</strong>${icon}<br><small class="text-muted">${p.codigo}</small></div>`;
+                item.onclick = (e) => { e.preventDefault(); agregarProducto(p); buscador.value = ''; sugerencias.style.display = 'none'; buscador.focus(); };
                 sugerencias.appendChild(item);
             });
-        } else {
-            sugerencias.style.display = 'none';
-        }
+        } else { sugerencias.style.display = 'none'; }
     });
 
-    document.addEventListener('click', (e) => {
-        if (e.target !== buscador) sugerencias.style.display = 'none';
-    });
-
-
-    // ==========================================
-    // 3. LÓGICA DE CARRITO Y CÁLCULOS
-    // ==========================================
     function agregarProducto(producto) {
         if (mensajeVacio) mensajeVacio.style.display = 'none';
-
-        // Evitar duplicados: Sumar caja
-        const existingInput = document.querySelector(`input[name="producto_id[]"][value="${producto.id}"]`);
-        if (existingInput) {
-            const row = existingInput.closest('.producto-linea');
-            const cajasInput = row.querySelector('.cajas-input');
-            cajasInput.value = parseFloat(cajasInput.value) + 1;
-            cajasInput.dispatchEvent(new Event('input', { bubbles: true }));
-            
-            row.style.borderColor = "var(--bs-primary)";
-            row.style.boxShadow = "0 0 15px rgba(79, 70, 229, 0.3)";
-            setTimeout(() => { 
-                row.style.borderColor = ""; 
-                row.style.boxShadow = ""; 
-            }, 800);
+        const existing = document.querySelector(`input[name="producto_id[]"][value="${producto.id}"]`);
+        if (existing) {
+            const row = existing.closest('.producto-linea');
+            const input = row.querySelector('.cajas-input');
+            input.value = parseFloat(input.value) + 1;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
             return;
         }
-
         const factor = producto.unidades_por_caja || 1;
         const costo = parseFloat(producto.precio_unitario || producto.costo || 0).toFixed(2);
-        
-        // Pre-cargar el enlace del producto si existe en el catálogo
         const enlace = producto.enlace || '';
-        const linkEstilos = enlace ? 'text-primary fw-bold' : 'text-secondary';
-        const linkMensaje = enlace ? `<div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace auto-detectado.</div>` : '';
+        const linkColor = enlace ? 'text-primary fw-bold' : 'text-secondary';
+        const linkHint = enlace ? `<div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace auto-detectado.</div>` : '';
 
         const div = document.createElement('div');
         div.classList.add('producto-linea', 'border', 'border-secondary', 'border-opacity-25', 'p-4', 'rounded-4', 'shadow-sm', 'mb-3');
-        
         div.innerHTML = `
             <div class="row g-3 align-items-center">
-                <!-- Info Producto -->
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Producto</label>
+                    <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem;">Producto</label>
                     <div class="fw-bold fs-6 text-body">${producto.nombre}</div>
                     <div class="d-flex align-items-center gap-2 mt-1">
-                        <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25 font-monospace"><i class="bi bi-upc opacity-50 me-1"></i>${producto.codigo}</span>
-                        <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.65rem;"><i class="bi bi-box-seam me-1"></i>Caja: ${factor} ud(s)</span>
+                        <span class="badge bg-secondary bg-opacity-10 text-dark border font-monospace">${producto.codigo}</span>
+                        <span class="badge bg-info text-dark">Caja: ${factor} uds</span>
                     </div>
                     <input type="hidden" name="producto_id[]" value="${producto.id}">
                     <input type="hidden" class="factor-empaque" value="${factor}">
                 </div>
-                
-                <!-- Cajas -->
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cajas</label>
-                    <div class="input-group input-group-sm shadow-sm">
-                        <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
-                        <input type="number" name="cajas[]" class="form-control bg-light border-secondary border-opacity-25 cajas-input text-center fw-bold" value="1" min="0" step="0.01">
-                    </div>
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Cajas</label>
+                    <input type="number" name="cajas[]" class="form-control bg-light border-secondary cajas-input text-center fw-bold" value="1" step="0.01">
                 </div>
-
-                <!-- Unidades -->
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Total Unid.</label>
-                    <input type="number" name="cantidad[]" class="form-control form-control-sm bg-light border-secondary border-opacity-25 unidades-input text-center fw-bold shadow-sm" value="${factor}" min="1" required>
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Total Unid.</label>
+                    <input type="number" name="cantidad[]" class="form-control bg-light border-secondary unidades-input text-center fw-bold" value="${factor}" min="1" required>
                 </div>
-
-                <!-- Costo Unitario -->
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Costo Unit.</label>
-                    <div class="input-group input-group-sm shadow-sm">
-                        <span class="input-group-text bg-light border-secondary border-opacity-25 text-success fw-bold">$</span>
-                        <input type="number" name="costo[]" class="form-control bg-light border-secondary border-opacity-25 costo-input fw-bold text-dark" value="${costo}" step="0.01" min="0" required>
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Costo Unit.</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-success fw-bold">$</span>
+                        <input type="number" name="costo[]" class="form-control bg-light border-secondary costo-input fw-bold" value="${costo}" step="0.01" required>
                     </div>
                     <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
                 </div>
-
-                <!-- Botón Quitar -->
                 <div class="col-md-2 text-end">
-                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm fw-bold w-100" onclick="eliminarLinea(this)">
-                        <i class="bi bi-trash"></i> Quitar
-                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">Quitar</button>
                 </div>
-
-                <!-- Campo de Enlace (Auto-Completado si existe) -->
                 <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-secondary border-opacity-25 ${linkEstilos}" style="font-size: 0.75rem;">
-                            <i class="bi bi-link-45deg me-1"></i> Enlace
-                        </span>
-                        <input type="url" name="enlace[]" class="form-control bg-light border-secondary border-opacity-25" 
-                               placeholder="https://ejemplo.com/producto (Opcional)" value="${enlace}">
+                        <span class="input-group-text bg-light border-secondary ${linkColor}" style="font-size: 0.75rem;"><i class="bi bi-link-45deg"></i> Enlace</span>
+                        <input type="url" name="enlace[]" class="form-control bg-light border-secondary" value="${enlace}">
                     </div>
-                    ${linkMensaje}
+                    ${linkHint}
                 </div>
-            </div>
-        `;
-
+            </div>`;
         container.appendChild(div);
         recalcularTotales();
     }
@@ -624,51 +447,25 @@
     container.addEventListener('input', function(e) {
         const row = e.target.closest('.producto-linea');
         if (!row) return;
-
         const factor = parseFloat(row.querySelector('.factor-empaque').value) || 1;
-        const inputCajas = row.querySelector('.cajas-input');
-        const inputUnidades = row.querySelector('.unidades-input');
-
-        if (e.target.classList.contains('cajas-input')) {
-            const cajas = parseFloat(inputCajas.value) || 0;
-            inputUnidades.value = Math.ceil(cajas * factor); 
-        }
-        else if (e.target.classList.contains('unidades-input')) {
-            const unidades = parseInt(inputUnidades.value) || 0;
-            inputCajas.value = (unidades / factor).toFixed(2);
-        }
-
+        const inCajas = row.querySelector('.cajas-input');
+        const inUnid = row.querySelector('.unidades-input');
+        if (e.target.classList.contains('cajas-input')) { inUnid.value = Math.ceil(parseFloat(inCajas.value || 0) * factor); }
+        else if (e.target.classList.contains('unidades-input')) { inCajas.value = (parseInt(inUnid.value || 0) / factor).toFixed(2); }
         recalcularTotales();
     });
 
-    window.eliminarLinea = function(boton) {
-        boton.closest('.producto-linea').remove();
-        const items = document.getElementsByName('producto_id[]');
-        if (items.length === 0 && mensajeVacio) {
-            mensajeVacio.style.display = 'block';
-        }
-        recalcularTotales();
-    }
+    window.eliminarLinea = function(b) { b.closest('.producto-linea').remove(); if (!document.getElementsByName('producto_id[]').length && mensajeVacio) mensajeVacio.style.display='block'; recalcularTotales(); }
 
     function recalcularTotales() {
-        let granTotal = 0;
-        const lineas = document.querySelectorAll('.producto-linea');
-        
-        lineas.forEach(linea => {
-            const unidades = parseInt(linea.querySelector('.unidades-input').value) || 0;
-            const costoUnitario = parseFloat(linea.querySelector('.costo-input').value) || 0;
-            
-            const subtotal = unidades * costoUnitario;
-            granTotal += subtotal;
-            
-            const labelSubtotal = linea.querySelector('.subtotal-linea');
-            if(labelSubtotal) {
-                // Formateamos con comas para la vista en pantalla
-                labelSubtotal.innerText = `Sub: $${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            }
+        let total = 0;
+        document.querySelectorAll('.producto-linea').forEach(l => {
+            const u = parseInt(l.querySelector('.unidades-input').value) || 0;
+            const c = parseFloat(l.querySelector('.costo-input').value) || 0;
+            const sub = u * c; total += sub;
+            const lbl = l.querySelector('.subtotal-linea'); if(lbl) lbl.innerText = `Sub: $${sub.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
         });
-
-        granTotalSpan.innerText = granTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        granTotalSpan.innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
     }
 </script>
 {% endblock %}
