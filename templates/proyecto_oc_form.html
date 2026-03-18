@@ -3,278 +3,361 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <h2>{{ titulo }}</h2>
-    <hr>
+<style>
+    /* ==========================================
+       ESTILOS PARA MODO OSCURO Y UI MODERNA
+       ========================================== */
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .bg-light {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        color: #e0e0e0 !important;
+    }
     
-    <form method="POST" action="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) if proyecto_oc else url_for('nuevo_proyecto_oc') }}">
+    .item-row {
+        transition: all 0.2s ease;
+        border-radius: 1rem;
+    }
+    
+    .search-container {
+        position: relative;
+    }
+
+    #lista_sugerencias {
+        z-index: 1050;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    /* Animación para nuevas filas */
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .nueva-fila {
+        animation: slideIn 0.3s ease-out forwards;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-clipboard-data-fill text-primary me-2"></i>{{ titulo }}</h2>
+            <p class="text-muted mb-0">Solicitud de materiales y suministros específicos para proyecto.</p>
+        </div>
+        <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </a>
+    </div>
+
+    <form method="POST" id="form_proyecto_oc">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
-        <div class="row">
-            <div class="mb-3 col-md-6">
-                <label for="nombre_proyecto" class="form-label">Nombre del Proyecto</label>
-                <input type="text" class="form-control" id="nombre_proyecto" name="nombre_proyecto" 
-                       value="{{ proyecto_oc.nombre_proyecto if proyecto_oc else '' }}" required>
+        <div class="row g-4">
+            <!-- COLUMNA IZQUIERDA: BUSCADOR Y SELECCIÓN -->
+            <div class="col-xl-4">
+                <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
+                    <div class="card-header bg-transparent pt-4 border-0">
+                        <h5 class="fw-bold text-primary mb-0"><i class="bi bi-search me-2"></i>Buscador de Artículos</h5>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- BUSCADOR INTELIGENTE -->
+                        <div class="search-container mb-4">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Producto del Catálogo</label>
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-box-seam text-primary"></i></span>
+                                <input type="text" id="buscador_productos" class="form-control border-start-0 ps-0 fs-6" 
+                                       placeholder="Nombre o SKU..." autocomplete="off">
+                            </div>
+                            <!-- Sugerencias -->
+                            <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg mt-1 border-0 rounded-3" style="display: none;"></div>
+                        </div>
+
+                        <div class="text-center my-3">
+                            <hr class="border-secondary border-opacity-25">
+                            <span class="bg-body px-2 small text-muted fw-bold">O TAMBIÉN</span>
+                        </div>
+
+                        <!-- AGREGAR MANUALMENTE -->
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-primary fw-bold rounded-pill" onclick="agregarFilaManual()">
+                                <i class="bi bi-plus-circle-dotted me-2"></i> Agregar Artículo Personalizado
+                            </button>
+                            <small class="text-muted text-center mt-2 small">Úsalo para items que no están en el inventario.</small>
+                        </div>
+
+                        <hr class="border-secondary border-opacity-25 my-4">
+
+                        <!-- INFO DEL PROYECTO (CABECERA) -->
+                        <div class="bg-light p-3 rounded-3 border border-secondary border-opacity-10 mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Almacén Destino</label>
+                            <select name="almacen_id" class="form-select border-0 shadow-sm" required>
+                                {% for alm in almacenes %}
+                                    <option value="{{ alm.id }}" {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>{{ alm.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="mb-3 col-md-6">
-                <label for="almacen_id" class="form-label">Almacén de Destino</label>
-                <select class="form-select" id="almacen_id" name="almacen_id" 
-                        {% if proyecto_oc %}disabled{% endif %} required>
-                    <option value="">-- Selecciona un almacén --</option>
-                    {% for alm in almacenes %}
-                        <option value="{{ alm.id }}" 
-                                {% if proyecto_oc and proyecto_oc.almacen_id == alm.id %}selected{% endif %}>
-                            {{ alm.nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
-                {% if proyecto_oc %}
-                    <input type="hidden" name="almacen_id" value="{{ proyecto_oc.almacen_id }}">
-                    <small class="form-text text-muted">No se puede cambiar el almacén de una orden existente.</small>
-                {% endif %}
+
+            <!-- COLUMNA DERECHA: LISTADO DE ITEMS -->
+            <div class="col-xl-8">
+                <div class="card shadow-sm border-0 rounded-4 mb-4">
+                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-10 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-body"><i class="bi bi-list-check text-primary me-2"></i>Artículos en la Orden</h5>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-2" id="contador_items">0 Items</span>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        <div id="contenedor_items">
+                            <!-- MENSAJE VACÍO -->
+                            <div id="mensaje_vacio" class="text-center py-5 text-muted opacity-50">
+                                <i class="bi bi-cart-x" style="font-size: 4rem;"></i>
+                                <h5 class="mt-3">No hay artículos seleccionados</h5>
+                                <p>Busca productos o agrégalos manualmente para comenzar.</p>
+                            </div>
+
+                            <!-- AQUÍ SE INYECTAN LAS FILAS -->
+                            {% if orden %}
+                                {% for detalle in orden.detalles %}
+                                    <!-- Lógica para cargar filas existentes en caso de edición -->
+                                    <script>
+                                        document.addEventListener('DOMContentLoaded', () => {
+                                            agregarFila({
+                                                id: "{{ detalle.producto_id }}",
+                                                nombre: "{{ detalle.producto.nombre }}",
+                                                codigo: "{{ detalle.producto.codigo }}",
+                                                costo: "{{ detalle.costo_unitario_estimado }}",
+                                                cantidad: "{{ detalle.cantidad_solicitada }}",
+                                                enlace: "{{ detalle.enlace_proveedor or '' }}",
+                                                comentarios: "{{ detalle.comentarios or '' }}"
+                                            });
+                                        });
+                                    </script>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <!-- TOTALIZADOR -->
+                        <div class="mt-4 p-4 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-10 text-end">
+                            <small class="text-success fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Inversión Total Estimada</small>
+                            <div class="h2 fw-bold text-success mb-0" id="total_orden">$0.00</div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold rounded-pill shadow">
+                                <i class="bi bi-save2 me-2"></i> Guardar Orden de Proyecto
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-        
-        <hr>
-        
-        <h4>Items</h4>
-        <div id="lineas_items_container">
-            </div>
-        
-        <button type="button" id="btn_add_item" class="btn btn-info mt-2">
-            <i class="bi bi-plus-circle"></i> Añadir Item
-        </button>
-        
-        <hr class="my-4">
-        <div class="col-12">
-            <button type="submit" class="btn btn-primary">Guardar OC de Proyecto</button>
-            <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-secondary">Cancelar</a>
         </div>
     </form>
+</div>
 
-    <template id="plantilla_linea">
-        <div class="row g-3 mb-3 p-2 border rounded bg-light item-linea">
-            <div class="col-md-5">
-                <div class="mb-2">
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_existente_X" value="existente">
-                        <label class="form-check-label" for="tipo_existente_X">Producto Existente</label>
+<!-- PLANTILLA DE FILA (Hidden) -->
+<template id="plantilla_item">
+    <div class="item-row nueva-fila card mb-3 border-0 bg-light border-start border-4 shadow-sm">
+        <div class="card-body p-3">
+            <div class="row g-3">
+                <!-- Identificación del Producto -->
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold text-muted">Artículo / Descripción</label>
+                    <input type="hidden" name="producto_id[]" class="item-id">
+                    <input type="text" name="nombre_manual[]" class="form-control border-0 fw-bold bg-white item-nombre" placeholder="Nombre del artículo..." required>
+                    <div class="mt-1 d-flex gap-2">
+                        <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 font-monospace item-sku-badge" style="font-size: 0.7rem;">SKU: NUEVO</span>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input tipo-item" type="radio" name="tipo_item_group_X" id="tipo_nuevo_X" value="nuevo">
-                        <label class="form-check-label" for="tipo_nuevo_X">Producto Nuevo</label>
-                    </div>
-                    <input type="hidden" class="tipo-item-hidden" name="tipo_item[]" value="existente">
                 </div>
                 
-                <div class="control-existente">
-                    <label class="form-label">Producto del Inventario</label>
-                    <input class="form-control producto-search" list="datalistProductos" name="producto_nombre_existente_visual[]" placeholder="Escribe para buscar..." autocomplete="off">
-                    <input type="hidden" class="producto-id-hidden" name="producto_id_existente[]" value="0">
+                <!-- Cantidad -->
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Cantidad</label>
+                    <input type="number" name="cantidad[]" class="form-control border-0 fw-bold text-center bg-white item-cantidad" value="1" min="1" oninput="recalcularTotales()">
                 </div>
                 
-                <div class="control-nuevo" style="display: none;">
-                    <label class="form-label">Descripción del Producto Nuevo</label>
-                    <input type="text" name="producto_nuevo_descripcion[]" class="form-control" disabled>
-                    <input type="hidden" name="producto_id_existente[]" value="0" disabled>
+                <!-- Costo -->
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Costo Unit. ($)</label>
+                    <input type="number" name="costo[]" class="form-control border-0 fw-bold text-end bg-white item-costo" step="0.01" value="0.00" oninput="recalcularTotales()">
                 </div>
-            </div>
-            
-            <div class="col-md-3">
-                <label class="form-label">Proveedor Sugerido</label>
-                <input class="form-control proveedor-search" list="datalistProveedores" name="proveedor_sugerido[]" placeholder="Escribe o selecciona...">
-            </div>
-            
-            <div class="col-md-4">
-                <div class="row">
-                    <div class="col-6">
-                        <label class="form-label">Cantidad</label>
-                        <input type="number" name="cantidad[]" class="form-control cantidad-input" value="1" min="1" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Costo Unit.</label>
-                        <input type="number" name="costo[]" class="form-control costo-input" value="0.00" step="0.01" min="0" required>
+
+                <!-- Botón Eliminar -->
+                <div class="col-md-3 d-flex align-items-end justify-content-end">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleDetalles(this)" title="Añadir Enlace/Comentarios">
+                            <i class="bi bi-chat-left-text"></i> <span class="d-none d-sm-inline">Detalles</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarFila(this)">
+                            <i class="bi bi-trash"></i>
+                        </button>
                     </div>
                 </div>
-            </div>
-            
-            <div class="col-12 text-end">
-                <button type="button" class="btn btn-sm btn-danger" onclick="eliminarLinea(this)">
-                    <i class="bi bi-trash"></i> Eliminar Línea
-                </button>
+
+                <!-- SECCIÓN DE DETALLES EXTRA (OCULTA POR DEFECTO) -->
+                <div class="col-12 extra-detalles" style="display: none;">
+                    <div class="pt-3 border-top mt-2">
+                        <div class="row g-3">
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold text-primary"><i class="bi bi-link-45deg"></i> Enlace de Compra</label>
+                                <input type="url" name="enlace[]" class="form-control form-control-sm border-0 bg-white item-enlace" placeholder="https://...">
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label small fw-bold text-primary"><i class="bi bi-pencil"></i> Comentarios / Justificación</label>
+                                <textarea name="comentarios[]" class="form-control form-control-sm border-0 bg-white item-comentarios" rows="1" placeholder="¿Por qué se solicita este artículo?"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </template>
+    </div>
+</template>
 
-    <datalist id="datalistProductos"></datalist>
-    <datalist id="datalistProveedores"></datalist>
+<script>
+    // DATOS CARGADOS DESDE BACKEND
+    const productosBase = {{ productos | tojson | safe }};
+    const contenedor = document.getElementById('contenedor_items');
+    const msgVacio = document.getElementById('mensaje_vacio');
+    const buscador = document.getElementById('buscador_productos');
+    const sugerencias = document.getElementById('lista_sugerencias');
 
-    <script>
-        let lineaCounter = 0;
-        // Mapas para búsqueda rápida
-        const productosMap = new Map();     // Nombre -> {id, precio}
-        const productosIdMap = new Map();   // ID -> Nombre
+    // ==========================================
+    // 1. LÓGICA DEL BUSCADOR
+    // ==========================================
+    buscador.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        sugerencias.innerHTML = '';
 
-        // Función global para el botón de eliminar
-        function eliminarLinea(boton) {
-            boton.closest('.item-linea').remove();
+        if (query.length < 2) {
+            sugerencias.style.display = 'none';
+            return;
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("Iniciando script de Proyecto OC...");
+        const filtrados = productosBase.filter(p => 
+            p.nombre.toLowerCase().includes(query) || 
+            p.codigo.toLowerCase().includes(query)
+        ).slice(0, 6);
 
-            // 1. Cargar datos de forma SEGURA usando tojson
-            const productosData = {{ productos | tojson | safe }};
-            const proveedoresData = {{ proveedores | tojson | safe }};
-            const detallesExistentes = {{ detalles_json | tojson | safe }};
-
-            // 2. Llenar Datalists y Mapas
-            const datalistProductos = document.getElementById('datalistProductos');
-            productosData.forEach(p => {
-                const nombreCompleto = `${p.nombre} (SKU: ${p.codigo})`;
-                // Llenar mapas
-                productosMap.set(nombreCompleto, { id: p.id, precio: p.precio_unitario });
-                productosIdMap.set(p.id, nombreCompleto);
-                // Llenar datalist
-                const option = document.createElement('option');
-                option.value = nombreCompleto;
-                datalistProductos.appendChild(option);
+        if (filtrados.length > 0) {
+            sugerencias.style.display = 'block';
+            filtrados.forEach(p => {
+                const item = document.createElement('a');
+                item.href = '#';
+                item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3';
+                item.innerHTML = `
+                    <div>
+                        <strong class="text-body">${p.nombre}</strong><br>
+                        <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}</small>
+                    </div>
+                    <i class="bi bi-plus-circle text-primary fs-5"></i>
+                `;
+                item.onclick = (e) => {
+                    e.preventDefault();
+                    agregarFila({
+                        id: p.id,
+                        nombre: p.nombre,
+                        codigo: p.codigo,
+                        costo: p.precio_unitario || 0,
+                        enlace: p.enlace || ''
+                    });
+                    this.value = '';
+                    sugerencias.style.display = 'none';
+                };
+                sugerencias.appendChild(item);
             });
+        } else {
+            sugerencias.style.display = 'none';
+        }
+    });
 
-            const datalistProveedores = document.getElementById('datalistProveedores');
-            proveedoresData.forEach(prov => {
-                const option = document.createElement('option');
-                option.value = prov.nombre;
-                datalistProveedores.appendChild(option);
-            });
+    // Cerrar sugerencias al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (e.target !== buscador) sugerencias.style.display = 'none';
+    });
 
-            // 3. Función Principal: Añadir Línea
-            const contenedor = document.getElementById('lineas_items_container');
-            const plantilla = document.getElementById('plantilla_linea');
+    // ==========================================
+    // 2. GESTIÓN DE FILAS
+    // ==========================================
+    function agregarFila(datos) {
+        msgVacio.style.display = 'none';
+        const plantilla = document.getElementById('plantilla_item').content.cloneNode(true);
+        const row = plantilla.querySelector('.item-row');
 
-            function anadirNuevaLinea(detalle = null) {
-                lineaCounter++;
-                const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
+        // Llenar datos
+        row.querySelector('.item-id').value = datos.id || '0';
+        row.querySelector('.item-nombre').value = datos.nombre;
+        if (datos.id && datos.id !== '0') {
+            row.querySelector('.item-nombre').readOnly = true;
+            row.querySelector('.item-sku-badge').innerText = `SKU: ${datos.codigo}`;
+            row.style.borderLeftColor = '#0d6efd'; // Azul para catálogo
+        } else {
+            row.style.borderLeftColor = '#6c757d'; // Gris para manual
+        }
 
-                // --- A. Configurar IDs únicos para los Radios ---
-                const radioName = `tipo_item_group_${lineaCounter}`;
-                const radioExistente = nuevaLinea.querySelector('#tipo_existente_X');
-                const radioNuevo = nuevaLinea.querySelector('#tipo_nuevo_X');
-                
-                radioExistente.id = `tipo_existente_${lineaCounter}`;
-                radioExistente.name = radioName;
-                nuevaLinea.querySelector('label[for="tipo_existente_X"]').htmlFor = `tipo_existente_${lineaCounter}`;
-                
-                radioNuevo.id = `tipo_nuevo_${lineaCounter}`;
-                radioNuevo.name = radioName;
-                nuevaLinea.querySelector('label[for="tipo_nuevo_X"]').htmlFor = `tipo_nuevo_${lineaCounter}`;
+        row.querySelector('.item-cantidad').value = datos.cantidad || 1;
+        row.querySelector('.item-costo').value = datos.costo || 0;
+        row.querySelector('.item-enlace').value = datos.enlace || '';
+        row.querySelector('.item-comentarios').value = datos.comentarios || '';
 
-                // --- B. Referencias a elementos ---
-                const tipoHidden = nuevaLinea.querySelector('.tipo-item-hidden');
-                const divExistente = nuevaLinea.querySelector('.control-existente');
-                const inputSearch = divExistente.querySelector('.producto-search');
-                const inputIdHidden = divExistente.querySelector('.producto-id-hidden');
-                
-                const divNuevo = nuevaLinea.querySelector('.control-nuevo');
-                const inputNuevoDesc = divNuevo.querySelector('input[type="text"]');
-                const inputNuevoIdDummy = divNuevo.querySelector('input[type="hidden"]');
+        contenedor.appendChild(row);
+        actualizarContador();
+        recalcularTotales();
+    }
 
-                const inputCosto = nuevaLinea.querySelector('.costo-input');
-                const inputCantidad = nuevaLinea.querySelector('.cantidad-input');
-                const inputProveedor = nuevaLinea.querySelector('.proveedor-search');
-
-                // --- C. Lógica de Cambio de Tipo ---
-                function cambiarTipo(tipo) {
-                    tipoHidden.value = tipo;
-                    if (tipo === 'existente') {
-                        divExistente.style.display = 'block';
-                        inputSearch.disabled = false;
-                        inputSearch.required = true;
-                        inputIdHidden.disabled = false;
-
-                        divNuevo.style.display = 'none';
-                        inputNuevoDesc.disabled = true;
-                        inputNuevoDesc.required = false;
-                        inputNuevoIdDummy.disabled = true;
-                        
-                        // Intentar re-rellenar precio si ya había algo seleccionado
-                        buscarProducto(inputSearch.value);
-
-                    } else { // tipo === 'nuevo'
-                        divExistente.style.display = 'none';
-                        inputSearch.disabled = true;
-                        inputSearch.required = false;
-                        inputIdHidden.disabled = true;
-
-                        divNuevo.style.display = 'block';
-                        inputNuevoDesc.disabled = false;
-                        inputNuevoDesc.required = true;
-                        inputNuevoIdDummy.disabled = false;
-
-                        inputCosto.readOnly = false;
-                        if (inputCosto.value === '') inputCosto.value = '0.00';
-                    }
-                }
-
-                radioExistente.addEventListener('change', () => cambiarTipo('existente'));
-                radioNuevo.addEventListener('change', () => cambiarTipo('nuevo'));
-
-                // --- D. Lógica de Búsqueda de Producto ---
-                function buscarProducto(valor) {
-                    const prodData = productosMap.get(valor);
-                    if (prodData) {
-                        // Encontrado: Rellenar ID y Costo
-                        inputIdHidden.value = prodData.id;
-                        inputCosto.value = parseFloat(prodData.precio).toFixed(2);
-                        inputCosto.readOnly = true; // Bloquear costo para existentes
-                    } else {
-                        // No encontrado (aún escribiendo): Limpiar ID
-                        inputIdHidden.value = '0';
-                        inputCosto.readOnly = false; // Permitir editar costo si no hay match
-                    }
-                }
-                inputSearch.addEventListener('input', (e) => buscarProducto(e.target.value));
-
-                // --- E. Pre-rellenar datos (si es edición) ---
-                if (detalle) {
-                    inputCantidad.value = detalle.cantidad;
-                    inputCosto.value = parseFloat(detalle.costo_unitario).toFixed(2);
-                    inputProveedor.value = detalle.proveedor_sugerido || '';
-                    
-                    if (detalle.tipo === 'existente') {
-                        radioExistente.checked = true;
-                        cambiarTipo('existente');
-                        // Buscar nombre por ID y rellenar
-                        const nombre = productosIdMap.get(detalle.producto_id);
-                        if (nombre) {
-                            inputSearch.value = nombre;
-                            inputIdHidden.value = detalle.producto_id;
-                            inputCosto.readOnly = true;
-                        }
-                    } else {
-                        radioNuevo.checked = true;
-                        cambiarTipo('nuevo');
-                        inputNuevoDesc.value = detalle.descripcion_nuevo;
-                    }
-                } else {
-                    // Nueva línea por defecto
-                    radioExistente.checked = true;
-                    cambiarTipo('existente');
-                }
-
-                contenedor.appendChild(nuevaLinea);
-            }
-
-            // --- 4. Inicialización ---
-            document.getElementById('btn_add_item').addEventListener('click', () => anadirNuevaLinea());
-
-            if (detallesExistentes && detallesExistentes.length > 0) {
-                console.log("Cargando detalles existentes:", detallesExistentes.length);
-                detallesExistentes.forEach(detalle => anadirNuevaLinea(detalle));
-            } else {
-                console.log("Cargando línea vacía inicial.");
-                anadirNuevaLinea();
-            }
+    function agregarFilaManual() {
+        agregarFila({
+            id: '0',
+            nombre: '',
+            codigo: 'MANUAL',
+            costo: 0
         });
-    </script>
+        // Enfocar el nuevo nombre
+        const ult = contenedor.lastElementChild.querySelector('.item-nombre');
+        ult.focus();
+    }
+
+    function eliminarFila(btn) {
+        btn.closest('.item-row').remove();
+        if (contenedor.children.length === 1) { // Solo queda el mensaje_vacio oculto
+             msgVacio.style.display = 'block';
+        }
+        actualizarContador();
+        recalcularTotales();
+    }
+
+    function toggleDetalles(btn) {
+        const extra = btn.closest('.item-row').querySelector('.extra-detalles');
+        const isVisible = extra.style.display === 'block';
+        extra.style.display = isVisible ? 'none' : 'block';
+        btn.classList.toggle('active', !isVisible);
+    }
+
+    // ==========================================
+    // 3. CÁLCULOS
+    // ==========================================
+    function recalcularTotales() {
+        let total = 0;
+        const filas = contenedor.querySelectorAll('.item-row');
+        filas.forEach(f => {
+            const c = parseFloat(f.querySelector('.item-cantidad').value) || 0;
+            const u = parseFloat(f.querySelector('.item-costo').value) || 0;
+            total += (c * u);
+        });
+        document.getElementById('total_orden').innerText = `$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    }
+
+    function actualizarContador() {
+        const count = contenedor.querySelectorAll('.item-row').length;
+        document.getElementById('contador_registros')?.innerText = `${count} Items`; // Para consistencia
+        document.getElementById('contador_items').innerText = `${count} Items`;
+    }
+</script>
 {% endblock %}
