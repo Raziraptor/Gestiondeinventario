@@ -3697,16 +3697,3 @@ if __name__ == '__main__':
     modo_debug = os.environ.get('FLASK_DEBUG', 'False') == 'True'
     app.run(host='0.0.0.0', port=5000, debug=modo_debug)
     app.run(debug=True, port=5000)
-
-@app.route('/fix_db_detalle')
-@login_required
-def fix_db_detalle():
-    if current_user.rol != 'super_admin': return "Acceso denegado"
-    try:
-        # Agregamos la columna a la tabla de detalles de orden de compra
-        db.session.execute(text("ALTER TABLE orden_compra_detalle ADD COLUMN enlace_proveedor VARCHAR(500);"))
-        db.session.commit()
-        return "Columna enlace_proveedor añadida con éxito a OrdenCompraDetalle."
-    except Exception as e:
-        db.session.rollback()
-        return f"Error o la columna ya existe: {str(e)}"
