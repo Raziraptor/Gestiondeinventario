@@ -2789,14 +2789,14 @@ def nuevo_proyecto_oc():
             'id': p.id,
             'nombre': p.nombre,
             'codigo': p.codigo,
-            'precio_unitario': p.precio_unitario,
+            'precio_unitario': p.precio_unitario or p.costo_estandar or 0,
         })
         
-    # 2. Preparar Proveedores para JS (CORRECCIÓN AQUÍ)
+    # 2. Preparar Proveedores para JS
     proveedores_query = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
     proveedores_lista = [{'id': p.id, 'nombre': p.nombre} for p in proveedores_query]
 
-    # 3. Obtener Almacenes (siguen siendo objetos, se usan en un bucle Jinja normal)
+    # 3. Obtener Almacenes para Jinja
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
 
     if request.method == 'POST':
@@ -2804,71 +2804,72 @@ def nuevo_proyecto_oc():
             nombre_proyecto = request.form.get('nombre_proyecto')
             almacen_id = request.form.get('almacen_id')
             
+            # Validación de campo obligatorio
             if not nombre_proyecto:
-            flash("El nombre del proyecto es obligatorio.", "danger")
-                # Usamos return para no lanzar excepción y perder datos del form
+                flash("El nombre del proyecto es obligatorio.", "danger")
                 return render_template('proyecto_oc_form.html', 
-                           titulo="Crear OC de Proyecto",
-                           productos=productos_lista,
-                           proveedores=proveedores_lista,
-                           almacenes=almacenes,
-                           proyecto_oc=None,
-                           detalles_json=None)
+                                       titulo="Crear OC de Proyecto",
+                                       productos=productos_lista,
+                                       proveedores=proveedores_lista,
+                                       almacenes=almacenes,
+                                       orden=None) # Ajustado a 'orden' para el template
 
-            nueva_proyecto_oc = ProyectoOC(
+            # Crear la Cabecera de la Orden de Proyecto
+            nueva_orden = ProyectoOC(
                 nombre_proyecto=nombre_proyecto,
                 creador_id=current_user.id,
                 organizacion_id=org_id,
-                almacen_id=almacen_id
+                almacen_id=int(almacen_id) if (almacen_id and almacen_id.isdigit()) else None,
+                estado='borrador'
             )
-            db.session.add(nueva_proyecto_oc)
+            db.session.add(nueva_orden)
+            db.session.flush() # Para obtener el ID antes de insertar detalles
 
-            tipos = request.form.getlist('tipo_item[]')
-            productos_existentes_ids = request.form.getlist('producto_id_existente[]') 
-            productos_nuevos = request.form.getlist('producto_nuevo_descripcion[]')
+            # Capturar listas del formulario (ajustadas a los nombres del Canvas)
+            productos_ids = request.form.getlist('producto_id[]')
+            nombres_manuales = request.form.getlist('nombre_manual[]')
             cantidades = request.form.getlist('cantidad[]')
             costos = request.form.getlist('costo[]')
-            proveedores_sugeridos = request.form.getlist('proveedor_sugerido[]')
+            enlaces = request.form.getlist('enlace_proveedor[]')
+            comentarios = request.form.getlist('comentarios_detalle[]')
 
-            for i in range(len(tipos)):
-                if not cantidades[i] or not costos[i]:
+            for i in range(len(cantidades)):
+                # Validar que la línea tenga datos mínimos
+                if not cantidades[i] or float(cantidades[i]) <= 0:
                     continue 
 
                 detalle = ProyectoOCDetalle(
-                    proyecto_oc=nueva_proyecto_oc,
-                    cantidad=int(cantidades[i]),
+                    proyecto_oc_id=nueva_orden.id,
+                    cantidad=float(cantidades[i]),
                     costo_unitario=float(costos[i]),
-                    proveedor_sugerido=proveedores_sugeridos[i]
+                    enlace_proveedor=enlaces[i] if i < len(enlaces) else None,
+                    comentarios_detalle=comentarios[i] if i < len(comentarios) else None
                 )
                 
-                if tipos[i] == 'existente':
-                    # Asegurar que es un entero válido
-                    prod_id_val = int(productos_existentes_ids[i]) if productos_existentes_ids[i].isdigit() else 0
-                    if prod_id_val > 0:
-                        detalle.producto_id = prod_id_val
-                    else:
-                         detalle.producto_id = None # Evitar error de FK
-                else: 
-                    detalle.descripcion_nuevo = productos_nuevos[i]
+                # Determinar si es un producto de catálogo o manual
+                pid_raw = productos_ids[i] if i < len(productos_ids) else '0'
+                if pid_raw.isdigit() and int(pid_raw) > 0:
+                    detalle.producto_id = int(pid_raw)
+                else:
+                    detalle.descripcion_nuevo = nombres_manuales[i] if i < len(nombres_manuales) else "Producto sin nombre"
                 
                 db.session.add(detalle)
 
             db.session.commit()
-            flash(f'OC de Proyecto #{nueva_proyecto_oc.id} creada en "Borrador".', 'success')
+            flash(f'OC de Proyecto #{nueva_orden.id} creada exitosamente.', 'success')
             return redirect(url_for('lista_proyectos_oc'))
 
         except Exception as e:
             db.session.rollback()
-            print(f"ERROR OC PROYECTO: {e}") # Para ver en logs de Render
-            flash(f'Error al crear la OC de Proyecto: {e}', 'danger')
+            print(f"ERROR OC PROYECTO: {e}")
+            flash(f'Error al crear la OC de Proyecto: {str(e)}', 'danger')
     
     return render_template('proyecto_oc_form.html', 
                            titulo="Crear OC de Proyecto",
                            productos=productos_lista,
-                           proveedores=proveedores_lista, # <-- Pasamos la lista corregida
+                           proveedores=proveedores_lista,
                            almacenes=almacenes,
-                           proyecto_oc=None,
-                           detalles_json=None)
+                           orden=None)
 
 @app.route('/proyecto-oc/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
