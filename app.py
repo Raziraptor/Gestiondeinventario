@@ -390,6 +390,3281 @@ class Movimiento(db.Model):
         return f'<Movimiento {self.producto_id} ({self.cantidad})>'
     
 # --- MODELO 'ProyectoOC' MODIFICADO ---
+
+Conversación con Gemini
+Tú dijiste
+aqui esta el codigo del orden_form, revisa por favor el dato que me comentaste: {% extends 'base.html' %}
+
+
+
+{% block title %}{{ titulo }}{% endblock %}
+
+
+
+{% block content %}
+
+<style>
+
+    /* ==========================================
+
+       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+
+       ========================================== */
+
+       
+
+    /* Ajustes específicos para inputs/selects en modo oscuro */
+
+    [data-bs-theme="dark"] .form-control,
+
+    [data-bs-theme="dark"] .form-select,
+
+    [data-bs-theme="dark"] .input-group-text {
+
+        background-color: var(--card-bg) !important;
+
+        border-color: var(--glass-border) !important;
+
+        color: var(--bs-body-color) !important;
+
+    }
+
+    [data-bs-theme="dark"] .form-control:focus,
+
+    [data-bs-theme="dark"] .form-select:focus {
+
+        background-color: #1f2937 !important;
+
+        border-color: var(--bs-primary) !important;
+
+        color: #ffffff !important;
+
+    }
+
+    [data-bs-theme="dark"] .form-control:disabled,
+
+    [data-bs-theme="dark"] .form-select:disabled {
+
+        background-color: #111827 !important;
+
+        opacity: 0.7;
+
+    }
+
+    [data-bs-theme="dark"] .list-group-item {
+
+        background-color: var(--card-bg) !important;
+
+        border-color: var(--glass-border) !important;
+
+        color: var(--bs-body-color);
+
+    }
+
+    [data-bs-theme="dark"] .list-group-item:hover {
+
+        background-color: var(--hover-bg) !important;
+
+    }
+
+
+
+    /* Tarjetas de Producto (Líneas del carrito) */
+
+    .producto-linea {
+
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        background-color: var(--card-bg);
+
+    }
+
+    .producto-linea:hover {
+
+        border-color: var(--bs-primary) !important;
+
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+
+    }
+
+    [data-bs-theme="dark"] .producto-linea:hover {
+
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+
+    }
+
+
+
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+
+    .theme-switch-wrapper {
+
+        position: relative;
+
+        width: 44px;
+
+        height: 44px;
+
+        border-radius: 50%;
+
+        cursor: pointer;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        background-color: var(--card-bg);
+
+        border: 1px solid var(--glass-border);
+
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+
+        overflow: hidden;
+
+        box-shadow: var(--card-shadow);
+
+    }
+
+    .theme-switch-wrapper:hover {
+
+        transform: scale(1.08);
+
+    }
+
+    .theme-switch-icon {
+
+        position: absolute;
+
+        font-size: 1.3rem;
+
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+
+    }
+
+    /* Estado inicial: MODO CLARO */
+
+    .theme-switch-sun {
+
+        color: #f59e0b; /* Amber */
+
+        transform: translateY(0) rotate(0deg);
+
+        opacity: 1;
+
+    }
+
+    .theme-switch-moon {
+
+        color: #e2e8f0;
+
+        transform: translateY(30px) rotate(90deg);
+
+        opacity: 0;
+
+    }
+
+    
+
+    /* Estado: MODO OSCURO */
+
+    [data-bs-theme="dark"] .theme-switch-sun {
+
+        transform: translateY(-30px) rotate(-90deg);
+
+        opacity: 0;
+
+    }
+
+    [data-bs-theme="dark"] .theme-switch-moon {
+
+        transform: translateY(0) rotate(0deg);
+
+        opacity: 1;
+
+    }
+
+</style>
+
+
+
+<!-- Cargar librería para leer QR/Barras -->
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js" type="text/javascript"></script>
+
+
+
+<div class="container-fluid mt-3 mb-5">
+
+
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+
+    <div class="d-flex justify-content-end mb-2">
+
+        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ENCABEZADO -->
+
+    <div class="text-center mb-5">
+
+        <h2 class="fw-bold fs-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ titulo }}</h2>
+
+        <p class="text-muted fs-5">
+
+            Genera una nueva solicitud de abastecimiento para tus almacenes
+
+        </p>
+
+    </div>
+
+
+
+    <form method="POST" action="{{ url_for('editar_orden', id=orden.id) if orden else url_for('nueva_orden_manual') }}" id="form_orden">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        
+
+        <!-- ==========================================
+
+             SECCIÓN 1: DATOS GENERALES
+
+             ========================================== -->
+
+        <div class="card shadow-sm mb-4 border-0 rounded-4">
+
+            <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center">
+
+                <h5 class="mb-0 fw-bold text-body"><i class="bi bi-info-circle text-primary me-2"></i>Datos de la Orden</h5>
+
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+
+                <div class="row g-4">
+
+                    <!-- Proveedor -->
+
+                    <div class="col-md-6">
+
+                        <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Proveedor</label>
+
+                        <div class="input-group input-group-lg shadow-sm">
+
+                            <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-building text-secondary"></i></span>
+
+                            <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="proveedor_id" name="proveedor_id" 
+
+                                    {% if orden %}disabled{% endif %} required>
+
+                                <option value="">-- Selecciona un proveedor --</option>
+
+                                {% for prov in proveedores %}
+
+                                    <option value="{{ prov.id }}" 
+
+                                            {% if orden and orden.proveedor_id == prov.id %}selected{% endif %}>
+
+                                        {{ prov.nombre }}
+
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+                        {% if orden %}
+
+                            <!-- Input oculto para que el servidor reciba el dato aunque el select esté disabled -->
+
+                            <input type="hidden" id="hidden_proveedor_id" name="proveedor_id" value="{{ orden.proveedor_id }}">
+
+                            <div class="form-text text-muted mt-2"><i class="bi bi-lock-fill me-1"></i>No se puede cambiar el proveedor de una orden existente.</div>
+
+                        {% endif %}
+
+                    </div>
+
+                    
+
+                    <!-- Almacén -->
+
+                    <div class="col-md-6">
+
+                        <label for="almacen_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Almacén de Destino</label>
+
+                        <div class="input-group input-group-lg shadow-sm">
+
+                            <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-shop text-secondary"></i></span>
+
+                            <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="almacen_id" name="almacen_id" 
+
+                                    {% if orden %}disabled{% endif %} required>
+
+                                <option value="">-- Selecciona un almacén --</option>
+
+                                {% for alm in almacenes %}
+
+                                    <option value="{{ alm.id }}" 
+
+                                            {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>
+
+                                        {{ alm.nombre }}
+
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+                        {% if orden %}
+
+                            <input type="hidden" name="almacen_id" value="{{ orden.almacen_id }}">
+
+                            <div class="form-text text-muted mt-2"><i class="bi bi-lock-fill me-1"></i>No se puede cambiar el almacén de una orden existente.</div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ==========================================
+
+             SECCIÓN 2: BÚSQUEDA Y ESCANEO
+
+             ========================================== -->
+
+        <div class="card shadow-sm mb-5 border-0 rounded-4">
+
+            <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-info border-opacity-50 d-flex justify-content-between align-items-center">
+
+                <h5 class="mb-0 fw-bold text-body"><i class="bi bi-search text-info me-2"></i>Buscar o Escanear Producto</h5>
+
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+
+                
+
+                <div id="mensaje_bloqueo_buscador" class="alert alert-warning border-warning border-opacity-25 shadow-sm rounded-3 py-3 mb-4 d-flex align-items-center" style="display: none;">
+
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+
+                    <div>Primero selecciona un <strong>Proveedor</strong> y un <strong>Almacén</strong> en la parte superior para habilitar el buscador.</div>
+
+                </div>
+
+
+
+                <!-- ÁREA DE CÁMARA (Oculta por defecto) -->
+
+                <div id="reader-container" class="mb-4 shadow-sm border border-secondary border-opacity-25 rounded-4 bg-light p-3" style="display: none;">
+
+                    <div id="reader" style="width: 100%; max-width: 600px; margin: 0 auto; border-radius: 8px; overflow: hidden;"></div>
+
+                    <div class="text-center mt-3">
+
+                        <button type="button" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="detenerEscaner()">
+
+                            <i class="bi bi-stop-circle me-1"></i> Detener Cámara
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="position-relative">
+
+                    <div class="input-group input-group-lg shadow-sm">
+
+                        <span class="input-group-text bg-light border-secondary border-opacity-25 text-primary"><i class="bi bi-upc-scan"></i></span>
+
+                        <input type="text" id="buscador" class="form-control bg-light border-secondary border-opacity-25 fs-6" 
+
+                               placeholder="Escribe Nombre, SKU o escanea un código..." autocomplete="off" disabled>
+
+                        
+
+                        <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" onclick="iniciarEscaner()" disabled>
+
+                            <i class="bi bi-qr-code-scan me-1"></i> <span class="d-none d-sm-inline">Escanear</span>
+
+                        </button>
+
+                    </div>
+
+
+
+                    <!-- Lista flotante de sugerencias -->
+
+                    <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg border-secondary border-opacity-25 rounded-3" 
+
+                         style="z-index: 1050; top: 100%; display: none; max-height: 300px; overflow-y: auto; margin-top: 5px;">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ==========================================
+
+             SECCIÓN 3: LISTA DE PRODUCTOS (CARRITO)
+
+             ========================================== -->
+
+        <div class="d-flex justify-content-between align-items-end mb-3 mt-5 px-2">
+
+            <h4 class="fw-bold mb-0 text-body"><i class="bi bi-box-seam text-primary me-2"></i>Artículos Solicitados</h4>
+
+            <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3 px-4 py-2 shadow-sm text-center">
+
+                <small class="text-uppercase text-success fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Total Estimado</small>
+
+                <h3 class="text-success fw-bold mb-0">$<span id="gran_total">0.00</span></h3>
+
+            </div>
+
+        </div>
+
+
+
+        <div id="lineas_productos_container" class="mb-5">
+
+            
+
+            {% if orden %}
+
+                <!-- CARGA DE PRODUCTOS EXISTENTES (EDICIÓN) -->
+
+                {% for detalle in orden.detalles %}
+
+                    {% set p_match = productos | selectattr("id", "equalto", detalle.producto_id) | first %}
+
+                    {% set factor = p_match.unidades_por_caja if p_match and 'unidades_por_caja' in p_match else 1 %}
+
+                    
+
+                    <!-- Verificamos si hay un enlace en el detalle o si no, heredamos el del producto original -->
+
+                    {% set enlace_actual = detalle.enlace if detalle.enlace else (p_match.get('enlace', '') if p_match else '') %}
+
+                    
+
+                    <div class="producto-linea border border-secondary border-opacity-25 p-4 rounded-4 shadow-sm mb-3">
+
+                        <div class="row g-3 align-items-center">
+
+                            <!-- Producto Info -->
+
+                            <div class="col-md-3">
+
+                                <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Producto</label>
+
+                                <div class="fw-bold fs-6 text-body">{{ p_match.nombre if p_match else 'Producto ' ~ detalle.producto_id }}</div>
+
+                                <div class="d-flex align-items-center gap-2 mt-1">
+
+                                    <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25 font-monospace"><i class="bi bi-upc opacity-50 me-1"></i>{{ p_match.codigo if p_match else 'N/A' }}</span>
+
+                                    <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.65rem;"><i class="bi bi-box-seam me-1"></i>Caja: {{ factor }} ud(s)</span>
+
+                                </div>
+
+                                <input type="hidden" name="producto_id[]" value="{{ detalle.producto_id }}">
+
+                                <input type="hidden" class="factor-empaque" value="{{ factor }}">
+
+                            </div>
+
+                            
+
+                            <!-- Cajas -->
+
+                            <div class="col-md-2">
+
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cajas</label>
+
+                                <div class="input-group input-group-sm shadow-sm">
+
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
+
+                                    <input type="number" name="cajas[]" class="form-control bg-light border-secondary border-opacity-25 cajas-input text-center fw-bold" 
+
+                                           value="{{ (detalle.cantidad_solicitada / factor) | round(2, 'floor') }}" min="0" step="0.01">
+
+                                </div>
+
+                            </div>
+
+
+
+                            <!-- Unidades -->
+
+                            <div class="col-md-2">
+
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Total Unid.</label>
+
+                                <input type="number" name="cantidad[]" class="form-control form-control-sm bg-light border-secondary border-opacity-25 unidades-input text-center fw-bold shadow-sm" 
+
+                                       value="{{ detalle.cantidad_solicitada }}" min="1" required>
+
+                            </div>
+
+
+
+                            <!-- Costo Unitario -->
+
+                            <div class="col-md-3">
+
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Costo Unit.</label>
+
+                                <div class="input-group input-group-sm shadow-sm">
+
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25 text-success fw-bold">$</span>
+
+                                    <input type="number" name="costo[]" class="form-control bg-light border-secondary border-opacity-25 costo-input fw-bold text-dark" 
+
+                                           value="{{ '%.2f'|format(detalle.costo_unitario_estimado) }}" step="0.01" min="0" required>
+
+                                </div>
+
+                                <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
+
+                            </div>
+
+
+
+                            <!-- Botón Quitar -->
+
+                            <div class="col-md-2 text-end">
+
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm fw-bold w-100" onclick="eliminarLinea(this)">
+
+                                    <i class="bi bi-trash"></i> Quitar
+
+                                </button>
+
+                            </div>
+
+                            
+
+                            <!-- Campo de Enlace Opcional -->
+
+                            <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
+
+                                <div class="input-group input-group-sm">
+
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25 {% if enlace_actual %}text-primary fw-bold{% else %}text-secondary{% endif %}" style="font-size: 0.75rem;">
+
+                                        <i class="bi bi-link-45deg me-1"></i> Enlace
+
+                                    </span>
+
+                                    <input type="url" name="enlace[]" class="form-control bg-light border-secondary border-opacity-25" 
+
+                                           placeholder="https://ejemplo.com/producto (Opcional)" value="{{ enlace_actual }}">
+
+                                </div>
+
+                                {% if enlace_actual %}
+
+                                    <div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace recuperado.</div>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <!-- Mensaje vacío inicial -->
+
+                <div id="mensaje_vacio" class="text-center text-muted py-5 border border-secondary border-opacity-25 rounded-4 border-dashed" style="background-color: var(--card-bg);">
+
+                    <i class="bi bi-cart shadow-sm p-4 rounded-circle fs-1 opacity-25 d-inline-block mb-3 bg-light"></i>
+
+                    <h5 class="fw-bold text-body">El carrito está vacío</h5>
+
+                    <p class="mb-0">Usa el buscador o escáner de arriba para agregar productos a esta orden.</p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+        
+
+        <!-- ==========================================
+
+             SECCIÓN 4: BOTONES FINALES
+
+             ========================================== -->
+
+        <hr class="border-secondary border-opacity-25 mb-4">
+
+        <div class="d-grid gap-3 d-md-flex justify-content-md-end mb-5">
+
+            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm px-4 py-3">
+
+                Cancelar
+
+            </a>
+
+            <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-5 py-3">
+
+                <i class="bi bi-save me-2"></i> Guardar Orden de Compra
+
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+
+<!-- SONIDO DE BEEP -->
+
+<audio id="audio_beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+
+
+
+<!-- JAVASCRIPT -->
+
+<script>
+
+    // ==========================================
+
+    // 0. SISTEMA DE TEMA (MODO CLARO / OSCURO)
+
+    // ==========================================
+
+    const themeToggleBtn = document.getElementById('theme-toggle');
+
+    const htmlElement = document.documentElement;
+
+
+
+    function applyTheme(theme) {
+
+        htmlElement.setAttribute('data-bs-theme', theme);
+
+        localStorage.setItem('app_theme', theme);
+
+    }
+
+
+
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+
+    applyTheme(savedTheme);
+
+
+
+    if(themeToggleBtn) {
+
+        themeToggleBtn.addEventListener('click', () => {
+
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+
+        });
+
+    }
+
+
+
+    // ==========================================
+
+    // 1. INICIALIZACIÓN DE VARIABLES Y LÓGICA OC
+
+    // ==========================================
+
+    const todosLosProductos = {{ productos | tojson | safe }};
+
+    
+
+    const selectProveedor = document.getElementById('proveedor_id');
+
+    const hiddenProveedor = document.getElementById('hidden_proveedor_id');
+
+    const selectAlmacen = document.getElementById('almacen_id');
+
+    const buscador = document.getElementById('buscador');
+
+    const btnEscanear = document.getElementById('btn_escanear');
+
+    const sugerencias = document.getElementById('lista_sugerencias');
+
+    const container = document.getElementById('lineas_productos_container');
+
+    const mensajeVacio = document.getElementById('mensaje_vacio');
+
+    const mensajeBloqueo = document.getElementById('mensaje_bloqueo_buscador');
+
+    const granTotalSpan = document.getElementById('gran_total');
+
+    const audioBeep = document.getElementById('audio_beep');
+
+
+
+    // Función auxiliar para obtener el ID del proveedor
+
+    function getProveedorId() {
+
+        return selectProveedor.value || (hiddenProveedor ? hiddenProveedor.value : "");
+
+    }
+
+
+
+    // --- ACTIVAR/DESACTIVAR BUSCADOR ---
+
+    function verificarEstadoBuscador() {
+
+        const provId = getProveedorId();
+
+        const almId = selectAlmacen.value;
+
+
+
+        if (provId && almId) {
+
+            buscador.disabled = false;
+
+            btnEscanear.disabled = false;
+
+            mensajeBloqueo.style.display = 'none';
+
+        } else {
+
+            buscador.disabled = true;
+
+            btnEscanear.disabled = true;
+
+            mensajeBloqueo.style.display = 'block';
+
+        }
+
+    }
+
+
+
+    if(selectProveedor) {
+
+        selectProveedor.addEventListener('change', function() {
+
+            const lineas = container.querySelectorAll('.producto-linea');
+
+            if(lineas.length > 0) {
+
+                if(confirm("Si cambias de proveedor, se borrarán los productos actuales de la orden. ¿Continuar?")) {
+
+                    container.innerHTML = '';
+
+                    if(mensajeVacio) {
+
+                        container.appendChild(mensajeVacio);
+
+                        mensajeVacio.style.display = 'block';
+
+                    }
+
+                    recalcularTotales();
+
+                } else {
+
+                    // Revertir no es trivial, se asume que el usuario acepta
+
+                }
+
+            }
+
+            verificarEstadoBuscador();
+
+        });
+
+    }
+
+    
+
+    if(selectAlmacen) selectAlmacen.addEventListener('change', verificarEstadoBuscador);
+
+    
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        verificarEstadoBuscador();
+
+        recalcularTotales();
+
+    });
+
+
+
+
+
+    // ==========================================
+
+    // 2. LÓGICA DE BÚSQUEDA Y ESCÁNER
+
+    // ==========================================
+
+    let html5QrcodeScanner = null;
+
+    let isScanning = false;
+
+    let ultimoCodigo = null;
+
+
+
+    function iniciarEscaner() {
+
+        if (isScanning || !getProveedorId()) return;
+
+        document.getElementById('reader-container').style.display = 'block';
+
+        html5QrcodeScanner = new Html5Qrcode("reader");
+
+        html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess, () => {})
+
+        .then(() => { isScanning = true; btnEscanear.classList.add('disabled'); })
+
+        .catch(err => { alert("No se pudo acceder a la cámara."); document.getElementById('reader-container').style.display = 'none'; });
+
+    }
+
+
+
+    function detenerEscaner() {
+
+        if (html5QrcodeScanner && isScanning) {
+
+            html5QrcodeScanner.stop().then(() => {
+
+                document.getElementById('reader-container').style.display = 'none';
+
+                btnEscanear.classList.remove('disabled');
+
+                html5QrcodeScanner.clear();
+
+                isScanning = false;
+
+            });
+
+        }
+
+    }
+
+
+
+    function onScanSuccess(decodedText) {
+
+        if (decodedText === ultimoCodigo) return; 
+
+        ultimoCodigo = decodedText;
+
+        setTimeout(() => ultimoCodigo = null, 2000);
+
+
+
+        try { audioBeep.play(); } catch(e) {}
+
+
+
+        const provId = getProveedorId();
+
+        const producto = todosLosProductos.find(p => p.codigo.toLowerCase() === decodedText.toLowerCase() && p.proveedor_id == provId);
+
+        
+
+        if (producto) {
+
+            agregarProducto(producto);
+
+        } else {
+
+            alert(`El código ${decodedText} no existe o no pertenece a este proveedor.`);
+
+        }
+
+    }
+
+
+
+    // Buscador manual (Typeahead)
+
+    buscador.addEventListener('input', function() {
+
+        const query = this.value.toLowerCase().trim();
+
+        const provId = getProveedorId();
+
+        sugerencias.innerHTML = ''; 
+
+
+
+        if (query.length === 0 || !provId) {
+
+            sugerencias.style.display = 'none';
+
+            return;
+
+        }
+
+
+
+        const resultados = todosLosProductos.filter(p => 
+
+            p.proveedor_id == provId && 
+
+            (p.nombre.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query))
+
+        );
+
+
+
+        if (resultados.length > 0) {
+
+            sugerencias.style.display = 'block';
+
+            resultados.forEach(p => {
+
+                const item = document.createElement('a');
+
+                item.href = '#';
+
+                item.classList.add('list-group-item', 'list-group-item-action', 'py-3');
+
+                
+
+                const factorTexto = p.unidades_por_caja ? ` (Caja: ${p.unidades_por_caja} uds)` : '';
+
+                // Asumimos que si existe un enlace base en el producto, lo mostramos como hint
+
+                const linkIcon = p.enlace ? '<i class="bi bi-link-45deg text-primary ms-2" title="Tiene enlace automático"></i>' : '';
+
+                
+
+                item.innerHTML = `
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <div>
+
+                            <strong class="text-body">${p.nombre}</strong> ${linkIcon}<br>
+
+                            <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}${factorTexto}</small>
+
+                        </div>
+
+                        <span class="badge bg-success shadow-sm px-2 py-1">$${p.precio_unitario || p.costo || '0.00'}</span>
+
+                    </div>
+
+                `;
+
+
+
+                item.onclick = (e) => {
+
+                    e.preventDefault();
+
+                    agregarProducto(p);
+
+                    buscador.value = '';
+
+                    sugerencias.style.display = 'none';
+
+                    buscador.focus();
+
+                };
+
+                sugerencias.appendChild(item);
+
+            });
+
+        } else {
+
+            sugerencias.style.display = 'none';
+
+        }
+
+    });
+
+
+
+    document.addEventListener('click', (e) => {
+
+        if (e.target !== buscador) sugerencias.style.display = 'none';
+
+    });
+
+
+
+
+
+    // ==========================================
+
+    // 3. LÓGICA DE CARRITO Y CÁLCULOS
+
+    // ==========================================
+
+    function agregarProducto(producto) {
+
+        if (mensajeVacio) mensajeVacio.style.display = 'none';
+
+
+
+        // Evitar duplicados: Sumar caja
+
+        const existingInput = document.querySelector(`input[name="producto_id[]"][value="${producto.id}"]`);
+
+        if (existingInput) {
+
+            const row = existingInput.closest('.producto-linea');
+
+            const cajasInput = row.querySelector('.cajas-input');
+
+            cajasInput.value = parseFloat(cajasInput.value) + 1;
+
+            cajasInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+            
+
+            row.style.borderColor = "var(--bs-primary)";
+
+            row.style.boxShadow = "0 0 15px rgba(79, 70, 229, 0.3)";
+
+            setTimeout(() => { 
+
+                row.style.borderColor = ""; 
+
+                row.style.boxShadow = ""; 
+
+            }, 800);
+
+            return;
+
+        }
+
+
+
+        const factor = producto.unidades_por_caja || 1;
+
+        const costo = parseFloat(producto.precio_unitario || producto.costo || 0).toFixed(2);
+
+        
+
+        // Pre-cargar el enlace del producto si existe en el catálogo
+
+        const enlace = producto.enlace || '';
+
+        const linkEstilos = enlace ? 'text-primary fw-bold' : 'text-secondary';
+
+        const linkMensaje = enlace ? `<div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace auto-detectado.</div>` : '';
+
+
+
+        const div = document.createElement('div');
+
+        div.classList.add('producto-linea', 'border', 'border-secondary', 'border-opacity-25', 'p-4', 'rounded-4', 'shadow-sm', 'mb-3');
+
+        
+
+        div.innerHTML = `
+
+            <div class="row g-3 align-items-center">
+
+                <!-- Info Producto -->
+
+                <div class="col-md-3">
+
+                    <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Producto</label>
+
+                    <div class="fw-bold fs-6 text-body">${producto.nombre}</div>
+
+                    <div class="d-flex align-items-center gap-2 mt-1">
+
+                        <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary border-opacity-25 font-monospace"><i class="bi bi-upc opacity-50 me-1"></i>${producto.codigo}</span>
+
+                        <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.65rem;"><i class="bi bi-box-seam me-1"></i>Caja: ${factor} ud(s)</span>
+
+                    </div>
+
+                    <input type="hidden" name="producto_id[]" value="${producto.id}">
+
+                    <input type="hidden" class="factor-empaque" value="${factor}">
+
+                </div>
+
+                
+
+                <!-- Cajas -->
+
+                <div class="col-md-2">
+
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Cajas</label>
+
+                    <div class="input-group input-group-sm shadow-sm">
+
+                        <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
+
+                        <input type="number" name="cajas[]" class="form-control bg-light border-secondary border-opacity-25 cajas-input text-center fw-bold" value="1" min="0" step="0.01">
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- Unidades -->
+
+                <div class="col-md-2">
+
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Total Unid.</label>
+
+                    <input type="number" name="cantidad[]" class="form-control form-control-sm bg-light border-secondary border-opacity-25 unidades-input text-center fw-bold shadow-sm" value="${factor}" min="1" required>
+
+                </div>
+
+
+
+                <!-- Costo Unitario -->
+
+                <div class="col-md-3">
+
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Costo Unit.</label>
+
+                    <div class="input-group input-group-sm shadow-sm">
+
+                        <span class="input-group-text bg-light border-secondary border-opacity-25 text-success fw-bold">$</span>
+
+                        <input type="number" name="costo[]" class="form-control bg-light border-secondary border-opacity-25 costo-input fw-bold text-dark" value="${costo}" step="0.01" min="0" required>
+
+                    </div>
+
+                    <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
+
+                </div>
+
+
+
+                <!-- Botón Quitar -->
+
+                <div class="col-md-2 text-end">
+
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-sm fw-bold w-100" onclick="eliminarLinea(this)">
+
+                        <i class="bi bi-trash"></i> Quitar
+
+                    </button>
+
+                </div>
+
+
+
+                <!-- Campo de Enlace (Auto-Completado si existe) -->
+
+                <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
+
+                    <div class="input-group input-group-sm">
+
+                        <span class="input-group-text bg-light border-secondary border-opacity-25 ${linkEstilos}" style="font-size: 0.75rem;">
+
+                            <i class="bi bi-link-45deg me-1"></i> Enlace
+
+                        </span>
+
+                        <input type="url" name="enlace[]" class="form-control bg-light border-secondary border-opacity-25" 
+
+                               placeholder="https://ejemplo.com/producto (Opcional)" value="${enlace}">
+
+                    </div>
+
+                    ${linkMensaje}
+
+                </div>
+
+            </div>
+
+        `;
+
+
+
+        container.appendChild(div);
+
+        recalcularTotales();
+
+    }
+
+
+
+    container.addEventListener('input', function(e) {
+
+        const row = e.target.closest('.producto-linea');
+
+        if (!row) return;
+
+
+
+        const factor = parseFloat(row.querySelector('.factor-empaque').value) || 1;
+
+        const inputCajas = row.querySelector('.cajas-input');
+
+        const inputUnidades = row.querySelector('.unidades-input');
+
+
+
+        if (e.target.classList.contains('cajas-input')) {
+
+            const cajas = parseFloat(inputCajas.value) || 0;
+
+            inputUnidades.value = Math.ceil(cajas * factor); 
+
+        }
+
+        else if (e.target.classList.contains('unidades-input')) {
+
+            const unidades = parseInt(inputUnidades.value) || 0;
+
+            inputCajas.value = (unidades / factor).toFixed(2);
+
+        }
+
+
+
+        recalcularTotales();
+
+    });
+
+
+
+    window.eliminarLinea = function(boton) {
+
+        boton.closest('.producto-linea').remove();
+
+        const items = document.getElementsByName('producto_id[]');
+
+        if (items.length === 0 && mensajeVacio) {
+
+            mensajeVacio.style.display = 'block';
+
+        }
+
+        recalcularTotales();
+
+    }
+
+
+
+    function recalcularTotales() {
+
+        let granTotal = 0;
+
+        const lineas = document.querySelectorAll('.producto-linea');
+
+        
+
+        lineas.forEach(linea => {
+
+            const unidades = parseInt(linea.querySelector('.unidades-input').value) || 0;
+
+            const costoUnitario = parseFloat(linea.querySelector('.costo-input').value) || 0;
+
+            
+
+            const subtotal = unidades * costoUnitario;
+
+            granTotal += subtotal;
+
+            
+
+            const labelSubtotal = linea.querySelector('.subtotal-linea');
+
+            if(labelSubtotal) {
+
+                // Formateamos con comas para la vista en pantalla
+
+                labelSubtotal.innerText = `Sub: $${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            }
+
+        });
+
+
+
+        granTotalSpan.innerText = granTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+    }
+
+</script>
+
+{% endblock %}
+
+Gemini dijo
+He revisado el código que me has compartido y, efectivamente, el problema de por qué no se mostraban los enlaces al editar una orden existente estaba en el nombre del atributo dentro de la plantilla HTML.
+
+Como me comentaste que el campo en la base de datos se llama enlace_proveedor, en el archivo app.py ya lo estamos mapeando correctamente, pero en la plantilla orden_form.html estábamos intentando leer detalle.enlace en lugar de detalle.enlace_proveedor.
+
+He actualizado el Canvas con la versión final de las funciones en app.py y a continuación te genero el archivo orden_form.html con la corrección aplicada en la línea de detección de enlaces.
+
+He actualizado las funciones de app.py en el Canvas para asegurar que el guardado (POST) y la lectura (GET) utilicen consistentemente el nombre de campo enlace_proveedor. También he generado el archivo templates/orden_form.html con la corrección necesaria para que el enlace se detecte correctamente en el modo de edición.
+
+Recuerda que para que estos cambios tengan efecto, la columna enlace_proveedor debe existir tanto en tu tabla Producto como en OrdenCompraDetalle.
+
+¿Deseas que revisemos alguna otra vista o módulo?
+
+Tú dijiste
+pudes darme el orden_form.html
+
+Gemini dijo
+Aquí tienes el archivo orden_form.html completo y actualizado. He asegurado que la lógica de detección de enlaces use el nombre de columna correcto (enlace_proveedor) y que el diseño sea totalmente responsivo y compatible con el modo oscuro.
+
+He actualizado el archivo con las siguientes mejoras críticas:
+
+Detección de Enlaces: En el modo de edición (Jinja), ahora busca detalle.enlace_proveedor. En el modo de búsqueda (JS), busca producto.enlace (ya que tu app.py lo mapea así).
+
+Visualización Inteligente: El distintivo "Enlace auto-detectado" aparece solo cuando el catálogo tiene un link guardado, ayudando al usuario a saber qué productos ya están configurados.
+
+Cálculo de Cajas: Mantiene la lógica bidireccional (Cajas ↔ Unidades) basada en el empaque configurado.
+
+UI Adaptable: Bordes más suaves, sombras profundas y compatibilidad total con el modo oscuro de tu sistema.
+
+Tú dijiste
+acabo de tener este error: AssertionError: View function mapping is overwriting an exi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860521]: [2026-03-18 00:34:35 +0000] [860521] [INFO] Worker exiting >
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]: [2026-03-18 00:34:35 +0000] [860522] [ERROR] Exception in w>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]: Traceback (most recent call last):
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ar>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     worker.init_process()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/wo>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     self.load_wsgi()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/wo>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     self.wsgi = self.app.wsgi()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ap>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     self.callable = self.load()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ap>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     return self.load_wsgiapp()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ap>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     return util.import_app(self.app_uri)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ut>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     mod = importlib.import_module(module)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/usr/lib/python3.10/importlib/__init__.py", line 12>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     return _bootstrap._gcd_import(name[level:], package, le>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "<frozen importlib._bootstrap>", line 1050, in _gcd_>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "<frozen importlib._bootstrap>", line 1027, in _find>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "<frozen importlib._bootstrap>", line 1006, in _find>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "<frozen importlib._bootstrap>", line 688, in _load_>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "<frozen importlib._bootstrap_external>", line 883, >
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "<frozen importlib._bootstrap>", line 241, in _call_>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/Gestiondeinventario/app.py", line 2587, in <m>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     def nueva_orden_manual():
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/flask/sansi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     self.add_url_rule(rule, endpoint, f, **options)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/flask/sansi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     return f(self, *args, **kwargs)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:   File "/root/venv/lib/python3.10/site-packages/flask/sansi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]:     raise AssertionError(
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]: AssertionError: View function mapping is overwriting an exi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860522]: [2026-03-18 00:34:35 +0000] [860522] [INFO] Worker exiting >
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]: [2026-03-18 00:34:35 +0000] [860523] [ERROR] Exception in w>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]: Traceback (most recent call last):
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ar>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     worker.init_process()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/wo>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     self.load_wsgi()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/wo>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     self.wsgi = self.app.wsgi()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ap>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     self.callable = self.load()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ap>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     return self.load_wsgiapp()
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ap>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     return util.import_app(self.app_uri)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/gunicorn/ut>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     mod = importlib.import_module(module)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/usr/lib/python3.10/importlib/__init__.py", line 12>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     return _bootstrap._gcd_import(name[level:], package, le>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "<frozen importlib._bootstrap>", line 1050, in _gcd_>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "<frozen importlib._bootstrap>", line 1027, in _find>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "<frozen importlib._bootstrap>", line 1006, in _find>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "<frozen importlib._bootstrap>", line 688, in _load_>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "<frozen importlib._bootstrap_external>", line 883, >
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "<frozen importlib._bootstrap>", line 241, in _call_>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/Gestiondeinventario/app.py", line 2587, in <m>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     def nueva_orden_manual():
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/flask/sansi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     self.add_url_rule(rule, endpoint, f, **options)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/flask/sansi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     return f(self, *args, **kwargs)
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:   File "/root/venv/lib/python3.10/site-packages/flask/sansi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]:     raise AssertionError(
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]: AssertionError: View function mapping is overwriting an exi>
+
+Mar 18 00:34:35 Gestordeinventario gunicorn[860523]: [2026-03-18 00:34:35 +0000] [860523] [INFO] Worker exiting >
+
+lines 54-100/100 (END)
+
+Gemini dijo
+Este error (AssertionError: View function mapping is overwriting an existing endpoint function) ocurre porque tienes la función nueva_orden_manual definida dos veces en tu archivo app.py.
+
+Cuando Flask arranca, intenta registrar cada ruta, pero al encontrar dos funciones con el mismo nombre (nueva_orden_manual), se bloquea para evitar ambigüedades. Probablemente al pegar el código que te pasé anteriormente, dejaste la versión vieja en el archivo.
+
+Para solucionarlo:
+
+Abre tu archivo app.py.
+
+Busca la línea 2587 (según tu log de error).
+
+Verás que hay dos bloques que empiezan con @app.route('/orden/nueva/manual'...).
+
+Borra ambas versiones y pega únicamente esta versión corregida que incluye el soporte para enlace_proveedor que revisamos hace un momento.
+
+He actualizado el archivo Rutas de Órdenes en el Canvas con el código limpio y consolidado para que lo copies sin duplicados.
+
+He actualizado el código en el Canvas para que tengas las dos funciones necesarias sin repeticiones. Una vez que borres la función duplicada de tu archivo app.py, el error desaparecerá al reiniciar Gunicorn.
+
+Tú dijiste
+ya vi el error, elimine la ruta editar_orden y agregue esa de nuevo por accidente, pudieras darme la ruta que falta
+
+Gemini dijo
+Entiendo perfectamente, es un error muy común al copiar y pegar bloques grandes de código. El error de AssertionError persistía porque seguías teniendo dos funciones con el mismo nombre, y al intentar borrar una, terminaste eliminando la que sí necesitabas.
+
+He preparado el bloque de código para Canvas con las dos rutas (nueva_orden_manual y editar_orden) correctamente identificadas para que puedas reemplazar ese sector de tu archivo app.py y todo vuelva a la normalidad.
+
+Con este código en Canvas tienes ambas funciones listas. Solo asegúrate de borrar las duplicadas en tu app.py antes de pegar estas para evitar que Gunicorn vuelva a lanzar el error de mapeo de funciones.
+
+Tú dijiste
+tuve este error, donde nos falta agregar?
+
+Gemini dijo
+El error invalid keyword argument indica que el modelo OrdenCompraDetalle en tu archivo app.py todavía no tiene definida la columna enlace_proveedor. Al intentar crear un objeto con ese parámetro, Python no lo reconoce y lanza el error.
+
+Para solucionarlo, debemos realizar dos pasos:
+
+En el código: Agregar la columna enlace_proveedor a la clase OrdenCompraDetalle.
+
+En la base de datos: Ejecutar un comando para crear físicamente esa columna (similar a lo que hicimos con la tabla de productos).
+
+He actualizado el Canvas para incluir la definición correcta del modelo y las rutas ajustadas.
+
+Pasos finales para corregir el error:
+Actualiza el código: Copia el contenido del Canvas a tu archivo app.py. Asegúrate de que la clase OrdenCompraDetalle ahora incluya la línea enlace_proveedor.
+
+Actualiza la base de datos: Reinicia tu servidor y entra en tu navegador a la dirección: http://tu-dominio.com/fix_db_detalle (estando logueado como administrador).
+
+Limpia: Una vez que veas el mensaje de éxito en el navegador, puedes borrar la ruta temporal /fix_db_detalle de tu código.
+
+Con esto, el error de "invalid keyword argument" desaparecerá porque Python ya sabrá que ese campo existe en el modelo.
+
+Tú dijiste
+genial, ya funciono, ahora modernicemos el ordenes.html, aprovechando la actualizacion, podemos agregar una funcion en los filtros para poder ocultar las ordenes canceladas, te paso el codigo actual:{% extends 'base.html' %}
+
+
+
+{% block title %}Órdenes de Compra{% endblock %}
+
+
+
+{% block content %}
+
+    <!-- ENCABEZADO -->
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h2><i class="bi bi-cart-check-fill"></i> Historial de Compras</h2>
+
+            <p class="text-muted mb-0">Gestión de aprovisionamiento y recepción de mercancía.</p>
+
+        </div>
+
+        <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary shadow-sm">
+
+            <i class="bi bi-plus-lg"></i> Crear OC Manual
+
+        </a>
+
+    </div>
+
+
+
+    <!-- SECCIÓN DE FILTROS -->
+
+    <div class="card bg-light mb-4 shadow-sm border-0">
+
+        <div class="card-body py-3">
+
+            <form method="GET" action="{{ url_for('lista_ordenes') }}" class="row g-2 align-items-end">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                
+
+                <div class="col-md-3">
+
+                    <label for="mes" class="form-label fw-bold small text-muted">Mes</label>
+
+                    <select id="mes" name="mes" class="form-select form-select-sm">
+
+                        {% for num, nombre in meses_lista %}
+
+                            <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
+
+                                {{ nombre }}
+
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                
+
+                <div class="col-md-2">
+
+                    <label for="ano" class="form-label fw-bold small text-muted">Año</label>
+
+                    <input type="number" id="ano" name="ano" class="form-control form-control-sm" 
+
+                           value="{{ ano_seleccionado }}" min="2020" max="2050">
+
+                </div>
+
+                
+
+                <div class="col-md-4">
+
+                    <label for="proveedor_id" class="form-label fw-bold small text-muted">Proveedor</label>
+
+                    <select id="proveedor_id" name="proveedor_id" class="form-select form-select-sm">
+
+                        <option value="0">-- Todos --</option>
+
+                        {% for prov in proveedores %}
+
+                            <option value="{{ prov.id }}" {% if prov.id == prov_seleccionado %}selected{% endif %}>
+
+                                {{ prov.nombre }}
+
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                
+
+                <div class="col-md-3 d-grid">
+
+                    <button type="submit" class="btn btn-secondary btn-sm">
+
+                        <i class="bi bi-filter"></i> Filtrar
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- GRID DE TARJETAS (VARIABLES VERIFICADAS) -->
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+
+        {% for orden in ordenes %}
+
+            
+
+            <!-- Lógica de estilos idéntica a tu código original pero adaptada a tarjetas -->
+
+            {% set border_class = 'border-warning' %}
+
+            {% set header_class = 'bg-warning text-dark' %}
+
+            {% set badge_class = 'bg-white text-warning' %}
+
+            {% set icon_state = 'bi-pencil-square' %}
+
+
+
+            {% if orden.estado == 'recibida' %}
+
+                {% set border_class = 'border-success' %}
+
+                {% set header_class = 'bg-success text-white' %}
+
+                {% set badge_class = 'bg-light text-success' %}
+
+                {% set icon_state = 'bi-check-circle-fill' %}
+
+            {% elif orden.estado == 'enviada' %}
+
+                {% set border_class = 'border-info' %}
+
+                {% set header_class = 'bg-info text-dark' %}
+
+                {% set badge_class = 'bg-light text-info' %}
+
+                {% set icon_state = 'bi-truck' %}
+
+            {% elif orden.estado == 'cancelada' %}
+
+                {% set border_class = 'border-secondary' %}
+
+                {% set header_class = 'bg-secondary text-white' %}
+
+                {% set badge_class = 'bg-light text-dark' %}
+
+                {% set icon_state = 'bi-x-circle-fill' %}
+
+            {% endif %}
+
+
+
+            <div class="col">
+
+                <div class="card h-100 shadow-sm {{ border_class }}">
+
+                    
+
+                    <!-- ENCABEZADO -->
+
+                    <div class="card-header {{ header_class }} d-flex justify-content-between align-items-center">
+
+                        <div>
+
+                            <h5 class="card-title mb-0 fw-bold fs-6">OC #{{ orden.id }}</h5>
+
+                            <small class="opacity-75">{{ orden.fecha_creacion.strftime('%d/%m/%Y') }}</small>
+
+                        </div>
+
+                        <span class="badge {{ badge_class }} border opacity-90">
+
+                            <i class="{{ icon_state }}"></i> {{ orden.estado.capitalize() }}
+
+                        </span>
+
+                    </div>
+
+
+
+                    <!-- CUERPO -->
+
+                    <div class="card-body">
+
+                        <!-- Proveedor y Creador -->
+
+                        <div class="mb-3">
+
+                            <h6 class="text-dark fw-bold mb-1">
+
+                                <i class="bi bi-building"></i> {{ orden.proveedor.nombre }}
+
+                            </h6>
+
+                            <small class="text-muted d-block">
+
+                                <i class="bi bi-person"></i> Creado por: {{ orden.creador.username }}
+
+                            </small>
+
+                            
+
+                            <!-- Verificación de variable cancelado_por -->
+
+                            {% if orden.estado == 'cancelada' and orden.cancelado_por %}
+
+                                <small class="text-danger d-block">
+
+                                    <i class="bi bi-person-x"></i> Cancelado por: {{ orden.cancelado_por.username }}
+
+                                </small>
+
+                            {% endif %}
+
+                        </div>
+
+
+
+                        <!-- Resumen de Items (Iterando sobre orden.detalles) -->
+
+                        <div class="bg-light border rounded p-2 small mb-3">
+
+                            <div class="d-flex justify-content-between border-bottom pb-1 mb-1">
+
+                                <strong class="text-muted">Items</strong>
+
+                                <span class="badge bg-white text-dark border">{{ orden.detalles|length }}</span>
+
+                            </div>
+
+                            <ul class="list-unstyled mb-0 text-muted">
+
+                                {% for detalle in orden.detalles %}
+
+                                    {% if loop.index <= 3 %}
+
+                                    <li class="d-flex justify-content-between py-1 border-bottom border-light">
+
+                                        <span class="text-truncate" style="max-width: 140px;">
+
+                                            <!-- Variable correcta: detalle.producto.nombre -->
+
+                                            {{ detalle.producto.nombre }}
+
+                                        </span>
+
+                                        <!-- Variable correcta: detalle.cantidad_solicitada -->
+
+                                        <span class="fw-bold text-dark">x{{ detalle.cantidad_solicitada }}</span>
+
+                                    </li>
+
+                                    {% endif %}
+
+                                {% endfor %}
+
+                                
+
+                                {% if (orden.detalles|length) > 3 %}
+
+                                    <li class="text-center fst-italic pt-1 text-muted" style="font-size: 0.7rem;">
+
+                                        + {{ (orden.detalles|length) - 3 }} items más...
+
+                                    </li>
+
+                                {% endif %}
+
+                            </ul>
+
+                        </div>
+
+
+
+                        <!-- Total -->
+
+                        <div class="text-center">
+
+                            <small class="text-uppercase text-muted" style="font-size: 0.7rem;">Total Estimado</small>
+
+                            <!-- Variable correcta: orden.costo_total -->
+
+                            <div class="fs-4 fw-bold text-dark">${{ "{:,.2f}".format(orden.costo_total) }}</div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- PIE: ACCIONES -->
+
+                    <div class="card-footer bg-white py-2">
+
+                        <div class="d-grid gap-2">
+
+                            
+
+                            <!-- Acciones según Estado (Lógica idéntica al original) -->
+
+                            {% if orden.estado != 'recibida' and orden.estado != 'enviada' and orden.estado != 'cancelada' %}
+
+                                <!-- ESTADO: BORRADOR (El 'else' del original) -->
+
+                                <div class="btn-group w-100">
+
+                                    <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-outline-warning btn-sm fw-bold text-dark">
+
+                                        <i class="bi bi-pencil"></i> Editar
+
+                                    </a>
+
+                                    <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" class="btn-group">
+
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                        <button type="submit" class="btn btn-info btn-sm fw-bold text-dark">
+
+                                            <i class="bi bi-send"></i> Enviar
+
+                                        </button>
+
+                                    </form>
+
+                                    <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" class="btn-group" 
+
+                                          onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden?');">
+
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                        <button type="submit" class="btn btn-secondary btn-sm" title="Cancelar">
+
+                                            <i class="bi bi-x-lg"></i>
+
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+
+
+                            {% elif orden.estado == 'enviada' %}
+
+                                <!-- ESTADO: ENVIADA (Aquí estaba el problema backend antes) -->
+
+                                <!-- El action debe ser exactamente este: -->
+
+                                <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" class="d-grid"
+
+                                      onsubmit="return confirm('¿Confirmas que la mercancía ha llegado físicamente al almacén?');">
+
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                    <button type="submit" class="btn btn-success btn-sm fw-bold shadow-sm">
+
+                                        <i class="bi bi-box-seam"></i> Marcar como "Recibida"
+
+                                    </button>
+
+                                </form>
+
+
+
+                            {% elif orden.estado == 'recibida' %}
+
+                                <!-- ESTADO: RECIBIDA -->
+
+                                <div class="text-center text-success small py-1 border border-success rounded bg-light">
+
+                                    <i class="bi bi-calendar-check"></i> Recibida el {{ orden.fecha_recepcion.strftime('%d/%m/%Y') }}
+
+                                </div>
+
+                            {% endif %}
+
+
+
+                            <!-- Botones Comunes -->
+
+                            <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+
+                                <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-link btn-sm text-secondary ps-0 text-decoration-none">
+
+                                    <i class="bi bi-eye"></i> Ver Detalle
+
+                                </a>
+
+                                <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-link btn-sm text-danger pe-0 text-decoration-none" target="_blank">
+
+                                    <i class="bi bi-file-earmark-pdf"></i> PDF
+
+                                </a>
+
+                            </div>
+
+
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+        {% else %}
+
+            <!-- MENSAJE VACÍO -->
+
+            <div class="col-12 text-center py-5">
+
+                <i class="bi bi-cart-x text-muted opacity-25" style="font-size: 5rem;"></i>
+
+                <h5 class="mt-3 text-muted">No se encontraron Órdenes de Compra.</h5>
+
+                <p class="text-muted small">Intenta cambiando los filtros o crea una nueva.</p>
+
+                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary mt-2">
+
+                    Crear Primera OC
+
+                </a>
+
+            </div>
+
+        {% endfor %}
+
+    </div>
+
+{% endblock %}
+
+Gemini dijo
+¡Excelente idea! Modernizar el historial de órdenes le dará mucha más claridad al flujo de trabajo. He rediseñado el archivo ordenes.html para que coincida con la estética de "Tarjeta Moderna" que estamos usando, con soporte total para modo oscuro y, lo más importante, he añadido el interruptor inteligente para ocultar las órdenes canceladas al instante sin recargar la página.
+
+Aquí tienes el código completo para actualizar tu archivo:
+Listado de Órdenes de Compra
+17 mar, 7:00 p.m.
+
+Mejoras implementadas:
+Interruptor Inteligente: Añadí un switch en la barra de filtros. Lo mejor es que usa JavaScript y LocalStorage, por lo que si el usuario decide ocultar las canceladas, la página recordará esa preferencia incluso después de recargar o navegar a otra sección.
+
+Diseño de Tarjetas Moderno:
+
+Borde Superior Temático: Cada tarjeta tiene una línea de color en la parte superior que identifica visualmente el estado (Borrador, Enviada, Recibida, Cancelada).
+
+Efecto Elevación: Las tarjetas se elevan ligeramente (hover) para dar profundidad.
+
+Resumen Compacto: Se muestran los primeros 3 productos de forma elegante dentro de la tarjeta.
+
+Soporte Modo Oscuro: He incluido las clases necesarias para que en el modo oscuro las tarjetas se vean en negro profundo con bordes sutiles, eliminando el gris claro de Bootstrap que suele verse mal en oscuridad.
+
+Botones de Acción Consolidados: Los botones principales (Editar/Enviar/Recibir) están agrupados en bloques visuales más limpios.
+
+Tú dijiste
+ayudame con algo, ahora al ver el orden_detalle, pues tambien deberia aparecer junto con el nombre del producto, tal vez algun boton para que te lleve al enlace si es que el producto tiene un enlace asociado, aqui esta el codigo actual: {% extends 'base.html' %}
+
+
+
+{% block title %}{{ titulo }}{% endblock %}
+
+
+
+{% block content %}
+
+<style>
+
+    /* ==========================================
+
+       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+
+       ========================================== */
+
+       
+
+    /* Tablas en Modo Oscuro */
+
+    [data-bs-theme="dark"] .table {
+
+        color: var(--bs-body-color);
+
+        border-color: var(--glass-border);
+
+    }
+
+    [data-bs-theme="dark"] .table-light th,
+
+    [data-bs-theme="dark"] .table-light td {
+
+        background-color: var(--card-bg) !important;
+
+        color: #ffffff !important;
+
+        border-bottom: 2px solid var(--glass-border) !important;
+
+    }
+
+    [data-bs-theme="dark"] .table-hover tbody tr:hover td {
+
+        background-color: var(--hover-bg) !important;
+
+        color: #ffffff;
+
+    }
+
+    [data-bs-theme="dark"] .table td {
+
+        border-color: var(--glass-border) !important;
+
+    }
+
+    
+
+    /* Cajas de Info (Proveedor/Almacén) */
+
+    .info-box {
+
+        background-color: var(--bs-body-bg);
+
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+
+    }
+
+    [data-bs-theme="dark"] .info-box {
+
+        background-color: #1a1a1a !important;
+
+        border-color: #333 !important;
+
+    }
+
+
+
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+
+    .theme-switch-wrapper {
+
+        position: relative;
+
+        width: 44px;
+
+        height: 44px;
+
+        border-radius: 50%;
+
+        cursor: pointer;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        background-color: var(--card-bg);
+
+        border: 1px solid var(--glass-border);
+
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+
+        overflow: hidden;
+
+        box-shadow: var(--card-shadow);
+
+    }
+
+    .theme-switch-wrapper:hover {
+
+        transform: scale(1.08);
+
+    }
+
+    .theme-switch-icon {
+
+        position: absolute;
+
+        font-size: 1.3rem;
+
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+
+    }
+
+    /* Estado inicial: MODO CLARO */
+
+    .theme-switch-sun {
+
+        color: #f59e0b; /* Amber */
+
+        transform: translateY(0) rotate(0deg);
+
+        opacity: 1;
+
+    }
+
+    .theme-switch-moon {
+
+        color: #e2e8f0;
+
+        transform: translateY(30px) rotate(90deg);
+
+        opacity: 0;
+
+    }
+
+    
+
+    /* Estado: MODO OSCURO */
+
+    [data-bs-theme="dark"] .theme-switch-sun {
+
+        transform: translateY(-30px) rotate(-90deg);
+
+        opacity: 0;
+
+    }
+
+    [data-bs-theme="dark"] .theme-switch-moon {
+
+        transform: translateY(0) rotate(0deg);
+
+        opacity: 1;
+
+    }
+
+</style>
+
+
+
+<div class="container-fluid mt-3 mb-5">
+
+
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+
+    <div class="d-flex justify-content-end mb-2">
+
+        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ENCABEZADO Y BOTONES DE ACCIÓN -->
+
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-4 gap-3">
+
+        <div>
+
+            <h2 class="mb-1 fw-bold"><i class="bi bi-file-earmark-text-fill text-primary me-2"></i>{{ titulo }}</h2>
+
+            <p class="text-muted mb-0">Resumen detallado y estado actual de la solicitud.</p>
+
+        </div>
+
+        
+
+        <div class="d-flex flex-wrap gap-2">
+
+            <!-- Botón PDF -->
+
+            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold" target="_blank">
+
+                <i class="bi bi-file-earmark-pdf me-1"></i> Imprimir PDF
+
+            </a>
+
+            
+
+            {% if orden.estado == 'borrador' %}
+
+            <!-- Botón Editar -->
+
+            <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark">
+
+                <i class="bi bi-pencil me-1"></i> Editar OC
+
+            </a>
+
+            <!-- Botón Cancelar -->
+
+            <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;" 
+
+                  onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden de compra?');">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <button type="submit" class="btn btn-outline-danger shadow-sm rounded-pill px-4 fw-bold">
+
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
+
+                </button>
+
+            </form>
+
+            {% endif %}
+
+            
+
+            <!-- Botón Volver -->
+
+            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
+
+                <i class="bi bi-arrow-left me-1"></i> Volver
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- TARJETA PRINCIPAL DEL DETALLE -->
+
+    <div class="card shadow-sm border-0 rounded-4">
+
+        
+
+        <!-- CABECERA: Estado y Creador -->
+
+        {% set status_class = 'bg-warning text-dark' %}
+
+        {% set status_icon = 'bi-clock-history' %}
+
+        {% if orden.estado == 'cancelada' %}
+
+            {% set status_class = 'bg-secondary text-white' %}
+
+            {% set status_icon = 'bi-x-circle' %}
+
+        {% elif orden.estado == 'recibida' %}
+
+            {% set status_class = 'bg-success text-white' %}
+
+            {% set status_icon = 'bi-check-circle' %}
+
+        {% endif %}
+
+
+
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+
+            <div class="d-flex align-items-center gap-3">
+
+                <h5 class="mb-0 fw-bold text-body">Estado Actual:</h5>
+
+                <span class="badge {{ status_class }} rounded-pill px-3 py-2 shadow-sm fs-6">
+
+                    <i class="bi {{ status_icon }} me-1"></i> {{ orden.estado|capitalize }}
+
+                </span>
+
+            </div>
+
+            <div class="text-muted fw-semibold d-flex align-items-center">
+
+                <div class="bg-secondary bg-opacity-10 rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width:30px; height:30px;">
+
+                    <i class="bi bi-person text-secondary"></i>
+
+                </div>
+
+                Creada por: {{ orden.creador.username }}
+
+            </div>
+
+        </div>
+
+        
+
+        <div class="card-body p-4 p-md-5">
+
+            
+
+            <!-- CAJAS DE INFORMACIÓN (Proveedor y Almacén) -->
+
+            <div class="row g-4 mb-5">
+
+                <div class="col-md-6">
+
+                    <div class="p-4 rounded-4 border border-secondary border-opacity-25 h-100 info-box shadow-sm">
+
+                        <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">
+
+                            <i class="bi bi-building me-1 text-primary"></i> Proveedor
+
+                        </h6>
+
+                        <div class="fs-4 fw-bold text-body">{{ orden.proveedor.nombre }}</div>
+
+                        {% if orden.proveedor.contacto or orden.proveedor.email %}
+
+                            <hr class="border-secondary border-opacity-25 my-2">
+
+                            <div class="small text-muted">
+
+                                {% if orden.proveedor.contacto %}<i class="bi bi-person-badge me-1"></i> {{ orden.proveedor.contacto }}<br>{% endif %}
+
+                                {% if orden.proveedor.email %}<i class="bi bi-envelope me-1"></i> {{ orden.proveedor.email }}{% endif %}
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+                
+
+                <div class="col-md-6">
+
+                    <div class="p-4 rounded-4 border border-secondary border-opacity-25 h-100 info-box shadow-sm">
+
+                        <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">
+
+                            <i class="bi bi-shop me-1 text-primary"></i> Almacén de Destino
+
+                        </h6>
+
+                        <div class="fs-4 fw-bold text-body">{{ orden.almacen.nombre }}</div>
+
+                        {% if orden.almacen.ubicacion %}
+
+                            <hr class="border-secondary border-opacity-25 my-2">
+
+                            <div class="small text-muted">
+
+                                <i class="bi bi-geo-alt me-1"></i> {{ orden.almacen.ubicacion }}
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            
+
+            <!-- TABLA DE DETALLES -->
+
+            <h5 class="fw-bold mb-3 text-body"><i class="bi bi-list-check text-primary me-2"></i>Artículos Solicitados</h5>
+
+            
+
+            <div class="table-responsive border border-secondary border-opacity-25 rounded-4 shadow-sm">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light text-secondary text-uppercase small" style="letter-spacing: 0.5px;">
+
+                        <tr>
+
+                            <th class="ps-4 border-0">Producto</th>
+
+                            <th class="text-center border-0">SKU</th>
+
+                            <th class="text-center border-0">Cant. / Cajas</th>
+
+                            <th class="text-end border-0">Costo Unit.</th>
+
+                            <th class="text-end pe-4 border-0">Subtotal</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for detalle in orden.detalles %}
+
+                        <tr>
+
+                            <!-- Producto -->
+
+                            <td class="ps-4 py-3 fw-bold text-body">{{ detalle.producto.nombre }}</td>
+
+                            
+
+                            <!-- SKU -->
+
+                            <td class="text-center font-monospace text-muted small">
+
+                                <span class="bg-secondary bg-opacity-10 px-2 py-1 rounded"><i class="bi bi-upc opacity-50 me-1"></i>{{ detalle.producto.codigo }}</span>
+
+                            </td>
+
+                            
+
+                            <!-- Cantidad y Cajas -->
+
+                            <td class="text-center">
+
+                                <span class="fw-bold fs-6">{{ detalle.cantidad_solicitada }}</span>
+
+                                {% if detalle.cajas and detalle.cajas > 0 %}
+
+                                    <span class="badge bg-info text-dark ms-2 shadow-sm" style="font-size: 0.7rem;" title="Cajas Aproximadas">
+
+                                        <i class="bi bi-box-seam me-1"></i> {{ detalle.cajas|round(2, 'floor') }}
+
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            
+
+                            <!-- Costo Unitario -->
+
+                            <td class="text-end text-muted">
+
+                                ${{ "{:,.2f}".format(detalle.costo_unitario_estimado) }}
+
+                            </td>
+
+                            
+
+                            <!-- Subtotal -->
+
+                            <td class="text-end pe-4 fw-bold text-body">
+
+                                ${{ "{:,.2f}".format(detalle.subtotal) }}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                    
+
+                    <!-- PIE DE TABLA CON TOTAL -->
+
+                    <tfoot class="table-light border-top border-secondary border-opacity-25">
+
+                        <tr>
+
+                            <td colspan="4" class="text-end py-3 fw-bold text-uppercase text-muted small" style="letter-spacing: 1px;">
+
+                                Total Estimado:
+
+                            </td>
+
+                            <td class="text-end pe-4 py-3 fs-4 fw-bold text-success">
+
+                                ${{ "{:,.2f}".format(orden.costo_total) }}
+
+                            </td>
+
+                        </tr>
+
+                    </tfoot>
+
+                </table>
+
+            </div>
+
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+
+<script>
+
+    const themeToggleBtn = document.getElementById('theme-toggle');
+
+    const htmlElement = document.documentElement;
+
+
+
+    function applyTheme(theme) {
+
+        htmlElement.setAttribute('data-bs-theme', theme);
+
+        localStorage.setItem('app_theme', theme);
+
+    }
+
+
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+
+    applyTheme(savedTheme);
+
+
+
+    // Evento del Botón
+
+    if(themeToggleBtn) {
+
+        themeToggleBtn.addEventListener('click', () => {
+
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+
+        });
+
+    }
+
+</script>
+
+{% endblock %}
+
+Gemini dijo
+¡Excelente iniciativa! Es muy útil tener el enlace directo al producto mientras se revisa el detalle de la orden, especialmente para confirmar especificaciones o precios en tiempo real.
+
+He actualizado el archivo Canvas (que corresponde a tu vista de detalle de orden) para que la columna de producto ahora incluya un botón elegante y discreto que solo aparece si el registro tiene un enlace guardado.
+
+He modificado la columna de Producto para que ahora contenga tanto el nombre como el botón de enlace (si existe). El botón tiene una animación sutil al pasar el mouse para que sea intuitivo pero no distraiga del resto de la información.
+
+Tú dijiste
+veo que el ordenes.html no esta respondiendo bien al sistema de claro y oscuro, te adjunto una imagen para que lo veas
+
+Gemini dijo
+Entiendo perfectamente el problema. En la imagen se observa que algunos contenedores (como el de "Artículos") mantienen un fondo blanco brillante (#ffffff) que rompe totalmente la estética del modo oscuro, dificultando la lectura de los textos claros.
+
+Voy a corregir el archivo Canvas de templates/ordenes.html ajustando las clases de utilidad de Bootstrap y añadiendo reglas específicas para que los fondos se adapten dinámicamente al tema seleccionado, asegurando que el contraste sea perfecto en ambos modos.
+
+He realizado los siguientes ajustes para solucionar lo que se ve en la imagen:
+
+Fondos Dinámicos: He forzado que las clases .bg-light y .bg-white se conviertan en tonos oscuros semitransparentes cuando el tema dark esté activo. Esto eliminará esos "parches blancos" en las tarjetas de las órdenes.
+
+Contraste de Texto: Se han revisado las clases text-body y text-dark para asegurar que el texto sea blanco o gris claro en el modo oscuro.
+
+Barra de Filtros: Ahora los campos de selección y el interruptor de "Ocultar Canceladas" tienen un fondo oscuro coherente con el resto de la aplicación.
+
+Resumen de Artículos: El cuadro de la lista de productos dentro de la tarjeta ahora tiene un fondo translúcido muy elegante que permite leer el SKU y el nombre sin problemas de contraste.
+
+Con estos cambios, la visualización debería ser idéntica a la del Dashboard o el Detalle de Orden, respetando la estética "Pure Black".
+
+Tú dijiste
+antes de continuar con lo demas, me gustaria que modifiquemos la funcion de generar_oc_pdf, para que ahora tambien dentro del mismo cuadro abajo se pueda acceder al enlace del producto, tal vez debajo del nombre, en pequeño o algo asi, aqui esta el codigo actual de la ruta: @app.route('/orden/<int:id>/pdf')
+
+@login_required
+
+@check_permission('perm_create_oc_standard')
+
+def generar_oc_pdf(id):
+
+    orden = OrdenCompra.query.filter_by(
+
+        id=id, 
+
+        organizacion_id=current_user.organizacion_id
+
+    ).first_or_404()
+
+    org = orden.organizacion
+
+    proveedor = orden.proveedor
+
+    
+
+    # --- CONFIGURACIÓN DE PÁGINA ---
+
+    buffer = io.BytesIO()
+
+    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+
+                            rightMargin=inch, leftMargin=inch,
+
+                            topMargin=0.5*inch, bottomMargin=inch)
+
+    story = []
+
+    styles = getSampleStyleSheet()
+
+    
+
+    # --- ESTILOS ---
+
+    fuente_base = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
+
+    color_primario = colors.HexColor(org.color_primario) if org.color_primario else colors.darkblue
+
+    
+
+    # Estilos de Texto
+
+    style_brand_title = ParagraphStyle(name='BrandTitle', parent=styles['Heading1'], fontName=f'{fuente_base}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
+
+    style_brand_sub = ParagraphStyle(name='BrandSub', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12, textColor=colors.gray)
+
+    style_normal = ParagraphStyle(name='MiNormal', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12)
+
+    style_bold = ParagraphStyle(name='MiBold', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, leading=12)
+
+    style_th = ParagraphStyle(name='MiTH', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
+
+    
+
+    # Estilos para Total
+
+    style_total_label = ParagraphStyle(name='TotalLabel', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
+
+    style_total_value = ParagraphStyle(name='TotalValue', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
+
+
+
+    # ==========================================
+
+    # 1. ENCABEZADO PERSONALIZADO (Logo + Texto)
+
+    # ==========================================
+
+    logo_element = []
+
+    if org.logo_url:
+
+        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
+
+        if os.path.exists(logo_path):
+
+            img = ReportLabImage(logo_path)
+
+            max_h = 1.0 * inch
+
+            aspect = img.imageWidth / float(img.imageHeight)
+
+            img.drawHeight = max_h
+
+            img.drawWidth = max_h * aspect
+
+            logo_element.append(img)
+
+    
+
+    text_elements = []
+
+    texto_p = org.header_titulo if org.header_titulo else org.nombre
+
+    text_elements.append(Paragraph(texto_p, style_brand_title))
+
+    if org.header_subtitulo:
+
+        text_elements.append(Paragraph(org.header_subtitulo, style_brand_sub))
+
+
+
+    if logo_element:
+
+        data_header = [[logo_element, text_elements]]
+
+        col_widths = [1.5*inch, 4.5*inch]
+
+    else:
+
+        data_header = [[text_elements]]
+
+        col_widths = [6*inch]
+
+
+
+    t_header = Table(data_header, colWidths=col_widths)
+
+    t_header.setStyle(TableStyle([
+
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+
+    ]))
+
+    story.append(t_header)
+
+    
+
+    # Barra separadora de color
+
+    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2], style=TableStyle([
+
+        ('BACKGROUND', (0,0), (-1,-1), color_primario)
+
+    ])))
+
+    story.append(Spacer(1, 0.2*inch))
+
+
+
+    # ==========================================
+
+    # 2. INFORMACIÓN (PROVEEDOR Y ORDEN)
+
+    # ==========================================
+
+    
+
+    # Intento seguro de obtener datos de contacto
+
+    p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'contacto_email', '-')))
+
+    p_tel = getattr(proveedor, 'telefono', getattr(proveedor, 'celular', '-'))
+
+    p_contacto = getattr(proveedor, 'contacto', getattr(proveedor, 'nombre_contacto', '-'))
+
+
+
+    info_proveedor = [
+
+        Paragraph("<b>PROVEEDOR:</b>", style_normal),
+
+        Paragraph(f"{proveedor.nombre}", style_bold),
+
+        Paragraph(f"Contacto: {p_contacto}", style_normal),
+
+        Paragraph(f"Email: {p_email}", style_normal),
+
+        Paragraph(f"Tel: {p_tel}", style_normal),
+
+    ]
+
+
+
+    info_orden = [
+
+        Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_brand_title),
+
+        Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%d/%m/%Y')}", style_normal),
+
+        Paragraph(f"<b>Estado:</b> {orden.estado}", style_normal),
+
+        Paragraph(f"<b>Almacén:</b> {orden.almacen.nombre if orden.almacen else 'General'}", style_normal),
+
+    ]
+
+
+
+    t_info = Table([[info_proveedor, info_orden]], colWidths=[3.5*inch, 2.7*inch])
+
+    t_info.setStyle(TableStyle([
+
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+
+    ]))
+
+    story.append(t_info)
+
+    story.append(Spacer(1, 0.2*inch))
+
+
+
+    # ==========================================
+
+    # 3. TABLA DE PRODUCTOS (ACTUALIZADA CON CAJAS)
+
+    # ==========================================
+
+    
+
+    headers = [
+
+        Paragraph("Producto / SKU", style_th),
+
+        Paragraph("Cajas", style_th),
+
+        Paragraph("Unidades", style_th),
+
+        Paragraph("Costo U.", style_th),
+
+        Paragraph("Subtotal", style_th)
+
+    ]
+
+    
+
+    data_table = [headers]
+
+    total_general = 0
+
+    
+
+    for detalle in orden.detalles:
+
+        subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
+
+        total_general += subtotal
+
+        
+
+        # Extraemos las cajas y factor de empaque de forma segura
+
+        factor_empaque = getattr(detalle.producto, 'unidades_por_caja', 1) or 1
+
+        cajas = getattr(detalle, 'cajas', 0)
+
+        cajas_str = f"{cajas:g}" if cajas else "0"
+
+        
+
+        # Descripción con salto de línea para SKU y Factor
+
+        desc = f"<b>{detalle.producto.nombre}</b><br/>SKU: {detalle.producto.codigo}<br/><font color='gray'>Empaque: {factor_empaque} ud(s)</font>"
+
+        
+
+        row = [
+
+            Paragraph(desc, style_normal),
+
+            Paragraph(cajas_str, style_normal),
+
+            Paragraph(str(detalle.cantidad_solicitada), style_normal),
+
+            Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", style_normal),
+
+            Paragraph(f"${subtotal:,.2f}", style_normal)
+
+        ]
+
+        data_table.append(row)
+
+
+
+    # --- FILA DE TOTAL (INTEGRADA Y ADAPTADA) ---
+
+    row_total = [
+
+        '', # 0
+
+        '', # 1
+
+        '', # 2
+
+        Paragraph("TOTAL:", style_total_label), # 3
+
+        Paragraph(f"${total_general:,.2f}", style_total_value) # 4
+
+    ]
+
+    data_table.append(row_total)
+
+
+
+    # Configuración de Anchos (Ajustado para 5 columnas, Total = 6.2 inches)
+
+    col_widths_prod = [2.4*inch, 0.8*inch, 0.8*inch, 1.0*inch, 1.2*inch]
+
+    
+
+    t_productos = Table(data_table, colWidths=col_widths_prod, repeatRows=1)
+
+    
+
+    # ESTILOS COMPLETOS (Bordes, Colores y Fusión)
+
+    estilos = [
+
+        # Encabezado
+
+        ('BACKGROUND', (0,0), (-1,0), color_primario),
+
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+
+        ('ALIGN', (0,0), (-1,0), 'CENTER'),
+
+        ('VALIGN', (0,0), (-1,0), 'MIDDLE'),
+
+        
+
+        # Cuerpo (Rejilla completa)
+
+        ('GRID', (0,0), (-1,-2), 0.5, colors.black), 
+
+        ('ALIGN', (1,1), (2,-2), 'CENTER'), # Centrar Cajas y Unidades
+
+        ('ALIGN', (3,1), (-1,-1), 'RIGHT'),  # Precios a la derecha
+
+        ('VALIGN', (0,1), (-1,-1), 'MIDDLE'),
+
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+
+        
+
+        # Fila de Total (Última fila adaptada a las nuevas columnas)
+
+        ('SPAN', (0,-1), (2,-1)),            # Fusionar columnas 0, 1 y 2
+
+        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black), # Línea superior gruesa
+
+        ('BACKGROUND', (3,-1), (-1,-1), colors.whitesmoke), # Fondo gris tenue en total
+
+        ('BOX', (3,-1), (4,-1), 0.5, colors.black), # Caja alrededor del total y etiqueta
+
+    ]
+
+    
+
+    t_productos.setStyle(TableStyle(estilos))
+
+    story.append(t_productos)
+
+
+
+    # --- GENERAR ---
+
+    doc.build(story)
+
+    buffer.seek(0)
+
+    filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
+
+    return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
+
+Gemini dijo
+Claro, entiendo perfectamente. Vamos a actualizar la lógica de generación de PDF en el Canvas para que incluya el enlace del proveedor directamente en la tabla de productos. Esto permitirá que, al imprimir o compartir el documento, se tenga una referencia rápida al origen del artículo.
+
+He preparado la función actualizada para tu archivo app.py, integrando el enlace con un tamaño de fuente reducido y un color azul para que sea fácilmente identificable pero no sobrecargue visualmente la tabla.
+
+He actualizado la función para que busque el enlace tanto en el detalle de la orden (que es donde lo guardamos al crearla) como en el catálogo de productos (como respaldo). Ahora el PDF mostrará la URL en un tamaño pequeño (size='7') y color azul debajo del SKU de cada producto.
+
+¿Te gustaría que hagamos algún otro ajuste en el formato del PDF o continuamos con los demás módulos?
+
+Tú dijiste
+acabo de ver que en el ordenes.html no esta el boton para cambiar entre oscuro y claro
+
+Gemini dijo
+Claro, tienes razón. He actualizado el archivo Canvas agregando el botón animado de Sol/Luna en la parte superior derecha de la vista de órdenes, manteniendo la misma estética y funcionalidad que en el resto de la aplicación.
+
+He añadido el bloque de Botón de Tema Animado y su correspondiente lógica de JavaScript al final del archivo. También incluí los estilos necesarios para que el icono de Sol/Luna funcione con las animaciones de transición que ya utilizas en otras partes del sistema.
+
+Tú dijiste
+ahora vayamos al proyecto_oc_form, aqui ademas de modernizar la imagen quisiera que mejoraramos el sistema de busqueda, que aparezca el buscador para los productos como en las OC normales, usa ese estilo de sistema de busqueda, pero agrega abajo para agregar manualmente si es necesario, ademas de agregar 2 campos, enlace y ademas un cuadro de texto donde se pueda poner comentarios o detalles de porque se solicita cada articulo, claro eso es opcional
+
+Gemini dijo
+Entendido, vamos a transformar el formulario de Órdenes de Compra para Proyectos (proyecto_oc_form.html). Aplicaremos el diseño moderno de tarjetas que hemos estado usando, integraremos el buscador "tipo buscador de almacén" con sugerencias inteligentes y añadiremos los campos de enlace y comentarios por artículo.
+
+También incluiré la lógica para permitir la entrada manual de artículos que no estén en el catálogo, lo cual es muy común en compras de proyectos específicos.
+Formulario de OC Proyecto
+17 mar, 7:28 p.m.
+
+Mejoras principales en el Canvas:
+Buscador Inteligente: He implementado un sistema idéntico al que usamos en el inventario del almacén. Puedes buscar por nombre o SKU y, al seleccionar, la fila se bloquea para evitar errores (a menos que sea manual).
+
+Agregar Manual: Hay un botón prominente para añadir artículos que no existen en el sistema. Estos se marcan con un borde gris para diferenciarlos de los artículos de inventario (que van en azul).
+
+Sistema de "Detalles" Desplegable: Para mantener el formulario limpio, los campos de Enlace y Comentarios están ocultos bajo el botón "Detalles" en cada fila. Al hacer clic, se expande la tarjeta del artículo revelando esos campos.
+
+Soporte Modo Oscuro Completo: He corregido las clases de fondo y texto para que se vea perfecto en el estilo "Pure Black".
+
+Calculadora en Tiempo Real: El total de la orden se actualiza instantáneamente mientras cambias cantidades o costos.
+
+Efectos Visuales: Las filas nuevas aparecen con una pequeña animación de deslizamiento para que el usuario sepa dónde se agregó el artículo.
+
+Tú dijiste
+veo algunos detalles, como esto es de proyecto, no va a un almacen y ademas al querer buscar algun producto aunque escriba el nombre no aparece nada y al presionar el boton de agregar manualmente no hace nada
+
+Gemini dijo
+Entiendo perfectamente los puntos que mencionas. He realizado los ajustes en el Canvas para eliminar la dependencia de almacenes (ya que es para proyectos), corregir la lógica del buscador para que filtre correctamente y asegurar que el botón de carga manual funcione al instante.
+
+He reorganizado el script para que las funciones estén disponibles desde el primer momento y he simplificado el acceso a los datos del catálogo.
+
+Cambios realizados en el Canvas:
+Eliminación de Almacenes: He quitado la sección de selección de almacén, ya que indicas que las OC de proyectos no van destinadas a stock de almacén físico. He añadido una nota informativa en su lugar.
+
+Lógica del Buscador Corregida: He reescrito la función de búsqueda para asegurar que filtre correctamente el array productosBase. También corregí el mapeo de campos (usando p.precio_unitario o p.costo según disponibilidad).
+
+Botón de Agregar Manual: He corregido la referencia al botón y la función de clonación del template. Ahora, al presionar el botón, se genera una fila vacía con el foco puesto directamente en el nombre para que empieces a escribir.
+
+Estructura de Scripts: He movido las funciones críticas fuera de bloques condicionales para asegurar que siempre estén disponibles en el DOM.
+
+UI de Detalles: Los botones de "Eliminar" y "Detalles" ahora tienen sus eventos vinculados correctamente dentro de la función de creación de filas.
+
+¿Necesitas que ajuste algún campo adicional para la lógica de los proyectos?
+
+Tú dijiste
+creo que si faltan esos campos, solo el del almacen no deberia ser obligatorio, ya que no es necesario
+
+Gemini dijo
+Entiendo perfectamente los errores. El problema principal es que el sistema está intentando guardar los campos de enlace y comentarios en el modelo de la base de datos, pero esas columnas aún no existen en la tabla de detalles de la orden. Además, falta el campo obligatorio para el Nombre del Proyecto y, como bien mencionas, el almacén no debe ser requerido en este flujo.
+
+Voy a actualizar el Canvas para incluir el campo del proyecto y eliminar la obligatoriedad del almacén. También te proporcionaré el código necesario para actualizar tu base de datos y el modelo en app.py.
+
+1. Actualización del Formulario en el Canvas
+He añadido el campo Nombre del Proyecto en la columna izquierda y eliminado la selección de almacén para que el formulario sea más ágil y específico para proyectos externos.
+
+2. Cómo solucionar el error en el Backend (app.py)
+El error invalid keyword argument indica que el modelo no conoce los campos. Debes hacer lo siguiente:
+
+A. Actualiza el modelo OrdenCompraDetalle en app.py:
+Busca la clase OrdenCompraDetalle y añade estas dos líneas:
+
+Python
+class OrdenCompraDetalle(db.Model):
+    # ... tus otros campos (id, orden_id, producto_id, etc.) ...
+    
+    # AÑADE ESTAS DOS LÍNEAS:
+    enlace_proveedor = db.Column(db.String(500), nullable=True)
+    comentarios = db.Column(db.Text, nullable=True)
+
+**B. Añade las columnas a la base de datos de forma rápida:**
+Puedes pegar esta ruta temporal en tu `app.py`, ejecutarla una vez en el navegador y luego borrarla:
+```python
+@app.route('/fix_oc_columns')
+def fix_oc_columns():
+    from sqlalchemy import text
+    try:
+        db.session.execute(text("ALTER TABLE orden_compra_detalle ADD COLUMN enlace_proveedor VARCHAR(500);"))
+        db.session.execute(text("ALTER TABLE orden_compra_detalle ADD COLUMN comentarios TEXT;"))
+        db.session.commit()
+        return "Columnas añadidas con éxito."
+    except Exception as e:
+        db.session.rollback()
+        return f"Error o aviso: {str(e)}"
+
+**C. Actualiza la lógica de guardado en la ruta de Proyectos:**
+Asegúrate de que en la función donde procesas el `POST` de la orden de proyecto, los nombres coincidan:
+```python
+# Dentro de tu ruta de guardado (POST):
+enlaces = request.form.getlist('enlace[]')
+comentarios_lista = request.form.getlist('comentarios[]')
+
+# Al crear el detalle en el loop:
+detalle = OrdenCompraDetalle(
+    orden_id=nueva_orden.id,
+    producto_id=productos_ids[i],
+    cantidad_solicitada=float(cantidades[i]),
+    costo_unitario_estimado=float(costos[i]),
+    enlace_proveedor=enlaces[i] if i < len(enlaces) else None, # <- Ahora sí funcionará
+    comentarios=comentarios_lista[i] if i < len(comentarios_lista) else None
+)
+
+Con estos cambios, el formulario dejará de dar error y podrás guardar el **Nombre del Proyecto** sin necesidad de seleccionar un almacén. ¿Te gustaría que revisáramos algo más?
+Tú dijiste
+sigo teniendo el mismo problema
+
+Gemini dijo
+Entiendo perfectamente. Los errores que me muestras en las imágenes confirman dos cosas críticas:
+
+Error de Base de Datos: El mensaje 'enlace_proveedor' is an invalid keyword argument significa que tu modelo OrdenCompraDetalle en el archivo app.py no tiene definida esa columna, o el nombre no coincide exactamente.
+
+Error de Validación: El mensaje El nombre del proyecto y el almacén son obligatorios es una validación manual en tu ruta de Flask que está bloqueando el guardado porque no enviamos un almacen_id.
+
+Para solucionar esto, he actualizado el Canvas ajustando los nombres de los campos para que sean más descriptivos y he añadido una sección para el Almacén (marcada como opcional visualmente) para que no rompa tu lógica actual de validación, mientras ajustas el código de Python.
+
+Aquí tienes el código completo y corregido para el formulario:
+
+Pasos Críticos para que funcione (Python):
+Para resolver el error de la imagen, debes aplicar estos cambios en tu archivo app.py, de lo contrario, el formulario seguirá fallando al intentar guardar:
+
+Arreglar el error invalid keyword argument:
+En la clase OrdenCompraDetalle de tu app.py, debes asegurarte de que el nombre de la columna sea exactamente igual al que usas en el constructor. Si el error dice que enlace_proveedor no existe, es porque no lo has añadido al modelo. Añade esto a la clase:
+
+Python
+enlace_proveedor = db.Column(db.String(500), nullable=True)
+comentarios_detalle = db.Column(db.Text, nullable=True)
+
+Arreglar el error de "Almacén Obligatorio":
+Busca la ruta de guardado (el @app.route del POST de proyectos) y modifica la validación. Cambia esto:
+
+Python
+if not nombre_proyecto or not almacen_id:
+    flash("El nombre del proyecto y el almacén son obligatorios.", "danger")
+    Por esto (para que el almacén sea opcional en el código):
+```python
+if not nombre_proyecto:
+    flash("El nombre del proyecto es obligatorio.", "danger")
+
+Actualizar la Base de Datos:
+Si estás usando SQLite o PostgreSQL, la base de datos no sabe que añadiste esos campos. Ejecuta la ruta /actualizar_bd_enlace que te proporcioné anteriormente o usa el comando ALTER TABLE orden_compra_detalle ADD COLUMN enlace_proveedor VARCHAR(500); directamente en tu gestión de base de datos.
+
+He modificado el Canvas para que incluya de nuevo el selector de Almacén (por si decides dejarlo obligatorio en el backend por ahora) y he ajustado los nombres de los campos de detalles para que coincidan con la lógica que tu servidor está esperando.
+
+Tú dijiste
+que debemos modificar en estas clases para que funcionen: class ProyectoOC(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    nombre_proyecto = db.Column(db.String(255), nullable=False)
+
+    fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    estado = db.Column(db.String(20), nullable=False, default='borrador')
+
+    
+
+    creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+
+    
+
+    # --- LÍNEA AÑADIDA ---
+
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
+
+    almacen = db.relationship('Almacen') # Para fácil acceso
+
+    
+
+    detalles = db.relationship('ProyectoOCDetalle', backref='proyecto_oc', lazy=True, cascade="all, delete-orphan")
+
+
+
+    @property
+
+    def costo_total(self):
+
+        return sum(detalle.subtotal for detalle in self.detalles)
+
+
+
+class ProyectoOCDetalle(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    proyecto_oc_id = db.Column(db.Integer, db.ForeignKey('proyecto_oc.id'), nullable=False)
+
+    
+
+    producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=True)
+
+    producto = db.relationship('Producto')
+
+    
+
+    descripcion_nuevo = db.Column(db.String(255), nullable=True)
+
+    proveedor_sugerido = db.Column(db.String(100), nullable=True)
+
+    
+
+    cantidad = db.Column(db.Integer, nullable=False, default=1)
+
+    costo_unitario = db.Column(db.Float, nullable=False, default=0.0)
+
+
+
+    @property
+
+    def subtotal(self):
+
+        return self.cantidad * self.costo_unitario
+
+        
+
+    @property
+
+    def descripcion(self):
+
+        if self.producto:
+
+            return self.producto.nombre
+
+        else:
+
+            return self.descripcion_nuevo
+            
 class ProyectoOC(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_proyecto = db.Column(db.String(255), nullable=False)
@@ -399,9 +3674,9 @@ class ProyectoOC(db.Model):
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
     
-    # --- LÍNEA AÑADIDA ---
-    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
-    almacen = db.relationship('Almacen') # Para fácil acceso
+    # MODIFICADO: nullable=True para que el almacén sea opcional
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=True) 
+    almacen = db.relationship('Almacen')
     
     detalles = db.relationship('ProyectoOCDetalle', backref='proyecto_oc', lazy=True, cascade="all, delete-orphan")
 
@@ -422,16 +3697,13 @@ class ProyectoOCDetalle(db.Model):
     cantidad = db.Column(db.Integer, nullable=False, default=1)
     costo_unitario = db.Column(db.Float, nullable=False, default=0.0)
 
+    # --- NUEVOS CAMPOS AÑADIDOS ---
+    enlace_proveedor = db.Column(db.String(500), nullable=True)
+    comentarios_detalle = db.Column(db.Text, nullable=True)
+
     @property
     def subtotal(self):
         return self.cantidad * self.costo_unitario
-        
-    @property
-    def descripcion(self):
-        if self.producto:
-            return self.producto.nombre
-        else:
-            return self.descripcion_nuevo
 
 # ==============================================================================
 # 5. CARGADOR DE USUARIO (FLASK-LOGIN)
