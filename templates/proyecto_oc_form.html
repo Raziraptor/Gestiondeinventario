@@ -66,28 +66,43 @@
             <div class="col-xl-4">
                 <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
                     <div class="card-header bg-transparent pt-4 border-0">
-                        <h5 class="fw-bold text-primary mb-0"><i class="bi bi-info-circle me-2"></i>Datos del Proyecto</h5>
+                        <h5 class="fw-bold text-primary mb-0"><i class="bi bi-info-circle me-2"></i>Información General</h5>
                     </div>
                     <div class="card-body">
                         
                         <!-- NOMBRE DEL PROYECTO (OBLIGATORIO) -->
-                        <div class="mb-4">
-                            <label for="nombre_proyecto" class="form-label small fw-bold text-muted text-uppercase">Nombre del Proyecto / Referencia</label>
-                            <div class="input-group input-group-lg shadow-sm">
+                        <div class="mb-3">
+                            <label for="nombre_proyecto" class="form-label small fw-bold text-muted text-uppercase">Nombre del Proyecto</label>
+                            <div class="input-group shadow-sm">
                                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-flag text-primary"></i></span>
-                                <input type="text" name="nombre_proyecto" id="nombre_proyecto" class="form-control border-start-0 ps-0 fs-6" 
+                                <input type="text" name="nombre_proyecto" id="nombre_proyecto" class="form-control border-start-0 ps-0" 
                                        placeholder="Ej: Mantenimiento Planta Norte" required 
                                        value="{{ orden.nombre_proyecto if orden else '' }}">
                             </div>
+                        </div>
+
+                        <!-- ALMACÉN (OBLIGATORIO SEGÚN TU BACKEND) -->
+                        <div class="mb-4">
+                            <label for="almacen_id" class="form-label small fw-bold text-muted text-uppercase">Almacén de Referencia</label>
+                            <div class="input-group shadow-sm">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-house-door text-primary"></i></span>
+                                <select name="almacen_id" id="almacen_id" class="form-select border-start-0 ps-0" required>
+                                    <option value="">-- Seleccionar Almacén --</option>
+                                    {% for alm in almacenes %}
+                                        <option value="{{ alm.id }}" {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>{{ alm.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">Indica un almacén para cumplir con el registro del sistema.</small>
                         </div>
 
                         <hr class="border-secondary border-opacity-25 my-4">
 
                         <!-- BUSCADOR INTELIGENTE -->
                         <div class="search-container mb-4">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Producto del Catálogo</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">Buscar en Catálogo</label>
                             <div class="input-group shadow-sm">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-box-seam text-primary"></i></span>
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-primary"></i></span>
                                 <input type="text" id="buscador_productos" class="form-control border-start-0 ps-0" 
                                        placeholder="Escribe nombre o SKU..." autocomplete="off">
                             </div>
@@ -103,10 +118,6 @@
                             <button type="button" id="btn_manual" class="btn btn-outline-primary fw-bold rounded-pill shadow-sm">
                                 <i class="bi bi-plus-circle-dotted me-2"></i> Agregar Artículo Personalizado
                             </button>
-                        </div>
-                        
-                        <div class="alert alert-info bg-opacity-10 border-info border-opacity-25 py-2 small">
-                            <i class="bi bi-info-circle-fill me-2"></i> Estas órdenes no afectan el stock físico de sus almacenes.
                         </div>
                     </div>
                 </div>
@@ -175,7 +186,7 @@
                     <input type="number" name="costo[]" class="form-control border-0 fw-bold text-end bg-white item-costo" step="0.01" value="0.00">
                 </div>
 
-                <!-- Botón Eliminar -->
+                <!-- Botones de Acción -->
                 <div class="col-md-3 d-flex align-items-end justify-content-end">
                     <div class="btn-group">
                         <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-detalle" title="Añadir Enlace/Comentarios">
@@ -193,11 +204,12 @@
                         <div class="row g-3">
                             <div class="col-md-5">
                                 <label class="form-label small fw-bold text-primary"><i class="bi bi-link-45deg"></i> Enlace de Compra</label>
-                                <input type="url" name="enlace[]" class="form-control form-control-sm border-0 bg-white item-enlace" placeholder="https://...">
+                                <!-- Nombre cambiado a enlace_proveedor[] para coincidir con el error del backend -->
+                                <input type="url" name="enlace_proveedor[]" class="form-control form-control-sm border-0 bg-white item-enlace" placeholder="https://...">
                             </div>
                             <div class="col-md-7">
-                                <label class="form-label small fw-bold text-primary"><i class="bi bi-pencil"></i> Comentarios / Justificación</label>
-                                <textarea name="comentarios[]" class="form-control form-control-sm border-0 bg-white item-comentarios" rows="1" placeholder="¿Por qué se solicita este artículo?"></textarea>
+                                <label class="form-label small fw-bold text-primary"><i class="bi bi-pencil"></i> Comentarios / Especificaciones</label>
+                                <textarea name="comentarios_detalle[]" class="form-control form-control-sm border-0 bg-white item-comentarios" rows="1" placeholder="Detalles específicos del pedido..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -208,12 +220,14 @@
 </template>
 
 <script>
+    // Inyectar productos desde el servidor
     const productosBase = {{ productos | tojson | safe }};
     const contenedor = document.getElementById('contenedor_items');
     const msgVacio = document.getElementById('mensaje_vacio');
     const buscador = document.getElementById('buscador_productos');
     const sugerencias = document.getElementById('lista_sugerencias');
 
+    // Función principal para agregar filas
     function agregarFila(datos) {
         if (!msgVacio || !contenedor) return;
         
@@ -222,16 +236,17 @@
         const clon = plantilla.content.cloneNode(true);
         const row = clon.querySelector('.item-row');
 
+        // Llenar datos básicos
         row.querySelector('.item-id').value = datos.id || '0';
         row.querySelector('.item-nombre').value = datos.nombre || '';
         
         if (datos.id && datos.id !== '0' && datos.id !== 0) {
             row.querySelector('.item-nombre').readOnly = true;
             row.querySelector('.item-sku-badge').innerText = `SKU: ${datos.codigo}`;
-            row.style.borderLeftColor = '#0d6efd';
+            row.style.borderLeftColor = '#0d6efd'; // Azul para catálogo
         } else {
             row.querySelector('.item-sku-badge').innerText = `SKU: NUEVO/MANUAL`;
-            row.style.borderLeftColor = '#6c757d';
+            row.style.borderLeftColor = '#6c757d'; // Gris para manual
         }
 
         row.querySelector('.item-cantidad').value = datos.cantidad || 1;
@@ -239,6 +254,7 @@
         row.querySelector('.item-enlace').value = datos.enlace || '';
         row.querySelector('.item-comentarios').value = datos.comentarios || '';
 
+        // Evento eliminar
         row.querySelector('.btn-eliminar-fila').onclick = function() {
             row.remove();
             if (contenedor.querySelectorAll('.item-row').length === 0) {
@@ -248,6 +264,7 @@
             actualizarContador();
         };
 
+        // Evento desplegar detalles
         row.querySelector('.btn-toggle-detalle').onclick = function() {
             const extra = row.querySelector('.extra-detalles');
             const isVisible = extra.style.display === 'block';
@@ -255,6 +272,7 @@
             this.classList.toggle('active', !isVisible);
         };
 
+        // Eventos de cálculo
         row.querySelector('.item-cantidad').oninput = recalcularTotales;
         row.querySelector('.item-costo').oninput = recalcularTotales;
 
@@ -280,6 +298,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Cargar datos si es edición
         {% if orden %}
             {% for detalle in orden.detalles %}
                 agregarFila({
@@ -294,12 +313,14 @@
             {% endfor %}
         {% endif %}
 
+        // Botón Manual
         document.getElementById('btn_manual').onclick = () => {
             agregarFila({ id: 0, nombre: '', costo: 0 });
             const ultimaFila = contenedor.lastElementChild;
             if (ultimaFila) ultimaFila.querySelector('.item-nombre').focus();
         };
 
+        // Buscador Predictivo
         buscador.addEventListener('input', function() {
             const query = this.value.toLowerCase().trim();
             sugerencias.innerHTML = '';
@@ -332,6 +353,7 @@
             } else { sugerencias.style.display = 'none'; }
         });
 
+        // Cerrar sugerencias al hacer clic fuera
         document.addEventListener('click', (e) => {
             if (e.target !== buscador) sugerencias.style.display = 'none';
         });
