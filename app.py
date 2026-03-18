@@ -2785,11 +2785,13 @@ def nuevo_proyecto_oc():
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
+        # CORRECCIÓN: Se eliminó p.costo_estandar que causaba el AttributeError
+        # Se usa precio_unitario o costo (si existe en el modelo) o 0
         productos_lista.append({
             'id': p.id,
             'nombre': p.nombre,
             'codigo': p.codigo,
-            'precio_unitario': p.precio_unitario or p.costo_estandar or 0,
+            'precio_unitario': p.precio_unitario or getattr(p, 'costo', 0) or 0,
         })
         
     # 2. Preparar Proveedores para JS
@@ -2812,7 +2814,7 @@ def nuevo_proyecto_oc():
                                        productos=productos_lista,
                                        proveedores=proveedores_lista,
                                        almacenes=almacenes,
-                                       orden=None) # Ajustado a 'orden' para el template
+                                       orden=None)
 
             # Crear la Cabecera de la Orden de Proyecto
             nueva_orden = ProyectoOC(
@@ -2823,9 +2825,9 @@ def nuevo_proyecto_oc():
                 estado='borrador'
             )
             db.session.add(nueva_orden)
-            db.session.flush() # Para obtener el ID antes de insertar detalles
+            db.session.flush() 
 
-            # Capturar listas del formulario (ajustadas a los nombres del Canvas)
+            # Capturar listas del formulario
             productos_ids = request.form.getlist('producto_id[]')
             nombres_manuales = request.form.getlist('nombre_manual[]')
             cantidades = request.form.getlist('cantidad[]')
@@ -2834,7 +2836,6 @@ def nuevo_proyecto_oc():
             comentarios = request.form.getlist('comentarios_detalle[]')
 
             for i in range(len(cantidades)):
-                # Validar que la línea tenga datos mínimos
                 if not cantidades[i] or float(cantidades[i]) <= 0:
                     continue 
 
@@ -2846,7 +2847,6 @@ def nuevo_proyecto_oc():
                     comentarios_detalle=comentarios[i] if i < len(comentarios) else None
                 )
                 
-                # Determinar si es un producto de catálogo o manual
                 pid_raw = productos_ids[i] if i < len(productos_ids) else '0'
                 if pid_raw.isdigit() and int(pid_raw) > 0:
                     detalle.producto_id = int(pid_raw)
@@ -2862,7 +2862,7 @@ def nuevo_proyecto_oc():
         except Exception as e:
             db.session.rollback()
             print(f"ERROR OC PROYECTO: {e}")
-            flash(f'Error al crear la OC de Proyecto: {str(e)}', 'danger')
+            flash(f'Error al guardar en la base de datos. Asegúrate de ejecutar /fix-db-proyectos una vez.', 'danger')
     
     return render_template('proyecto_oc_form.html', 
                            titulo="Crear OC de Proyecto",
