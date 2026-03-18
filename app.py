@@ -2290,6 +2290,7 @@ def enviar_orden(id):
 @login_required
 @check_permission('perm_create_oc_standard')
 def generar_oc_pdf(id):
+    """ Genera un PDF profesional de la Orden de Compra incluyendo enlaces de proveedor. """
     orden = OrdenCompra.query.filter_by(
         id=id, 
         organizacion_id=current_user.organizacion_id
@@ -2364,8 +2365,6 @@ def generar_oc_pdf(id):
     # ==========================================
     # 2. INFORMACIÓN (PROVEEDOR Y ORDEN)
     # ==========================================
-    
-    # Intento seguro de obtener datos de contacto
     p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'contacto_email', '-')))
     p_tel = getattr(proveedor, 'telefono', getattr(proveedor, 'celular', '-'))
     p_contacto = getattr(proveedor, 'contacto', getattr(proveedor, 'nombre_contacto', '-'))
@@ -2394,9 +2393,8 @@ def generar_oc_pdf(id):
     story.append(Spacer(1, 0.2*inch))
 
     # ==========================================
-    # 3. TABLA DE PRODUCTOS (ACTUALIZADA CON CAJAS)
+    # 3. TABLA DE PRODUCTOS (CON ENLACES)
     # ==========================================
-    
     headers = [
         Paragraph("Producto / SKU", style_th),
         Paragraph("Cajas", style_th),
@@ -2412,65 +2410,65 @@ def generar_oc_pdf(id):
         subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
         total_general += subtotal
         
-        # Extraemos las cajas y factor de empaque de forma segura
         factor_empaque = getattr(detalle.producto, 'unidades_por_caja', 1) or 1
         cajas = getattr(detalle, 'cajas', 0)
         cajas_str = f"{cajas:g}" if cajas else "0"
         
-        # Descripción con salto de línea para SKU y Factor
-        desc = f"<b>{detalle.producto.nombre}</b><br/>SKU: {detalle.producto.codigo}<br/><font color='gray'>Empaque: {factor_empaque} ud(s)</font>"
+        # --- LÓGICA DE ENLACE ---
+        # Priorizamos el enlace guardado en el detalle de la orden, si no existe, usamos el del catálogo
+        enlace_url = getattr(detalle, 'enlace_proveedor', None)
+        if not enlace_url:
+            enlace_url = getattr(detalle.producto, 'enlace_proveedor', None)
+
+        # Construimos la descripción
+        desc = f"<b>{detalle.producto.nombre}</b><br/>SKU: {detalle.producto.codigo}<br/><font color='gray' size='8'>Empaque: {factor_empaque} ud(s)</font>"
+        
+        # Si existe enlace, lo añadimos en pequeño y azul
+        if enlace_url:
+            # ReportLab interpreta etiquetas font básicas. Acortamos la URL visual si es muy larga.
+            display_url = (enlace_url[:50] + '...') if len(enlace_url) > 53 else enlace_url
+            desc += f"<br/><font color='blue' size='7'>{display_url}</font>"
         
         row = [
             Paragraph(desc, style_normal),
             Paragraph(cajas_str, style_normal),
-            Paragraph(str(detalle.cantidad_solicitada), style_normal),
+            Paragraph(str(int(detalle.cantidad_solicitada)), style_normal),
             Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", style_normal),
             Paragraph(f"${subtotal:,.2f}", style_normal)
         ]
         data_table.append(row)
 
-    # --- FILA DE TOTAL (INTEGRADA Y ADAPTADA) ---
+    # FILA DE TOTAL
     row_total = [
-        '', # 0
-        '', # 1
-        '', # 2
-        Paragraph("TOTAL:", style_total_label), # 3
-        Paragraph(f"${total_general:,.2f}", style_total_value) # 4
+        '', '', '', 
+        Paragraph("TOTAL:", style_total_label), 
+        Paragraph(f"${total_general:,.2f}", style_total_value)
     ]
     data_table.append(row_total)
 
-    # Configuración de Anchos (Ajustado para 5 columnas, Total = 6.2 inches)
     col_widths_prod = [2.4*inch, 0.8*inch, 0.8*inch, 1.0*inch, 1.2*inch]
-    
     t_productos = Table(data_table, colWidths=col_widths_prod, repeatRows=1)
     
-    # ESTILOS COMPLETOS (Bordes, Colores y Fusión)
     estilos = [
-        # Encabezado
         ('BACKGROUND', (0,0), (-1,0), color_primario),
         ('TEXTCOLOR', (0,0), (-1,0), colors.white),
         ('ALIGN', (0,0), (-1,0), 'CENTER'),
-        ('VALIGN', (0,0), (-1,0), 'MIDDLE'),
-        
-        # Cuerpo (Rejilla completa)
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('GRID', (0,0), (-1,-2), 0.5, colors.black), 
-        ('ALIGN', (1,1), (2,-2), 'CENTER'), # Centrar Cajas y Unidades
-        ('ALIGN', (3,1), (-1,-1), 'RIGHT'),  # Precios a la derecha
-        ('VALIGN', (0,1), (-1,-1), 'MIDDLE'),
+        ('ALIGN', (1,1), (2,-2), 'CENTER'),
+        ('ALIGN', (3,1), (-1,-1), 'RIGHT'),
         ('TOPPADDING', (0,0), (-1,-1), 6),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        
-        # Fila de Total (Última fila adaptada a las nuevas columnas)
-        ('SPAN', (0,-1), (2,-1)),            # Fusionar columnas 0, 1 y 2
-        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black), # Línea superior gruesa
-        ('BACKGROUND', (3,-1), (-1,-1), colors.whitesmoke), # Fondo gris tenue en total
-        ('BOX', (3,-1), (4,-1), 0.5, colors.black), # Caja alrededor del total y etiqueta
+        ('SPAN', (0,-1), (2,-1)),
+        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black),
+        ('BACKGROUND', (3,-1), (-1,-1), colors.whitesmoke),
+        ('BOX', (3,-1), (4,-1), 0.5, colors.black),
     ]
     
     t_productos.setStyle(TableStyle(estilos))
     story.append(t_productos)
 
-    # --- GENERAR ---
+    # --- GENERAR Y ENVIAR ---
     doc.build(story)
     buffer.seek(0)
     filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
