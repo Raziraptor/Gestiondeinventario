@@ -82,6 +82,17 @@
         transform: translateY(0) rotate(0deg);
         opacity: 1;
     }
+
+    /* Estilo para el botón de enlace de proveedor */
+    .btn-link-proveedor {
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+        opacity: 0.8;
+    }
+    .btn-link-proveedor:hover {
+        opacity: 1;
+        transform: translateX(3px);
+    }
 </style>
 
 <div class="container-fluid mt-3 mb-5">
@@ -211,8 +222,15 @@
                     <tbody>
                         {% for detalle in orden.detalles %}
                         <tr>
-                            <!-- Producto -->
-                            <td class="ps-4 py-3 fw-bold text-body">{{ detalle.producto.nombre }}</td>
+                            <!-- Producto con Botón de Enlace -->
+                            <td class="ps-4 py-3 text-body">
+                                <div class="fw-bold">{{ detalle.producto.nombre }}</div>
+                                {% if detalle.enlace_proveedor %}
+                                    <a href="{{ detalle.enlace_proveedor }}" target="_blank" class="btn btn-link btn-sm p-0 text-primary text-decoration-none fw-bold btn-link-proveedor">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> Ver en Proveedor
+                                    </a>
+                                {% endif %}
+                            </td>
                             
                             <!-- SKU -->
                             <td class="text-center font-monospace text-muted small">
