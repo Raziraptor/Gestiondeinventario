@@ -2806,8 +2806,8 @@ def nuevo_proyecto_oc():
             nombre_proyecto = request.form.get('nombre_proyecto')
             almacen_id = request.form.get('almacen_id')
             
-            if not nombre_proyecto or not almacen_id:
-                flash('El nombre del proyecto y el almacén son obligatorios.', 'danger')
+            if not nombre_proyecto:
+            flash("El nombre del proyecto es obligatorio.", "danger")
                 # Usamos return para no lanzar excepción y perder datos del form
                 return render_template('proyecto_oc_form.html', 
                            titulo="Crear OC de Proyecto",
