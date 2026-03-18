@@ -2506,6 +2506,7 @@ def nueva_orden_manual():
             cantidades = request.form.getlist('cantidad[]')
             costos = request.form.getlist('costo[]')
             cajas_lista = request.form.getlist('cajas[]') # <-- Capturamos las cajas
+            enlaces_lista = request.form.getlist('enlace[]') # <-- NUEVO: Capturamos los enlaces
 
             for i in range(len(productos_ids)):
                 if productos_ids[i] and float(cantidades[i]) > 0:
@@ -2515,13 +2516,20 @@ def nueva_orden_manual():
                         cajas_val = float(cajas_lista[i])
                     except (IndexError, ValueError, TypeError):
                         cajas_val = 0.0
+                        
+                    # NUEVO: Extraer el enlace de forma segura
+                    try:
+                        enlace_val = enlaces_lista[i]
+                    except IndexError:
+                        enlace_val = ''
                     
                     detalle = OrdenCompraDetalle( 
                         orden_id=nueva_orden.id,
                         producto_id=productos_ids[i],
                         cantidad_solicitada=float(cantidades[i]),
                         costo_unitario_estimado=float(costos[i]),
-                        cajas=cajas_val # <-- Guardamos las cajas
+                        cajas=cajas_val, # <-- Guardamos las cajas
+                        enlace_proveedor=enlace_val # <-- CORRECCIÓN: Guardamos en enlace_proveedor
                     )
                     db.session.add(detalle)
 
@@ -2550,7 +2558,7 @@ def nueva_orden_manual():
             'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
             'proveedor_id': p.proveedor_id,
             'unidades_por_caja': getattr(p, 'unidades_por_caja', 1),
-            'enlace': getattr(p, 'enlace', '')
+            'enlace': getattr(p, 'enlace_proveedor', '') # <-- CORRECCIÓN: Leemos enlace_proveedor
         })
     
     return render_template('orden_form.html', 
@@ -2559,7 +2567,6 @@ def nueva_orden_manual():
                            proveedores=proveedores,
                            productos=productos_lista,
                            almacenes=almacenes)
-
 
 @app.route('/orden/<int:id>')
 @login_required
@@ -2574,6 +2581,100 @@ def ver_orden(id):
                            orden=orden, 
                            titulo=f"Detalle de Orden #{orden.id}")
 
+@app.route('/orden/nueva/manual', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_create_oc_standard')
+def nueva_orden_manual():
+    """ Crea una nueva Orden de Compra manualmente. """
+    
+    if request.method == 'POST':
+        try:
+            proveedor_id = request.form.get('proveedor_id')
+            almacen_id = request.form.get('almacen_id') # Nuevo campo Multi-Almacén
+            
+            if not proveedor_id:
+                flash("Debes seleccionar un proveedor.", "warning")
+                return redirect(request.url)
+
+            # 1. Crear la Cabecera de la Orden
+            nueva_orden = OrdenCompra(
+                proveedor_id=proveedor_id,
+                organizacion_id=current_user.organizacion_id,
+                creador_id=current_user.id,
+                estado='borrador', # <-- CORRECCIÓN: Debe nacer como borrador
+                almacen_id=almacen_id if almacen_id else None # Guardamos el almacén destino
+            )
+            db.session.add(nueva_orden)
+            db.session.flush() # Para obtener el ID de la orden antes de seguir
+
+            # 2. Procesar las líneas de productos
+            productos_ids = request.form.getlist('producto_id[]')
+            cantidades = request.form.getlist('cantidad[]')
+            costos = request.form.getlist('costo[]')
+            cajas_lista = request.form.getlist('cajas[]') # <-- Capturamos las cajas
+            enlaces_lista = request.form.getlist('enlace[]') # <-- NUEVO: Capturamos los enlaces
+
+            for i in range(len(productos_ids)):
+                if productos_ids[i] and float(cantidades[i]) > 0:
+                    
+                    # Extraer el valor de las cajas de forma segura
+                    try:
+                        cajas_val = float(cajas_lista[i])
+                    except (IndexError, ValueError, TypeError):
+                        cajas_val = 0.0
+                        
+                    # NUEVO: Extraer el enlace de forma segura
+                    try:
+                        enlace_val = enlaces_lista[i]
+                    except IndexError:
+                        enlace_val = ''
+                    
+                    detalle = OrdenCompraDetalle( 
+                        orden_id=nueva_orden.id,
+                        producto_id=productos_ids[i],
+                        cantidad_solicitada=float(cantidades[i]),
+                        costo_unitario_estimado=float(costos[i]),
+                        cajas=cajas_val, # <-- Guardamos las cajas
+                        enlace_proveedor=enlace_val # <-- CORRECCIÓN: Guardamos en enlace_proveedor
+                    )
+                    db.session.add(detalle)
+
+            db.session.commit()
+            flash(f"Orden #{nueva_orden.id} creada exitosamente en estado borrador.", "success")
+            return redirect(url_for('lista_ordenes'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error al crear orden: {e}", "danger")
+            return redirect(request.url)
+
+    # --- MÉTODO GET: Renderizar el formulario ---
+    org_id = current_user.organizacion_id
+    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
+
+    # Convertir productos a diccionario para que tojson funcione
+    productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
+    productos_lista = []
+    for p in productos_query:
+        productos_lista.append({
+            'id': p.id,
+            'nombre': p.nombre,
+            'codigo': p.codigo,
+            'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
+            'proveedor_id': p.proveedor_id,
+            'unidades_por_caja': getattr(p, 'unidades_por_caja', 1),
+            'enlace': getattr(p, 'enlace_proveedor', '') # <-- CORRECCIÓN: Leemos enlace_proveedor
+        })
+    
+    return render_template('orden_form.html', 
+                           titulo="Nueva Orden de Compra",
+                           orden=None,
+                           proveedores=proveedores,
+                           productos=productos_lista,
+                           almacenes=almacenes)
+
+
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_create_oc_standard')
@@ -2583,7 +2684,7 @@ def editar_orden(id):
         organizacion_id=current_user.organizacion_id
     ).first_or_404()
 
-    if orden.estado != 'Pendiente':
+    if orden.estado != 'borrador': # <-- CORRECCIÓN: Ajustado a 'borrador'
         flash('Solo se pueden editar órdenes en estado "Borrador".', 'warning')
         return redirect(url_for('ver_orden', id=id))
 
@@ -2602,7 +2703,7 @@ def editar_orden(id):
             'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0)),
             'proveedor_id': p.proveedor_id,
             'unidades_por_caja': getattr(p, 'unidades_por_caja', 1), # <-- Aseguramos que el frontend sepa cuantas cajas
-            'enlace': getattr(p, 'enlace', '')
+            'enlace': getattr(p, 'enlace_proveedor', '') # <-- CORRECCIÓN: Leemos enlace_proveedor
         })
     
     if request.method == 'POST':
@@ -2616,7 +2717,8 @@ def editar_orden(id):
             productos_ids = request.form.getlist('producto_id[]')
             cantidades = request.form.getlist('cantidad[]')
             costos = request.form.getlist('costo[]')
-            cajas_lista = request.form.getlist('cajas[]') # <-- ¡NUEVO! Capturamos cajas editadas
+            cajas_lista = request.form.getlist('cajas[]')
+            enlaces_lista = request.form.getlist('enlace[]') # <-- ¡NUEVO! Capturamos enlaces editados
 
             if not productos_ids:
                  flash('La orden debe tener al menos un producto.', 'danger')
@@ -2643,12 +2745,19 @@ def editar_orden(id):
                 except (IndexError, ValueError, TypeError):
                     cajas_val = 0.0
 
+                # NUEVO: Extraer el enlace de forma segura
+                try:
+                    enlace_val = enlaces_lista[i]
+                except IndexError:
+                    enlace_val = ''
+
                 detalle = OrdenCompraDetalle(
                     orden_id=orden.id,
                     producto_id=int(prod_id),
                     cantidad_solicitada=int(cant),
                     costo_unitario_estimado=float(cost),
-                    cajas=cajas_val # <-- Lo guardamos en BD
+                    cajas=cajas_val,
+                    enlace_proveedor=enlace_val # <-- Lo guardamos en BD
                 )
                 db.session.add(detalle)
             
