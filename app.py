@@ -3694,26 +3694,3 @@ if __name__ == '__main__':
     modo_debug = os.environ.get('FLASK_DEBUG', 'False') == 'True'
     app.run(host='0.0.0.0', port=5000, debug=modo_debug)
     app.run(debug=True, port=5000)
-
-@app.route('/fix-db-proyectos')
-@login_required
-def fix_db_proyectos():
-    if current_user.rol != 'super_admin':
-        return "Acceso denegado", 403
-    try:
-        # Añadir columnas faltantes a la tabla de detalles
-        db.session.execute(text("ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS enlace_proveedor VARCHAR(500);"))
-        db.session.execute(text("ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS comentarios_detalle TEXT;"))
-        
-        # Si el error es específicamente por costo_unitario, lo renombramos si existe como 'costo'
-        # o lo creamos si no existe ninguna de las dos.
-        db.session.execute(text("ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS costo_unitario FLOAT DEFAULT 0.0;"))
-        
-        # Asegurar que el almacén en la cabecera pueda ser nulo
-        db.session.execute(text("ALTER TABLE proyecto_oc ALTER COLUMN almacen_id DROP NOT NULL;"))
-        
-        db.session.commit()
-        return "<h3>Estructura de base de datos actualizada correctamente.</h3><p>Vuelve a intentar guardar la orden ahora.</p>"
-    except Exception as e:
-        db.session.rollback()
-        return f"<h3>Error al actualizar:</h3><p>{str(e)}</p>"
