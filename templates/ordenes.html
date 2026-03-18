@@ -17,6 +17,24 @@
         color: #e0e0e0;
     }
     
+    /* Corrección para los fondos "light" y "white" en modo oscuro */
+    [data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .card-body .bg-light {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        color: #e0e0e0 !important;
+    }
+    
+    [data-bs-theme="dark"] .bg-white,
+    [data-bs-theme="dark"] .filter-switch .bg-white {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border-color: #333 !important;
+    }
+
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+
     .orden-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         border-radius: 1rem;
@@ -91,7 +109,7 @@
                     <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
                         <i class="bi bi-filter"></i> Aplicar Filtros
                     </button>
-                    <!-- NUEVO FILTRO DINÁMICO: OCULTAR CANCELADAS -->
+                    <!-- FILTRO DINÁMICO: OCULTAR CANCELADAS -->
                     <div class="bg-white border rounded shadow-sm px-3 d-flex align-items-center filter-switch">
                         <div class="form-check form-switch m-0">
                             <input class="form-check-input" type="checkbox" role="switch" id="toggleCanceladas">
@@ -132,7 +150,7 @@
                         <!-- ENCABEZADO DE TARJETA -->
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <h5 class="fw-bold mb-0">OC #{{ orden.id }}</h5>
+                                <h5 class="fw-bold mb-0 text-body">OC #{{ orden.id }}</h5>
                                 <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ orden.fecha_creacion.strftime('%d/%m/%Y') }}</small>
                             </div>
                             <span class="status-badge {{ bg_light_status }} {% if orden.estado in ['recibida', 'cancelada'] %}text-white{% else %}text-dark{% endif %} shadow-sm">
@@ -146,7 +164,7 @@
                                 <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-2" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
                                     <i class="bi bi-building"></i>
                                 </div>
-                                <h6 class="fw-bold mb-0 text-truncate">{{ orden.proveedor.nombre }}</h6>
+                                <h6 class="fw-bold mb-0 text-truncate text-body">{{ orden.proveedor.nombre }}</h6>
                             </div>
                             <small class="text-muted ps-5 d-block" style="margin-top: -5px;">
                                 Por: {{ orden.creador.username }}
@@ -169,8 +187,8 @@
                                 {% for detalle in orden.detalles %}
                                     {% if loop.index <= 3 %}
                                     <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10 last-border-0">
-                                        <span class="text-truncate small" style="max-width: 160px;">{{ detalle.producto.nombre }}</span>
-                                        <span class="fw-bold small">x{{ detalle.cantidad_solicitada }}</span>
+                                        <span class="text-truncate small text-body" style="max-width: 160px;">{{ detalle.producto.nombre }}</span>
+                                        <span class="fw-bold small text-body">x{{ detalle.cantidad_solicitada }}</span>
                                     </li>
                                     {% endif %}
                                 {% endfor %}
@@ -195,7 +213,7 @@
                         <div class="d-grid gap-2">
                             {% if orden.estado == 'borrador' or (orden.estado not in ['recibida', 'enviada', 'cancelada']) %}
                                 <div class="btn-group w-100 shadow-sm">
-                                    <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning btn-sm fw-bold">
+                                    <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning btn-sm fw-bold text-dark">
                                         <i class="bi bi-pencil"></i> Editar
                                     </a>
                                     <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" class="d-contents">
