@@ -39,6 +39,10 @@
     .nueva-fila {
         animation: slideIn 0.3s ease-out forwards;
     }
+
+    .extra-detalles {
+        transition: max-height 0.3s ease-out;
+    }
 </style>
 
 <div class="container-fluid mt-3 mb-5">
@@ -72,7 +76,7 @@
                             <div class="input-group input-group-lg shadow-sm">
                                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-box-seam text-primary"></i></span>
                                 <input type="text" id="buscador_productos" class="form-control border-start-0 ps-0 fs-6" 
-                                       placeholder="Nombre o SKU..." autocomplete="off">
+                                       placeholder="Escribe nombre o SKU..." autocomplete="off">
                             </div>
                             <!-- Sugerencias -->
                             <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg mt-1 border-0 rounded-3" style="display: none;"></div>
@@ -85,22 +89,16 @@
 
                         <!-- AGREGAR MANUALMENTE -->
                         <div class="d-grid">
-                            <button type="button" class="btn btn-outline-primary fw-bold rounded-pill" onclick="agregarFilaManual()">
+                            <button type="button" id="btn_manual" class="btn btn-outline-primary fw-bold rounded-pill shadow-sm">
                                 <i class="bi bi-plus-circle-dotted me-2"></i> Agregar Artículo Personalizado
                             </button>
-                            <small class="text-muted text-center mt-2 small">Úsalo para items que no están en el inventario.</small>
+                            <small class="text-muted text-center mt-2 small">Úsalo para items que no están en el catálogo.</small>
                         </div>
 
                         <hr class="border-secondary border-opacity-25 my-4">
-
-                        <!-- INFO DEL PROYECTO (CABECERA) -->
-                        <div class="bg-light p-3 rounded-3 border border-secondary border-opacity-10 mb-3">
-                            <label class="form-label small fw-bold text-muted text-uppercase">Almacén Destino</label>
-                            <select name="almacen_id" class="form-select border-0 shadow-sm" required>
-                                {% for alm in almacenes %}
-                                    <option value="{{ alm.id }}" {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>{{ alm.nombre }}</option>
-                                {% endfor %}
-                            </select>
+                        
+                        <div class="alert alert-info bg-opacity-10 border-info border-opacity-25 py-2 small">
+                            <i class="bi bi-info-circle-fill me-2"></i> Esta orden se gestiona de forma externa al stock de almacenes.
                         </div>
                     </div>
                 </div>
@@ -122,26 +120,6 @@
                                 <h5 class="mt-3">No hay artículos seleccionados</h5>
                                 <p>Busca productos o agrégalos manualmente para comenzar.</p>
                             </div>
-
-                            <!-- AQUÍ SE INYECTAN LAS FILAS -->
-                            {% if orden %}
-                                {% for detalle in orden.detalles %}
-                                    <!-- Lógica para cargar filas existentes en caso de edición -->
-                                    <script>
-                                        document.addEventListener('DOMContentLoaded', () => {
-                                            agregarFila({
-                                                id: "{{ detalle.producto_id }}",
-                                                nombre: "{{ detalle.producto.nombre }}",
-                                                codigo: "{{ detalle.producto.codigo }}",
-                                                costo: "{{ detalle.costo_unitario_estimado }}",
-                                                cantidad: "{{ detalle.cantidad_solicitada }}",
-                                                enlace: "{{ detalle.enlace_proveedor or '' }}",
-                                                comentarios: "{{ detalle.comentarios or '' }}"
-                                            });
-                                        });
-                                    </script>
-                                {% endfor %}
-                            {% endif %}
                         </div>
 
                         <!-- TOTALIZADOR -->
@@ -180,22 +158,22 @@
                 <!-- Cantidad -->
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted">Cantidad</label>
-                    <input type="number" name="cantidad[]" class="form-control border-0 fw-bold text-center bg-white item-cantidad" value="1" min="1" oninput="recalcularTotales()">
+                    <input type="number" name="cantidad[]" class="form-control border-0 fw-bold text-center bg-white item-cantidad" value="1" min="1">
                 </div>
                 
                 <!-- Costo -->
                 <div class="col-md-2">
                     <label class="form-label small fw-bold text-muted">Costo Unit. ($)</label>
-                    <input type="number" name="costo[]" class="form-control border-0 fw-bold text-end bg-white item-costo" step="0.01" value="0.00" oninput="recalcularTotales()">
+                    <input type="number" name="costo[]" class="form-control border-0 fw-bold text-end bg-white item-costo" step="0.01" value="0.00">
                 </div>
 
                 <!-- Botón Eliminar -->
                 <div class="col-md-3 d-flex align-items-end justify-content-end">
                     <div class="btn-group">
-                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleDetalles(this)" title="Añadir Enlace/Comentarios">
+                        <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-detalle" title="Añadir Enlace/Comentarios">
                             <i class="bi bi-chat-left-text"></i> <span class="d-none d-sm-inline">Detalles</span>
                         </button>
-                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarFila(this)">
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-eliminar-fila">
                             <i class="bi bi-trash"></i>
                         </button>
                     </div>
@@ -222,83 +200,32 @@
 </template>
 
 <script>
-    // DATOS CARGADOS DESDE BACKEND
+    // Inicialización de variables
     const productosBase = {{ productos | tojson | safe }};
     const contenedor = document.getElementById('contenedor_items');
     const msgVacio = document.getElementById('mensaje_vacio');
     const buscador = document.getElementById('buscador_productos');
     const sugerencias = document.getElementById('lista_sugerencias');
 
-    // ==========================================
-    // 1. LÓGICA DEL BUSCADOR
-    // ==========================================
-    buscador.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        sugerencias.innerHTML = '';
-
-        if (query.length < 2) {
-            sugerencias.style.display = 'none';
-            return;
-        }
-
-        const filtrados = productosBase.filter(p => 
-            p.nombre.toLowerCase().includes(query) || 
-            p.codigo.toLowerCase().includes(query)
-        ).slice(0, 6);
-
-        if (filtrados.length > 0) {
-            sugerencias.style.display = 'block';
-            filtrados.forEach(p => {
-                const item = document.createElement('a');
-                item.href = '#';
-                item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3';
-                item.innerHTML = `
-                    <div>
-                        <strong class="text-body">${p.nombre}</strong><br>
-                        <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}</small>
-                    </div>
-                    <i class="bi bi-plus-circle text-primary fs-5"></i>
-                `;
-                item.onclick = (e) => {
-                    e.preventDefault();
-                    agregarFila({
-                        id: p.id,
-                        nombre: p.nombre,
-                        codigo: p.codigo,
-                        costo: p.precio_unitario || 0,
-                        enlace: p.enlace || ''
-                    });
-                    this.value = '';
-                    sugerencias.style.display = 'none';
-                };
-                sugerencias.appendChild(item);
-            });
-        } else {
-            sugerencias.style.display = 'none';
-        }
-    });
-
-    // Cerrar sugerencias al hacer clic fuera
-    document.addEventListener('click', (e) => {
-        if (e.target !== buscador) sugerencias.style.display = 'none';
-    });
-
-    // ==========================================
-    // 2. GESTIÓN DE FILAS
-    // ==========================================
+    // Función principal para agregar filas
     function agregarFila(datos) {
+        if (!msgVacio || !contenedor) return;
+        
         msgVacio.style.display = 'none';
-        const plantilla = document.getElementById('plantilla_item').content.cloneNode(true);
-        const row = plantilla.querySelector('.item-row');
+        const plantilla = document.getElementById('plantilla_item');
+        const clon = plantilla.content.cloneNode(true);
+        const row = clon.querySelector('.item-row');
 
-        // Llenar datos
+        // Llenar datos básicos
         row.querySelector('.item-id').value = datos.id || '0';
-        row.querySelector('.item-nombre').value = datos.nombre;
-        if (datos.id && datos.id !== '0') {
+        row.querySelector('.item-nombre').value = datos.nombre || '';
+        
+        if (datos.id && datos.id !== '0' && datos.id !== 0) {
             row.querySelector('.item-nombre').readOnly = true;
             row.querySelector('.item-sku-badge').innerText = `SKU: ${datos.codigo}`;
             row.style.borderLeftColor = '#0d6efd'; // Azul para catálogo
         } else {
+            row.querySelector('.item-sku-badge').innerText = `SKU: NUEVO/MANUAL`;
             row.style.borderLeftColor = '#6c757d'; // Gris para manual
         }
 
@@ -307,57 +234,122 @@
         row.querySelector('.item-enlace').value = datos.enlace || '';
         row.querySelector('.item-comentarios').value = datos.comentarios || '';
 
+        // Listeners de la fila
+        row.querySelector('.btn-eliminar-fila').onclick = function() {
+            row.remove();
+            if (contenedor.querySelectorAll('.item-row').length === 0) {
+                msgVacio.style.display = 'block';
+            }
+            recalcularTotales();
+            actualizarContador();
+        };
+
+        row.querySelector('.btn-toggle-detalle').onclick = function() {
+            const extra = row.querySelector('.extra-detalles');
+            const isVisible = extra.style.display === 'block';
+            extra.style.display = isVisible ? 'none' : 'block';
+            this.classList.toggle('active', !isVisible);
+        };
+
+        row.querySelector('.item-cantidad').oninput = recalcularTotales;
+        row.querySelector('.item-costo').oninput = recalcularTotales;
+
         contenedor.appendChild(row);
         actualizarContador();
         recalcularTotales();
     }
 
-    function agregarFilaManual() {
-        agregarFila({
-            id: '0',
-            nombre: '',
-            codigo: 'MANUAL',
-            costo: 0
-        });
-        // Enfocar el nuevo nombre
-        const ult = contenedor.lastElementChild.querySelector('.item-nombre');
-        ult.focus();
-    }
-
-    function eliminarFila(btn) {
-        btn.closest('.item-row').remove();
-        if (contenedor.children.length === 1) { // Solo queda el mensaje_vacio oculto
-             msgVacio.style.display = 'block';
-        }
-        actualizarContador();
-        recalcularTotales();
-    }
-
-    function toggleDetalles(btn) {
-        const extra = btn.closest('.item-row').querySelector('.extra-detalles');
-        const isVisible = extra.style.display === 'block';
-        extra.style.display = isVisible ? 'none' : 'block';
-        btn.classList.toggle('active', !isVisible);
-    }
-
-    // ==========================================
-    // 3. CÁLCULOS
-    // ==========================================
     function recalcularTotales() {
         let total = 0;
         const filas = contenedor.querySelectorAll('.item-row');
         filas.forEach(f => {
-            const c = parseFloat(f.querySelector('.item-cantidad').value) || 0;
-            const u = parseFloat(f.querySelector('.item-costo').value) || 0;
-            total += (c * u);
+            const cant = parseFloat(f.querySelector('.item-cantidad').value) || 0;
+            const cost = parseFloat(f.querySelector('.item-costo').value) || 0;
+            total += (cant * cost);
         });
         document.getElementById('total_orden').innerText = `$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
     }
 
     function actualizarContador() {
         const count = contenedor.querySelectorAll('.item-row').length;
-        document.getElementById('contador_registros')?.innerText = `${count} Items`; // Para consistencia
         document.getElementById('contador_items').innerText = `${count} Items`;
     }
+
+    // Eventos del DOM
+    document.addEventListener('DOMContentLoaded', () => {
+        // Cargar datos existentes si los hay (Jinja)
+        {% if orden %}
+            {% for detalle in orden.detalles %}
+                agregarFila({
+                    id: "{{ detalle.producto_id }}",
+                    nombre: "{{ detalle.producto.nombre }}",
+                    codigo: "{{ detalle.producto.codigo }}",
+                    costo: "{{ detalle.costo_unitario_estimado }}",
+                    cantidad: "{{ detalle.cantidad_solicitada }}",
+                    enlace: "{{ detalle.enlace_proveedor or '' }}",
+                    comentarios: "{{ detalle.comentarios or '' }}"
+                });
+            {% endfor %}
+        {% endif %}
+
+        // Botón Manual
+        document.getElementById('btn_manual').onclick = () => {
+            agregarFila({ id: 0, nombre: '', costo: 0 });
+            const ultimaFila = contenedor.lastElementChild;
+            if (ultimaFila) ultimaFila.querySelector('.item-nombre').focus();
+        };
+
+        // Buscador
+        buscador.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            sugerencias.innerHTML = '';
+
+            if (query.length < 2) {
+                sugerencias.style.display = 'none';
+                return;
+            }
+
+            const filtrados = productosBase.filter(p => 
+                p.nombre.toLowerCase().includes(query) || 
+                p.codigo.toLowerCase().includes(query)
+            ).slice(0, 6);
+
+            if (filtrados.length > 0) {
+                sugerencias.style.display = 'block';
+                filtrados.forEach(p => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3';
+                    item.innerHTML = `
+                        <div>
+                            <strong class="text-body">${p.nombre}</strong><br>
+                            <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}</small>
+                        </div>
+                        <i class="bi bi-plus-circle text-primary fs-5"></i>
+                    `;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        agregarFila({
+                            id: p.id,
+                            nombre: p.nombre,
+                            codigo: p.codigo,
+                            costo: p.precio_unitario || p.costo || 0,
+                            enlace: p.enlace_proveedor || ''
+                        });
+                        this.value = '';
+                        sugerencias.style.display = 'none';
+                    };
+                    sugerencias.appendChild(item);
+                });
+            } else {
+                sugerencias.style.display = 'none';
+            }
+        });
+
+        // Cerrar sugerencias
+        document.addEventListener('click', (e) => {
+            if (e.target !== buscador) sugerencias.style.display = 'none';
+        });
+    });
 </script>
 {% endblock %}
