@@ -300,12 +300,13 @@
                                     {% for detalle in poc.detalles %}
                                         {% if loop.index <= 2 %}
                                         <li class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="text-truncate pe-2" title="{% if detalle.producto_id %}{{ detalle.producto.nombre }}{% else %}{{ detalle.descripcion }}{% endif %}">
+                                            {% set texto_manual = detalle.concepto or detalle.nombre or detalle.descripcion or 'Artículo Manual' %}
+                                            <span class="text-truncate pe-2" title="{% if detalle.producto_id %}{{ detalle.producto.nombre }}{% else %}{{ texto_manual }}{% endif %}">
                                                 <i class="bi bi-dot text-{{ color_theme }}"></i> 
                                                 {% if detalle.producto_id %}
                                                     {{ detalle.producto.nombre }}
                                                 {% else %}
-                                                    {{ detalle.descripcion }}
+                                                    {{ texto_manual }}
                                                 {% endif %}
                                             </span>
                                             <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 rounded-pill">
