@@ -3,70 +3,234 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h2>{{ titulo }}</h2>
-            <h5 class="text-muted">
-                Hoja de Salida Diaria para Almacén: <strong>{{ salida.almacen.nombre }}</strong>
-            </h5>
-            <small>Creada por: {{ salida.creador.username }}</small>
+<style>
+    /* ==========================================
+       ESTILOS PERSONALIZADOS (MODO CLARO/OSCURO)
+       ========================================== */
+       
+    /* --- AJUSTES GLOBALES PARA LA BARRA DE NAVEGACIÓN --- */
+    [data-bs-theme="dark"] .navbar {
+        background-color: #121212 !important;
+        border-bottom: 1px solid #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-brand,
+    [data-bs-theme="dark"] .navbar .nav-link,
+    [data-bs-theme="dark"] .navbar .navbar-text {
+        color: #e0e0e0 !important;
+    }
+
+    /* --- AJUSTES PARA MODO OSCURO (Pure Black) --- */
+    [data-bs-theme="dark"] body {
+        background-color: #000000 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .card-header {
+        background-color: transparent !important;
+        border-bottom-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-white {
+        background-color: #1a1a1a !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .text-muted {
+        color: #888888 !important;
+    }
+    [data-bs-theme="dark"] .border,
+    [data-bs-theme="dark"] .border-bottom,
+    [data-bs-theme="dark"] .border-top {
+        border-color: #2a2a2a !important;
+    }
+
+    /* Tablas en Modo Oscuro */
+    [data-bs-theme="dark"] .table {
+        color: #e0e0e0;
+        border-color: #2a2a2a;
+    }
+    [data-bs-theme="dark"] .table-light th {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border-bottom: 2px solid #333 !important;
+    }
+    [data-bs-theme="dark"] .table-hover tbody tr:hover td {
+        background-color: rgba(255,255,255,0.05) !important;
+        color: #ffffff;
+    }
+    [data-bs-theme="dark"] .table td {
+        border-color: #2a2a2a !important;
+    }
+
+    /* --- AJUSTES PARA MODO CLARO --- */
+    [data-bs-theme="light"] body {
+        background-color: #f8f9fa !important;
+        color: #212529;
+    }
+    [data-bs-theme="light"] .card {
+        background-color: #ffffff;
+        border-color: #dee2e6;
+    }
+
+    /* ==========================================
+       ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA)
+       ========================================== */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    .theme-switch-sun {
+        color: #ffc107;
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e0e0e0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper {
+        background-color: #1a1a1a;
+        border-color: #333;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper:hover {
+        box-shadow: 0 4px 8px rgba(255,255,255,0.05) !important;
+    }
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper shadow-sm" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
         </div>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 gap-3">
         <div>
-            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-danger" target="_blank">
-                <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF
+            <h2 class="mb-1 fw-bold"><i class="bi bi-box-arrow-up-right text-danger me-2"></i>{{ titulo }}</h2>
+            <h5 class="text-muted fw-normal mb-2">
+                Hoja de Salida Diaria para Almacén: <strong class="text-body"><i class="bi bi-shop me-1"></i>{{ salida.almacen.nombre }}</strong>
+            </h5>
+            <div class="text-muted small">
+                <i class="bi bi-person me-1"></i> Creada por: <span class="fw-bold">{{ salida.creador.username }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('historial_salidas') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Historial
             </a>
-            <a href="{{ url_for('historial_salidas') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Volver al Historial
+            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold text-nowrap" target="_blank">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Imprimir PDF
             </a>
         </div>
     </div>
     
+    <!-- ALERTA DE CANCELACIÓN -->
     {% if salida.estado == 'cancelada' %}
-    <div class="alert alert-warning">
-        <strong>Esta salida fue cancelada.</strong> El inventario asociado fue reingresado.
+    <div class="alert alert-warning border-warning shadow-sm rounded-4 d-flex align-items-center mb-4">
+        <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-warning"></i>
+        <div>
+            <strong class="d-block text-dark">Esta salida fue cancelada.</strong>
+            <span class="small text-dark opacity-75">El inventario asociado a estos movimientos fue reingresado automáticamente al almacén.</span>
+        </div>
     </div>
     {% endif %}
 
-    <div class="card">
-        <div class="card-header">
-            Items Retirados
-            <a href="{{ url_for('registrar_salida', almacen_id=salida.almacen_id) }}" class="btn btn-sm btn-outline-primary float-end">
-                <i class="bi bi-plus-circle"></i> Añadir más items
+    <!-- TARJETA: TABLA DE ITEMS RETIRADOS -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold text-body"><i class="bi bi-list-check text-primary me-2"></i>Items Retirados</h4>
+            
+            {% if salida.estado != 'cancelada' %}
+            <a href="{{ url_for('registrar_salida', almacen_id=salida.almacen_id) }}" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm px-3 fw-bold">
+                <i class="bi bi-plus-circle me-1"></i> Añadir más items
             </a>
+            {% endif %}
         </div>
-        <div class="card-body table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
+        
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary text-uppercase small">
                     <tr>
-                        <th>Hora</th>
-                        <th>Producto</th>
-                        <th>SKU</th>
-                        <th>Motivo</th> <th class="text-end">Cantidad</th>
-                        <th>Acción</th> </tr>
+                        <th class="ps-4 border-0">Hora</th>
+                        <th class="border-0">Producto</th>
+                        <th class="border-0">Motivo</th>
+                        <th class="text-center border-0">Cantidad</th>
+                        <th class="text-end pe-4 border-0">Acción</th>
+                    </tr>
                 </thead>
                 <tbody>
                     {% for mov in movimientos %}
                     <tr>
-                        <td>{{ mov.fecha.strftime('%H:%M:%S') }}</td>
-                        <td>{{ mov.producto.nombre }}</td>
-                        <td>{{ mov.producto.codigo }}</td>
-                        <td>{{ mov.motivo }}</td>
-                        <td class="text-end">
-                            <strong class="text-danger">{{ mov.cantidad }}</strong>
+                        <td class="ps-4 text-muted small fw-bold">
+                            <i class="bi bi-clock me-1 opacity-75"></i> {{ mov.fecha.strftime('%H:%M:%S') }}
+                        </td>
+                        <td>
+                            <strong class="text-body d-block">{{ mov.producto.nombre }}</strong>
+                            <small class="text-muted font-monospace"><i class="bi bi-upc me-1 opacity-50"></i>{{ mov.producto.codigo }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border border-secondary border-opacity-25 px-2 py-1 shadow-sm">{{ mov.motivo }}</span>
                         </td>
                         <td class="text-center">
-                            <form action="{{ url_for('eliminar_movimiento_salida', id=mov.id) }}" method="POST"
-                                  onsubmit="return confirm('¿Estás seguro de que deseas eliminar este item? Esta acción REVERTIRÁ el stock.');">
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar Item">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <span class="fw-bold text-danger fs-5">-{{ mov.cantidad }}</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if salida.estado != 'cancelada' %}
+                                <form action="{{ url_for('eliminar_movimiento_salida', id=mov.id) }}" method="POST"
+                                      onsubmit="return confirm('¿Estás seguro de que deseas eliminar este item?\n\nEsta acción REVERTIRÁ el stock de este producto devolviéndolo al almacén.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill shadow-sm px-3" title="Eliminar Item y Revertir Stock">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="badge bg-secondary opacity-50">Cancelado</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="text-center">
-                            No hay items registrados en esta hoja de salida.
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-box-seam fs-1 d-block mb-3 opacity-25"></i>
+                            <h5 class="fw-bold text-body">Sin items registrados</h5>
+                            <p class="mb-0">No hay movimientos guardados en esta hoja de salida.</p>
                         </td>
                     </tr>
                     {% endfor %}
@@ -74,4 +238,28 @@
             </table>
         </div>
     </div>
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}
