@@ -1939,6 +1939,9 @@ def eliminar_movimiento_salida(id):
         return redirect(url_for('historial_salidas'))
         
     salida_id_redirect = movimiento.salida_id
+    
+    # 1. GUARDAR EL NOMBRE ANTES DE BORRAR (SOLUCIÓN AL ERROR)
+    nombre_producto = movimiento.producto.nombre
 
     try:
         # --- LÓGICA MODIFICADA ---
@@ -1979,7 +1982,9 @@ def eliminar_movimiento_salida(id):
         db.session.delete(movimiento)
         
         db.session.commit()
-        flash(f'Item "{movimiento.producto.nombre}" eliminado. Stock revertido.', 'success')
+        
+        # 4. USAR LA VARIABLE GUARDADA PARA EL MENSAJE
+        flash(f'Item "{nombre_producto}" eliminado. Stock revertido.', 'success')
         
     except Exception as e:
         db.session.rollback()
@@ -1991,7 +1996,6 @@ def eliminar_movimiento_salida(id):
     # Si era el último item, la hoja se borró (por la cascada), 
     # así que redirigimos al historial
     return redirect(url_for('historial_salidas'))
-
 
 @app.route('/salida/<int:id>/pdf')
 @login_required
