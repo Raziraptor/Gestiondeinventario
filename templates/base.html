@@ -365,8 +365,10 @@
 
     <!-- CONTENIDO PRINCIPAL Y ALERTAS -->
     <main class="container py-2 mb-5">
-        <!-- Renderizado de Alertas Premium -->
-        <div class="toast-container position-relative mb-4">
+        
+        <!-- Renderizado de Alertas Premium (CORREGIDO) -->
+        <!-- NOTA: Se quitó la clase 'toast-container' porque bloquea los clics -->
+        <div class="mensajes-flash-container position-relative mb-4">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
@@ -376,10 +378,14 @@
                         {% if category == 'danger' %}{% set icon = 'bi-exclamation-octagon-fill text-danger' %}{% endif %}
                         {% if category == 'warning' %}{% set icon = 'bi-exclamation-triangle-fill text-warning' %}{% endif %}
                         
-                        <div class="alert alert-{{ category }} alert-premium alert-dismissible fade show d-flex align-items-center gap-3" role="alert">
-                            <i class="bi {{ icon }} fs-4"></i>
-                            <div>{{ message }}</div>
-                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <!-- Eliminamos el d-flex del contenedor principal de la alerta para que la X se posicione bien -->
+                        <div class="alert alert-{{ category }} alert-premium alert-dismissible fade show shadow-sm" role="alert">
+                            <!-- Metemos el flexbox adentro -->
+                            <div class="d-flex align-items-center gap-3 pe-4">
+                                <i class="bi {{ icon }} fs-4 flex-shrink-0"></i>
+                                <div class="text-break">{{ message }}</div>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     {% endfor %}
                 {% endif %}
