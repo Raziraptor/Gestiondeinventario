@@ -300,17 +300,20 @@
                                     {% for detalle in poc.detalles %}
                                         {% if loop.index <= 2 %}
                                         <li class="d-flex justify-content-between align-items-center mb-1">
-                                            {% set texto_manual = detalle.concepto or detalle.nombre or detalle.descripcion or 'Artículo Manual' %}
-                                            <span class="text-truncate pe-2" title="{% if detalle.producto_id %}{{ detalle.producto.nombre }}{% else %}{{ texto_manual }}{% endif %}">
+                                            
+                                            <!-- CORRECCIÓN: Asignación correcta de la descripción -->
+                                            {% set texto_manual = detalle.descripcion_nuevo or 'Sin descripción' %}
+                                            
+                                            <span class="text-truncate pe-2" title="{% if detalle.producto_id and detalle.producto %}{{ detalle.producto.nombre }}{% else %}{{ texto_manual }}{% endif %}">
                                                 <i class="bi bi-dot text-{{ color_theme }}"></i> 
-                                                {% if detalle.producto_id %}
+                                                {% if detalle.producto_id and detalle.producto %}
                                                     {{ detalle.producto.nombre }}
                                                 {% else %}
                                                     {{ texto_manual }}
                                                 {% endif %}
                                             </span>
                                             <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 rounded-pill">
-                                                {{ detalle.cantidad if detalle.cantidad else detalle.cantidad_solicitada }}
+                                                {{ detalle.cantidad }}
                                             </span>
                                         </li>
                                         {% endif %}
