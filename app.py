@@ -745,7 +745,7 @@ def enviar_correo_api(destinatario, reset_url):
     
     headers = {
         "accept": "application/json",
-        "api-key": API_KEY,
+        "api-key": BREVO_API_KEY,
         "content-type": "application/json"
     }
     
