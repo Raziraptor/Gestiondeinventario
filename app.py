@@ -74,8 +74,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
 from werkzeug.security import generate_password_hash
 from sqlalchemy import text
-import google.generativeai as genai
-import os
+from google import genai
 
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
@@ -3647,12 +3646,11 @@ def ai_mejorar_descripcion():
         return jsonify({'error': 'Producto vacío'}), 400
         
     try:
-        # Reemplaza esto con tu API Key
+        # Reemplaza esto con tu API Key (Te explico cómo obtenerla abajo)
         API_KEY = os.environ.get("AIzaSyDTKYKVzr7M3aBrcS76rMeAd15SSitn3CU")
-        genai.configure(api_key=API_KEY)
         
-        # Usamos Gemini 2.5 Flash (Súper rápido y avanzado)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        # Cliente del NUEVO SDK de Google
+        client = genai.Client(api_key=API_KEY)
         
         prompt = f"""
         Eres un experto Director de Compras Corporativas (Procurement Manager).
@@ -3669,7 +3667,12 @@ def ai_mejorar_descripcion():
         5. Máximo 4-5 líneas.
         """
         
-        response = model.generate_content(prompt)
+        # Llamada con el nuevo formato usando el modelo más reciente
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
+        
         return jsonify({'sugerencia': response.text.strip()})
         
     except Exception as e:
