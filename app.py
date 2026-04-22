@@ -2789,8 +2789,6 @@ def nuevo_proyecto_oc():
     productos_query = Producto.query.filter_by(organizacion_id=org_id).all()
     productos_lista = []
     for p in productos_query:
-        # CORRECCIÓN: Se eliminó p.costo_estandar que causaba el AttributeError
-        # Se usa precio_unitario o costo (si existe en el modelo) o 0
         productos_lista.append({
             'id': p.id,
             'nombre': p.nombre,
@@ -2831,31 +2829,36 @@ def nuevo_proyecto_oc():
             db.session.add(nueva_orden)
             db.session.flush() 
 
-            # Capturar listas del formulario
-            productos_ids = request.form.getlist('producto_id[]')
-            nombres_manuales = request.form.getlist('nombre_manual[]')
+            # Capturar listas del formulario con nombres EXACTOS del nuevo HTML
+            tipos = request.form.getlist('tipo_item[]')
+            productos_existentes_ids = request.form.getlist('producto_id_existente[]')
+            descripciones_nuevas = request.form.getlist('descripcion_nuevo[]')
             cantidades = request.form.getlist('cantidad[]')
-            costos = request.form.getlist('costo[]')
+            costos = request.form.getlist('costo_unitario[]')
+            proveedores_sugeridos = request.form.getlist('proveedor_sugerido[]')
             enlaces = request.form.getlist('enlace_proveedor[]')
             comentarios = request.form.getlist('comentarios_detalle[]')
 
-            for i in range(len(cantidades)):
+            for i in range(len(tipos)):
+                # Saltar líneas vacías o en cero
                 if not cantidades[i] or float(cantidades[i]) <= 0:
                     continue 
 
                 detalle = ProyectoOCDetalle(
                     proyecto_oc_id=nueva_orden.id,
                     cantidad=float(cantidades[i]),
-                    costo_unitario=float(costos[i]),
+                    costo_unitario=float(costos[i]) if costos[i] else 0.0,
+                    proveedor_sugerido=proveedores_sugeridos[i] if i < len(proveedores_sugeridos) else None,
                     enlace_proveedor=enlaces[i] if i < len(enlaces) else None,
-                    comentarios_detalle=comentarios[i] if i < len(comentarios) else None
+                    comentarios_detalle=comentarios[i] if i < len(comentarios) else None,
+                    descripcion_nuevo=descripciones_nuevas[i] if i < len(descripciones_nuevas) else "Sin descripción"
                 )
                 
-                pid_raw = productos_ids[i] if i < len(productos_ids) else '0'
-                if pid_raw.isdigit() and int(pid_raw) > 0:
-                    detalle.producto_id = int(pid_raw)
-                else:
-                    detalle.descripcion_nuevo = nombres_manuales[i] if i < len(nombres_manuales) else "Producto sin nombre"
+                # Asignar el ID de producto si venía del catálogo
+                if tipos[i] == 'existente':
+                    pid_raw = productos_existentes_ids[i] if i < len(productos_existentes_ids) else '0'
+                    if pid_raw.isdigit() and int(pid_raw) > 0:
+                        detalle.producto_id = int(pid_raw)
                 
                 db.session.add(detalle)
 
@@ -2875,6 +2878,7 @@ def nuevo_proyecto_oc():
                            almacenes=almacenes,
                            orden=None)
 
+
 @app.route('/proyecto-oc/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @check_permission('perm_create_oc_proyecto')
@@ -2889,29 +2893,39 @@ def editar_proyecto_oc(id):
     if request.method == 'POST':
         try:
             proyecto_oc.nombre_proyecto = request.form.get('nombre_proyecto')
+            
+            # Borrar detalles viejos y crear los nuevos
             ProyectoOCDetalle.query.filter_by(proyecto_oc_id=id).delete()
             
+            # Capturar listas del formulario
             tipos = request.form.getlist('tipo_item[]')
             productos_existentes_ids = request.form.getlist('producto_id_existente[]') 
-            productos_nuevos = request.form.getlist('producto_nuevo_descripcion[]')
+            descripciones_nuevas = request.form.getlist('descripcion_nuevo[]')
             cantidades = request.form.getlist('cantidad[]')
-            costos = request.form.getlist('costo[]')
+            costos = request.form.getlist('costo_unitario[]')
             proveedores_sugeridos = request.form.getlist('proveedor_sugerido[]')
+            enlaces = request.form.getlist('enlace_proveedor[]')
+            comentarios = request.form.getlist('comentarios_detalle[]')
 
             for i in range(len(tipos)):
-                if not cantidades[i] or not costos[i]: continue 
+                if not cantidades[i] or float(cantidades[i]) <= 0: 
+                    continue 
+
                 detalle = ProyectoOCDetalle(
                     proyecto_oc_id=id,
-                    cantidad=int(cantidades[i]),
-                    costo_unitario=float(costos[i]),
-                    proveedor_sugerido=proveedores_sugeridos[i]
+                    cantidad=float(cantidades[i]),
+                    costo_unitario=float(costos[i]) if costos[i] else 0.0,
+                    proveedor_sugerido=proveedores_sugeridos[i] if i < len(proveedores_sugeridos) else None,
+                    enlace_proveedor=enlaces[i] if i < len(enlaces) else None,
+                    comentarios_detalle=comentarios[i] if i < len(comentarios) else None,
+                    descripcion_nuevo=descripciones_nuevas[i] if i < len(descripciones_nuevas) else "Sin descripción"
                 )
+
                 if tipos[i] == 'existente':
                     prod_id_val = int(productos_existentes_ids[i]) if productos_existentes_ids[i].isdigit() else 0
-                    if prod_id_val > 0: detalle.producto_id = prod_id_val
-                    else: detalle.producto_id = None
-                else: 
-                    detalle.descripcion_nuevo = productos_nuevos[i]
+                    if prod_id_val > 0: 
+                        detalle.producto_id = prod_id_val
+                
                 db.session.add(detalle)
 
             db.session.commit()
@@ -2929,15 +2943,15 @@ def editar_proyecto_oc(id):
     productos_lista = []
     for p in productos_query:
         productos_lista.append({
-            'id': p.id, 'nombre': p.nombre, 'codigo': p.codigo, 'precio_unitario': p.precio_unitario
+            'id': p.id, 'nombre': p.nombre, 'codigo': p.codigo, 'precio_unitario': getattr(p, 'precio_unitario', getattr(p, 'costo', 0))
         })
         
-    # CORRECCIÓN AQUÍ TAMBIÉN:
     proveedores_query = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
     proveedores_lista = [{'id': p.id, 'nombre': p.nombre} for p in proveedores_query]
 
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
     
+    # IMPORTANTE: Enviar TODOS los campos a JS para que cargue la edición perfecta
     detalles_json = []
     for d in proyecto_oc.detalles:
         detalles_json.append({
@@ -2946,16 +2960,19 @@ def editar_proyecto_oc(id):
             'descripcion_nuevo': d.descripcion_nuevo,
             'cantidad': d.cantidad,
             'costo_unitario': d.costo_unitario,
-            'proveedor_sugerido': d.proveedor_sugerido
+            'proveedor_sugerido': d.proveedor_sugerido,
+            'enlace_proveedor': d.enlace_proveedor,
+            'comentarios_detalle': d.comentarios_detalle
         })
     
     return render_template('proyecto_oc_form.html', 
                            titulo=f"Editar OC de Proyecto #{proyecto_oc.id}",
                            productos=productos_lista,
-                           proveedores=proveedores_lista, # <-- Pasamos la lista corregida
+                           proveedores=proveedores_lista,
                            almacenes=almacenes,
                            proyecto_oc=proyecto_oc,
                            detalles_json=detalles_json)
+
 
 @app.route('/proyecto-oc/<int:id>/pdf')
 @login_required
@@ -2999,8 +3016,12 @@ def generar_proyecto_oc_pdf(id):
     ]]
     
     for detalle in proyecto_oc.detalles:
-        tipo = Paragraph("Inventario" if detalle.producto_id else "Nuevo", style_left)
-        descripcion = Paragraph(detalle.descripcion, style_left)
+        tipo = Paragraph("Catálogo" if detalle.producto_id else "Nuevo", style_left)
+        
+        # CORRECCIÓN BUG DEL PDF: Priorizar el nombre real del producto, sino el tipado a mano
+        desc_text = detalle.producto.nombre if detalle.producto_id and detalle.producto else detalle.descripcion_nuevo
+        descripcion = Paragraph(desc_text or 'Sin descripción', style_left)
+        
         proveedor = Paragraph(detalle.proveedor_sugerido or 'N/A', style_left)
         cantidad = Paragraph(str(detalle.cantidad), style_right)
         costo_unit = Paragraph(f"${detalle.costo_unitario:.2f}", style_right)
@@ -3041,7 +3062,7 @@ def generar_proyecto_oc_pdf(id):
         download_name=filename,
         mimetype='application/pdf'
     )
-
+    
 @app.route('/proyecto-oc/<int:id>/cancelar', methods=['POST'])
 @login_required
 @check_permission('perm_create_oc_proyecto')
