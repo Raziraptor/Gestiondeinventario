@@ -74,6 +74,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
 from werkzeug.security import generate_password_hash
 from sqlalchemy import text
+import google.generativeai as genai
+import os
 
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
@@ -3634,6 +3636,45 @@ def asignar_usuario(user_id):
         flash(f'Error al actualizar el usuario: {e}', 'danger')
 
     return redirect(url_for('super_admin'))
+
+@app.route('/api/ai/mejorar-descripcion', methods=['POST'])
+@login_required
+def ai_mejorar_descripcion():
+    data = request.get_json()
+    producto = data.get('producto', '')
+    
+    if not producto:
+        return jsonify({'error': 'Producto vacío'}), 400
+        
+    try:
+        # Reemplaza esto con tu API Key
+        API_KEY = os.environ.get("AIzaSyDTKYKVzr7M3aBrcS76rMeAd15SSitn3CU")
+        genai.configure(api_key=API_KEY)
+        
+        # Usamos Gemini 2.5 Flash (Súper rápido y avanzado)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = f"""
+        Eres un experto Director de Compras Corporativas (Procurement Manager).
+        Un usuario de tu empresa necesita comprar esto: "{producto}"
+        
+        Tu tarea es generar las "Especificaciones Técnicas Sugeridas" para incluir en la Orden de Compra.
+        Incluye detalles clave como: materiales, capacidad mínima sugerida, dimensiones comunes, o estándares de calidad.
+        
+        REGLAS ESTRICTAS:
+        1. NO saludes ni des introducciones (ej. "Aquí tienes...").
+        2. NO des explicaciones.
+        3. Responde ÚNICAMENTE con el texto de las especificaciones, listo para copiar y pegar.
+        4. Usa un tono técnico, estructurado por viñetas cortas (-).
+        5. Máximo 4-5 líneas.
+        """
+        
+        response = model.generate_content(prompt)
+        return jsonify({'sugerencia': response.text.strip()})
+        
+    except Exception as e:
+        print(f"Error AI: {e}")
+        return jsonify({'error': 'No se pudo conectar con la IA en este momento.'}), 500
     
 # ========================
 # NUEVAS RUTAS DEL ADMIN
