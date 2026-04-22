@@ -720,7 +720,7 @@ def enviar_correo_api(destinatario, reset_url):
         print("ERROR: Falta BREVO_API_KEY en el archivo .env")
         return
         
-    url = "[https://api.brevo.com/v3/smtp/email](https://api.brevo.com/v3/smtp/email)"
+    url = "https://api.brevo.com/v3/smtp/email](https://api.brevo.com/v3/smtp/email"
     
     # IMPORTANTE: Cambia 'tu_correo@gmail.com' por el correo con el que te registraste en Brevo
     payload = {
@@ -745,7 +745,7 @@ def enviar_correo_api(destinatario, reset_url):
     
     headers = {
         "accept": "application/json",
-        "api-key": BREVO_API_KEY,
+        "api-key": API_KEY,
         "content-type": "application/json"
     }
     
