@@ -75,6 +75,12 @@ from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
 from werkzeug.security import generate_password_hash
 from sqlalchemy import text
 
+import requests
+from threading import Thread
+from flask import current_app, url_for, flash, redirect, render_template
+from itsdangerous.url_safe import URLSafeTimedSerializer
+
+
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
 # ==============================================================================
@@ -99,14 +105,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
-# --- Configuración de Flask-Mail ---
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'dinventarioc@gmail.com'
-app.config['MAIL_DEFAULT_SENDER'] = 'dinventarioc@gmail.com'
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -713,6 +711,63 @@ def admin_reset_password(id):
         flash(f'Error al actualizar: {e}', 'danger')
 
     return redirect(url_for('lista_usuarios'))
+
+def enviar_correo_api(destinatario, reset_url):
+    import os
+    API_KEY = os.environ.get("BREVO_API_KEY")
+    
+    if not API_KEY:
+        print("ERROR: Falta BREVO_API_KEY en el archivo .env")
+        return
+        
+    url = "[https://api.brevo.com/v3/smtp/email](https://api.brevo.com/v3/smtp/email)"
+    
+    # IMPORTANTE: Cambia 'tu_correo@gmail.com' por el correo con el que te registraste en Brevo
+    payload = {
+        "sender": {"name": "Soporte Inventario", "email": "dinventarioc@gmail.com"},
+        "to": [{"email": destinatario}],
+        "subject": "Restablecimiento de Contraseña - Inventario",
+        "htmlContent": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
+                <div style="background-color: #0d6efd; padding: 20px; text-align: center; color: white;">
+                    <h2 style="margin: 0;">Gestor de Inventario</h2>
+                </div>
+                <div style="padding: 30px; background-color: #f9f9f9; text-align: center;">
+                    <p style="font-size: 16px; color: #333;">Hemos recibido una solicitud para restablecer tu contraseña.</p>
+                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; margin: 20px 0; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        Restablecer mi Contraseña
+                    </a>
+                    <p style="font-size: 14px; color: #777;">Si no solicitaste este cambio, puedes ignorar este correo sin problemas.</p>
+                </div>
+            </div>
+        """
+    }
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": API_KEY,
+        "content-type": "application/json"
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        print("✅ Correo enviado exitosamente vía API")
+    except Exception as e:
+        print(f"❌ Error enviando correo: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(e.response.text)
+
+# 2. Modifica la función original de generación de token
+def send_reset_email(user):
+    app_actual = current_app._get_current_object()
+    s = URLSafeTimedSerializer(app_actual.config['SECRET_KEY'])
+    token = s.dumps(user.email, salt='password-reset-salt')
+    
+    reset_url = url_for('reset_password', token=token, _external=True)
+    
+    # Lanzar el hilo (Thread) para que la página cargue rápido y el correo se envíe de fondo
+    Thread(target=enviar_correo_api, args=(user.email, reset_url)).start()
       
 # =============================================
 # NUEVAS RUTAS PARA ETIQUETAS
