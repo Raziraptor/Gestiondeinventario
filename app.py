@@ -74,7 +74,6 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
 from werkzeug.security import generate_password_hash
 from sqlalchemy import text
-from google import genai
 
 # ==============================================================================
 # 2. CONFIGURACIÓN DE LA APLICACIÓN
@@ -3639,6 +3638,9 @@ def asignar_usuario(user_id):
 @app.route('/api/ai/mejorar-descripcion', methods=['POST'])
 @login_required
 def ai_mejorar_descripcion():
+    from google import genai
+    import os
+    
     data = request.get_json()
     producto = data.get('producto', '')
     
