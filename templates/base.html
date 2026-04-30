@@ -607,6 +607,14 @@
                                         <i class="bi bi-exclamation-triangle me-2 text-warning"></i> Productos Sin Almacén
                                     </a>
                                 </li>
+                                {% if current_user.rol in ['super_admin', 'admin'] %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('importar_productos') }}">
+                                        <i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i> Importar Productos
+                                    </a>
+                                </li>
+                                {% endif %}
                             </ul>
                         </li>
                         {% endif %}

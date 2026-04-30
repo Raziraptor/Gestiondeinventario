@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% block title %}Importar Productos{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5" style="max-width:780px;">
+
+    <!-- ENCABEZADO -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Importar Productos</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Importar Productos</h2>
+        <p class="text-muted">Sube un archivo Excel (.xlsx) o CSV para agregar múltiples productos de una sola vez.</p>
+    </div>
+
+    <!-- RESULTADO DE IMPORTACIÓN -->
+    {% if resultados %}
+    <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
+        <div class="card-header border-0 pt-4 pb-3 px-4"
+             style="background: {% if resultados.importados > 0 %}rgba(16,185,129,.08){% else %}rgba(239,68,68,.08){% endif %}">
+            <h5 class="fw-bold mb-0">
+                {% if resultados.importados > 0 %}
+                <i class="bi bi-check-circle-fill text-success me-2"></i>Importación completada
+                {% else %}
+                <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>Sin productos nuevos
+                {% endif %}
+            </h5>
+        </div>
+        <div class="card-body px-4 py-3">
+            <div class="row g-3 mb-3">
+                <div class="col-4 text-center">
+                    <div class="fs-1 fw-bold text-success">{{ resultados.importados }}</div>
+                    <div class="text-muted small">Importados</div>
+                </div>
+                <div class="col-4 text-center">
+                    <div class="fs-1 fw-bold text-warning">{{ resultados.omitidos }}</div>
+                    <div class="text-muted small">Omitidos (SKU duplicado)</div>
+                </div>
+                <div class="col-4 text-center">
+                    <div class="fs-1 fw-bold text-danger">{{ resultados.errores | length }}</div>
+                    <div class="text-muted small">Errores</div>
+                </div>
+            </div>
+
+            {% if resultados.errores %}
+            <div class="alert alert-warning rounded-3 mb-0 py-2">
+                <p class="fw-bold mb-1 small"><i class="bi bi-exclamation-triangle me-1"></i>Filas con problemas:</p>
+                <ul class="mb-0 small">
+                    {% for e in resultados.errores %}
+                    <li>{{ e }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if resultados.importados > 0 %}
+            <div class="d-flex gap-2 mt-3">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                    <i class="bi bi-grid me-1"></i> Ver en Dashboard
+                </a>
+                <a href="{{ url_for('importar_productos') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Importar otro archivo
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- FORMULARIO DE SUBIDA -->
+    <div class="card border-0 rounded-4 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form method="POST" enctype="multipart/form-data" id="importForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- ZONA DE DROP -->
+                <div id="dropZone" class="rounded-4 border-2 border-dashed d-flex flex-column align-items-center justify-content-center text-center p-5 mb-4"
+                     style="border: 2px dashed var(--border); cursor:pointer; transition: all .2s; min-height:200px;">
+                    <i class="bi bi-cloud-arrow-up" style="font-size:3rem; color:var(--primary); opacity:.7;"></i>
+                    <p class="fw-bold mt-3 mb-1 fs-5">Arrastra tu archivo aquí</p>
+                    <p class="text-muted small mb-3">o haz click para seleccionar</p>
+                    <input type="file" name="archivo" id="archivoInput" accept=".xlsx,.csv" class="d-none">
+                    <button type="button" class="btn btn-outline-primary rounded-pill px-4 fw-bold"
+                            onclick="document.getElementById('archivoInput').click()">
+                        <i class="bi bi-folder2-open me-1"></i> Seleccionar archivo
+                    </button>
+                    <p class="text-muted mt-2 mb-0" style="font-size:.8rem;">Formatos: .xlsx, .csv · Máximo 10MB</p>
+                </div>
+
+                <!-- ARCHIVO SELECCIONADO -->
+                <div id="fileInfo" class="d-none alert rounded-3 py-2 mb-4" style="border-left: 4px solid var(--primary); background: var(--hover-bg);">
+                    <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i>
+                    <span id="fileName" class="fw-semibold"></span>
+                    <span id="fileSize" class="text-muted small ms-2"></span>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm" id="submitBtn" disabled>
+                        <i class="bi bi-upload me-2"></i> Importar Productos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DESCARGAR TEMPLATE -->
+    <div class="card border-0 rounded-4 shadow-sm">
+        <div class="card-body p-4 d-flex align-items-center gap-4 flex-wrap">
+            <div class="flex-1">
+                <h6 class="fw-bold mb-1"><i class="bi bi-file-earmark-excel text-success me-2"></i>¿Primera vez importando?</h6>
+                <p class="text-muted small mb-0">Descarga el template oficial con las columnas correctas y ejemplos incluidos.</p>
+            </div>
+            <a href="{{ url_for('descargar_template_importacion') }}" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm flex-shrink-0">
+                <i class="bi bi-download me-1"></i> Descargar Template
+            </a>
+        </div>
+    </div>
+
+    <!-- INSTRUCCIONES RÁPIDAS -->
+    <div class="mt-4 p-4 rounded-4" style="background: var(--hover-bg);">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1 text-primary"></i>Columnas del archivo</h6>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <p class="small fw-bold mb-1 text-body">Obligatorias</p>
+                <ul class="small text-muted mb-0 ps-3">
+                    <li><code>nombre*</code> — Nombre del producto</li>
+                    <li><code>codigo_sku*</code> — Código único (SKU)</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <p class="small fw-bold mb-1 text-body">Opcionales</p>
+                <ul class="small text-muted mb-0 ps-3">
+                    <li><code>precio_unitario</code> — Precio de costo</li>
+                    <li><code>categoria</code> — Se crea si no existe</li>
+                    <li><code>proveedor</code> — Se crea si no existe</li>
+                    <li><code>unidades_por_caja</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% block extra_js %}
+<script>
+(function() {
+    const input    = document.getElementById('archivoInput');
+    const dropZone = document.getElementById('dropZone');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const submitBtn= document.getElementById('submitBtn');
+
+    function showFile(file) {
+        if (!file) return;
+        fileName.textContent = file.name;
+        fileSize.textContent = '(' + (file.size / 1024).toFixed(1) + ' KB)';
+        fileInfo.classList.remove('d-none');
+        submitBtn.disabled = false;
+        dropZone.style.borderColor = 'var(--primary)';
+        dropZone.style.background  = 'var(--hover-bg)';
+    }
+
+    input.addEventListener('change', function() { if (this.files[0]) showFile(this.files[0]); });
+
+    dropZone.addEventListener('dragover',  function(e) { e.preventDefault(); this.style.borderColor = 'var(--primary)'; });
+    dropZone.addEventListener('dragleave', function()   { this.style.borderColor = 'var(--border)'; });
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+            showFile(file);
+        }
+    });
+
+    // Mostrar spinner al enviar
+    document.getElementById('importForm').addEventListener('submit', function() {
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+        submitBtn.disabled = true;
+    });
+})();
+</script>
+{% endblock %}
+{% endblock %}

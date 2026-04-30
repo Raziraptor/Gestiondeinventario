@@ -114,6 +114,71 @@
             </div>
         </div>
 
+        <!-- KPI: Valor del Almacén -->
+        <div class="col-12 col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="background:linear-gradient(135deg,rgba(79,70,229,.08) 0%,rgba(59,130,246,.08) 100%);border:1px solid rgba(79,70,229,.15)!important;">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(79,70,229,.15);">
+                        <i class="bi bi-currency-dollar fs-4 text-primary"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="text-muted small fw-semibold text-uppercase mb-1" style="font-size:.68rem;letter-spacing:.5px;">
+                            Valor Inventario
+                            {% if almacen_seleccionado %}<span class="text-primary">· {{ almacen_seleccionado.nombre }}</span>{% endif %}
+                        </div>
+                        <div class="fw-bold fs-3 text-primary">${{ "{:,.2f}".format(valor_almacen) }}</div>
+                        <div class="text-muted" style="font-size:.72rem;">
+                            Total org: <strong>${{ "{:,.2f}".format(valor_total_org) }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: Valor promedio por producto -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(245,158,11,.12);">
+                        <i class="bi bi-graph-up-arrow fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Valor Promedio</div>
+                        <div class="fw-bold fs-4 text-warning">
+                            {% if items_stock|length > 0 %}
+                            ${{ "{:,.0f}".format(valor_almacen / items_stock|length) }}
+                            {% else %}$0{% endif %}
+                        </div>
+                        <div class="text-muted" style="font-size:.7rem;">por producto</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: Top producto por valor -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(139,92,246,.12);">
+                        <i class="bi bi-award fs-4" style="color:#8b5cf6;"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Mayor Valor</div>
+                        {% if items_por_valor %}
+                        {% set top = items_por_valor[0] %}
+                        <div class="fw-bold text-truncate" style="font-size:.85rem;max-width:130px;">{{ top.producto.nombre }}</div>
+                        <div class="text-muted" style="font-size:.7rem;">${{ "{:,.2f}".format((top.cantidad or 0) * (top.producto.precio_unitario or 0)) }}</div>
+                        {% else %}
+                        <div class="text-muted small">—</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- GRÁFICA: Movimientos últimos 6 meses (2/3 del ancho) -->
         <div class="col-md-8">
             <div class="card border-0 shadow-sm rounded-4 h-100">
@@ -367,6 +432,69 @@
                 </table>
             </div>
         </div>
+
+        <!-- VALORIZACIÓN POR PRODUCTO (TOP 10) -->
+        {% if items_stock and valor_almacen > 0 %}
+        <div class="card border-0 shadow-sm rounded-4 mb-5">
+            <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
+                    <i class="bi bi-currency-dollar text-primary me-1"></i> Valorización por Producto
+                    {% if almacen_seleccionado %}<span class="text-muted fw-normal">· {{ almacen_seleccionado.nombre }}</span>{% endif %}
+                </span>
+                <span class="badge rounded-pill px-3 py-2 fw-bold"
+                      style="background:rgba(79,70,229,.1);color:var(--primary);font-size:.75rem;">
+                    Total: ${{ "{:,.2f}".format(valor_almacen) }}
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size:.875rem;">
+                        <thead class="table-light text-secondary text-uppercase small">
+                            <tr>
+                                <th class="ps-4 border-0">#</th>
+                                <th class="border-0">Producto</th>
+                                <th class="text-center border-0">Stock</th>
+                                <th class="text-end border-0">Precio Unit.</th>
+                                <th class="text-end border-0">Valor Total</th>
+                                <th class="text-end pe-4 border-0" style="min-width:120px;">% del total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items_por_valor %}
+                            {% set valor_item = (item.cantidad or 0) * (item.producto.precio_unitario or 0) %}
+                            {% set pct = (valor_item / valor_almacen * 100) if valor_almacen > 0 else 0 %}
+                            <tr>
+                                <td class="ps-4 text-muted fw-bold" style="width:40px;">{{ loop.index }}</td>
+                                <td>
+                                    <a href="{{ url_for('historial_producto', id=item.producto.id) }}"
+                                       class="text-decoration-none fw-semibold text-body">
+                                        {{ item.producto.nombre }}
+                                    </a>
+                                    <div class="text-muted font-monospace" style="font-size:.7rem;">{{ item.producto.codigo }}</div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill bg-secondary bg-opacity-10 text-body border px-2">{{ item.cantidad }}</span>
+                                </td>
+                                <td class="text-end text-muted">${{ "{:,.2f}".format(item.producto.precio_unitario or 0) }}</td>
+                                <td class="text-end fw-bold">${{ "{:,.2f}".format(valor_item) }}</td>
+                                <td class="pe-4">
+                                    <div class="d-flex align-items-center gap-2 justify-content-end">
+                                        <div class="progress flex-grow-1 rounded-pill" style="height:6px;max-width:80px;">
+                                            <div class="progress-bar rounded-pill"
+                                                 style="width:{{ pct | round(1) }}%;background:var(--primary);"></div>
+                                        </div>
+                                        <span class="text-muted" style="font-size:.75rem;min-width:36px;">{{ pct | round(1) }}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
     {% endif %}
 </div>
 

@@ -1082,6 +1082,29 @@ def dashboard():
     else:
         items_stock = []
 
+    # Valorización: suma (cantidad * precio_unitario) por almacén
+    valor_almacen = sum(
+        (item.cantidad or 0) * (item.producto.precio_unitario or 0)
+        for item in items_stock
+    )
+    items_por_valor = sorted(
+        items_stock,
+        key=lambda x: (x.cantidad or 0) * (x.producto.precio_unitario or 0),
+        reverse=True
+    )[:10]
+
+    # Valorización total de todos los almacenes de la organización
+    if current_user.rol == 'super_admin':
+        valor_total_org = db.session.query(
+            db.func.sum(Stock.cantidad * Producto.precio_unitario)
+        ).join(Producto, Stock.producto_id == Producto.id).scalar() or 0
+    else:
+        valor_total_org = db.session.query(
+            db.func.sum(Stock.cantidad * Producto.precio_unitario)
+        ).join(Producto, Stock.producto_id == Producto.id).join(
+            Almacen, Stock.almacen_id == Almacen.id
+        ).filter(Almacen.organizacion_id == current_user.organizacion_id).scalar() or 0
+
     if current_user.rol == 'super_admin':
         categorias = Categoria.query.all()
         proveedores = Proveedor.query.all()
@@ -1089,13 +1112,16 @@ def dashboard():
         org_id = current_user.organizacion_id
         categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
         proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
-            
-    return render_template('dashboard.html', 
+
+    return render_template('dashboard.html',
                            items_stock=items_stock,
                            almacenes=almacenes,
                            almacen_seleccionado=almacen_seleccionado,
                            categorias=categorias,
-                           proveedores=proveedores)
+                           proveedores=proveedores,
+                           valor_almacen=valor_almacen,
+                           valor_total_org=valor_total_org,
+                           items_por_valor=items_por_valor)
 
 # --- Rutas de Productos ---
 
@@ -1129,6 +1155,189 @@ def api_buscar_productos():
         })
     
     return jsonify(resultados)
+
+
+@app.route('/productos/importar/template')
+@login_required
+@check_permission('perm_edit_management')
+def descargar_template_importacion():
+    """Descarga un archivo Excel de ejemplo para importación masiva de productos."""
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from flask import send_file
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Productos"
+
+    headers = ["nombre*", "codigo_sku*", "precio_unitario", "categoria", "proveedor", "unidades_por_caja"]
+    header_fill   = PatternFill("solid", fgColor="4F46E5")
+    header_font   = Font(bold=True, color="FFFFFF")
+    example_fill  = PatternFill("solid", fgColor="F0F0FF")
+
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.font      = header_fill and header_font
+        cell.fill      = header_fill
+        cell.alignment = Alignment(horizontal="center")
+
+    examples = [
+        ["Clavos 2 pulgadas", "CLV-2IN-100", 45.50, "Ferretería", "Proveedor Central", 100],
+        ["Pintura Blanca 1L",  "PIN-BL-001",  89.00, "Pinturas",   "Distribuidora ABC", 12],
+        ["Lija Grano 120",     "LIJ-120",     12.00, "",           "",                   50],
+    ]
+    for row_idx, row_data in enumerate(examples, 2):
+        for col_idx, val in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.fill = example_fill
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = max_len + 4
+
+    ws_info = wb.create_sheet("Instrucciones")
+    instrucciones = [
+        ("INSTRUCCIONES DE IMPORTACIÓN", True),
+        ("", False),
+        ("Columnas obligatorias (marcadas con *):", True),
+        ("  • nombre*        → Nombre del producto", False),
+        ("  • codigo_sku*    → Código único (SKU). Si ya existe se omite.", False),
+        ("", False),
+        ("Columnas opcionales:", True),
+        ("  • precio_unitario → Número decimal. Default: 0", False),
+        ("  • categoria       → Nombre exacto. Si no existe se crea automáticamente.", False),
+        ("  • proveedor       → Nombre exacto. Si no existe se crea automáticamente.", False),
+        ("  • unidades_por_caja → Número entero. Default: 1", False),
+        ("", False),
+        ("NOTAS:", True),
+        ("  • Elimina las filas de ejemplo antes de importar.", False),
+        ("  • No modifiques los nombres de las columnas.", False),
+        ("  • Puedes importar .xlsx o .csv", False),
+    ]
+    for row_idx, (text, bold) in enumerate(instrucciones, 1):
+        cell = ws_info.cell(row=row_idx, column=1, value=text)
+        cell.font = Font(bold=bold)
+    ws_info.column_dimensions["A"].width = 60
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return send_file(output, download_name="template_importacion_productos.xlsx",
+                     as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+@app.route('/productos/importar', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def importar_productos():
+    """Importación masiva de productos desde CSV o Excel."""
+    import io, csv
+    from openpyxl import load_workbook
+
+    org_id = current_user.organizacion_id
+    resultados = None
+
+    if request.method == 'POST':
+        archivo = request.files.get('archivo')
+        if not archivo or archivo.filename == '':
+            flash('Selecciona un archivo para importar.', 'danger')
+            return redirect(url_for('importar_productos'))
+
+        ext = archivo.filename.rsplit('.', 1)[-1].lower()
+        if ext not in ('csv', 'xlsx'):
+            flash('Solo se aceptan archivos .csv o .xlsx', 'danger')
+            return redirect(url_for('importar_productos'))
+
+        try:
+            # --- Leer filas ---
+            filas = []
+            if ext == 'xlsx':
+                wb   = load_workbook(io.BytesIO(archivo.read()), data_only=True)
+                ws   = wb.active
+                rows = list(ws.iter_rows(values_only=True))
+                if not rows:
+                    flash('El archivo está vacío.', 'danger')
+                    return redirect(url_for('importar_productos'))
+                headers = [str(h).strip().lower() if h else '' for h in rows[0]]
+                filas   = [dict(zip(headers, row)) for row in rows[1:]]
+            else:
+                content = archivo.read().decode('utf-8-sig')
+                reader  = csv.DictReader(io.StringIO(content))
+                headers = [h.strip().lower() for h in (reader.fieldnames or [])]
+                filas   = [{k.strip().lower(): v for k, v in row.items()} for row in reader]
+
+            col = lambda row, *keys: next((str(row.get(k) or '').strip() for k in keys if row.get(k) not in (None, '')), '')
+
+            importados, omitidos, errores = 0, 0, []
+
+            for idx, fila in enumerate(filas, 2):
+                nombre = col(fila, 'nombre', 'name')
+                codigo = col(fila, 'codigo_sku', 'codigo', 'sku', 'code')
+
+                if not nombre or not codigo:
+                    if any(v for v in fila.values() if str(v or '').strip()):
+                        errores.append(f"Fila {idx}: 'nombre' y 'codigo_sku' son obligatorios.")
+                    continue
+
+                if Producto.query.filter_by(codigo=codigo, organizacion_id=org_id).first():
+                    omitidos += 1
+                    continue
+
+                # Precio
+                try:
+                    precio = float(col(fila, 'precio_unitario', 'precio') or 0)
+                except ValueError:
+                    precio = 0.0
+
+                # Unidades por caja
+                try:
+                    upc = int(col(fila, 'unidades_por_caja', 'unidades') or 1)
+                except ValueError:
+                    upc = 1
+
+                # Categoría (crea si no existe)
+                cat_nombre = col(fila, 'categoria', 'category')
+                categoria  = None
+                if cat_nombre:
+                    categoria = Categoria.query.filter_by(nombre=cat_nombre, organizacion_id=org_id).first()
+                    if not categoria:
+                        categoria = Categoria(nombre=cat_nombre, organizacion_id=org_id)
+                        db.session.add(categoria)
+                        db.session.flush()
+
+                # Proveedor (crea si no existe)
+                prov_nombre = col(fila, 'proveedor', 'supplier', 'proveedor_nombre')
+                proveedor   = None
+                if prov_nombre:
+                    proveedor = Proveedor.query.filter_by(nombre=prov_nombre, organizacion_id=org_id).first()
+                    if not proveedor:
+                        proveedor = Proveedor(nombre=prov_nombre, organizacion_id=org_id)
+                        db.session.add(proveedor)
+                        db.session.flush()
+
+                producto = Producto(
+                    nombre         = nombre,
+                    codigo         = codigo,
+                    precio_unitario= precio,
+                    categoria_id   = categoria.id if categoria else None,
+                    proveedor_id   = proveedor.id if proveedor else None,
+                    unidades_por_caja = upc,
+                    organizacion_id= org_id
+                )
+                db.session.add(producto)
+                importados += 1
+
+            db.session.commit()
+            resultados = {'importados': importados, 'omitidos': omitidos, 'errores': errores}
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al procesar el archivo: {e}', 'danger')
+
+    return render_template('importar_productos.html', titulo='Importar Productos', resultados=resultados)
+
 
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
