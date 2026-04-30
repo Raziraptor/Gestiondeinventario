@@ -12,3 +12,4 @@ qrcode[pil]
 click
 openpyxl
 reportlab
+requests
