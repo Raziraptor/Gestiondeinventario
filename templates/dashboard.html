@@ -153,6 +153,126 @@
         </div>
     </div>
     
+    <!-- ==========================================
+         FILA DE KPIs Y GRÁFICAS
+         ========================================== -->
+    <div class="row g-3 mb-4">
+
+        <!-- KPI: Total Productos -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(79,70,229,.12);">
+                        <i class="bi bi-box-seam fs-4 text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Productos</div>
+                        <div class="fw-bold fs-4" id="kpi_total">{{ items_stock|length }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: Stock Bajo -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(239,68,68,.12);">
+                        <i class="bi bi-exclamation-triangle fs-4 text-danger"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Stock Bajo</div>
+                        <div class="fw-bold fs-4 text-danger">
+                            {{ items_stock | selectattr('estado_stock', 'equalto', 'bajo') | list | length }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: En Exceso -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(59,130,246,.12);">
+                        <i class="bi bi-arrow-up-circle fs-4 text-info"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">En Exceso</div>
+                        <div class="fw-bold fs-4 text-info">
+                            {{ items_stock | selectattr('estado_stock', 'equalto', 'exceso') | list | length }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: Óptimo -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(16,185,129,.12);">
+                        <i class="bi bi-check-circle fs-4 text-success"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Óptimo</div>
+                        <div class="fw-bold fs-4 text-success">
+                            {{ items_stock | selectattr('estado_stock', 'equalto', 'ok') | list | length }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICA: Movimientos últimos 6 meses (2/3 del ancho) -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
+                        <i class="bi bi-bar-chart-fill text-primary me-1"></i> Movimientos de los Últimos 6 Meses
+                    </span>
+                </div>
+                <div class="card-body pt-2" style="min-height:220px;">
+                    <canvas id="chartMovimientos" style="max-height:200px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICA: Estado del stock (dona) (1/3 del ancho) -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
+                        <i class="bi bi-pie-chart-fill text-primary me-1"></i> Estado del Stock (Total Org)
+                    </span>
+                </div>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height:220px;">
+                    <canvas id="chartEstado" style="max-height:190px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICA: Top 8 productos más movidos este mes (fila completa) -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
+                        <i class="bi bi-trophy-fill text-warning me-1"></i> Top Productos con Más Salidas Este Mes
+                    </span>
+                </div>
+                <div class="card-body pt-2" style="min-height:180px;">
+                    <canvas id="chartTopProductos" style="max-height:160px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- FIN GRÁFICAS -->
+
     <!-- VALIDACIÓN DE ALMACÉN SELECCIONADO -->
     {% if not almacen_seleccionado %}
         <div class="alert alert-warning shadow-sm border-warning d-flex align-items-center p-4">
@@ -561,5 +681,114 @@
              }
          }
     }
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ==========================================
+// GRÁFICAS CHART.JS — DASHBOARD
+// ==========================================
+(function() {
+    const isDark = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
+
+    function themeColors() {
+        const dark = isDark();
+        return {
+            gridColor: dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+            textColor:  dark ? '#94a3b8' : '#64748b',
+        };
+    }
+
+    // ---- 1. BARRAS: MOVIMIENTOS 6 MESES ----
+    let chartMov = null;
+    function renderMovimientos(data) {
+        const ctx = document.getElementById('chartMovimientos');
+        if (!ctx) return;
+        const tc = themeColors();
+        if (chartMov) chartMov.destroy();
+        chartMov = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    { label: 'Entradas', data: data.entradas, backgroundColor: 'rgba(16,185,129,0.75)', borderColor: '#10b981', borderWidth: 1.5, borderRadius: 6 },
+                    { label: 'Salidas',  data: data.salidas,  backgroundColor: 'rgba(239,68,68,0.75)',  borderColor: '#ef4444', borderWidth: 1.5, borderRadius: 6 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { labels: { color: tc.textColor, font: { family: 'Inter', size: 12 } } } },
+                scales: {
+                    x: { ticks: { color: tc.textColor }, grid: { color: tc.gridColor } },
+                    y: { ticks: { color: tc.textColor }, grid: { color: tc.gridColor }, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // ---- 2. DONA: ESTADO STOCK ----
+    let chartEst = null;
+    function renderEstado(data) {
+        const ctx = document.getElementById('chartEstado');
+        if (!ctx) return;
+        const tc = themeColors();
+        if (chartEst) chartEst.destroy();
+        chartEst = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Stock Bajo', 'Óptimo', 'Exceso'],
+                datasets: [{ data: [data.bajo, data.ok, data.exceso], backgroundColor: ['#ef4444','#10b981','#3b82f6'], borderWidth: 0, hoverOffset: 8 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: true, cutout: '68%',
+                plugins: { legend: { position: 'bottom', labels: { color: tc.textColor, padding: 16, font: { family: 'Inter', size: 12 } } } }
+            }
+        });
+    }
+
+    // ---- 3. BARRAS HORIZONTALES: TOP PRODUCTOS ----
+    let chartTop = null;
+    function renderTop(data) {
+        const ctx = document.getElementById('chartTopProductos');
+        if (!ctx) return;
+        const tc = themeColors();
+        if (chartTop) chartTop.destroy();
+        if (!data.labels || data.labels.length === 0) {
+            ctx.closest('.card-body').innerHTML = '<p class="text-muted text-center py-3 mb-0 small"><i class="bi bi-info-circle me-1"></i>Sin salidas registradas este mes.</p>';
+            return;
+        }
+        chartTop = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{ label: 'Unidades Salidas', data: data.valores, backgroundColor: 'rgba(79,70,229,0.75)', borderColor: '#4f46e5', borderWidth: 1.5, borderRadius: 6 }]
+            },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: tc.textColor }, grid: { color: tc.gridColor }, beginAtZero: true },
+                    y: { ticks: { color: tc.textColor, font: { size: 11 } }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    async function cargarGraficas() {
+        try {
+            const [r1, r2, r3] = await Promise.all([
+                fetch('{{ url_for("api_chart_movimientos_mes") }}').then(r => r.json()),
+                fetch('{{ url_for("api_chart_estado_stock") }}').then(r => r.json()),
+                fetch('{{ url_for("api_chart_top_productos") }}').then(r => r.json()),
+            ]);
+            renderMovimientos(r1); renderEstado(r2); renderTop(r3);
+        } catch(e) { console.warn('Gráficas:', e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarGraficas);
+    // Redibujar al cambiar tema
+    new MutationObserver(cargarGraficas).observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+})();
 </script>
 {% endblock %}
