@@ -85,7 +85,7 @@
                             <div class="col-md-4">
                                 <label for="costo_caja_virtual" class="form-label fw-bold small text-muted">Costo por Caja</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary">$</span>
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary">MXN $</span>
                                     <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="costo_caja_virtual" 
                                            step="0.01" min="0" placeholder="N/A">
                                 </div>
@@ -96,7 +96,7 @@
                             <div class="col-md-4">
                                 <label for="costo_estandar" class="form-label fw-bold small text-success">Costo Unitario</label>
                                 <div class="input-group shadow-sm">
-                                    <span class="input-group-text bg-light border-success text-success">$</span>
+                                    <span class="input-group-text bg-light border-success text-success fw-semibold">MXN $</span>
                                     <input type="number" class="form-control bg-light border-success fw-bold" id="costo_estandar" name="costo_estandar" 
                                            value="{{ producto.costo_estandar if producto else '0.00' }}" step="0.01" min="0">
                                 </div>
