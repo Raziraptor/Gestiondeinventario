@@ -170,25 +170,11 @@
             </div>
 
         {% else %}
-            <!-- MENSAJE VACÍO -->
-            <div class="col-12 text-center py-5">
-                <div class="border border-secondary border-opacity-25 border-dashed rounded-4 py-5" style="background-color: var(--card-bg);">
-                    <div class="opacity-25 mb-3">
-                        <i class="bi bi-box-arrow-right text-muted" style="font-size: 5rem;"></i>
-                    </div>
-                    <h4 class="fw-bold text-body mt-2">No hay salidas registradas</h4>
-                    <p class="text-muted px-3 mb-4">No se encontraron movimientos para los filtros seleccionados.</p>
-                    <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger rounded-pill fw-bold shadow-sm px-4 py-2">
-                        <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Salida
-                    </a>
-                </div>
-            </div>
-        {% else %}
         <div class="col-12">
             <div class="empty-state">
                 <i class="bi bi-box-arrow-right empty-state-icon"></i>
                 <h5>Sin salidas registradas</h5>
-                <p>No hay salidas de inventario registradas. Crea una cuando necesites despachar productos del almacén.</p>
+                <p>No hay salidas de inventario registradas para el período seleccionado.</p>
                 <a href="{{ url_for('nueva_salida') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
                     <i class="bi bi-plus-circle me-1"></i> Nueva Salida
                 </a>
