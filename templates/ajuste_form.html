@@ -32,14 +32,24 @@
                     </select>
                 </div>
 
-                <!-- PRODUCTO -->
+                <!-- PRODUCTO (búsqueda) -->
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">
                         <i class="bi bi-box-seam text-primary me-1"></i> Producto
                     </label>
-                    <select name="producto_id" id="sel_producto" class="form-select shadow-sm" required disabled onchange="mostrarStockActual()">
-                        <option value="">-- Primero selecciona un almacén --</option>
-                    </select>
+                    <div class="position-relative">
+                        <input type="text" id="buscar_producto" class="form-control shadow-sm"
+                               placeholder="Primero selecciona un almacén..."
+                               disabled autocomplete="off">
+                        <input type="hidden" name="producto_id" id="producto_id_hidden">
+                        <div id="lista_productos"
+                             class="position-absolute w-100 border rounded-3 shadow-sm bg-body"
+                             style="display:none; max-height:240px; overflow-y:auto; top:calc(100% + 4px); left:0; z-index:9;">
+                        </div>
+                    </div>
+                    <div id="hint_producto" class="form-text text-muted small mt-1" style="display:none;">
+                        <i class="bi bi-search me-1"></i> Escribe nombre o SKU para filtrar.
+                    </div>
                 </div>
 
                 <!-- STOCK ACTUAL (info dinámica) -->
@@ -48,7 +58,7 @@
                         <span class="small text-muted fw-semibold">Stock actual en sistema:</span>
                         <span class="fw-bold fs-5" id="lbl_stock_actual">--</span>
                     </div>
-                    <div id="panel_diferencia" class="d-flex justify-content-between align-items-center mt-1" style="display:none!important;">
+                    <div id="panel_diferencia" class="d-flex justify-content-between align-items-center mt-1" style="display:none;">
                         <span class="small text-muted fw-semibold">Diferencia (conteo − sistema):</span>
                         <span class="fw-bold" id="lbl_diferencia">--</span>
                     </div>
@@ -87,72 +97,150 @@
     </div>
 </div>
 
+<style>
+#lista_productos .item-producto {
+    padding: 0.55rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--bs-border-color);
+    transition: background 0.12s;
+}
+#lista_productos .item-producto:last-child { border-bottom: none; }
+#lista_productos .item-producto:hover,
+#lista_productos .item-producto.activo { background: var(--bs-primary-bg-subtle); }
+#lista_productos .item-producto .nombre { font-size: 0.88rem; font-weight: 600; }
+#lista_productos .item-producto .meta   { font-size: 0.76rem; color: var(--bs-secondary-color); }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const selAlmacen  = document.getElementById('sel_almacen');
-    const selProducto = document.getElementById('sel_producto');
-    const inputConteo = document.getElementById('input_conteo');
-    const panelStock  = document.getElementById('panel_stock');
-    const panelDif    = document.getElementById('panel_diferencia');
-    const lblActual   = document.getElementById('lbl_stock_actual');
-    const lblDif      = document.getElementById('lbl_diferencia');
-    const btnSubmit   = document.getElementById('btn_submit');
+    const selAlmacen    = document.getElementById('sel_almacen');
+    const buscarInput   = document.getElementById('buscar_producto');
+    const productoHidden= document.getElementById('producto_id_hidden');
+    const lista         = document.getElementById('lista_productos');
+    const hintProducto  = document.getElementById('hint_producto');
+    const inputConteo   = document.getElementById('input_conteo');
+    const panelStock    = document.getElementById('panel_stock');
+    const panelDif      = document.getElementById('panel_diferencia');
+    const lblActual     = document.getElementById('lbl_stock_actual');
+    const lblDif        = document.getElementById('lbl_diferencia');
+    const btnSubmit     = document.getElementById('btn_submit');
 
-    let stockActual = null;
     let productosCache = [];
+    let stockActual    = null;
 
+    /* ── Cerrar dropdown al hacer clic fuera ── */
+    document.addEventListener('click', (e) => {
+        if (!buscarInput.contains(e.target) && !lista.contains(e.target)) {
+            lista.style.display = 'none';
+        }
+    });
+
+    /* ── Cargar productos al cambiar almacén ── */
     window.cargarProductos = async function () {
         const almacenId = selAlmacen.value;
-        selProducto.innerHTML = '<option value="">-- Cargando... --</option>';
-        selProducto.disabled  = true;
-        inputConteo.disabled  = true;
-        btnSubmit.disabled    = true;
-        panelStock.style.display = 'none';
-        stockActual = null;
 
-        if (!almacenId) return;
+        buscarInput.value    = '';
+        buscarInput.disabled = true;
+        buscarInput.placeholder = 'Cargando productos...';
+        productoHidden.value = '';
+        lista.style.display  = 'none';
+        hintProducto.style.display = 'none';
+        panelStock.style.display   = 'none';
+        inputConteo.disabled = true;
+        btnSubmit.disabled   = true;
+        stockActual          = null;
+        productosCache       = [];
+
+        if (!almacenId) {
+            buscarInput.placeholder = 'Primero selecciona un almacén...';
+            return;
+        }
 
         try {
             const res = await fetch(`/api/almacen/${almacenId}/productos-con-stock`);
             productosCache = await res.json();
 
-            selProducto.innerHTML = '<option value="">-- Seleccionar producto --</option>';
             if (productosCache.length === 0) {
-                selProducto.innerHTML = '<option value="">Sin productos con stock</option>';
+                buscarInput.placeholder = 'Sin productos con stock en este almacén';
                 return;
             }
-            productosCache.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = `${p.nombre} (SKU: ${p.codigo})`;
-                opt.dataset.stock = p.cantidad;
-                selProducto.appendChild(opt);
-            });
-            selProducto.disabled = false;
+            buscarInput.disabled    = false;
+            buscarInput.placeholder = 'Buscar por nombre o SKU...';
+            hintProducto.style.display = 'block';
+            buscarInput.focus();
         } catch (e) {
-            selProducto.innerHTML = '<option value="">Error al cargar</option>';
+            buscarInput.placeholder = 'Error al cargar productos';
         }
     };
 
-    window.mostrarStockActual = function () {
-        const opt = selProducto.options[selProducto.selectedIndex];
-        if (!opt || !opt.dataset.stock) {
+    /* ── Filtrar mientras escribe ── */
+    buscarInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+
+        /* Si el usuario borra texto después de haber seleccionado, resetear */
+        if (productoHidden.value) {
+            productoHidden.value = '';
             panelStock.style.display = 'none';
             inputConteo.disabled = true;
-            btnSubmit.disabled = true;
-            stockActual = null;
+            btnSubmit.disabled   = true;
+            stockActual          = null;
+        }
+
+        if (!q) { lista.style.display = 'none'; return; }
+
+        const filtrados = productosCache.filter(p =>
+            p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)
+        );
+
+        renderLista(filtrados);
+    });
+
+    buscarInput.addEventListener('focus', function () {
+        if (!productoHidden.value && this.value.trim() && productosCache.length) {
+            const q = this.value.trim().toLowerCase();
+            const filtrados = productosCache.filter(p =>
+                p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)
+            );
+            renderLista(filtrados);
+        }
+    });
+
+    function renderLista(productos) {
+        lista.innerHTML = '';
+        if (productos.length === 0) {
+            lista.innerHTML = '<div class="p-3 text-muted small text-center">Sin resultados</div>';
+            lista.style.display = 'block';
             return;
         }
-        stockActual = parseInt(opt.dataset.stock);
+        productos.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'item-producto';
+            div.innerHTML = `
+                <div class="nombre">${p.nombre}</div>
+                <div class="meta">SKU: ${p.codigo} &nbsp;·&nbsp; Stock: <strong>${p.cantidad}</strong> uds</div>
+            `;
+            div.addEventListener('mousedown', () => seleccionarProducto(p));
+            lista.appendChild(div);
+        });
+        lista.style.display = 'block';
+    }
+
+    function seleccionarProducto(p) {
+        buscarInput.value    = `${p.nombre}  (SKU: ${p.codigo})`;
+        productoHidden.value = p.id;
+        lista.style.display  = 'none';
+
+        stockActual = parseInt(p.cantidad);
         lblActual.textContent = stockActual + ' uds';
-        panelDif.style.display = 'none';
+        panelDif.style.display   = 'none';
         panelStock.style.display = 'block';
         inputConteo.disabled = false;
-        inputConteo.value = '';
+        inputConteo.value    = '';
+        btnSubmit.disabled   = true;
         inputConteo.focus();
-        btnSubmit.disabled = true;
-    };
+    }
 
+    /* ── Calcular diferencia en tiempo real ── */
     window.calcularDiferencia = function () {
         if (stockActual === null) return;
         const conteo = parseInt(inputConteo.value);
