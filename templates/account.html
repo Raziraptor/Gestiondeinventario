@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Perfil{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+                            <div class="col-md-6">
+                                {{ form_account.email.label(class="form-label fw-bold small text-muted") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-envelope text-secondary"></i></span>
+                                    {% if form_account.email.errors %}
+                                        {{ form_account.email(class="form-control form-control-lg bg-light border-danger is-invalid") }}
+                                        <div class="invalid-feedback">
+                                            {% for error in form_account.email.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ form_account.email(class="form-control form-control-lg bg-light border-secondary border-opacity-25") }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form_account.picture.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-camera text-secondary"></i></span>
+                                {{ form_account.picture(class="form-control bg-light border-secondary border-opacity-25") }}
+                            </div>
+                            <div class="form-text small opacity-75">Selecciona una imagen en formato JPG o PNG.</div>
+                            {% if form_account.picture.errors %}
+                                <div class="text-danger mt-1 small fw-bold">
+                                    {% for error in form_account.picture.errors %}
+                                        <span><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            {{ form_account.submit_account(class="btn btn-primary btn-lg fw-bold shadow-sm") }}
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: SEGURIDAD -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-warning text-dark"><i class="bi bi-shield-lock me-2"></i>Seguridad</h4>
+                </div>
+                <div class="card-body p-4">
+                    
+                    <div class="alert alert-warning bg-opacity-10 border-warning border-opacity-50 text-body mb-4 d-flex">
+                        <i class="bi bi-info-circle-fill text-warning me-3 fs-4 mt-1"></i>
+                        <small>Para cambiar tu contraseña actual, debes escribirla correctamente para verificar tu identidad antes de establecer la nueva.</small>
+                    </div>
+
+                    <form method="POST" action="">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {{ form_password.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form_password.old_password.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-key text-secondary"></i></span>
+                                {{ form_password.old_password(class="form-control bg-light border-secondary border-opacity-25", placeholder="Contraseña actual") }}
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4 border-secondary border-opacity-25">
+
+                        <div class="mb-3">
+                            {{ form_password.password.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-lock text-secondary"></i></span>
+                                {{ form_password.password(class="form-control bg-light border-secondary border-opacity-25", placeholder="Nueva contraseña") }}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form_password.confirm_password.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-lock-fill text-secondary"></i></span>
+                                {% if form_password.confirm_password.errors %}
+                                    {{ form_password.confirm_password(class="form-control bg-light border-danger is-invalid", placeholder="Repite la nueva contraseña") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form_password.confirm_password.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form_password.confirm_password(class="form-control bg-light border-secondary border-opacity-25", placeholder="Repite la nueva contraseña") }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            {{ form_password.submit_password(class="btn btn-warning fw-bold shadow-sm py-2") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

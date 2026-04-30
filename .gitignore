@@ -1,0 +1,32 @@
+# Base de datos local
+*.db
+*.sqlite3
+
+# Variables de entorno y secretos
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Archivos subidos por usuarios (fotos de perfil, imágenes de productos)
+static/uploads/
+
+# Claude Code
+.claude/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

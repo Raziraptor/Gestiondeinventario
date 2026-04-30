@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Imprimir Etiqueta{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-upc-scan text-primary me-2"></i>Imprimir Etiqueta</h2>
+        <p class="text-muted fs-5">
+            Genera etiquetas físicas con códigos QR para pegar en tu inventario
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            
+            <!-- TARJETA DEL FORMULARIO -->
+            <div class="card shadow-sm border-0 rounded-4">
+                
+                <!-- Cabecera de la Tarjeta con Detalles del Producto -->
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center px-4 px-md-5">
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 55px; height: 55px;">
+                        <i class="bi bi-box-seam fs-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold text-body">{{ producto.nombre }}</h4>
+                        <span class="badge bg-light text-dark border border-secondary border-opacity-25 mt-1 font-monospace px-2 py-1 shadow-sm">
+                            <i class="bi bi-upc me-1"></i>SKU: {{ producto.codigo }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form action="{{ url_for('generar_etiqueta_personalizada', id=producto.id) }}" method="POST" target="_blank">
+                        
+                        <!-- TOKEN CSRF DE SEGURIDAD -->
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <!-- SELECCIÓN DINÁMICA DE ALMACÉN Y UBICACIÓN -->
+                        <div class="mb-5">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">1. Almacén a imprimir (Ubicación)</label>
+                            <div class="input-group input-group-lg shadow-sm">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-geo-alt text-danger"></i></span>
+                                <select class="form-select bg-light border-secondary border-opacity-25 fs-6" name="almacen_id" required>
+                                    <!-- Iteramos sobre todos los registros de stock de este producto -->
+                                    {% if producto.stocks %}
+                                        {% for stock in producto.stocks %}
+                                            <option value="{{ stock.almacen_id }}" {% if stock.almacen_id == almacen_seleccionado %}selected{% endif %}>
+                                                {{ stock.almacen.nombre }} - Ubicación: {{ stock.ubicacion or 'Sin asignar' }}
+                                            </option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="">-- Sin inventario registrado --</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                            <div class="form-text mt-2 small"><i class="bi bi-info-circle text-info me-1"></i>La etiqueta imprimirá la ubicación exacta del almacén que selecciones.</div>
+                        </div>
+
+                        <!-- SELECCIÓN DE TAMAÑO (TARJETAS INTERACTIVAS) -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-3">2. Selecciona el Tamaño</label>
+                            
+                            <div class="row g-3">
+                                <!-- Opción 1 -->
+                                <div class="col-sm-6">
+                                    <label class="w-100 m-0 position-relative">
+                                        <!-- Radio button oculto -->
+                                        <input class="form-check-input position-absolute" type="radio" name="tamano" id="size1" value="1x3" checked style="opacity: 0;">
+                                        <!-- Tarjeta visible -->
+                                        <div class="custom-radio-card text-center h-100">
+                                            <i class="bi bi-aspect-ratio fs-1 text-primary d-block mb-2"></i>
+                                            <h5 class="fw-bold mb-1 text-body">1" x 3"</h5>
+                                            <span class="text-muted small">Pequeña - Estándar</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <!-- Opción 2 -->
+                                <div class="col-sm-6">
+                                    <label class="w-100 m-0 position-relative">
+                                        <!-- Radio button oculto -->
+                                        <input class="form-check-input position-absolute" type="radio" name="tamano" id="size2" value="1.75x4" style="opacity: 0;">
+                                        <!-- Tarjeta visible -->
+                                        <div class="custom-radio-card text-center h-100">
+                                            <i class="bi bi-aspect-ratio fs-1 text-primary d-block mb-2" style="transform: scale(1.3);"></i>
+                                            <h5 class="fw-bold mb-1 text-body">1.75" x 4"</h5>
+                                            <span class="text-muted small">Grande - Detallada</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SEPARADOR Y BOTONES -->
+                        <div class="col-12 mt-5">
+                            <hr class="border-secondary border-opacity-25 mb-4">
+                            <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                                <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2 shadow-sm">
+                                    Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                    <i class="bi bi-printer me-2"></i> Generar Etiqueta
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

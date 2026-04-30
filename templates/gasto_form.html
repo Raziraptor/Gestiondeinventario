@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-cash-coin text-success me-2"></i>{{ titulo }}</h2>
+        <p class="text-muted fs-5">
+            Registra y categoriza las salidas de dinero de la organización
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- TARJETA DEL FORMULARIO -->
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-receipt text-primary me-2"></i>Detalles del Gasto</h4>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{{ url_for('editar_gasto', id=gasto.id) if gasto else url_for('nuevo_gasto') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row g-4">
+                            <!-- CAMPO: Fecha -->
+                            <div class="col-md-4">
+                                <label for="fecha" class="form-label fw-bold small text-muted">Fecha del Gasto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-calendar-date text-secondary"></i></span>
+                                    <input type="date" class="form-control bg-light border-secondary border-opacity-25" id="fecha" name="fecha" 
+                                           value="{{ gasto.fecha.strftime('%Y-%m-%d') if gasto else now.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Descripción -->
+                            <div class="col-md-8">
+                                <label for="descripcion" class="form-label fw-bold small text-muted">Descripción Corta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-card-text text-secondary"></i></span>
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="descripcion" name="descripcion" 
+                                           value="{{ gasto.descripcion if gasto else '' }}" 
+                                           placeholder="Ej: Pago de luz, Papelería, Flete..." required>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Monto -->
+                            <div class="col-md-6">
+                                <label for="monto" class="form-label fw-bold small text-success">Monto (Total Pagado)</label>
+                                <div class="input-group input-group-lg shadow-sm">
+                                    <span class="input-group-text bg-light border-success text-success fw-bold"><i class="bi bi-currency-dollar"></i></span>
+                                    <input type="number" class="form-control bg-light border-success fw-bold text-dark fs-5" id="monto" name="monto" 
+                                           value="{{ gasto.monto if gasto else '' }}" 
+                                           step="0.01" min="0" placeholder="0.00" required>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Categoría -->
+                            <div class="col-md-6">
+                                <label for="categoria" class="form-label fw-bold small text-muted">Categoría Contable</label>
+                                <div class="input-group input-group-lg shadow-sm">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-tags text-primary"></i></span>
+                                    <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="categoria" name="categoria" required>
+                                        <option value="">Selecciona...</option>
+                                        {% set cat_actual = gasto.categoria if gasto else '' %}
+                                        <option value="Servicios" {% if cat_actual == 'Servicios' %}selected{% endif %}>Servicios (Luz, Agua, Internet)</option>
+                                        <option value="Nómina" {% if cat_actual == 'Nómina' %}selected{% endif %}>Nómina</option>
+                                        <option value="Mantenimiento" {% if cat_actual == 'Mantenimiento' %}selected{% endif %}>Mantenimiento</option>
+                                        <option value="Insumos" {% if cat_actual == 'Insumos' %}selected{% endif %}>Insumos / Papelería</option>
+                                        <option value="Inventario" {% if cat_actual == 'Inventario' %}selected{% endif %}>Compra de Inventario (Directa)</option>
+                                        <option value="Otros" {% if cat_actual == 'Otros' %}selected{% endif %}>Otros</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Vincular a OC (Opcional) -->
+                            <div class="col-12 mt-4">
+                                <div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3">
+                                    <label for="orden_compra_id" class="form-label fw-bold small text-primary mb-2">
+                                        <i class="bi bi-link-45deg me-1"></i>Vincular a Orden de Compra (Opcional)
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-primary border-opacity-25"><i class="bi bi-receipt text-secondary"></i></span>
+                                        <select class="form-select bg-white border-primary border-opacity-25" id="orden_compra_id" name="orden_compra_id">
+                                            <option value="">-- Ninguna --</option>
+                                            {% for oc in ordenes %}
+                                                <option value="{{ oc.id }}" 
+                                                        {% if gasto and gasto.orden_compra_id == oc.id %}selected{% endif %}>
+                                                    OC #{{ oc.id }} - {{ oc.proveedor.nombre }} (${{ "%.2f"|format(oc.costo_total) }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-text mt-2 text-dark opacity-75 small">
+                                        Si este gasto corresponde al pago de una Orden de Compra ya registrada, selecciónala aquí para cruzar la información.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEPARADOR Y BOTONES -->
+                            <div class="col-12 mt-5">
+                                <hr class="border-secondary border-opacity-25 mb-4">
+                                <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('lista_gastos') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2 shadow-sm">
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                        <i class="bi bi-save me-2"></i> Guardar Gasto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

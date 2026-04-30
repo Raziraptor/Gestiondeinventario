@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<style>
+.login-card { border: none; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,.15); background: var(--surface); overflow: hidden; }
+.login-header { background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%); padding: 3rem 2rem; text-align: center; color: #fff; }
+.login-icon-bg { background: rgba(255,255,255,.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 8px 16px rgba(0,0,0,.1); }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-12 col-md-8 col-lg-5 col-xl-4">
+        
+        <div class="card login-card mt-2 mb-5">
+            <!-- CABECERA DEL LOGIN -->
+            <div class="login-header">
+                <div class="login-icon-bg">
+                    <i class="bi bi-box-seam-fill fs-1"></i>
+                </div>
+                <h3 class="fw-bold mb-0">{{ titulo }}</h3>
+                <p class="text-white opacity-75 mb-0 mt-2 fs-6">Ingresa tus credenciales para continuar</p>
+            </div>
+            
+            <!-- CUERPO DEL FORMULARIO -->
+            <div class="card-body p-4 p-md-5">
+                <form method="POST" action="">
+                    
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- CAMPO: USUARIO -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase" style="letter-spacing: 0.5px;">Usuario</label>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text border-end-0"><i class="bi bi-person"></i></span>
+                            {% if form.username.errors %}
+                                {{ form.username(class="form-control border-start-0 is-invalid", placeholder="Tu nombre de usuario") }}
+                                <div class="invalid-feedback px-2">
+                                    {% for error in form.username.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.username(class="form-control border-start-0", placeholder="Tu nombre de usuario") }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- CAMPO: CONTRASEÑA -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-0" style="letter-spacing: 0.5px;">Contraseña</label>
+                            <a href="{{ url_for('forgot_password') }}" class="small fw-bold text-decoration-none text-primary">¿La olvidaste?</a>
+                        </div>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text border-end-0"><i class="bi bi-lock"></i></span>
+                            {% if form.password.errors %}
+                                {{ form.password(class="form-control border-start-0 is-invalid", placeholder="••••••••") }}
+                                <div class="invalid-feedback px-2">
+                                    {% for error in form.password.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.password(class="form-control border-start-0", placeholder="••••••••") }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- BOTÓN DE SUBMIT -->
+                    <div class="d-grid mt-5">
+                        {{ form.submit(class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm py-3") }}
+                    </div>
+                </form>
+                
+                <!-- PIE: ENLACE A REGISTRO -->
+                <div class="text-center mt-4 pt-4 border-top border-secondary border-opacity-10">
+                    <p class="text-muted small mb-0">
+                        ¿No tienes una cuenta aún? <br>
+                        <a href="{{ url_for('register') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Regístrate aquí</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

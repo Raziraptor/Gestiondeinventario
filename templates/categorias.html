@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Categorías de Productos{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO Y BOTÓN DE RETORNO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="bi bi-tags-fill text-primary me-2"></i>Gestión de Categorías</h2>
+            <p class="text-muted mb-0">Administra las agrupaciones de tus productos para un mejor control.</p>
+        </div>
+        <a href="{{ url_for('nueva_categoria') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <i class="bi bi-plus-circle me-1"></i> Nueva Categoría
+        </a>
+    </div>
+
+    <!-- TARJETA CON TABLA -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold text-body"><i class="bi bi-list-ul text-primary me-2"></i>Lista de Categorías</h4>
+            <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill shadow-sm border border-secondary border-opacity-25 px-3 py-2">
+                {{ categorias|length }} Registros
+            </span>
+        </div>
+        
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary text-uppercase small">
+                    <tr>
+                        <th class="ps-4 border-0">Nombre de Categoría</th>
+                        <th class="border-0">Descripción</th>
+                        <th class="text-end pe-4 border-0">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categorias %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-tag fs-6"></i>
+                                </div>
+                                <strong class="text-body fs-6">{{ cat.nombre }}</strong>
+                            </div>
+                        </td>
+                        <td>
+                            {% if cat.descripcion %}
+                                <span class="text-muted">{{ cat.descripcion }}</span>
+                            {% else %}
+                                <span class="text-muted small fst-italic opacity-75">- Sin descripción -</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4" style="width: 1%; white-space: nowrap;">
+                            
+                            <!-- Grupo de Acciones -->
+                            <div class="d-flex justify-content-end gap-2">
+                                <!-- Botón Editar -->
+                                <a href="{{ url_for('editar_categoria', id=cat.id) }}" class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3" title="Editar">
+                                    <i class="bi bi-pencil me-1"></i> <span class="d-none d-md-inline fw-bold">Editar</span>
+                                </a>
+
+                                <!-- BOTÓN ELIMINAR -->
+                                <form action="{{ url_for('eliminar_categoria', id=cat.id) }}" method="POST" 
+                                      onsubmit="return confirm('¿Estás seguro de que deseas eliminar la categoría \'{{ cat.nombre }}\'? Esta acción des-asignará todos los productos que la usen.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm rounded-pill px-3" title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-5 text-muted">
+                            <i class="bi bi-tags fs-1 opacity-25 d-block mb-3"></i>
+                            <h5 class="fw-bold text-body">Sin Categorías</h5>
+                            <p class="mb-0">No tienes categorías registradas aún. ¡Crea la primera para organizar tus productos!</p>
+                            <a href="{{ url_for('nueva_categoria') }}" class="btn btn-primary mt-3 rounded-pill shadow-sm px-4">Crear Categoría</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

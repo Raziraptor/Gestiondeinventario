@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO Y BOTÓN DE RETORNO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="bi bi-buildings text-primary me-2"></i>{{ titulo }}</h2>
+            <p class="text-muted mb-0">Administra los diferentes espacios físicos de tu inventario.</p>
+        </div>
+        <a href="{{ url_for('nuevo_almacen') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <i class="bi bi-plus-circle me-1"></i> Nuevo Almacén
+        </a>
+    </div>
+
+    <!-- TARJETA CON TABLA -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold text-body"><i class="bi bi-list-ul text-primary me-2"></i>Lista de Almacenes</h4>
+            <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill shadow-sm border border-secondary border-opacity-25 px-3 py-2">
+                {{ almacenes|length }} Registros
+            </span>
+        </div>
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary text-uppercase small">
+                    <tr>
+                        <th class="ps-4 border-0">Nombre del Almacén</th>
+                        <th class="border-0">Ubicación / Descripción</th>
+                        <th class="text-end pe-4 border-0">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alm in almacenes %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 45px; height: 45px;">
+                                    <i class="bi bi-building fs-5"></i>
+                                </div>
+                                <div>
+                                    <strong class="text-body fs-6">{{ alm.nombre }}</strong>
+                                    <small class="d-block text-muted">ID: {{ alm.id }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if alm.ubicacion %}
+                                <span class="badge bg-light text-dark border border-secondary border-opacity-25 px-2 py-1 shadow-sm"><i class="bi bi-geo-alt me-1 text-danger"></i>{{ alm.ubicacion }}</span>
+                            {% else %}
+                                <span class="text-muted small fst-italic opacity-75">- Sin descripción -</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4" style="width: 1%; white-space: nowrap;">
+                            
+                            <!-- Grupo de Acciones -->
+                            <div class="d-flex justify-content-end gap-2">
+                                <!-- Botón Inventario -->
+                                <a href="{{ url_for('gestionar_inventario_almacen', id=alm.id) }}" class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3" title="Ver Inventario">
+                                    <i class="bi bi-box-seam me-1"></i> <span class="d-none d-md-inline fw-bold">Inventario</span>
+                                </a>
+                                
+                                <!-- Botón Editar -->
+                                <a href="{{ url_for('editar_almacen', id=alm.id) }}" class="btn btn-sm btn-outline-secondary shadow-sm rounded-pill px-3" title="Editar Nombre/Ubicación">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+
+                                <!-- BOTÓN ELIMINAR -->
+                                <form action="{{ url_for('eliminar_almacen', id=alm.id) }}" method="POST" 
+                                      onsubmit="return confirm('¿ATENCIÓN:\n\n¿Estás seguro de que deseas ELIMINAR el almacén \'{{ alm.nombre }}\'?\n\nEsta acción no se puede deshacer y podría afectar el historial si hay inventario asociado.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm rounded-pill px-3" title="Eliminar Almacén">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-5 text-muted">
+                            <i class="bi bi-shop-window fs-1 opacity-25 d-block mb-3"></i>
+                            <h5 class="fw-bold text-body">Sin Almacenes</h5>
+                            <p class="mb-0">No tienes almacenes registrados. ¡Crea el primero para comenzar!</p>
+                            <a href="{{ url_for('nuevo_almacen') }}" class="btn btn-primary mt-3 rounded-pill shadow-sm px-4">Crear Nuevo Almacén</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,14 @@
+Flask
+gunicorn
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+Flask-Mail
+psycopg2-binary
+email_validator
+itsdangerous
+Pillow
+qrcode[pil]
+click
+openpyxl
+reportlab

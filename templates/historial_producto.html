@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de: {{ producto.nombre }}{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Dashboard
+        </a>
+    </div>
+
+    <!-- SECCIÓN DE RESUMEN Y ALMACENES -->
+    <div class="row g-4 mb-5">
+        
+        <!-- TARJETA: RESUMEN GLOBAL -->
+        <div class="col-lg-4">
+            <div class="card h-100 shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-2 border-0 text-center">
+                    <h5 class="fw-bold text-primary mb-0"><i class="bi bi-globe me-2"></i>Resumen Global</h5>
+                </div>
+                <div class="card-body text-center d-flex flex-column justify-content-center pt-0">
+                    <h1 class="display-3 fw-bold text-primary mb-0">{{ total_global }}</h1>
+                    <span class="text-muted fw-bold text-uppercase small">Unidades Totales</span>
+                    
+                    {% if producto.unidades_por_caja and producto.unidades_por_caja > 1 %}
+                    <div class="mt-2">
+                        <span class="badge bg-info text-dark rounded-pill px-3 py-2 shadow-sm">
+                            <i class="bi bi-box-seam me-1"></i> {{ (total_global / producto.unidades_por_caja) | round(2) }} Cajas equivalentes
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <hr class="w-75 mx-auto border-secondary border-opacity-25 my-4">
+
+                    <ul class="list-unstyled text-start w-100 px-3 mb-4">
+                        <li class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small fw-bold">Categoría:</span>
+                            <span class="fw-bold">{{ producto.categoria.nombre if producto.categoria else 'N/A' }}</span>
+                        </li>
+                        <li class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small fw-bold">Proveedor:</span>
+                            <span class="fw-bold">{{ producto.proveedor.nombre if producto.proveedor else 'N/A' }}</span>
+                        </li>
+                        <li class="mb-2 d-flex justify-content-between align-items-center">
+                            <span class="text-muted small fw-bold">Costo Aprox:</span>
+                            <span class="fw-bold text-success">${{ producto.precio_unitario or producto.costo or '0.00' }}</span>
+                        </li>
+                    </ul>
+
+                    <!-- ENLACE DEL PROVEEDOR -->
+                    {% if producto.enlace_proveedor %}
+                    <div class="mt-auto px-3 pb-2">
+                        <a href="{{ producto.enlace_proveedor }}" target="_blank" class="btn btn-outline-primary w-100 rounded-pill shadow-sm fw-bold">
+                            <i class="bi bi-box-arrow-up-right me-2"></i> Ir al Proveedor
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- TARJETA: DISTRIBUCIÓN POR ALMACÉN -->
+        <div class="col-lg-8">
+            <div class="card h-100 shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-building me-2"></i>Distribución por Almacén</h4>
+                </div>
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary text-uppercase small">
+                            <tr>
+                                <th class="ps-4 border-0">Almacén</th>
+                                <th class="text-center border-0">Mín / Máx</th>
+                                <th class="text-center border-0">Stock Actual</th>
+                                <th class="text-end pe-4 border-0">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stock in stocks_actuales %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3">
+                                            <i class="bi bi-shop fs-5"></i>
+                                        </div>
+                                        <span class="fw-bold text-body">{{ stock.almacen.nombre }}</span>
+                                    </div>
+                                </td>
+                                <td class="text-center text-muted small fw-bold">
+                                    {{ stock.stock_minimo }} / {{ stock.stock_maximo }}
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill px-3 py-2 shadow-sm fs-6
+                                        {% if stock.cantidad < stock.stock_minimo %}bg-danger
+                                        {% elif stock.cantidad > stock.stock_maximo %}bg-warning text-dark
+                                        {% else %}bg-success{% endif %}">
+                                        {{ stock.cantidad }} Uds
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('editar_producto', id=producto.id, almacen_id=stock.almacen_id) }}" 
+                                       class="btn btn-sm btn-outline-primary rounded-pill shadow-sm" title="Ajustar Stock Físico">
+                                        <i class="bi bi-pencil-square me-1"></i> Ajustar
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="bi bi-exclamation-circle fs-2 d-block mb-2 opacity-50"></i>
+                                    Este producto no está asignado a ningún almacén físico.<br>
+                                    <a href="{{ url_for('lista_productos_sin_almacen') }}" class="btn btn-sm btn-primary mt-3 rounded-pill shadow-sm">Asignar ahora</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN: HISTORIAL DE MOVIMIENTOS -->
+    <h3 class="mb-4 fw-bold text-body"><i class="bi bi-clock-history text-primary me-2"></i>Kárdex / Historial de Movimientos</h3>
+    
+    {% if not historial_por_almacen %}
+        <div class="alert alert-light border border-secondary border-opacity-25 rounded-4 shadow-sm text-center py-5 text-muted">
+            <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-25"></i>
+            <h5 class="fw-bold text-body">Sin Movimientos</h5>
+            <p class="mb-0">No hay entradas ni salidas registradas para este producto todavía.</p>
+        </div>
+    {% endif %}
+
+    <div class="accordion shadow-sm rounded-4 overflow-hidden" id="accordionHistorial">
+        {% for almacen_nombre, movimientos in historial_por_almacen.items() %}
+        <div class="accordion-item border-secondary border-opacity-25 border-bottom">
+            <h2 class="accordion-header" id="heading{{ loop.index }}">
+                <button class="accordion-button fw-bold fs-5 {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}">
+                    <i class="bi bi-shop me-2 text-primary"></i> {{ almacen_nombre }} 
+                    <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill ms-3 shadow-sm border border-secondary border-opacity-25" style="font-size: 0.8rem;">{{ movimientos|length }} movs</span>
+                </button>
+            </h2>
+            <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#accordionHistorial">
+                <div class="accordion-body p-0 table-responsive border-top border-secondary border-opacity-25">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-secondary text-uppercase small">
+                            <tr>
+                                <th class="ps-4 border-0">Fecha / Hora</th>
+                                <th class="border-0">Tipo de Mov.</th>
+                                <th class="text-center border-0">Cant.</th>
+                                <th class="text-end pe-4 border-0">Referencia / Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimientos %}
+                            <tr>
+                                <td class="ps-4 text-muted small fw-bold">
+                                    <i class="bi bi-calendar-event me-1"></i> {{ mov.fecha.strftime('%d/%m/%Y') }} <br>
+                                    <i class="bi bi-clock me-1"></i> {{ mov.fecha.strftime('%H:%M') }}
+                                </td>
+                                <td>
+                                    {% if 'entrada' in mov.tipo %}
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-2 shadow-sm">
+                                            <i class="bi bi-arrow-down-circle-fill me-1"></i> Entrada
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-2 shadow-sm">
+                                            <i class="bi bi-arrow-up-circle-fill me-1"></i> Salida
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center fs-5 fw-bold {{ 'text-success' if mov.cantidad > 0 else 'text-danger' }}">
+                                    {{ '+' if mov.cantidad > 0 else '' }}{{ mov.cantidad }}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="text-body fw-bold">
+                                        {% if mov.orden_compra_id %}
+                                            <a href="{{ url_for('ver_orden', id=mov.orden_compra_id) }}" class="text-decoration-none">OC #{{ mov.orden_compra_id }}</a>
+                                        {% elif mov.salida_id %}
+                                            <a href="{{ url_for('ver_salida', id=mov.salida_id) }}" class="text-decoration-none">Salida #{{ mov.salida_id }}</a>
+                                        {% else %}
+                                            Ajuste Manual
+                                        {% endif %}
+                                    </div>
+                                    <small class="text-muted fst-italic">{{ mov.motivo }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+{% endblock %}

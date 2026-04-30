@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<style>
+.form-check-input { cursor: pointer; width: 2.5em !important; height: 1.25em !important; }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-shield-lock text-primary me-2"></i>{{ titulo }}</h2>
+        <p class="text-muted fs-5">
+            Gestiona los permisos de los usuarios en <strong>{{ current_user.organizacion.nombre }}</strong>
+        </p>
+    </div>
+
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-8">
+            <!-- TARJETA: CÓDIGO DE INVITACIÓN -->
+            <div class="card shadow-sm border-0 rounded-4 bg-primary bg-opacity-10 border-start border-primary border-4">
+                <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center p-4">
+                    <div class="mb-3 mb-md-0">
+                        <h4 class="fw-bold text-primary mb-1"><i class="bi bi-person-plus-fill me-2"></i>Código de Invitación</h4>
+                        <p class="text-body opacity-75 mb-0">Comparte este código con tu equipo para que se unan a tu organización al registrarse.</p>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary px-4 py-3 shadow-sm fs-3 rounded-pill letter-spacing-1 font-monospace">
+                            {{ current_user.organizacion.codigo_invitacion }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TARJETA: TABLA DE USUARIOS Y PERMISOS -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold text-body"><i class="bi bi-people me-2"></i>Usuarios de la Organización</h4>
+            <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill shadow-sm border border-secondary border-opacity-25 px-3 py-2">
+                {{ usuarios|length }} Miembros
+            </span>
+        </div>
+        
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary text-uppercase small">
+                    <tr>
+                        <th class="ps-4 border-0">Usuario</th>
+                        <th class="border-0">Rol</th>
+                        <th class="text-center border-0" title="Ver Inventario"><i class="bi bi-grid-fill fs-5 text-primary"></i><br><small style="font-size: 0.65rem;">Inventario</small></th>
+                        <th class="text-center border-0" title="Editar Gestión/Inventario"><i class="bi bi-pencil-square fs-5 text-info"></i><br><small style="font-size: 0.65rem;">Gestionar</small></th>
+                        <th class="text-center border-0" title="Crear OC Normal"><i class="bi bi-receipt fs-5 text-success"></i><br><small style="font-size: 0.65rem;">OC Norm.</small></th>
+                        <th class="text-center border-0" title="Crear OC Proyecto"><i class="bi bi-clipboard-data fs-5 text-warning"></i><br><small style="font-size: 0.65rem;">OC Proy.</small></th>
+                        <th class="text-center border-0" title="Registrar Salidas"><i class="bi bi-box-arrow-right fs-5 text-danger"></i><br><small style="font-size: 0.65rem;">Salidas</small></th>
+                        <th class="text-center border-0" title="Ver Gastos"><i class="bi bi-cash-coin fs-5 text-purple" style="color: #6f42c1;"></i><br><small style="font-size: 0.65rem;">Gastos</small></th>
+                        <th class="text-end pe-4 border-0">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in usuarios %}
+                    
+                        {% if user.rol == 'user' %}
+                        <!-- FORMULARIO OCULTO HTML5: Válido y seguro, se enlaza por el ID -->
+                        <form id="form_permisos_{{ user.id }}" action="{{ url_for('update_user_permissions', user_id=user.id) }}" method="POST">
+                            {{ forms[user.id].hidden_tag() }}
+                        </form>
+
+                        <tr>
+                            <td class="ps-4 align-middle">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
+                                         class="rounded-circle me-3 shadow-sm border" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <span class="fw-bold text-body">{{ user.username }}</span>
+                                </div>
+                            </td>
+                            
+                            <td class="align-middle">
+                                <span class="badge bg-light text-dark border px-2 py-1 shadow-sm">{{ user.rol.capitalize() }}</span>
+                            </td>
+                            
+                            <!-- PERMISOS (Asociados al form oculto mediante form="...") -->
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center m-0">
+                                    {{ forms[user.id].perm_view_dashboard(class="form-check-input shadow-sm", form="form_permisos_" ~ user.id) }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center m-0">
+                                    {{ forms[user.id].perm_edit_management(class="form-check-input shadow-sm", form="form_permisos_" ~ user.id) }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center m-0">
+                                    {{ forms[user.id].perm_create_oc_standard(class="form-check-input shadow-sm", form="form_permisos_" ~ user.id) }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center m-0">
+                                    {{ forms[user.id].perm_create_oc_proyecto(class="form-check-input shadow-sm", form="form_permisos_" ~ user.id) }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center m-0">
+                                    {{ forms[user.id].perm_do_salidas(class="form-check-input shadow-sm", form="form_permisos_" ~ user.id) }}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="form-check form-switch d-flex justify-content-center m-0">
+                                    {{ forms[user.id].perm_view_gastos(class="form-check-input shadow-sm", form="form_permisos_" ~ user.id) }}
+                                </div>
+                            </td>
+                            
+                            <!-- ACCIÓN -->
+                            <td class="text-end pe-4 align-middle">
+                                <button type="submit" form="form_permisos_{{ user.id }}" class="btn btn-primary btn-sm rounded-pill fw-bold shadow-sm px-3">
+                                    <i class="bi bi-save me-1"></i> Guardar
+                                </button>
+                            </td>
+                        </tr>
+
+                        {% elif user.rol == 'admin' %}
+                        <!-- FILA READ-ONLY PARA ADMINS -->
+                        <tr class="table-info border-bottom-0">
+                            <td class="ps-4 align-middle py-3">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}" 
+                                         class="rounded-circle me-3 shadow-sm border border-primary" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <span class="fw-bold">{{ user.username }}</span>
+                                </div>
+                            </td>
+                            <td class="align-middle">
+                                <span class="badge bg-primary shadow-sm px-2 py-1"><i class="bi bi-star-fill me-1 text-warning"></i>{{ user.rol.capitalize() }}</span>
+                            </td>
+                            <td colspan="7" class="text-center align-middle text-muted small fw-bold">
+                                <i class="bi bi-shield-check me-1 text-primary"></i> Los permisos de Administrador incluyen todo y solo pueden ser modificados por un Super Admin.
+                            </td>
+                        </tr>
+                        {% endif %}
+                        
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

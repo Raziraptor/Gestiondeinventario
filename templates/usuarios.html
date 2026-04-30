@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+    <!-- ENCABEZADO -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
+            <p class="text-muted mb-0">Administra accesos y restablece contraseñas.</p>
+        </div>
+        <!-- Ajusta la condición y la ruta 'register' según tu configuración real -->
+        {% if 'register' in config or 'registro' in config %} 
+        <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
+            <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- TABLA DE USUARIOS -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small text-muted">
+                        <tr>
+                            <th class="ps-4">Usuario</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3 text-primary fw-bold" style="width: 40px; height: 40px;">
+                                        {{ usuario.username[0]|upper }}
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold text-dark d-block">{{ usuario.username }}</span>
+                                        <small class="text-muted" style="font-size: 0.75rem;">ID: {{ usuario.id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ usuario.email }}</td>
+                            <td>
+                                {% if usuario.rol in ['super_admin', 'admin'] %}
+                                    <span class="badge bg-primary">Administrador</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Usuario</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <!-- BOTÓN DE RESTABLECER CONTRASEÑA (LA LLAVE) -->
+                                    <button type="button" class="btn btn-outline-warning btn-sm" 
+                                            onclick="abrirModalPassword('{{ usuario.id }}', '{{ usuario.username }}')"
+                                            title="Restablecer Contraseña">
+                                        <i class="bi bi-key-fill text-dark"></i>
+                                    </button>
+                                    
+                                    <!-- Botón dummy de editar (puedes implementarlo luego) -->
+                                    <button class="btn btn-outline-secondary btn-sm" title="Editar Detalles">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No se encontraron usuarios registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL DE CAMBIO DE CONTRASEÑA -->
+    <!-- ========================================== -->
+    <div class="modal fade" id="modalResetPassword" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill"></i> Restablecer Contraseña</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <!-- El action del form se llena dinámicamente con JS -->
+                <form id="formResetPassword" method="POST" action="">
+                    <div class="modal-body p-4">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-person-badge fs-1 text-muted"></i>
+                            <h5 class="mt-2">Usuario: <span id="lblUsuarioReset" class="text-primary fw-bold"></span></h5>
+                            <p class="text-muted small">Estás a punto de sobrescribir la contraseña de este usuario.</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label fw-bold small text-uppercase text-muted">Nueva Contraseña Temporal</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-key"></i></span>
+                                <input type="text" class="form-control form-control-lg fw-bold" id="new_password" name="new_password" 
+                                       placeholder="Ej: clave123" required minlength="4" autocomplete="off">
+                            </div>
+                            <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Comparte esta clave con el usuario para que pueda ingresar.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
+                            <i class="bi bi-check-circle-fill"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function abrirModalPassword(userId, username) {
+            // 1. Mostrar nombre en el modal
+            document.getElementById('lblUsuarioReset').textContent = username;
+            
+            // 2. Construir la URL dinámicamente
+            // Usamos un ID dummy (0) en la plantilla y lo reemplazamos por el ID real
+            // Asegúrate de que 'admin_reset_password' coincida con el nombre de la función en tu app.py
+            var baseUrl = "{{ url_for('admin_reset_password', id=0) }}";
+            var finalUrl = baseUrl.replace('/0', '/' + userId);
+            
+            // 3. Configurar formulario
+            document.getElementById('formResetPassword').action = finalUrl;
+            document.getElementById('new_password').value = ''; // Limpiar campo anterior
+
+            // 4. Abrir Modal
+            var myModal = new bootstrap.Modal(document.getElementById('modalResetPassword'));
+            myModal.show();
+            
+            // 5. Enfocar input automáticamente después de que el modal se muestre
+            document.getElementById('modalResetPassword').addEventListener('shown.bs.modal', function () {
+                document.getElementById('new_password').focus();
+            });
+        }
+    </script>
+{% endblock %}

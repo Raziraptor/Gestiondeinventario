@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Control de Gastos{% endblock %}
+
+{% block content %}
+<style>
+.gasto-card {
+    transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s ease;
+}
+.gasto-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg) !important;
+    border-color: var(--primary) !important;
+}
+.total-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+    color: #fff !important; border: none;
+}
+[data-bs-theme="dark"] .total-card { background: linear-gradient(135deg, #3730a3 0%, #312e81 100%); }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO Y BOTONES -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="bi bi-cash-coin text-success me-2"></i>Control de Gastos</h2>
+            <p class="text-muted mb-0">Registro, seguimiento y análisis de egresos.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}" class="btn btn-success shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </a>
+            <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-plus-lg me-1"></i> Registrar Gasto
+            </a>
+        </div>
+    </div>
+
+    <!-- SECCIÓN DE FILTROS Y TOTAL -->
+    <div class="row g-4 mb-5">
+        <!-- Tarjeta de Filtros -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-4 h-100" style="background-color: var(--card-bg);">
+                <div class="card-body p-4">
+                    <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
+                    <form method="GET" action="{{ url_for('lista_gastos') }}" class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
+                            <select id="mes" name="mes" class="form-select shadow-sm border-secondary border-opacity-25">
+                                {% for num, nombre in meses_lista %}
+                                    <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
+                                        {{ nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="ano" class="form-label fw-bold small text-body mb-1">Año</label>
+                            <input type="number" id="ano" name="ano" class="form-control shadow-sm border-secondary border-opacity-25" 
+                                   value="{{ ano_seleccionado }}" min="2020" max="2050">
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button type="submit" class="btn btn-secondary shadow-sm fw-bold">
+                                <i class="bi bi-search me-1"></i> Filtrar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tarjeta de Total Premium -->
+        <div class="col-md-4">
+            <div class="card total-card shadow-sm rounded-4 h-100 position-relative overflow-hidden">
+                <!-- Decoración de fondo (Círculo difuminado) -->
+                <div class="position-absolute opacity-25" style="top: -20px; right: -20px; width: 100px; height: 100px; background: white; border-radius: 50%; filter: blur(20px);"></div>
+                
+                <div class="card-body d-flex flex-column justify-content-center align-items-center text-center p-4 z-1">
+                    <h6 class="text-uppercase fw-bold opacity-75 mb-2" style="font-size: 0.85rem; letter-spacing: 1px;">Total del Mes</h6>
+                    <h1 class="mb-0 fw-bold display-5 text-white">${{ "{:,.2f}".format(total_gastos) }}</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRID DE TARJETAS (GASTOS) -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for gasto in gastos %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border border-secondary border-opacity-25 rounded-4 gasto-card">
+                    
+                    <!-- ENCABEZADO: Categoría y Fecha -->
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 pt-3 pb-2">
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 shadow-sm">
+                            <i class="bi bi-tag-fill me-1"></i> {{ gasto.categoria }}
+                        </span>
+                        <small class="text-muted fw-bold font-monospace opacity-75">{{ gasto.fecha.strftime('%d/%m/%Y') }}</small>
+                    </div>
+
+                    <!-- CUERPO: Descripción y Monto -->
+                    <div class="card-body p-4 d-flex flex-column">
+                        <h5 class="card-title fw-bold text-body mb-3 lh-base">
+                            {{ gasto.descripcion }}
+                        </h5>
+
+                        <div class="mt-auto">
+                            <!-- Enlace a OC si existe -->
+                            {% if gasto.orden_compra_id %}
+                                <div class="mb-3 text-start">
+                                    <a href="{{ url_for('ver_orden', id=gasto.orden_compra_id) }}" class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 text-decoration-none py-2 px-3 shadow-sm rounded-pill d-inline-block">
+                                        <i class="bi bi-link-45deg fs-6 align-middle"></i> OC #{{ gasto.orden_compra_id }} vinculada
+                                    </a>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Monto Grande con Formato -->
+                            <div class="bg-secondary bg-opacity-10 rounded-4 p-3 text-center border border-secondary border-opacity-25 mt-2">
+                                <small class="text-uppercase fw-bold text-muted mb-1 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">Monto</small>
+                                <div class="fs-3 fw-bold text-body">${{ "{:,.2f}".format(gasto.monto) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PIE: Acciones -->
+                    <div class="card-footer bg-transparent border-0 pb-4 pt-0 px-4">
+                        <div class="d-grid">
+                            <a href="{{ url_for('editar_gasto', id=gasto.id) }}" class="btn btn-outline-primary rounded-pill fw-bold shadow-sm">
+                                <i class="bi bi-pencil-square me-1"></i> Editar Gasto
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- ESTADO VACÍO -->
+            <div class="col-12">
+                <div class="text-center py-5 border border-secondary border-opacity-25 border-dashed rounded-4" style="background-color: var(--card-bg);">
+                    <div class="opacity-25 mb-3">
+                        <i class="bi bi-wallet2 text-primary" style="font-size: 5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold text-body">Sin Movimientos</h4>
+                    <p class="text-muted fs-6 mb-4 px-3">No se encontraron gastos registrados para el periodo seleccionado.</p>
+                    <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                        <i class="bi bi-plus-lg me-1"></i> Registrar Primer Gasto
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

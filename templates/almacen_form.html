@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-shop text-primary me-2"></i>{{ titulo }}</h2>
+        <p class="text-muted fs-5">
+            Gestiona los detalles físicos de tu espacio de inventario
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- TARJETA DEL FORMULARIO -->
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-info-circle text-primary me-2"></i>Información del Almacén</h4>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{{ url_for('editar_almacen', id=almacen.id) if almacen else url_for('nuevo_almacen') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row g-4">
+                            <!-- CAMPO: Nombre -->
+                            <div class="col-md-6">
+                                <label for="nombre" class="form-label fw-bold small text-muted">Nombre del Almacén</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-building text-secondary"></i></span>
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="nombre" name="nombre" 
+                                           value="{{ almacen.nombre if almacen else '' }}" placeholder="Ej: Bodega Principal, Tienda" required>
+                                </div>
+                            </div>
+                            
+                            <!-- CAMPO: Ubicación -->
+                            <div class="col-md-6">
+                                <label for="ubicacion" class="form-label fw-bold small text-muted">Ubicación / Referencia (Opcional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-pin-map text-secondary"></i></span>
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="ubicacion" name="ubicacion" 
+                                           value="{{ almacen.ubicacion if almacen else '' }}" placeholder="Ej: Pasillo A, Estante 1">
+                                </div>
+                            </div>
+                            
+                            <!-- SEPARADOR Y BOTONES -->
+                            <div class="col-12 mt-5">
+                                <hr class="border-secondary border-opacity-25 mb-4">
+                                <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('lista_almacenes') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                        <i class="bi bi-save me-2"></i> Guardar Almacén
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

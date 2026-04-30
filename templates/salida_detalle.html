@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="bi bi-box-arrow-up-right text-danger me-2"></i>{{ titulo }}</h2>
+            <h5 class="text-muted fw-normal mb-2">
+                Hoja de Salida Diaria para Almacén: <strong class="text-body"><i class="bi bi-shop me-1"></i>{{ salida.almacen.nombre }}</strong>
+            </h5>
+            <div class="text-muted small">
+                <i class="bi bi-person me-1"></i> Creada por: <span class="fw-bold">{{ salida.creador.username }}</span>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('historial_salidas') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Historial
+            </a>
+            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold text-nowrap" target="_blank">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Imprimir PDF
+            </a>
+        </div>
+    </div>
+    
+    <!-- ALERTA DE CANCELACIÓN -->
+    {% if salida.estado == 'cancelada' %}
+    <div class="alert alert-warning border-warning shadow-sm rounded-4 d-flex align-items-center mb-4">
+        <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-warning"></i>
+        <div>
+            <strong class="d-block text-dark">Esta salida fue cancelada.</strong>
+            <span class="small text-dark opacity-75">El inventario asociado a estos movimientos fue reingresado automáticamente al almacén.</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- TARJETA: TABLA DE ITEMS RETIRADOS -->
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold text-body"><i class="bi bi-list-check text-primary me-2"></i>Items Retirados</h4>
+            
+            {% if salida.estado != 'cancelada' %}
+            <a href="{{ url_for('registrar_salida', almacen_id=salida.almacen_id) }}" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm px-3 fw-bold">
+                <i class="bi bi-plus-circle me-1"></i> Añadir más items
+            </a>
+            {% endif %}
+        </div>
+        
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary text-uppercase small">
+                    <tr>
+                        <th class="ps-4 border-0">Hora</th>
+                        <th class="border-0">Producto</th>
+                        <th class="border-0">Motivo</th>
+                        <th class="text-center border-0">Cantidad</th>
+                        <th class="text-end pe-4 border-0">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mov in movimientos %}
+                    <tr>
+                        <td class="ps-4 text-muted small fw-bold">
+                            <i class="bi bi-clock me-1 opacity-75"></i> {{ mov.fecha.strftime('%H:%M:%S') }}
+                        </td>
+                        <td>
+                            <strong class="text-body d-block">{{ mov.producto.nombre }}</strong>
+                            <small class="text-muted font-monospace"><i class="bi bi-upc me-1 opacity-50"></i>{{ mov.producto.codigo }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border border-secondary border-opacity-25 px-2 py-1 shadow-sm">{{ mov.motivo }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="fw-bold text-danger fs-5">-{{ mov.cantidad }}</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            {% if salida.estado != 'cancelada' %}
+                                <form action="{{ url_for('eliminar_movimiento_salida', id=mov.id) }}" method="POST"
+                                      onsubmit="return confirm('¿Estás seguro de que deseas eliminar este item?\n\nEsta acción REVERTIRÁ el stock de este producto devolviéndolo al almacén.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill shadow-sm px-3" title="Eliminar Item y Revertir Stock">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="badge bg-secondary opacity-50">Cancelado</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-box-seam fs-1 d-block mb-3 opacity-25"></i>
+                            <h5 class="fw-bold text-body">Sin items registrados</h5>
+                            <p class="mb-0">No hay movimientos guardados en esta hoja de salida.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
