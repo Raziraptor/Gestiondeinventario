@@ -371,7 +371,23 @@ class Movimiento(db.Model):
 
     def __repr__(self):
         return f'<Movimiento {self.producto_id} ({self.cantidad})>'
-    
+
+# --- MODELO 'AuditLog' ---
+class AuditLog(db.Model):
+    __tablename__ = 'audit_log'
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    usuario = db.relationship('User', foreign_keys=[usuario_id])
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False, index=True)
+    accion = db.Column(db.String(30), nullable=False)
+    entidad = db.Column(db.String(50), nullable=False)
+    entidad_id = db.Column(db.Integer, nullable=True)
+    descripcion = db.Column(db.String(500), nullable=False)
+
+    def __repr__(self):
+        return f'<AuditLog {self.accion} {self.entidad} #{self.entidad_id}>'
+
 # --- MODELO 'ProyectoOC' MODIFICADO ---
             
 class ProyectoOC(db.Model):
@@ -716,6 +732,28 @@ def enviar_correo_api(destinatario, reset_url):
         print(f"❌ Error enviando correo: {e}")
         if hasattr(e, 'response') and e.response is not None:
             print(e.response.text)
+
+# ==============================================================================
+# HISTORIAL DE ACTIVIDAD / AUDIT LOG
+# ==============================================================================
+
+def log_actividad(accion, entidad, descripcion, entidad_id=None):
+    """Añade una entrada al audit log. Debe llamarse ANTES del db.session.commit()."""
+    try:
+        org_id = current_user.organizacion_id if current_user.is_authenticated else None
+        if not org_id:
+            return
+        entrada = AuditLog(
+            usuario_id=current_user.id if current_user.is_authenticated else None,
+            organizacion_id=org_id,
+            accion=accion,
+            entidad=entidad,
+            entidad_id=entidad_id,
+            descripcion=descripcion,
+        )
+        db.session.add(entrada)
+    except Exception:
+        pass  # El logging nunca debe romper el flujo principal
 
 # ==============================================================================
 # SISTEMA DE NOTIFICACIONES WHATSAPP (Meta Cloud API)
@@ -1393,6 +1431,8 @@ def importar_productos():
                 db.session.add(producto)
                 importados += 1
 
+            if importados > 0:
+                log_actividad('importar', 'producto', f'Importación masiva: {importados} producto(s) creados, {omitidos} omitidos (SKU duplicado)')
             db.session.commit()
             resultados = {'importados': importados, 'omitidos': omitidos, 'errores': errores}
 
@@ -1503,9 +1543,10 @@ def nuevo_producto():
                     )
                     db.session.add(movimiento_inicial)
                 
+            log_actividad('crear', 'producto', f'Producto creado: {nuevo_prod.nombre} (SKU: {nuevo_prod.codigo})', entidad_id=nuevo_prod.id)
             db.session.commit()
             flash('Producto creado exitosamente.', 'success')
-            
+
             if almacen_seleccionado:
                  return redirect(url_for('gestionar_inventario_almacen', id=almacen_seleccionado.id))
             return redirect(url_for('dashboard'))
@@ -1574,6 +1615,7 @@ def editar_producto(id):
                 stock_item.cantidad = int(request.form.get('cantidad') or 0)
                 stock_item.ubicacion = request.form.get('ubicacion')
 
+            log_actividad('editar', 'producto', f'Producto editado: {producto.nombre} (SKU: {producto.codigo})', entidad_id=producto.id)
             db.session.commit()
             flash('Producto actualizado exitosamente', 'success')
             return redirect(url_for('gestionar_inventario_almacen', id=almacen_id) if almacen_id else url_for('dashboard'))
@@ -2266,6 +2308,8 @@ def registrar_salida():
                 )
                 db.session.add(movimiento)
             
+            total_uds = sum(v['cantidad'] for v in productos_para_actualizar)
+            log_actividad('salida', 'salida', f'Salida registrada: {len(productos_para_actualizar)} producto(s), {total_uds} uds — Almacén: {almacen_seleccionado.nombre}', entidad_id=salida_del_dia.id)
             db.session.commit()
             flash(f'Se añadieron {len(productos_para_actualizar)} items a la salida del día.', 'success')
             check_and_alert_stock_bajo(org_id, almacen_seleccionado.id)
@@ -2615,7 +2659,8 @@ def recibir_orden(id):
         orden.estado = 'recibida'
         orden.fecha_recepcion = datetime.now()
         db.session.add(orden)
-        
+
+        log_actividad('recibir_oc', 'orden_compra', f'OC #{orden.id} recibida — {len(orden.detalles)} producto(s) ingresados al almacén {orden.almacen.nombre}', entidad_id=orden.id)
         db.session.commit()
         flash(f'¡Orden recibida! Stock ingresado correctamente al almacén: {orden.almacen.nombre}', 'success')
         
@@ -3444,6 +3489,35 @@ def cancelar_proyecto_oc(id):
     return redirect(url_for('lista_proyectos_oc'))
 
 
+# --- RUTAS DE HISTORIAL DE ACTIVIDAD ---
+
+@app.route('/actividad')
+@login_required
+@check_org_permission
+@check_permission('perm_view_dashboard')
+def historial_actividad():
+    """Timeline de actividad reciente de la organización."""
+    org_id = current_user.organizacion_id
+    page = request.args.get('page', 1, type=int)
+    accion_filtro = request.args.get('accion', '')
+    per_page = 25
+
+    q = AuditLog.query.filter_by(organizacion_id=org_id)
+    if accion_filtro:
+        q = q.filter(AuditLog.accion == accion_filtro)
+    pagination = q.order_by(AuditLog.fecha.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    acciones = db.session.query(AuditLog.accion).filter_by(organizacion_id=org_id).distinct().all()
+    acciones = [a[0] for a in acciones]
+
+    return render_template('actividad.html',
+                           titulo='Historial de Actividad',
+                           pagination=pagination,
+                           entradas=pagination.items,
+                           acciones=acciones,
+                           accion_filtro=accion_filtro)
+
+
 # --- RUTAS DE CONTROL DE GASTOS ---
 @app.route('/gastos')
 @login_required
@@ -3517,6 +3591,8 @@ def nuevo_gasto():
                 organizacion_id=current_user.organizacion_id
             )
             db.session.add(nuevo_gasto)
+            db.session.flush()
+            log_actividad('crear', 'gasto', f'Gasto registrado: {nuevo_gasto.descripcion} — ${nuevo_gasto.monto:,.2f} ({nuevo_gasto.categoria})', entidad_id=nuevo_gasto.id)
             db.session.commit()
             flash('Gasto registrado exitosamente', 'success')
             return redirect(url_for('lista_gastos'))
@@ -3556,11 +3632,12 @@ def editar_gasto(id):
             gasto.categoria = request.form['categoria']
             gasto.fecha = fecha_gasto
             gasto.orden_compra_id = oc_id
-            
+
+            log_actividad('editar', 'gasto', f'Gasto editado: {gasto.descripcion} — ${gasto.monto:,.2f}', entidad_id=gasto.id)
             db.session.commit()
             flash('Gasto actualizado exitosamente', 'success')
             return redirect(url_for('lista_gastos'))
-        
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar el gasto: {e}', 'danger')
@@ -4286,12 +4363,13 @@ def nuevo_ajuste():
                 almacen_id=almacen_id,
                 organizacion_id=org_id
             ))
+            signo = '+' if diferencia > 0 else ''
+            log_actividad('ajuste', 'producto', f'Ajuste de inventario: {signo}{diferencia} uds — {motivo}', entidad_id=producto_id)
             db.session.commit()
 
             if diferencia < 0:
                 check_and_alert_stock_bajo(org_id, almacen_id)
 
-            signo = '+' if diferencia > 0 else ''
             flash(f'Ajuste registrado. Diferencia aplicada: {signo}{diferencia} unidades.', 'success')
             return redirect(url_for('dashboard'))
 
