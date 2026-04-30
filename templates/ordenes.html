@@ -3,147 +3,374 @@
 {% block title %}Órdenes de Compra{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Historial de Órdenes de Compra</h2>
-        <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Crear OC Manual
+<style>
+    /* ==========================================
+       ESTILOS PARA MODO OSCURO Y UI MODERNA
+       ========================================== */
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .list-group-item {
+        background-color: transparent !important;
+        border-color: #2a2a2a !important;
+        color: #e0e0e0;
+    }
+    
+    /* Corrección para los fondos "light" y "white" en modo oscuro */
+    [data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .card-body .bg-light {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        color: #e0e0e0 !important;
+    }
+    
+    [data-bs-theme="dark"] .bg-white,
+    [data-bs-theme="dark"] .filter-switch .bg-white {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border-color: #333 !important;
+    }
+
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+
+    .orden-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+    .orden-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.5em 1em;
+        border-radius: 50rem;
+    }
+
+    /* Interruptor de Filtro */
+    .filter-switch .form-check-input {
+        width: 3em;
+        height: 1.5em;
+        cursor: pointer;
+    }
+
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bs-body-bg);
+        border: 1px solid #dee2e6;
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper {
+        background-color: #1a1a1a;
+        border-color: #333;
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    .theme-switch-sun {
+        color: #f59e0b;
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e2e8f0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper shadow-sm" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-cart-check-fill text-primary me-2"></i>Historial de Compras</h2>
+            <p class="text-muted mb-0">Gestión de aprovisionamiento y recepción de mercancía.</p>
+        </div>
+        <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary btn-lg shadow-sm rounded-pill px-4 fw-bold">
+            <i class="bi bi-plus-lg me-1"></i> Crear OC Manual
         </a>
     </div>
 
-    <div class="card bg-light mb-4">
-        <div class="card-body">
+    <!-- SECCIÓN DE FILTROS -->
+    <div class="card shadow-sm mb-5 border-0 rounded-4 overflow-hidden">
+        <div class="card-body p-4 bg-light">
             <form method="GET" action="{{ url_for('lista_ordenes') }}" class="row g-3 align-items-end">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <div class="col-md-3">
-                    <label for="mes" class="form-label">Mes</label>
-                    <select id="mes" name="mes" class="form-select">
+                    <label for="mes" class="form-label fw-bold small text-muted text-uppercase">Mes de Registro</label>
+                    <select id="mes" name="mes" class="form-select border-0 shadow-sm">
                         {% for num, nombre in meses_lista %}
-                            <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
-                                {{ nombre }}
-                            </option>
+                            <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 
                 <div class="col-md-2">
-                    <label for="ano" class="form-label">Año</label>
-                    <input type="number" id="ano" name="ano" class="form-control" value="{{ ano_seleccionado }}" min="2020" max="2050">
+                    <label for="ano" class="form-label fw-bold small text-muted text-uppercase">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control border-0 shadow-sm" value="{{ ano_seleccionado }}" min="2020" max="2050">
                 </div>
                 
-                <div class="col-md-4">
-                    <label for="proveedor_id" class="form-label">Proveedor</label>
-                    <select id="proveedor_id" name="proveedor_id" class="form-select">
-                        <option value="0">-- Todos los Proveedores --</option>
+                <div class="col-md-3">
+                    <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase">Proveedor</label>
+                    <select id="proveedor_id" name="proveedor_id" class="form-select border-0 shadow-sm">
+                        <option value="0">-- Todos los proveedores --</option>
                         {% for prov in proveedores %}
-                            <option value="{{ prov.id }}" {% if prov.id == prov_seleccionado %}selected{% endif %}>
-                                {{ prov.nombre }}
-                            </option>
+                            <option value="{{ prov.id }}" {% if prov.id == prov_seleccionado %}selected{% endif %}>{{ prov.nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-filter"></i> Filtrar
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
+                        <i class="bi bi-filter"></i> Aplicar Filtros
                     </button>
+                    <!-- FILTRO DINÁMICO: OCULTAR CANCELADAS -->
+                    <div class="bg-white border rounded shadow-sm px-3 d-flex align-items-center filter-switch">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="toggleCanceladas">
+                            <label class="form-check-label small fw-bold text-muted ms-2 text-nowrap" for="toggleCanceladas">Ocultar Canceladas</label>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
-    {% for orden in ordenes %}
-    <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center 
-                    {% if orden.estado == 'recibida' %}bg-success text-white
-                    {% elif orden.estado == 'enviada' %}bg-info text-dark
-                    {% elif orden.estado == 'cancelada' %}bg-secondary
-                    {% else %}bg-warning text-dark{% endif %}">
-            <div>
-                <strong>OC #{{ orden.id }}</strong> - Proveedor: <strong>{{ orden.proveedor.nombre }}</strong>
-                <br>
-                <small>Creada: {{ orden.fecha_creacion.strftime('%Y-%m-%d') }}</small>
-            </div>
-            <h4>
-                Estado: <span class="badge 
-                                {% if orden.estado == 'recibida' %}bg-light text-success
-                                {% elif orden.estado == 'enviada' %}bg-dark
-                                {% elif orden.estado == 'cancelada' %}bg-light text-dark
-                                {% else %}bg-warning text-dark{% endif %}">
-                    {{ orden.estado.capitalize() }}
-                </span>
-            </h4>
-        </div>
-        <div class="card-body">
-            <div class="row mb-2">
-                <div class="col-md-6">
-                    <small class="text-muted">
-                        Creada por: <i class="bi bi-person"></i> {{ orden.creador.username }}
-                    </small>
-                </div>
-                {% if orden.estado == 'cancelada' and orden.cancelado_por %}
-                <div class="col-md-6">
-                    <small class="text-muted">
-                        Cancelada por: <i class="bi bi-person-x"></i> {{ orden.cancelado_por.username }}
-                    </small>
-                </div>
-                {% endif %}
-            </div>
-            <h5 class="card-title">Detalles de la Orden</h5>
-            <table class="table table-sm">
-                <tbody>
-                    {% for detalle in orden.detalles %}
-                    <tr>
-                        <td>{{ detalle.producto.nombre }}</td>
-                        <td class="text-end">{{ detalle.cantidad_solicitada }} (uds)</td>
-                        <td class="text-end">${{ "%.2f"|format(detalle.subtotal) }} (Est.)</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr class="table-group-divider">
-                        <td colspan="2" class="text-end"><strong>Total Estimado:</strong></td>
-                        <td class="text-end"><strong>${{ "%.2f"|format(orden.costo_total) }}</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-        <div class="card-footer text-end">
-            <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-outline-secondary">
-                <i class="bi bi-eye"></i> Ver Detalle
-            </a>
-            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-outline-danger" title="Imprimir PDF" target="_blank">
-                <i class="bi bi-file-earmark-pdf"></i>
-            </a>
-            {% if orden.estado == 'borrador' %}
-                <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning">
-                    <i class="bi bi-pencil"></i> Editar
-                </a>
-                <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-info">Marcar como "Enviada"</button>
-                </form>
-                <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;" 
-                      onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden?');">
-                    <button type="submit" class="btn btn-warning" title="Cancelar Orden">
-                        <i class="bi bi-x-circle"></i>
-                    </button>
-                </form>
-            {% elif orden.estado == 'enviada' %}
-            <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-success">Marcar como "Recibida"</button>
-            </form>
-            {% elif orden.estado == 'recibida' %}
-            <span class="text-success">Recibida el {{ orden.fecha_recepcion.strftime('%Y-%m-%d') }}</span>
-            {% endif %}
-        </div>
-    </div>
-    {% else %}
-    <div class="alert alert-info">
-        No se encontraron Órdenes de Compra para <strong>{{ meses_lista[mes_seleccionado-1][1] }} de {{ ano_seleccionado }}</strong>
-        {% if prov_seleccionado != 0 %}
-            y el proveedor seleccionado.
-        {% else %}
-            .
-        {% endif %}
-    </div>
-    {% endfor %}
 
+    <!-- GRID DE TARJETAS -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4" id="gridOrdenes">
+        {% for orden in ordenes %}
+            
+            {% set border_color = '#ffc107' %} {# Borrador #}
+            {% set status_icon = 'bi-pencil-square' %}
+            {% set bg_light_status = 'bg-warning' %}
+
+            {% if orden.estado == 'recibida' %}
+                {% set border_color = '#198754' %}
+                {% set status_icon = 'bi-check-circle-fill' %}
+                {% set bg_light_status = 'bg-success' %}
+            {% elif orden.estado == 'enviada' %}
+                {% set border_color = '#0dcaf0' %}
+                {% set status_icon = 'bi-truck' %}
+                {% set bg_light_status = 'bg-info' %}
+            {% elif orden.estado == 'cancelada' %}
+                {% set border_color = '#6c757d' %}
+                {% set status_icon = 'bi-x-circle-fill' %}
+                {% set bg_light_status = 'bg-secondary' %}
+            {% endif %}
+
+            <div class="col orden-item" data-estado="{{ orden.estado }}">
+                <div class="card h-100 shadow-sm orden-card border-0 border-top border-4" style="border-top-color: {{ border_color }} !important;">
+                    
+                    <div class="card-body p-4">
+                        <!-- ENCABEZADO DE TARJETA -->
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-0 text-body">OC #{{ orden.id }}</h5>
+                                <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ orden.fecha_creacion.strftime('%d/%m/%Y') }}</small>
+                            </div>
+                            <span class="status-badge {{ bg_light_status }} {% if orden.estado in ['recibida', 'cancelada'] %}text-white{% else %}text-dark{% endif %} shadow-sm">
+                                <i class="{{ status_icon }} me-1"></i> {{ orden.estado }}
+                            </span>
+                        </div>
+
+                        <!-- INFO PROVEEDOR -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-2" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                                <h6 class="fw-bold mb-0 text-truncate text-body">{{ orden.proveedor.nombre }}</h6>
+                            </div>
+                            <small class="text-muted ps-5 d-block" style="margin-top: -5px;">
+                                Por: {{ orden.creador.username }}
+                            </small>
+                            
+                            {% if orden.estado == 'cancelada' and orden.cancelado_por %}
+                                <small class="text-danger ps-5 d-block mt-1 fw-bold">
+                                    <i class="bi bi-person-x me-1"></i> Canceló: {{ orden.cancelado_por.username }}
+                                </small>
+                            {% endif %}
+                        </div>
+
+                        <!-- LISTA DE PRODUCTOS (Resumen) -->
+                        <div class="bg-light rounded-3 p-3 mb-4 border border-secondary border-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-bold text-muted text-uppercase">Artículos</span>
+                                <span class="badge bg-white text-dark border shadow-sm">{{ orden.detalles|length }}</span>
+                            </div>
+                            <ul class="list-unstyled mb-0">
+                                {% for detalle in orden.detalles %}
+                                    {% if loop.index <= 3 %}
+                                    <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10 last-border-0">
+                                        <span class="text-truncate small text-body" style="max-width: 160px;">{{ detalle.producto.nombre }}</span>
+                                        <span class="fw-bold small text-body">x{{ detalle.cantidad_solicitada }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if (orden.detalles|length) > 3 %}
+                                    <li class="text-center pt-2">
+                                        <small class="text-muted fst-italic">+ {{ (orden.detalles|length) - 3 }} productos más...</small>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <!-- TOTAL -->
+                        <div class="text-center py-2 bg-success bg-opacity-10 rounded-3 border border-success border-opacity-10">
+                            <small class="text-uppercase text-success fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Inversión Estimada</small>
+                            <div class="h3 fw-bold text-success mb-0">${{ "{:,.2f}".format(orden.costo_total) }}</div>
+                        </div>
+                    </div>
+
+                    <!-- ACCIONES -->
+                    <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-3">
+                        <div class="d-grid gap-2">
+                            {% if orden.estado == 'borrador' or (orden.estado not in ['recibida', 'enviada', 'cancelada']) %}
+                                <div class="btn-group w-100 shadow-sm">
+                                    <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning btn-sm fw-bold text-dark">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" class="d-contents">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-info btn-sm fw-bold text-white border-start border-white border-opacity-25">
+                                            <i class="bi bi-send"></i> Enviar
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" class="d-contents" onsubmit="return confirm('¿Cancelar esta orden?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-secondary btn-sm">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            {% elif orden.estado == 'enviada' %}
+                                <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" class="d-grid" onsubmit="return confirm('¿Confirmas la recepción física de la mercancía?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-success fw-bold shadow-sm">
+                                        <i class="bi bi-box-seam me-1"></i> Registrar Recepción
+                                    </button>
+                                </form>
+                            {% elif orden.estado == 'recibida' %}
+                                <div class="alert alert-success m-0 py-2 text-center border-success border-opacity-25 small fw-bold">
+                                    <i class="bi bi-calendar-check me-1"></i> Recibida: {{ orden.fecha_recepcion.strftime('%d/%m/%Y') }}
+                                </div>
+                            {% endif %}
+
+                            <div class="d-flex justify-content-between mt-2 px-1">
+                                <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-link btn-sm text-decoration-none text-secondary p-0 fw-bold">
+                                    <i class="bi bi-eye"></i> Detalle Completo
+                                </a>
+                                <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-link btn-sm text-decoration-none text-danger p-0 fw-bold" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf"></i> Descargar PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-4 shadow-sm" style="width: 100px; height: 100px;">
+                    <i class="bi bi-cart-x text-muted opacity-50" style="font-size: 3rem;"></i>
+                </div>
+                <h4 class="fw-bold text-muted">No hay órdenes registradas</h4>
+                <p class="text-muted">Ajusta los filtros o crea una nueva orden para este periodo.</p>
+                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary rounded-pill px-4 mt-2 shadow">
+                    Crear Nueva OC
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 0. LÓGICA DE TEMA (MODO CLARO / OSCURO)
+    // ==========================================
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+
+    // ==========================================
+    // 1. LÓGICA DE FILTRADO DINÁMICO
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const switchCanceladas = document.getElementById('toggleCanceladas');
+        const items = document.querySelectorAll('.orden-item');
+
+        const isHidden = localStorage.getItem('hide_canceled_oc') === 'true';
+        if(switchCanceladas) {
+            switchCanceladas.checked = isHidden;
+            applyFilter(isHidden);
+
+            switchCanceladas.addEventListener('change', function() {
+                localStorage.setItem('hide_canceled_oc', this.checked);
+                applyFilter(this.checked);
+            });
+        }
+
+        function applyFilter(shouldHide) {
+            items.forEach(item => {
+                if (item.dataset.estado === 'cancelada') {
+                    item.style.display = shouldHide ? 'none' : 'block';
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

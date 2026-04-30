@@ -3,211 +3,469 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <h2>{{ titulo }}</h2>
-    <hr>
+<style>
+    /* ==========================================
+       ESTILOS COMPLEMENTARIOS Y UI MODERNA
+       ========================================== */
+       
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: var(--card-bg, #1a1a1a) !important;
+        border-color: var(--glass-border, #333) !important;
+        color: var(--bs-body-color) !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #1f2937 !important;
+        border-color: var(--bs-primary) !important;
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .list-group-item {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .list-group-item:hover {
+        background-color: #2a2a2a !important;
+    }
 
-    <form method="POST" action="{{ url_for('editar_orden', id=orden.id) if orden else url_for('nueva_orden_manual') }}">
-        
-        <div class="mb-3 col-md-6">
-            <label for="proveedor_id" class="form-label">Proveedor</label>
-            <select class="form-select" id="proveedor_id" name="proveedor_id" 
-                    {% if orden %}disabled{% endif %} required>
-                <option value="">-- Selecciona un proveedor --</option>
-                {% for prov in proveedores %}
-                    <option value="{{ prov.id }}" 
-                            {% if orden and orden.proveedor_id == prov.id %}selected{% endif %}>
-                        {{ prov.nombre }}
-                    </option>
-                {% endfor %}
-            </select>
-            {% if orden %}
-                <small class="form-text text-muted">No se puede cambiar el proveedor de una orden existente.</small>
-            {% endif %}
+    .producto-linea {
+        transition: all 0.2s ease;
+        background-color: var(--card-bg);
+    }
+    .producto-linea:hover {
+        border-color: var(--bs-primary) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA --- */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        transition: transform 0.2s ease;
+        overflow: hidden;
+    }
+    .theme-switch-wrapper:hover { transform: scale(1.08); }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    .theme-switch-sun { color: #f59e0b; opacity: 1; }
+    .theme-switch-moon { color: #e2e8f0; transform: translateY(30px); opacity: 0; }
+    
+    [data-bs-theme="dark"] .theme-switch-sun { transform: translateY(-30px); opacity: 0; }
+    [data-bs-theme="dark"] .theme-switch-moon { transform: translateY(0); opacity: 1; }
+</style>
+
+<!-- Librería para QR -->
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode/html5-qrcode.min.js" type="text/javascript"></script>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper shadow-sm" title="Alternar Tema">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
         </div>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ titulo }}</h2>
+        <p class="text-muted fs-5">Genera o edita solicitudes de abastecimiento para tus almacenes</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('editar_orden', id=orden.id) if orden else url_for('nueva_orden_manual') }}" id="form_orden">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         
-        <hr>
-        
-        <h4>Productos</h4>
-        <div id="lineas_productos_container">
-            {% if orden %}
-                {% for detalle in orden.detalles %}
-                <div class="row g-3 mb-2 align-items-end producto-linea">
-                    <div class="col-md-5">
-                        <label class="form-label">Producto</label>
-                        <select name="producto_id[]" class="form-select" required>
-                            <option value="">-- Selecciona --</option>
-                            {% for p in productos %}
-                                {% if p.proveedor_id == orden.proveedor_id or not p.proveedor_id %}
-                                <option value="{{ p.id }}" {% if p.id == detalle.producto_id %}selected{% endif %}>
-                                    {{ p.nombre }} (SKU: {{ p.codigo }})
-                                </option>
-                                {% endif %}
-                            {% endfor %}
-                        </select>
+        <!-- SECCIÓN 1: DATOS GENERALES -->
+        <div class="card shadow-sm mb-4 border-0 rounded-4">
+            <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center">
+                <h5 class="mb-0 fw-bold text-body"><i class="bi bi-info-circle text-primary me-2"></i>Datos de la Orden</h5>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Proveedor</label>
+                        <div class="input-group input-group-lg shadow-sm">
+                            <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-building text-secondary"></i></span>
+                            <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="proveedor_id" name="proveedor_id" 
+                                    {% if orden %}disabled{% endif %} required>
+                                <option value="">-- Selecciona un proveedor --</option>
+                                {% for prov in proveedores %}
+                                    <option value="{{ prov.id }}" {% if orden and orden.proveedor_id == prov.id %}selected{% endif %}>
+                                        {{ prov.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if orden %}
+                            <input type="hidden" id="hidden_proveedor_id" name="proveedor_id" value="{{ orden.proveedor_id }}">
+                        {% endif %}
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Cantidad</label>
-                        <input type="number" name="cantidad[]" class="form-control" value="{{ detalle.cantidad_solicitada }}" min="1" required>
+                    
+                    <div class="col-md-6">
+                        <label for="almacen_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Almacén de Destino</label>
+                        <div class="input-group input-group-lg shadow-sm">
+                            <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-shop text-secondary"></i></span>
+                            <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="almacen_id" name="almacen_id" 
+                                    {% if orden %}disabled{% endif %} required>
+                                <option value="">-- Selecciona un almacén --</option>
+                                {% for alm in almacenes %}
+                                    <option value="{{ alm.id }}" {% if orden and orden.almacen_id == alm.id %}selected{% endif %}>
+                                        {{ alm.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% if orden %}
+                            <input type="hidden" name="almacen_id" value="{{ orden.almacen_id }}">
+                        {% endif %}
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Costo Unitario</label>
-                        <input type="number" name="costo[]" class="form-control" value="{{ detalle.costo_unitario_estimado }}" step="0.01" min="0" required>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-danger w-100" onclick="eliminarLinea(this)">
-                            <i class="bi bi-trash"></i> Eliminar
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: BUSCADOR -->
+        <div class="card shadow-sm mb-5 border-0 rounded-4">
+            <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-info border-opacity-50 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-body"><i class="bi bi-search text-info me-2"></i>Buscar o Escanear Producto</h5>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <div id="mensaje_bloqueo_buscador" class="alert alert-warning border-warning border-opacity-25 shadow-sm rounded-3 py-3 mb-4 d-flex align-items-center" style="display: none;">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
+                    <div>Selecciona Proveedor y Almacén para habilitar el buscador.</div>
+                </div>
+
+                <div id="reader-container" class="mb-4 shadow-sm border border-secondary border-opacity-25 rounded-4 bg-light p-3" style="display: none;">
+                    <div id="reader" style="width: 100%; max-width: 600px; margin: 0 auto; border-radius: 8px; overflow: hidden;"></div>
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="detenerEscaner()">
+                            <i class="bi bi-stop-circle me-1"></i> Detener Cámara
                         </button>
                     </div>
                 </div>
-                {% endfor %}
-            {% endif %}
-        </div>
-        
-        <button type="button" id="btn_add_producto" class="btn btn-info mt-2" disabled>
-            <i class="bi bi-plus-circle"></i> Añadir Producto
-        </button>
-        <small id="producto_ayuda" class="form-text text-muted d-block">
-            {% if not orden %}Selecciona un proveedor para añadir productos.{% endif %}
-        </small>
-        
-        
-        <hr class="my-4">
-        <div class="col-12">
-            <button type="submit" class="btn btn-primary">Guardar Orden</button>
-            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-secondary">Cancelar</a>
-        </div>
-        
-    </form>
 
-
-    <template id="plantilla_linea">
-        <div class="row g-3 mb-2 align-items-end producto-linea">
-            <div class="col-md-5">
-                <label class="form-label">Producto</label>
-                <select name="producto_id[]" class="form-select" required>
-                    <option value="">-- Selecciona un producto --</option>
-                    </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Cantidad</label>
-                <input type="number" name="cantidad[]" class="form-control" value="1" min="1" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Costo Unitario</label>
-                <input type="number" name="costo[]" class="form-control" value="0.00" step="0.01" min="0" required>
-            </div>
-            <div class="col-md-2">
-                <button type="button" class="btn btn-danger w-100" onclick="eliminarLinea(this)">
-                    <i class="bi bi-trash"></i> Eliminar
-                </button>
+                <div class="position-relative">
+                    <div class="input-group input-group-lg shadow-sm">
+                        <span class="input-group-text bg-light border-secondary border-opacity-25 text-primary"><i class="bi bi-upc-scan"></i></span>
+                        <input type="text" id="buscador" class="form-control bg-light border-secondary border-opacity-25 fs-6" 
+                               placeholder="Nombre, SKU o escanea un código..." autocomplete="off" disabled>
+                        <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" onclick="iniciarEscaner()" disabled>
+                            <i class="bi bi-qr-code-scan me-1"></i> <span>Escanear</span>
+                        </button>
+                    </div>
+                    <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg border-secondary border-opacity-25 rounded-3" 
+                         style="z-index: 1050; top: 100%; display: none; max-height: 300px; overflow-y: auto; margin-top: 5px;">
+                    </div>
+                </div>
             </div>
         </div>
-    </template>
 
+        <!-- SECCIÓN 3: LISTA (CARRITO) -->
+        <div class="d-flex justify-content-between align-items-end mb-3 mt-5 px-2">
+            <h4 class="fw-bold mb-0 text-body"><i class="bi bi-box-seam text-primary me-2"></i>Artículos Solicitados</h4>
+            <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3 px-4 py-2 shadow-sm text-center">
+                <small class="text-uppercase text-success fw-bold" style="font-size: 0.7rem;">Total Estimado</small>
+                <h3 class="text-success fw-bold mb-0">$<span id="gran_total">0.00</span></h3>
+            </div>
+        </div>
 
-    <script>
-        // Función global para eliminar línea
-        function eliminarLinea(boton) {
-            boton.closest('.producto-linea').remove();
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM Cargado. Iniciando script de orden_form.");
-            
-            // (Ignora el falso error de VS Code en esta línea)
-            var todosLosProductos = {{ productos | tojson | safe }};
-            console.log("Productos cargados:", todosLosProductos.length);
-            
-            const selectProveedor = document.getElementById('proveedor_id');
-            const botonAnadir = document.getElementById('btn_add_producto');
-            const contenedor = document.getElementById('lineas_productos_container');
-            const plantilla = document.getElementById('plantilla_linea'); // <-- Obtenemos el <template>
-            const productoAyuda = document.getElementById('producto_ayuda');
-
-            if (!plantilla) {
-                console.error("Error Crítico: No se encontró el <template> #plantilla_linea.");
-                return;
-            }
-
-            // --- 1. Función reutilizable para añadir línea ---
-            function anadirNuevaLinea() {
-                console.log("Llamando a anadirNuevaLinea()...");
-                try {
-                    const selectedProveedorId = selectProveedor.value;
-                    
-                    // Clonamos el contenido del <template>
-                    const nuevaLinea = plantilla.content.firstElementChild.cloneNode(true);
-                    const selectProducto = nuevaLinea.querySelector('select[name="producto_id[]"]');
-                    
-                    let productosFiltrados = 0;
-                    todosLosProductos.forEach(function(producto) {
-                        if (producto.proveedor_id == selectedProveedorId || !producto.proveedor_id) {
-                            const opcion = new Option(
-                                `${producto.nombre} (SKU: ${producto.codigo})`,
-                                producto.id
-                            );
-                            opcion.dataset.precio = producto.precio_unitario;
-                            selectProducto.add(opcion);
-                            productosFiltrados++;
-                        }
-                    });
-                    console.log("Línea creada con", productosFiltrados, "productos.");
-
-                    // Añadimos el listener para auto-rellenar el costo
-                    const inputCosto = nuevaLinea.querySelector('input[name="costo[]"]');
-                    selectProducto.addEventListener('change', function() {
-                        const precio = this.options[this.selectedIndex].dataset.precio || 0;
-                        inputCosto.value = parseFloat(precio).toFixed(2);
-                    });
-
-                    contenedor.appendChild(nuevaLinea);
-
-                } catch (e) {
-                    console.error("Error al añadir la línea:", e);
-                }
-            }
-
-            // --- 2. Asignar la función al botón ---
-            if (botonAnadir) {
-                botonAnadir.addEventListener('click', anadirNuevaLinea);
-            } else {
-                console.error("Error: Botón '#btn_add_producto' no encontrado.");
-            }
-
-            // --- 3. Lógica del cambio de Proveedor ---
-            if(selectProveedor) {
-                selectProveedor.addEventListener('change', function() {
-                    console.log("Proveedor cambiado a ID:", this.value);
-                    contenedor.innerHTML = ''; // Borra líneas antiguas
-                    
-                    if (this.value) { // Si se seleccionó un proveedor
-                        botonAnadir.disabled = false;
-                        productoAyuda.style.display = 'none';
-                        anadirNuevaLinea(); // Añade la primera línea filtrada
-                    } else { 
-                        botonAnadir.disabled = true;
-                        productoAyuda.style.display = 'block';
-                    }
-                });
-            } else {
-                console.error("Error: Select '#proveedor_id' no encontrado.");
-            }
-
-            // --- 4. Lógica de Carga Inicial ---
+        <div id="lineas_productos_container" class="mb-5">
             {% if orden %}
-                // Si es una edición, habilitamos el botón
-                botonAnadir.disabled = false;
-                productoAyuda.style.display = 'none';
-                console.log("Modo Edición: Botón de añadir habilitado.");
+                {% for detalle in orden.detalles %}
+                    {% set p_match = productos | selectattr("id", "equalto", detalle.producto_id) | first %}
+                    {% set factor = p_match.unidades_por_caja if p_match and 'unidades_por_caja' in p_match else 1 %}
+                    {% set enlace_actual = detalle.enlace_proveedor if detalle.enlace_proveedor else (p_match.get('enlace', '') if p_match else '') %}
+                    
+                    <div class="producto-linea border border-secondary border-opacity-25 p-4 rounded-4 shadow-sm mb-3">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem;">Producto</label>
+                                <div class="fw-bold fs-6 text-body">{{ p_match.nombre if p_match else 'ID: ' ~ detalle.producto_id }}</div>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary font-monospace">{{ p_match.codigo if p_match else 'N/A' }}</span>
+                                    <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.65rem;">Caja: {{ factor }} uds</span>
+                                </div>
+                                <input type="hidden" name="producto_id[]" value="{{ detalle.producto_id }}">
+                                <input type="hidden" class="factor-empaque" value="{{ factor }}">
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Cajas</label>
+                                <input type="number" name="cajas[]" class="form-control bg-light border-secondary cajas-input text-center fw-bold" 
+                                       value="{{ (detalle.cantidad_solicitada / factor) | round(2, 'floor') }}" step="0.01">
+                            </div>
+
+                            <div class="col-md-2">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Total Unid.</label>
+                                <input type="number" name="cantidad[]" class="form-control form-control-sm bg-light border-secondary unidades-input text-center fw-bold shadow-sm" 
+                                       value="{{ detalle.cantidad_solicitada }}" min="1" required>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Costo Unit.</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light text-success fw-bold">$</span>
+                                    <input type="number" name="costo[]" class="form-control bg-light border-secondary costo-input fw-bold" 
+                                           value="{{ '%.2f'|format(detalle.costo_unitario_estimado) }}" step="0.01" required>
+                                </div>
+                                <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
+                            </div>
+
+                            <div class="col-md-2 text-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">
+                                    <i class="bi bi-trash"></i> Quitar
+                                </button>
+                            </div>
+                            
+                            <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-secondary {% if enlace_actual %}text-primary fw-bold{% endif %}" style="font-size: 0.75rem;">
+                                        <i class="bi bi-link-45deg me-1"></i> Enlace
+                                    </span>
+                                    <input type="url" name="enlace[]" class="form-control bg-light border-secondary" 
+                                           placeholder="https://ejemplo.com/producto" value="{{ enlace_actual }}">
+                                </div>
+                                {% if enlace_actual %}
+                                    <div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace recuperado.</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
             {% else %}
-                // Si es nuevo y el proveedor ya está seleccionado (por recarga de error),
-                // activamos el botón
-                if(selectProveedor.value) {
-                    botonAnadir.disabled = false;
-                    productoAyuda.style.display = 'none';
-                    anadirNuevaLinea();
-                }
+                <div id="mensaje_vacio" class="text-center text-muted py-5 border border-secondary border-opacity-25 rounded-4 border-dashed" style="background-color: var(--card-bg);">
+                    <i class="bi bi-cart shadow-sm p-4 rounded-circle fs-1 opacity-25 d-inline-block mb-3 bg-light"></i>
+                    <h5 class="fw-bold text-body">El carrito está vacío</h5>
+                    <p class="mb-0">Usa el buscador para agregar productos.</p>
+                </div>
             {% endif %}
+        </div>
+        
+        <hr class="border-secondary border-opacity-25 mb-4">
+        <div class="d-grid gap-3 d-md-flex justify-content-md-end mb-5">
+            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary rounded-pill px-4 py-3 fw-bold shadow-sm">Cancelar</a>
+            <button type="submit" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
+                <i class="bi bi-save me-2"></i> Guardar Orden de Compra
+            </button>
+        </div>
+    </form>
+</div>
+
+<audio id="audio_beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+
+<script>
+    // 0. SISTEMA DE TEMA
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
         });
-    </script>
-{% endblock %} ```
+    }
+
+    // 1. LÓGICA DE NEGOCIO
+    const todosLosProductos = {{ productos | tojson | safe }};
+    const selectProveedor = document.getElementById('proveedor_id');
+    const hiddenProveedor = document.getElementById('hidden_proveedor_id');
+    const selectAlmacen = document.getElementById('almacen_id');
+    const buscador = document.getElementById('buscador');
+    const btnEscanear = document.getElementById('btn_escanear');
+    const sugerencias = document.getElementById('lista_sugerencias');
+    const container = document.getElementById('lineas_productos_container');
+    const mensajeVacio = document.getElementById('mensaje_vacio');
+    const mensajeBloqueo = document.getElementById('mensaje_bloqueo_buscador');
+    const granTotalSpan = document.getElementById('gran_total');
+    const audioBeep = document.getElementById('audio_beep');
+
+    function getProveedorId() {
+        return selectProveedor.value || (hiddenProveedor ? hiddenProveedor.value : "");
+    }
+
+    function verificarEstadoBuscador() {
+        const provId = getProveedorId();
+        const almId = selectAlmacen.value;
+        if (provId && almId) {
+            buscador.disabled = false;
+            btnEscanear.disabled = false;
+            mensajeBloqueo.style.display = 'none';
+        } else {
+            buscador.disabled = true;
+            btnEscanear.disabled = true;
+            mensajeBloqueo.style.display = 'block';
+        }
+    }
+
+    if(selectProveedor) {
+        selectProveedor.addEventListener('change', () => {
+            if(container.querySelectorAll('.producto-linea').length > 0) {
+                if(confirm("¿Cambiar de proveedor? Se vaciará la lista actual.")) {
+                    container.innerHTML = '';
+                    if(mensajeVacio) { container.appendChild(mensajeVacio); mensajeVacio.style.display = 'block'; }
+                    recalcularTotales();
+                }
+            }
+            verificarEstadoBuscador();
+        });
+    }
+    if(selectAlmacen) selectAlmacen.addEventListener('change', verificarEstadoBuscador);
+    document.addEventListener('DOMContentLoaded', () => { verificarEstadoBuscador(); recalcularTotales(); });
+
+    let html5QrcodeScanner = null;
+    let isScanning = false;
+    let ultimoCodigo = null;
+
+    function iniciarEscaner() {
+        if (isScanning || !getProveedorId()) return;
+        document.getElementById('reader-container').style.display = 'block';
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        html5QrcodeScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess, () => {})
+        .then(() => { isScanning = true; btnEscanear.classList.add('disabled'); })
+        .catch(() => { document.getElementById('reader-container').style.display = 'none'; });
+    }
+
+    function detenerEscaner() {
+        if (html5QrcodeScanner && isScanning) {
+            html5QrcodeScanner.stop().then(() => {
+                document.getElementById('reader-container').style.display = 'none';
+                btnEscanear.classList.remove('disabled');
+                html5QrcodeScanner.clear();
+                isScanning = false;
+            });
+        }
+    }
+
+    function onScanSuccess(decodedText) {
+        if (decodedText === ultimoCodigo) return;
+        ultimoCodigo = decodedText;
+        setTimeout(() => ultimoCodigo = null, 2000);
+        try { audioBeep.play(); } catch(e) {}
+        const provId = getProveedorId();
+        const p = todosLosProductos.find(p => p.codigo.toLowerCase() === decodedText.toLowerCase() && p.proveedor_id == provId);
+        if (p) agregarProducto(p);
+    }
+
+    buscador.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const provId = getProveedorId();
+        sugerencias.innerHTML = ''; 
+        if (!query || !provId) { sugerencias.style.display = 'none'; return; }
+        const resultados = todosLosProductos.filter(p => p.proveedor_id == provId && (p.nombre.toLowerCase().includes(query) || p.codigo.toLowerCase().includes(query)));
+        if (resultados.length > 0) {
+            sugerencias.style.display = 'block';
+            resultados.forEach(p => {
+                const item = document.createElement('a');
+                item.href = '#'; item.classList.add('list-group-item', 'list-group-item-action', 'py-3');
+                const icon = p.enlace ? '<i class="bi bi-link-45deg text-primary ms-2"></i>' : '';
+                item.innerHTML = `<div><strong>${p.nombre}</strong>${icon}<br><small class="text-muted">${p.codigo}</small></div>`;
+                item.onclick = (e) => { e.preventDefault(); agregarProducto(p); buscador.value = ''; sugerencias.style.display = 'none'; buscador.focus(); };
+                sugerencias.appendChild(item);
+            });
+        } else { sugerencias.style.display = 'none'; }
+    });
+
+    function agregarProducto(producto) {
+        if (mensajeVacio) mensajeVacio.style.display = 'none';
+        const existing = document.querySelector(`input[name="producto_id[]"][value="${producto.id}"]`);
+        if (existing) {
+            const row = existing.closest('.producto-linea');
+            const input = row.querySelector('.cajas-input');
+            input.value = parseFloat(input.value) + 1;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+        const factor = producto.unidades_por_caja || 1;
+        const costo = parseFloat(producto.precio_unitario || producto.costo || 0).toFixed(2);
+        const enlace = producto.enlace || '';
+        const linkColor = enlace ? 'text-primary fw-bold' : 'text-secondary';
+        const linkHint = enlace ? `<div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace auto-detectado.</div>` : '';
+
+        const div = document.createElement('div');
+        div.classList.add('producto-linea', 'border', 'border-secondary', 'border-opacity-25', 'p-4', 'rounded-4', 'shadow-sm', 'mb-3');
+        div.innerHTML = `
+            <div class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem;">Producto</label>
+                    <div class="fw-bold fs-6 text-body">${producto.nombre}</div>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        <span class="badge bg-secondary bg-opacity-10 text-dark border font-monospace">${producto.codigo}</span>
+                        <span class="badge bg-info text-dark">Caja: ${factor} uds</span>
+                    </div>
+                    <input type="hidden" name="producto_id[]" value="${producto.id}">
+                    <input type="hidden" class="factor-empaque" value="${factor}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Cajas</label>
+                    <input type="number" name="cajas[]" class="form-control bg-light border-secondary cajas-input text-center fw-bold" value="1" step="0.01">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Total Unid.</label>
+                    <input type="number" name="cantidad[]" class="form-control bg-light border-secondary unidades-input text-center fw-bold" value="${factor}" min="1" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Costo Unit.</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-success fw-bold">$</span>
+                        <input type="number" name="costo[]" class="form-control bg-light border-secondary costo-input fw-bold" value="${costo}" step="0.01" required>
+                    </div>
+                    <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">Quitar</button>
+                </div>
+                <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-secondary ${linkColor}" style="font-size: 0.75rem;"><i class="bi bi-link-45deg"></i> Enlace</span>
+                        <input type="url" name="enlace[]" class="form-control bg-light border-secondary" value="${enlace}">
+                    </div>
+                    ${linkHint}
+                </div>
+            </div>`;
+        container.appendChild(div);
+        recalcularTotales();
+    }
+
+    container.addEventListener('input', function(e) {
+        const row = e.target.closest('.producto-linea');
+        if (!row) return;
+        const factor = parseFloat(row.querySelector('.factor-empaque').value) || 1;
+        const inCajas = row.querySelector('.cajas-input');
+        const inUnid = row.querySelector('.unidades-input');
+        if (e.target.classList.contains('cajas-input')) { inUnid.value = Math.ceil(parseFloat(inCajas.value || 0) * factor); }
+        else if (e.target.classList.contains('unidades-input')) { inCajas.value = (parseInt(inUnid.value || 0) / factor).toFixed(2); }
+        recalcularTotales();
+    });
+
+    window.eliminarLinea = function(b) { b.closest('.producto-linea').remove(); if (!document.getElementsByName('producto_id[]').length && mensajeVacio) mensajeVacio.style.display='block'; recalcularTotales(); }
+
+    function recalcularTotales() {
+        let total = 0;
+        document.querySelectorAll('.producto-linea').forEach(l => {
+            const u = parseInt(l.querySelector('.unidades-input').value) || 0;
+            const c = parseFloat(l.querySelector('.costo-input').value) || 0;
+            const sub = u * c; total += sub;
+            const lbl = l.querySelector('.subtotal-linea'); if(lbl) lbl.innerText = `Sub: $${sub.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        });
+        granTotalSpan.innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+    }
+</script>
+{% endblock %}

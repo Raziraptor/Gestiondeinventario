@@ -3,101 +3,220 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <h2>{{ titulo }}</h2>
-    <hr>
-    
-    <form method="POST" action="{{ request.path }}">
-        <div class="row g-3">
-            
-            <div class="col-md-8">
-                <label for="descripcion" class="form-label">Descripción del Gasto</label>
-                <input type="text" class="form-control" id="descripcion" name="descripcion" required>
-            </div>
-            
-            <div class="col-md-4">
-                <label for="fecha" class="form-label">Fecha del Gasto</label>
-                <input type="date" class="form-control" id="fecha_gasto" name="fecha" value="{{ now.strftime('%Y-%m-%d') if now else '' }}" required>
-            </div>
+<style>
+    /* ==========================================
+       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+       ========================================== */
+       
+    /* Ajustes específicos para inputs/selects en modo oscuro */
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: var(--card-bg) !important;
+        border-color: var(--glass-border) !important;
+        color: var(--bs-body-color) !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #1f2937 !important;
+        border-color: var(--bs-primary) !important;
+        color: #ffffff !important;
+    }
 
-            <div class="col-md-4">
-                <label for="monto" class="form-label">Monto</label>
-                <div class="input-group">
-                    <span class="input-group-text">$</span>
-                    <input type="number" step="0.01" class="form-control" id="monto_gasto" name="monto" placeholder="0.00" required>
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    /* Estado inicial: MODO CLARO */
+    .theme-switch-sun {
+        color: #f59e0b; /* Amber */
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e2e8f0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    
+    /* Estado: MODO OSCURO */
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1"><i class="bi bi-cash-coin text-success me-2"></i>{{ titulo }}</h2>
+        <p class="text-muted fs-5">
+            Registra y categoriza las salidas de dinero de la organización
+        </p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- TARJETA DEL FORMULARIO -->
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-receipt text-primary me-2"></i>Detalles del Gasto</h4>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" action="{{ url_for('editar_gasto', id=gasto.id) if gasto else url_for('nuevo_gasto') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row g-4">
+                            <!-- CAMPO: Fecha -->
+                            <div class="col-md-4">
+                                <label for="fecha" class="form-label fw-bold small text-muted">Fecha del Gasto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-calendar-date text-secondary"></i></span>
+                                    <input type="date" class="form-control bg-light border-secondary border-opacity-25" id="fecha" name="fecha" 
+                                           value="{{ gasto.fecha.strftime('%Y-%m-%d') if gasto else now.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Descripción -->
+                            <div class="col-md-8">
+                                <label for="descripcion" class="form-label fw-bold small text-muted">Descripción Corta</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-card-text text-secondary"></i></span>
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="descripcion" name="descripcion" 
+                                           value="{{ gasto.descripcion if gasto else '' }}" 
+                                           placeholder="Ej: Pago de luz, Papelería, Flete..." required>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Monto -->
+                            <div class="col-md-6">
+                                <label for="monto" class="form-label fw-bold small text-success">Monto (Total Pagado)</label>
+                                <div class="input-group input-group-lg shadow-sm">
+                                    <span class="input-group-text bg-light border-success text-success fw-bold"><i class="bi bi-currency-dollar"></i></span>
+                                    <input type="number" class="form-control bg-light border-success fw-bold text-dark fs-5" id="monto" name="monto" 
+                                           value="{{ gasto.monto if gasto else '' }}" 
+                                           step="0.01" min="0" placeholder="0.00" required>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Categoría -->
+                            <div class="col-md-6">
+                                <label for="categoria" class="form-label fw-bold small text-muted">Categoría Contable</label>
+                                <div class="input-group input-group-lg shadow-sm">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-tags text-primary"></i></span>
+                                    <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="categoria" name="categoria" required>
+                                        <option value="">Selecciona...</option>
+                                        {% set cat_actual = gasto.categoria if gasto else '' %}
+                                        <option value="Servicios" {% if cat_actual == 'Servicios' %}selected{% endif %}>Servicios (Luz, Agua, Internet)</option>
+                                        <option value="Nómina" {% if cat_actual == 'Nómina' %}selected{% endif %}>Nómina</option>
+                                        <option value="Mantenimiento" {% if cat_actual == 'Mantenimiento' %}selected{% endif %}>Mantenimiento</option>
+                                        <option value="Insumos" {% if cat_actual == 'Insumos' %}selected{% endif %}>Insumos / Papelería</option>
+                                        <option value="Inventario" {% if cat_actual == 'Inventario' %}selected{% endif %}>Compra de Inventario (Directa)</option>
+                                        <option value="Otros" {% if cat_actual == 'Otros' %}selected{% endif %}>Otros</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- CAMPO: Vincular a OC (Opcional) -->
+                            <div class="col-12 mt-4">
+                                <div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3">
+                                    <label for="orden_compra_id" class="form-label fw-bold small text-primary mb-2">
+                                        <i class="bi bi-link-45deg me-1"></i>Vincular a Orden de Compra (Opcional)
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-primary border-opacity-25"><i class="bi bi-receipt text-secondary"></i></span>
+                                        <select class="form-select bg-white border-primary border-opacity-25" id="orden_compra_id" name="orden_compra_id">
+                                            <option value="">-- Ninguna --</option>
+                                            {% for oc in ordenes %}
+                                                <option value="{{ oc.id }}" 
+                                                        {% if gasto and gasto.orden_compra_id == oc.id %}selected{% endif %}>
+                                                    OC #{{ oc.id }} - {{ oc.proveedor.nombre }} (${{ "%.2f"|format(oc.costo_total) }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-text mt-2 text-dark opacity-75 small">
+                                        Si este gasto corresponde al pago de una Orden de Compra ya registrada, selecciónala aquí para cruzar la información.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SEPARADOR Y BOTONES -->
+                            <div class="col-12 mt-5">
+                                <hr class="border-secondary border-opacity-25 mb-4">
+                                <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('lista_gastos') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2 shadow-sm">
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                        <i class="bi bi-save me-2"></i> Guardar Gasto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <label for="categoria" class="form-label">Categoría</label>
-                <input type="text" class="form-control" id="categoria" name="categoria" placeholder="Ej: Operativo, Logística...">
-            </div>
-
-            <div class="col-md-4">
-                <label for="orden_compra_id" class="form-label">Asociar a Orden de Compra (Opcional)</label>
-                <select class="form-select" id="select_oc" name="orden_compra_id">
-                    <option value="">-- Ninguna --</option>
-                    
-                    {% for oc in ordenes %}
-                        {% set fecha_rec = oc.fecha_recepcion.strftime('%Y-%m-%d') if oc.fecha_recepcion else '' %}
-                        <option value="{{ oc.id }}" 
-                                data-total="{{ '%.2f'|format(oc.costo_total) }}"
-                                data-fecha="{{ fecha_rec }}">
-                            OC #{{ oc.id }} ({{ oc.proveedor.nombre }}) - Total: ${{ "%.2f"|format(oc.costo_total) }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div class="col-12 mt-4">
-                <button type="submit" class="btn btn-primary">Guardar Gasto</button>
-                <a href="{{ url_for('lista_gastos') }}" class="btn btn-secondary">Cancelar</a>
-            </div>
         </div>
-    </form>
+    </div>
+</div>
 
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
 
-    <script>
-        // Espera a que la página cargue
-        document.addEventListener('DOMContentLoaded', function() {
-            
-            // 1. Obtenemos los elementos del formulario
-            const selectOC = document.getElementById('select_oc');
-            const inputMonto = document.getElementById('monto_gasto');
-            const inputFecha = document.getElementById('fecha_gasto');
-            
-            // Guardamos la fecha de hoy (por si deseleccionan)
-            const fechaDeHoy = "{{ now.strftime('%Y-%m-%d') }}";
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
 
-            // 2. Escuchamos el evento 'change' en el dropdown
-            selectOC.addEventListener('change', function() {
-                
-                // 3. Obtenemos la opción seleccionada
-                const seleccionada = this.options[this.selectedIndex];
-                
-                if (this.value === "") {
-                    // Si seleccionan "Ninguna"
-                    inputMonto.value = ''; // Limpia el monto
-                    inputFecha.value = fechaDeHoy; // Restablece la fecha a hoy
-                } else {
-                    // Si seleccionan una OC
-                    
-                    // 4. Obtenemos los datos guardados en 'data-...'
-                    const total = seleccionada.getAttribute('data-total');
-                    const fecha = seleccionada.getAttribute('data-fecha');
-                    
-                    // 5. Rellenamos los campos
-                    inputMonto.value = total;
-                    
-                    if (fecha) {
-                        // Si la OC tiene fecha de recepción, la usamos
-                        inputFecha.value = fecha;
-                    } else {
-                        // Si no (ej. 'borrador'), usamos la fecha de hoy
-                        inputFecha.value = fechaDeHoy;
-                    }
-                }
-            });
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
         });
-    </script>
-
+    }
+</script>
 {% endblock %}

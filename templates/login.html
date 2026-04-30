@@ -1,43 +1,149 @@
 {% extends 'base.html' %}
 
-{% block content %}
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h2>{{ titulo }}</h2>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="">
-                        {{ form.hidden_tag() }}
-                        
-                        <div class="mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control") }}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.password.label(class="form-label") }}
-                            {{ form.password(class="form-control") }}
-                        </div>
-                        
-                        <div class="d-grid">
-                            {{ form.submit(class="btn btn-primary") }}
-                        </div>
+{% block title %}{{ titulo }}{% endblock %}
 
-                        <div class="text-center mt-3">
-                            <a href="{{ url_for('forgot_password') }}">
-                                <small>¿Olvidaste tu contraseña?</small>
-                            </a>
-                        </div>
-                    </form>
+{% block content %}
+<!-- FORZAR MODO CLARO Y OCULTAR BOTÓN DE TEMA EN ESTA PÁGINA -->
+<script>
+    // Forzamos el tema claro
+    document.documentElement.setAttribute('data-bs-theme', 'light');
+    
+    // Ocultamos el botón de alternar tema si existe en el navbar
+    document.addEventListener("DOMContentLoaded", function() {
+        const themeBtn = document.getElementById('theme-toggle');
+        if (themeBtn) {
+            themeBtn.style.display = 'none';
+        }
+    });
+</script>
+
+<style>
+    /* ==========================================
+       ESTILOS EXCLUSIVOS PARA EL LOGIN
+       ========================================== */
+    body {
+        /* Un gradiente suave y elegante de fondo exclusivo para el login */
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    }
+
+    .login-card {
+        border: none;
+        border-radius: 1.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        background: #ffffff;
+        overflow: hidden;
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, var(--bs-primary) 0%, #3b82f6 100%);
+        padding: 3rem 2rem;
+        text-align: center;
+        color: white;
+    }
+
+    .login-icon-bg {
+        background: rgba(255, 255, 255, 0.2);
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem auto;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+
+    /* Estilización de inputs para modo claro */
+    .form-control, .input-group-text {
+        border-color: #e2e8f0 !important;
+        background-color: #f8fafc !important;
+        color: #334155 !important;
+        padding-top: 0.8rem;
+        padding-bottom: 0.8rem;
+    }
+    
+    .form-control:focus {
+        background-color: #ffffff !important;
+        border-color: var(--bs-primary) !important;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1) !important;
+    }
+
+    .input-group-text {
+        color: #94a3b8 !important;
+    }
+</style>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-12 col-md-8 col-lg-5 col-xl-4">
+        
+        <div class="card login-card mt-2 mb-5">
+            <!-- CABECERA DEL LOGIN -->
+            <div class="login-header">
+                <div class="login-icon-bg">
+                    <i class="bi bi-box-seam-fill fs-1"></i>
                 </div>
-                <div class="card-footer text-center">
-                    <small class="text-muted">
-                        ¿No tienes una cuenta? <a href="{{ url_for('register') }}">Regístrate aquí</a>
-                    </small>
+                <h3 class="fw-bold mb-0">{{ titulo }}</h3>
+                <p class="text-white opacity-75 mb-0 mt-2 fs-6">Ingresa tus credenciales para continuar</p>
+            </div>
+            
+            <!-- CUERPO DEL FORMULARIO -->
+            <div class="card-body p-4 p-md-5">
+                <form method="POST" action="">
+                    
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- CAMPO: USUARIO -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase" style="letter-spacing: 0.5px;">Usuario</label>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text border-end-0"><i class="bi bi-person"></i></span>
+                            {% if form.username.errors %}
+                                {{ form.username(class="form-control border-start-0 is-invalid", placeholder="Tu nombre de usuario") }}
+                                <div class="invalid-feedback px-2">
+                                    {% for error in form.username.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.username(class="form-control border-start-0", placeholder="Tu nombre de usuario") }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- CAMPO: CONTRASEÑA -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small text-muted text-uppercase mb-0" style="letter-spacing: 0.5px;">Contraseña</label>
+                            <a href="{{ url_for('forgot_password') }}" class="small fw-bold text-decoration-none text-primary">¿La olvidaste?</a>
+                        </div>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text border-end-0"><i class="bi bi-lock"></i></span>
+                            {% if form.password.errors %}
+                                {{ form.password(class="form-control border-start-0 is-invalid", placeholder="••••••••") }}
+                                <div class="invalid-feedback px-2">
+                                    {% for error in form.password.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.password(class="form-control border-start-0", placeholder="••••••••") }}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- BOTÓN DE SUBMIT -->
+                    <div class="d-grid mt-5">
+                        {{ form.submit(class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm py-3") }}
+                    </div>
+                </form>
+                
+                <!-- PIE: ENLACE A REGISTRO -->
+                <div class="text-center mt-4 pt-4 border-top border-secondary border-opacity-10">
+                    <p class="text-muted small mb-0">
+                        ¿No tienes una cuenta aún? <br>
+                        <a href="{{ url_for('register') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Regístrate aquí</a>
+                    </p>
                 </div>
             </div>
         </div>
+        
     </div>
+</div>
 {% endblock %}

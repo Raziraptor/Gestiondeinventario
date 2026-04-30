@@ -3,95 +3,256 @@
 {% block title %}Control de Gastos{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Historial de Gastos</h2>
-        <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Registrar Gasto
-        </a>
-    </div>
+<style>
+    /* ==========================================
+       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+       ========================================== */
+       
+    /* Ajustes específicos para inputs/selects en modo oscuro */
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: var(--card-bg) !important;
+        border-color: var(--glass-border) !important;
+        color: var(--bs-body-color) !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #1f2937 !important;
+        border-color: var(--bs-primary) !important;
+        color: #ffffff !important;
+    }
 
-    <div class="card bg-light mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ url_for('lista_gastos') }}" class="row g-3 align-items-end">
-                <div class="col-md-5">
-                    <label for="mes" class="form-label">Mes</label>
-                    <select id="mes" name="mes" class="form-select">
-                        {% for num, nombre in meses_lista %}
-                            <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
-                                {{ nombre }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="ano" class="form-label">Año</label>
-                    <input type="number" id="ano" name="ano" class="form-control" value="{{ ano_seleccionado }}" min="2020" max="2050">
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-filter"></i> Filtrar
-                    </button>
-                </div>
-            </form>
+    /* Tarjetas de Gasto con Hover Animado */
+    .gasto-card {
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease;
+        background-color: var(--card-bg);
+    }
+    .gasto-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.15) !important;
+        border-color: var(--bs-primary) !important;
+    }
+    [data-bs-theme="dark"] .gasto-card:hover {
+        box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    /* Tarjeta de Total Premium */
+    .total-card {
+        background: linear-gradient(135deg, var(--bs-primary) 0%, #3b82f6 100%);
+        color: white !important;
+        border: none;
+    }
+    [data-bs-theme="dark"] .total-card {
+        background: linear-gradient(135deg, #3730a3 0%, #312e81 100%);
+    }
+
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    /* Estado inicial: MODO CLARO */
+    .theme-switch-sun {
+        color: #f59e0b; /* Amber */
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e2e8f0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    
+    /* Estado: MODO OSCURO */
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
         </div>
     </div>
 
-    <div class="alert alert-info d-flex justify-content-between align-items-center">
-        <span>
-            <strong>Total de Gastos ({{ meses_lista[mes_seleccionado-1][1] }} {{ ano_seleccionado }}): 
-            ${{ "%.2f"|format(total_gastos) }}</strong>
-        </span>
+    <!-- ENCABEZADO Y BOTONES -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="bi bi-cash-coin text-success me-2"></i>Control de Gastos</h2>
+            <p class="text-muted mb-0">Registro, seguimiento y análisis de egresos.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}" class="btn btn-success shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-file-earmark-excel me-1"></i> Excel
+            </a>
+            <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-plus-lg me-1"></i> Registrar Gasto
+            </a>
+        </div>
+    </div>
+
+    <!-- SECCIÓN DE FILTROS Y TOTAL -->
+    <div class="row g-4 mb-5">
+        <!-- Tarjeta de Filtros -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-4 h-100" style="background-color: var(--card-bg);">
+                <div class="card-body p-4">
+                    <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
+                    <form method="GET" action="{{ url_for('lista_gastos') }}" class="row g-3 align-items-end">
+                        <div class="col-md-5">
+                            <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
+                            <select id="mes" name="mes" class="form-select shadow-sm border-secondary border-opacity-25">
+                                {% for num, nombre in meses_lista %}
+                                    <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
+                                        {{ nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="ano" class="form-label fw-bold small text-body mb-1">Año</label>
+                            <input type="number" id="ano" name="ano" class="form-control shadow-sm border-secondary border-opacity-25" 
+                                   value="{{ ano_seleccionado }}" min="2020" max="2050">
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button type="submit" class="btn btn-secondary shadow-sm fw-bold">
+                                <i class="bi bi-search me-1"></i> Filtrar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         
-        <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}" class="btn btn-outline-success">
-            <i class="bi bi-file-earmark-spreadsheet"></i> Exportar a Excel
-        </a>
+        <!-- Tarjeta de Total Premium -->
+        <div class="col-md-4">
+            <div class="card total-card shadow-sm rounded-4 h-100 position-relative overflow-hidden">
+                <!-- Decoración de fondo (Círculo difuminado) -->
+                <div class="position-absolute opacity-25" style="top: -20px; right: -20px; width: 100px; height: 100px; background: white; border-radius: 50%; filter: blur(20px);"></div>
+                
+                <div class="card-body d-flex flex-column justify-content-center align-items-center text-center p-4 z-1">
+                    <h6 class="text-uppercase fw-bold opacity-75 mb-2" style="font-size: 0.85rem; letter-spacing: 1px;">Total del Mes</h6>
+                    <h1 class="mb-0 fw-bold display-5 text-white">${{ "{:,.2f}".format(total_gastos) }}</h1>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            Gastos Recientes
-        </div>
-        <div class="card-body table-responsive">
-            <table class="table table-striped table-hover">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Descripción</th>
-                        <th>Categoría</th>
-                        <th>OC Asociada</th>
-                        <th class="text-end">Monto</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for gasto in gastos %}
-                    <tr>
-                        <td>{{ gasto.fecha.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ gasto.descripcion }}</td>
-                        <td><span class="badge bg-secondary">{{ gasto.categoria }}</span></td>
-                        <td>
-                            {% if gasto.orden_compra %}
-                                <a href="{{ url_for('ver_orden', id=gasto.orden_compra.id) }}">
-                                    OC #{{ gasto.orden_compra.id }}
-                                </a>
-                            {% else %}
-                                N/A
+    <!-- GRID DE TARJETAS (GASTOS) -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for gasto in gastos %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border border-secondary border-opacity-25 rounded-4 gasto-card">
+                    
+                    <!-- ENCABEZADO: Categoría y Fecha -->
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 pt-3 pb-2">
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 shadow-sm">
+                            <i class="bi bi-tag-fill me-1"></i> {{ gasto.categoria }}
+                        </span>
+                        <small class="text-muted fw-bold font-monospace opacity-75">{{ gasto.fecha.strftime('%d/%m/%Y') }}</small>
+                    </div>
+
+                    <!-- CUERPO: Descripción y Monto -->
+                    <div class="card-body p-4 d-flex flex-column">
+                        <h5 class="card-title fw-bold text-body mb-3 lh-base">
+                            {{ gasto.descripcion }}
+                        </h5>
+
+                        <div class="mt-auto">
+                            <!-- Enlace a OC si existe -->
+                            {% if gasto.orden_compra_id %}
+                                <div class="mb-3 text-start">
+                                    <a href="{{ url_for('ver_orden', id=gasto.orden_compra_id) }}" class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 text-decoration-none py-2 px-3 shadow-sm rounded-pill d-inline-block">
+                                        <i class="bi bi-link-45deg fs-6 align-middle"></i> OC #{{ gasto.orden_compra_id }} vinculada
+                                    </a>
+                                </div>
                             {% endif %}
-                        </td>
-                        <td class="text-end"><strong>${{ "%.2f"|format(gasto.monto) }}</strong></td>
-                        <td>
-                            <a href="#" class="btn btn-sm btn-secondary disabled">Editar</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" class="text-center">
-                            No hay gastos registrados para <strong>{{ meses_lista[mes_seleccionado-1][1] }} de {{ ano_seleccionado }}</strong>.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                            
+                            <!-- Monto Grande con Formato -->
+                            <div class="bg-secondary bg-opacity-10 rounded-4 p-3 text-center border border-secondary border-opacity-25 mt-2">
+                                <small class="text-uppercase fw-bold text-muted mb-1 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">Monto</small>
+                                <div class="fs-3 fw-bold text-body">${{ "{:,.2f}".format(gasto.monto) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PIE: Acciones -->
+                    <div class="card-footer bg-transparent border-0 pb-4 pt-0 px-4">
+                        <div class="d-grid">
+                            <a href="{{ url_for('editar_gasto', id=gasto.id) }}" class="btn btn-outline-primary rounded-pill fw-bold shadow-sm">
+                                <i class="bi bi-pencil-square me-1"></i> Editar Gasto
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- ESTADO VACÍO -->
+            <div class="col-12">
+                <div class="text-center py-5 border border-secondary border-opacity-25 border-dashed rounded-4" style="background-color: var(--card-bg);">
+                    <div class="opacity-25 mb-3">
+                        <i class="bi bi-wallet2 text-primary" style="font-size: 5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold text-body">Sin Movimientos</h4>
+                    <p class="text-muted fs-6 mb-4 px-3">No se encontraron gastos registrados para el periodo seleccionado.</p>
+                    <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                        <i class="bi bi-plus-lg me-1"></i> Registrar Primer Gasto
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
     </div>
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}

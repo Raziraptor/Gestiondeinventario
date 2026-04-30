@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<style>
+    /* ==========================================
+       ESTILOS PERSONALIZADOS (MODO CLARO/OSCURO)
+       ========================================== */
+       
+    /* --- AJUSTES GLOBALES PARA LA BARRA DE NAVEGACIÓN --- */
+    [data-bs-theme="dark"] .navbar {
+        background-color: #121212 !important;
+        border-bottom: 1px solid #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-brand,
+    [data-bs-theme="dark"] .navbar .nav-link,
+    [data-bs-theme="dark"] .navbar .navbar-text {
+        color: #e0e0e0 !important;
+    }
+
+    /* --- AJUSTES PARA MODO OSCURO (Pure Black) --- */
+    [data-bs-theme="dark"] body {
+        background-color: #000000 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .card-header,
+    [data-bs-theme="dark"] .card-footer {
+        background-color: transparent !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-white {
+        background-color: #1a1a1a !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .text-muted {
+        color: #888888 !important;
+    }
+    [data-bs-theme="dark"] .border,
+    [data-bs-theme="dark"] .border-top,
+    [data-bs-theme="dark"] .border-bottom {
+        border-color: #2a2a2a !important;
+    }
+    
+    /* Inputs y Formularios en Modo Oscuro */
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #222 !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+    }
+    
+    /* Checkbox en Modo Oscuro */
+    [data-bs-theme="dark"] .form-check-input {
+        background-color: #1a1a1a;
+        border-color: #444;
+    }
+    [data-bs-theme="dark"] .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    /* --- TARJETAS HOVER ANIMADAS --- */
+    .oc-card {
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease;
+    }
+    .oc-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.15) !important;
+    }
+    [data-bs-theme="dark"] .oc-card:hover {
+        box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    /* --- AJUSTES PARA MODO CLARO --- */
+    [data-bs-theme="light"] body {
+        background-color: #f8f9fa !important;
+        color: #212529;
+    }
+    [data-bs-theme="light"] .card {
+        background-color: #ffffff;
+        border-color: #dee2e6;
+    }
+
+    /* ==========================================
+       ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA)
+       ========================================== */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    .theme-switch-sun {
+        color: #ffc107;
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e0e0e0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper {
+        background-color: #1a1a1a;
+        border-color: #333;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper:hover {
+        box-shadow: 0 4px 8px rgba(255,255,255,0.05) !important;
+    }
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper shadow-sm" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
+    </div>
+
+    <!-- ENCABEZADO Y BOTÓN CREAR -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="bi bi-briefcase-fill text-primary me-2"></i>{{ titulo }}</h2>
+            <p class="text-muted mb-0">Gestiona las compras asignadas a proyectos específicos.</p>
+        </div>
+        <a href="{{ url_for('nuevo_proyecto_oc') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <i class="bi bi-plus-lg me-1"></i> Crear OC de Proyecto
+        </a>
+    </div>
+
+    <!-- SECCIÓN DE FILTROS -->
+    <div class="card shadow-sm border-0 rounded-4 mb-5">
+        <div class="card-body p-4 bg-light rounded-4">
+            <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
+            
+            <form method="GET" action="{{ url_for('lista_proyectos_oc') if 'lista_proyectos_oc' in config else '#' }}" class="row g-3 align-items-end">
+                
+                <!-- Filtro Mes -->
+                <div class="col-md-3">
+                    <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
+                    <select id="mes" name="mes" class="form-select shadow-sm border-secondary border-opacity-25">
+                        <option value="">-- Todos --</option>
+                        {% set meses = [
+                            (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+                            (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+                            (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+                        ] %}
+                        {% for num, nombre in meses %}
+                            <option value="{{ num }}" {% if request.args.get('mes') and request.args.get('mes')|int == num %}selected{% endif %}>
+                                {{ nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Filtro Año -->
+                <div class="col-md-2">
+                    <label for="ano" class="form-label fw-bold small text-body mb-1">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control shadow-sm border-secondary border-opacity-25" 
+                           value="{{ request.args.get('ano', 2025) }}" min="2020" max="2050">
+                </div>
+                
+                <!-- Filtro Proyecto (Opcional) -->
+                {% if proyectos %}
+                <div class="col-md-3">
+                    <label for="proyecto_id" class="form-label fw-bold small text-body mb-1">Proyecto</label>
+                    <select id="proyecto_id" name="proyecto_id" class="form-select shadow-sm border-secondary border-opacity-25">
+                        <option value="0">-- Todos --</option>
+                        {% for proy in proyectos %} 
+                            <option value="{{ proy.id }}" {% if request.args.get('proyecto_id')|int == proy.id %}selected{% endif %}>
+                                {{ proy.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- Checkbox y Botón -->
+                <div class="col-md-4 d-flex justify-content-between align-items-center">
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="ver_canceladas" name="ver_canceladas" 
+                               {% if request.args.get('ver_canceladas') == 'on' %}checked{% endif %}>
+                        <label class="form-check-label fw-bold small text-muted" for="ver_canceladas">
+                            Incluir Canceladas
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-secondary shadow-sm fw-bold px-4 rounded-pill">
+                        <i class="bi bi-search me-1"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GRID DE TARJETAS (ÓRDENES DE PROYECTO) -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        
+        {% set mostrar_canceladas = request.args.get('ver_canceladas') == 'on' %}
+
+        {% for poc in proyectos_oc %}
+            
+            {% if poc.estado|lower != 'cancelada' or mostrar_canceladas %}
+
+                <!-- Mapeo de Colores Premium (Se adaptan en Modo Claro/Oscuro) -->
+                {% set color_theme = 'secondary' %}
+                {% set icon_state = 'bi-question-circle' %}
+
+                {% if poc.estado == 'borrador' %}
+                    {% set color_theme = 'warning' %}
+                    {% set icon_state = 'bi-pause-circle' %}
+                {% elif poc.estado == 'aprobada' %}
+                    {% set color_theme = 'info' %}
+                    {% set icon_state = 'bi-check2-circle' %}
+                {% elif poc.estado == 'enviada' %}
+                    {% set color_theme = 'primary' %}
+                    {% set icon_state = 'bi-send' %}
+                {% elif poc.estado == 'completada' %}
+                    {% set color_theme = 'success' %}
+                    {% set icon_state = 'bi-check-all' %}
+                {% elif poc.estado == 'cancelada' %}
+                    {% set color_theme = 'danger' %}
+                    {% set icon_state = 'bi-x-circle' %}
+                {% endif %}
+
+                <div class="col">
+                    <div class="card h-100 border-{{ color_theme }} border-opacity-50 shadow-sm rounded-4 oc-card">
+                        
+                        <!-- ENCABEZADO: Proyecto y Estado -->
+                        <div class="card-header bg-transparent d-flex justify-content-between align-items-start pt-4 pb-0 border-0">
+                            <div class="text-truncate pe-2">
+                                <h5 class="card-title mb-1 fw-bold text-body text-truncate" title="{{ poc.nombre_proyecto }}">
+                                    {{ poc.nombre_proyecto }}
+                                </h5>
+                                <small class="text-muted fw-bold font-monospace"><i class="bi bi-hash"></i>OC-PROY-{{ poc.id }}</small>
+                            </div>
+                            <!-- Badge Moderno (Transparente) -->
+                            <span class="badge bg-{{ color_theme }} bg-opacity-10 text-{{ color_theme }} border border-{{ color_theme }} border-opacity-25 rounded-pill px-3 py-2 shadow-sm d-flex align-items-center">
+                                <i class="bi {{ icon_state }} me-1"></i> {{ poc.estado.capitalize() }}
+                            </span>
+                        </div>
+
+                        <!-- CUERPO -->
+                        <div class="card-body d-flex flex-column mt-2">
+                            <div class="d-flex align-items-center mb-3 text-muted small">
+                                <i class="bi bi-calendar3 me-2"></i> {{ poc.fecha_creacion.strftime('%d %b, %Y') }}
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-person me-1"></i> {{ poc.creador.username }}
+                            </div>
+                            
+                            <!-- Resumen de Items -->
+                            <div class="mb-4 bg-light border border-secondary border-opacity-25 rounded-3 p-3 flex-grow-1">
+                                <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.7rem; letter-spacing: 1px;">
+                                    Resumen de Artículos ({{ poc.detalles|length }})
+                                </h6>
+                                <ul class="list-unstyled mb-0 text-body small">
+                                    {% for detalle in poc.detalles %}
+                                        {% if loop.index <= 2 %}
+                                        <li class="d-flex justify-content-between align-items-center mb-1">
+                                            
+                                            <!-- CORRECCIÓN: Asignación correcta de la descripción -->
+                                            {% set texto_manual = detalle.descripcion_nuevo or 'Sin descripción' %}
+                                            
+                                            <span class="text-truncate pe-2" title="{% if detalle.producto_id and detalle.producto %}{{ detalle.producto.nombre }}{% else %}{{ texto_manual }}{% endif %}">
+                                                <i class="bi bi-dot text-{{ color_theme }}"></i> 
+                                                {% if detalle.producto_id and detalle.producto %}
+                                                    {{ detalle.producto.nombre }}
+                                                {% else %}
+                                                    {{ texto_manual }}
+                                                {% endif %}
+                                            </span>
+                                            <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 rounded-pill">
+                                                {{ detalle.cantidad }}
+                                            </span>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if (poc.detalles|length) > 2 %}
+                                        <li class="text-center fst-italic text-muted mt-2" style="font-size: 0.75rem;">
+                                            + {{ (poc.detalles|length) - 2 }} artículo(s) más...
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+
+                            <!-- Total -->
+                            <div class="d-flex justify-content-between align-items-end mb-1">
+                                <span class="text-uppercase text-muted fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">Total Estimado</span>
+                                <span class="fs-4 fw-bold text-success">${{ "{:,.2f}".format(poc.costo_total) }}</span>
+                            </div>
+                        </div>
+
+                        <!-- FOOTER: Acciones -->
+                        <div class="card-footer bg-transparent border-top border-secondary border-opacity-25 py-3 px-4">
+                            
+                            {% if poc.estado == 'borrador' %}
+                                <div class="row g-2 mb-3">
+                                    <div class="col-8">
+                                        <a href="{{ url_for('editar_proyecto_oc', id=poc.id) }}" class="btn btn-warning w-100 rounded-pill fw-bold shadow-sm text-dark">
+                                            <i class="bi bi-pencil-fill me-1"></i> Editar
+                                        </a>
+                                    </div>
+                                    <div class="col-4">
+                                        <form action="{{ url_for('cancelar_proyecto_oc', id=poc.id) }}" method="POST" class="w-100"
+                                              onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta OC?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-outline-danger w-100 rounded-pill fw-bold" title="Cancelar OC">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Herramientas Fijas: Ver y PDF -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('ver_proyecto_oc', id=poc.id) }}" class="btn btn-link text-decoration-none text-body fw-bold ps-0 p-1">
+                                    <i class="bi bi-eye text-primary me-1"></i> Ver Detalles
+                                </a>
+                                <a href="{{ url_for('generar_proyecto_oc_pdf', id=poc.id) }}" class="btn btn-outline-danger btn-sm rounded-pill fw-bold shadow-sm px-3" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- ESTADO VACÍO -->
+            <div class="col-12 text-center py-5">
+                <div class="border border-secondary border-opacity-25 border-dashed rounded-4 py-5" style="background-color: var(--card-bg);">
+                    <i class="bi bi-clipboard-x text-muted opacity-25" style="font-size: 5rem;"></i>
+                    <h4 class="mt-4 fw-bold text-body">Sin Órdenes de Proyecto</h4>
+                    <p class="text-muted px-3 mb-4">No se encontraron registros de compras por proyectos en este periodo.</p>
+                    <a href="{{ url_for('nuevo_proyecto_oc') }}" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                        <i class="bi bi-plus-lg me-1"></i> Crear Primera OC
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
+{% endblock %}

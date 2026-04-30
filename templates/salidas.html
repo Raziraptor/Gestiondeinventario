@@ -3,20 +3,172 @@
 {% block title %}Historial de Salidas{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Historial de Salidas</h2>
-        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger">
-            <i class="bi bi-box-arrow-up"></i> Registrar Nueva Salida
+<style>
+    /* ==========================================
+       ESTILOS PERSONALIZADOS (MODO CLARO/OSCURO)
+       ========================================== */
+       
+    /* --- AJUSTES GLOBALES PARA LA BARRA DE NAVEGACIÓN --- */
+    [data-bs-theme="dark"] .navbar {
+        background-color: #121212 !important;
+        border-bottom: 1px solid #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-brand,
+    [data-bs-theme="dark"] .navbar .nav-link,
+    [data-bs-theme="dark"] .navbar .navbar-text {
+        color: #e0e0e0 !important;
+    }
+
+    /* --- AJUSTES PARA MODO OSCURO (Pure Black) --- */
+    [data-bs-theme="dark"] body {
+        background-color: #000000 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .card-header,
+    [data-bs-theme="dark"] .card-footer {
+        background-color: transparent !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .bg-light,
+    [data-bs-theme="dark"] .bg-white {
+        background-color: #1a1a1a !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .text-muted {
+        color: #888888 !important;
+    }
+    [data-bs-theme="dark"] .border,
+    [data-bs-theme="dark"] .border-top,
+    [data-bs-theme="dark"] .border-bottom {
+        border-color: #2a2a2a !important;
+    }
+    
+    /* Inputs y Formularios en Modo Oscuro */
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #222 !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+    }
+
+    /* --- TARJETAS HOVER ANIMADAS --- */
+    .salida-card {
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease;
+    }
+    .salida-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.15) !important;
+    }
+    [data-bs-theme="dark"] .salida-card:hover {
+        box-shadow: 0 12px 20px -10px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    /* --- AJUSTES PARA MODO CLARO --- */
+    [data-bs-theme="light"] body {
+        background-color: #f8f9fa !important;
+        color: #212529;
+    }
+    [data-bs-theme="light"] .card {
+        background-color: #ffffff;
+        border-color: #dee2e6;
+    }
+
+    /* ==========================================
+       ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA)
+       ========================================== */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    .theme-switch-sun {
+        color: #ffc107;
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e0e0e0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper {
+        background-color: #1a1a1a;
+        border-color: #333;
+    }
+    [data-bs-theme="dark"] .theme-switch-wrapper:hover {
+        box-shadow: 0 4px 8px rgba(255,255,255,0.05) !important;
+    }
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper shadow-sm" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="bi bi-box-arrow-right text-danger me-2"></i>Historial de Salidas</h2>
+            <p class="text-muted mb-0">Registro de movimientos de salida de almacén.</p>
+        </div>
+        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Salida
         </a>
     </div>
 
-    <div class="card bg-light mb-4">
-        <div class="card-body">
+    <!-- SECCIÓN DE FILTROS -->
+    <div class="card shadow-sm border-0 rounded-4 mb-5">
+        <div class="card-body p-4 bg-light rounded-4">
+            <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
             <form method="GET" action="{{ url_for('historial_salidas') }}" class="row g-3 align-items-end">
-                
-                <div class="col-md-5">
-                    <label for="mes" class="form-label">Mes</label>
-                    <select id="mes" name="mes" class="form-select">
+                <div class="col-md-3">
+                    <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
+                    <select id="mes" name="mes" class="form-select shadow-sm border-secondary border-opacity-25">
                         {% for num, nombre in meses_lista %}
                             <option value="{{ num }}" {% if num == mes_seleccionado %}selected{% endif %}>
                                 {{ nombre }}
@@ -24,92 +176,228 @@
                         {% endfor %}
                     </select>
                 </div>
-                
-                <div class="col-md-4">
-                    <label for="ano" class="form-label">Año</label>
-                    <input type="number" id="ano" name="ano" class="form-control" value="{{ ano_seleccionado }}" min="2020" max="2050">
+                <div class="col-md-2">
+                    <label for="ano" class="form-label fw-bold small text-body mb-1">Año</label>
+                    <input type="number" id="ano" name="ano" class="form-control shadow-sm border-secondary border-opacity-25" 
+                           value="{{ ano_seleccionado }}" min="2020" max="2050">
                 </div>
-                
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-success w-100">
-                        <i class="bi bi-filter"></i> Filtrar
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-secondary shadow-sm fw-bold rounded-pill">
+                        <i class="bi bi-search me-1"></i> Filtrar Resultados
                     </button>
                 </div>
             </form>
         </div>
     </div>
-    {% for salida in salidas %}
-    <div class="card mb-3">
-        
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div>
-                <strong>Salida #{{ salida.id }}</strong>
-                <br>
-                <small>Fecha: {{ salida.fecha.strftime('%Y-%m-%d %H:%M') }}</small>
-            </div>
-            <h4>
-                {% if salida.estado == 'cancelada' %}
-                    <span class="badge bg-secondary">Cancelada</span>
-                {% else %}
-                    <span class="badge bg-danger">Completada</span>
-                {% endif %}
-            </h4>
-        </div>
-        
-        <div class="card-body">
-            <h5 class="card-title">Motivo: {{ salida.motivo }}</h5>
+
+    <!-- GRID DE TARJETAS -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+        {% for salida in salidas %}
             
-            <p class="card-text text-muted mb-2">
-                <small>Creada por: <i class="bi bi-person"></i> {{ salida.creador.username }}</small>
-            </p>
-
-            <h6 class="card-subtitle mb-2">Productos Incluidos:</h6>
-            <ul class="list-group list-group-flush">
-                
-                {% for mov in salida.movimientos %}
-                    {% if loop.index <= 3 %}
-                    <li class="list-group-item py-1 px-0 d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="badge bg-danger rounded-pill me-2">
-                                {{ mov.cantidad | abs }}
-                            </span>
-                            {{ mov.producto.nombre }}
-                        </div>
-                        <small class="text-muted">SKU: {{ mov.producto.codigo }}</small>
-                    </li>
-                    {% endif %}
-                {% endfor %}
-                
-                {% if (salida.movimientos | length) > 3 %}
-                    <li class="list-group-item py-1 px-0 text-muted">
-                        ... y {{ (salida.movimientos | length) - 3 }} producto(s) más.
-                    </li>
-                {% endif %}
-            </ul>
-        </div>
-        
-        <div class="card-footer text-end">
-            <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-outline-secondary">
-                <i class="bi bi-eye"></i> Ver Detalle
-            </a>
-            <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-outline-danger" title="Imprimir PDF" target="_blank">
-                <i class="bi bi-file-earmark-pdf"></i>
-            </a>
-            {% if salida.estado != 'cancelada' %}
-            <form action="{{ url_for('cancelar_salida', id=salida.id) }}" method="POST" style="display: inline;" 
-                  onsubmit="return confirm('¿Estás seguro? Esta acción cancelará la salida y DEVOLVERÁ el stock al inventario.');">
-                <button type="submit" class="btn btn-warning" title="Cancelar Salida">
-                    <i class="bi bi-x-circle"></i>
-                </button>
-            </form>
+            <!-- LÓGICA DE ESTADO POR DEFECTO (SERVER-SIDE) -->
+            <!-- 
+               1. Cancelada: Gris
+               2. Por defecto (Pasado): Cerrada (Rojo)
+               3. Hoy (Abierta): Se detecta con JS abajo para cambiar a Verde
+            -->
+            
+            {% set fecha_str = salida.fecha.strftime('%Y-%m-%d') %}
+            
+            <!-- Estilos Base Premium -->
+            {% if salida.estado == 'cancelada' %}
+                {% set color_theme = 'secondary' %}
+                {% set icon_state = 'bi-x-circle-fill' %}
+                {% set texto_estado = 'Cancelada' %}
+                {% set data_estado = 'cancelada' %}
+            {% else %}
+                <!-- Estilo "Cerrada" (Rojo) por defecto -->
+                {% set color_theme = 'danger' %}
+                {% set icon_state = 'bi-lock-fill' %}
+                {% set texto_estado = 'Cerrada' %}
+                {% set data_estado = 'activa' %}
             {% endif %}
-        </div>
-    </div>
-    
-    {% else %}
-    <div class="alert alert-info">
-        No se encontraron salidas para <strong>{{ meses_lista[mes_seleccionado-1][1] }} de {{ ano_seleccionado }}</strong>.
-    </div>
-    {% endfor %}
 
+            <div class="col">
+                <!-- Agregamos clase 'salida-card' y atributos data para manipulación JS -->
+                <div class="card h-100 shadow-sm border-{{ color_theme }} border-opacity-50 rounded-4 salida-card" 
+                     data-fecha="{{ fecha_str }}" 
+                     data-estado-base="{{ data_estado }}"
+                     id="card-{{ salida.id }}">
+                    
+                    <!-- ENCABEZADO TARJETA -->
+                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-{{ color_theme }} border-opacity-25 header-area d-flex justify-content-between align-items-start">
+                        <div class="text-truncate pe-2">
+                            <h5 class="card-title mb-1 fw-bold text-body">
+                                <i class="bi bi-hash"></i>{{ salida.id }}
+                            </h5>
+                            <small class="text-muted font-monospace"><i class="bi bi-box-arrow-right me-1"></i>Salida</small>
+                        </div>
+                        
+                        <!-- Badge translúcido moderno -->
+                        <span class="badge bg-{{ color_theme }} bg-opacity-10 text-{{ color_theme }} border border-{{ color_theme }} border-opacity-25 rounded-pill px-3 py-2 shadow-sm d-flex align-items-center badge-area">
+                            <i class="{{ icon_state }} icon-area me-1"></i> <span class="text-area">{{ texto_estado }}</span>
+                        </span>
+                    </div>
+
+                    <!-- CUERPO TARJETA -->
+                    <div class="card-body d-flex flex-column mt-2">
+                        <!-- Info Principal -->
+                        <div class="mb-4">
+                            <h5 class="text-dark fw-bold mb-2">
+                                <i class="bi bi-shop text-primary me-2"></i>{{ salida.almacen.nombre }}
+                            </h5>
+                            <div class="d-flex align-items-center text-muted small">
+                                <i class="bi bi-calendar-event me-2"></i> {{ salida.fecha.strftime('%d/%m/%Y') }}
+                                <span class="mx-2">•</span>
+                                <i class="bi bi-person me-1"></i> {{ salida.creador.username }}
+                            </div>
+                        </div>
+
+                        <!-- Resumen de Items (Estilo Moderno) -->
+                        <div class="mb-3 bg-light border border-secondary border-opacity-25 rounded-3 p-3 flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong class="text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Resumen de Items</strong>
+                                <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 rounded-pill">{{ salida.movimientos.count() }}</span>
+                            </div>
+                            
+                            <ul class="list-unstyled mb-0 text-body small">
+                                {% for mov in salida.movimientos.limit(3) %}
+                                <li class="d-flex justify-content-between align-items-center py-1">
+                                    <span class="text-truncate pe-2" title="{{ mov.producto.nombre }}">
+                                        <i class="bi bi-dot text-{{ color_theme }}"></i> {{ mov.producto.nombre }}
+                                    </span>
+                                    <span class="fw-bold text-danger">-{{ mov.cantidad | abs }}</span>
+                                </li>
+                                {% endfor %}
+                                
+                                {% if (salida.movimientos.count()) > 3 %}
+                                    <li class="text-center fst-italic pt-2 text-muted" style="font-size: 0.75rem;">
+                                        + {{ (salida.movimientos.count()) - 3 }} artículo(s) más...
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- PIE DE TARJETA: ACCIONES -->
+                    <div class="card-footer bg-transparent border-top border-secondary border-opacity-25 py-3 px-4">
+                        <div class="d-grid gap-2">
+                            <!-- Botón Principal: Ver Detalle -->
+                            <a href="{{ url_for('ver_salida', id=salida.id) }}" class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm">
+                                <i class="bi bi-eye me-1"></i> Ver Detalles / Editar
+                            </a>
+                            
+                            <!-- Herramientas Fijas -->
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-link text-danger text-decoration-none fw-bold ps-0 p-1" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+                                </a>
+                                
+                                <small class="text-muted fst-italic label-fecha-relativa" style="font-size: 0.75rem;">
+                                    {{ salida.fecha.strftime('%d/%m/%Y') }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        {% else %}
+            <!-- MENSAJE VACÍO -->
+            <div class="col-12 text-center py-5">
+                <div class="border border-secondary border-opacity-25 border-dashed rounded-4 py-5" style="background-color: var(--card-bg);">
+                    <div class="opacity-25 mb-3">
+                        <i class="bi bi-box-arrow-right text-muted" style="font-size: 5rem;"></i>
+                    </div>
+                    <h4 class="fw-bold text-body mt-2">No hay salidas registradas</h4>
+                    <p class="text-muted px-3 mb-4">No se encontraron movimientos para los filtros seleccionados.</p>
+                    <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger rounded-pill fw-bold shadow-sm px-4 py-2">
+                        <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Salida
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- SCRIPT: LÓGICA AUTOMÁTICA DE "HOY" -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Obtener la fecha de HOY en formato YYYY-MM-DD local
+        const hoy = new Date();
+        const year = hoy.getFullYear();
+        const month = String(hoy.getMonth() + 1).padStart(2, '0');
+        const day = String(hoy.getDate()).padStart(2, '0');
+        const fechaHoyStr = `${year}-${month}-${day}`;
+
+        // 2. Buscar todas las tarjetas
+        const tarjetas = document.querySelectorAll('.salida-card');
+
+        tarjetas.forEach(card => {
+            const fechaCard = card.getAttribute('data-fecha');
+            const estadoBase = card.getAttribute('data-estado-base');
+
+            // Si la tarjeta NO está cancelada y la fecha coincide con HOY
+            if (estadoBase === 'activa' && fechaCard === fechaHoyStr) {
+                
+                // CAMBIAR A ESTADO "ABIERTA" (VERDE)
+                
+                // 1. Borde de la tarjeta
+                card.classList.remove('border-danger');
+                card.classList.add('border-success');
+
+                // 2. Encabezado (ahora con borde en lugar de fondo)
+                const header = card.querySelector('.header-area');
+                header.classList.remove('border-danger');
+                header.classList.add('border-success');
+
+                // 3. Badge (Etiqueta translúcida moderna)
+                const badge = card.querySelector('.badge-area');
+                badge.classList.remove('text-danger', 'bg-danger', 'border-danger');
+                badge.classList.add('text-success', 'bg-success', 'border-success');
+
+                // 4. Texto e Icono
+                const texto = card.querySelector('.text-area');
+                texto.textContent = 'Abierta';
+                
+                const icono = card.querySelector('.icon-area');
+                icono.className = 'bi bi-unlock-fill icon-area me-1'; // Cambiar candado
+                
+                // Cambiamos el color de los puntitos de la lista para que coincidan con verde
+                const dots = card.querySelectorAll('.bi-dot');
+                dots.forEach(dot => {
+                    dot.classList.remove('text-danger');
+                    dot.classList.add('text-success');
+                });
+
+                // 5. Etiqueta relativa (Opcional)
+                const labelRelativa = card.querySelector('.label-fecha-relativa');
+                if(labelRelativa) labelRelativa.textContent = 'Hoy (Activa)';
+            }
+        });
+    });
+
+    // ==========================================
+    // SISTEMA DE TEMA (MODO CLARO / OSCURO)
+    // ==========================================
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}

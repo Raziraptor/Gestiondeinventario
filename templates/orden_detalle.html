@@ -3,106 +3,301 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>{{ titulo }}</h2>
+<style>
+    /* ==========================================
+       ESTILOS COMPLEMENTARIOS Y BOTÓN DE TEMA
+       ========================================== */
+       
+    /* Tablas en Modo Oscuro */
+    [data-bs-theme="dark"] .table {
+        color: var(--bs-body-color);
+        border-color: var(--glass-border);
+    }
+    [data-bs-theme="dark"] .table-light th,
+    [data-bs-theme="dark"] .table-light td {
+        background-color: var(--card-bg) !important;
+        color: #ffffff !important;
+        border-bottom: 2px solid var(--glass-border) !important;
+    }
+    [data-bs-theme="dark"] .table-hover tbody tr:hover td {
+        background-color: var(--hover-bg) !important;
+        color: #ffffff;
+    }
+    [data-bs-theme="dark"] .table td {
+        border-color: var(--glass-border) !important;
+    }
+    
+    /* Cajas de Info (Proveedor/Almacén) */
+    .info-box {
+        background-color: var(--bs-body-bg);
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+    [data-bs-theme="dark"] .info-box {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+    }
+
+    /* --- ANIMACIÓN DEL BOTÓN DE TEMA (SOL / LUNA) --- */
+    .theme-switch-wrapper {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+    .theme-switch-wrapper:hover {
+        transform: scale(1.08);
+    }
+    .theme-switch-icon {
+        position: absolute;
+        font-size: 1.3rem;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+    }
+    /* Estado inicial: MODO CLARO */
+    .theme-switch-sun {
+        color: #f59e0b; /* Amber */
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+    .theme-switch-moon {
+        color: #e2e8f0;
+        transform: translateY(30px) rotate(90deg);
+        opacity: 0;
+    }
+    
+    /* Estado: MODO OSCURO */
+    [data-bs-theme="dark"] .theme-switch-sun {
+        transform: translateY(-30px) rotate(-90deg);
+        opacity: 0;
+    }
+    [data-bs-theme="dark"] .theme-switch-moon {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+    }
+
+    /* Estilo para el botón de enlace de proveedor */
+    .btn-link-proveedor {
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+        opacity: 0.8;
+    }
+    .btn-link-proveedor:hover {
+        opacity: 1;
+        transform: translateX(3px);
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA ANIMADO (SOL/LUNA) -->
+    <div class="d-flex justify-content-end mb-2">
+        <div id="theme-toggle" class="theme-switch-wrapper" title="Alternar Tema Claro/Oscuro">
+            <i class="bi bi-sun-fill theme-switch-icon theme-switch-sun"></i>
+            <i class="bi bi-moon-stars-fill theme-switch-icon theme-switch-moon"></i>
+        </div>
+    </div>
+
+    <!-- ENCABEZADO Y BOTONES DE ACCIÓN -->
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-4 gap-3">
         <div>
-            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-danger" target="_blank">
-                <i class="bi bi-file-earmark-pdf"></i> Imprimir PDF
+            <h2 class="mb-1 fw-bold"><i class="bi bi-file-earmark-text-fill text-primary me-2"></i>{{ titulo }}</h2>
+            <p class="text-muted mb-0">Resumen detallado y estado actual de la solicitud.</p>
+        </div>
+        
+        <div class="d-flex flex-wrap gap-2">
+            <!-- Botón PDF -->
+            <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold" target="_blank">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Imprimir PDF
             </a>
-
+            
             {% if orden.estado == 'borrador' %}
-                <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning">
-                    <i class="bi bi-pencil"></i> Editar Orden
-                </a>
+            <!-- Botón Editar -->
+            <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark">
+                <i class="bi bi-pencil me-1"></i> Editar OC
+            </a>
+            <!-- Botón Cancelar -->
+            <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;" 
+                  onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden de compra?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger shadow-sm rounded-pill px-4 fw-bold">
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                </button>
+            </form>
+            {% endif %}
+            
+            <!-- Botón Volver -->
+            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- TARJETA PRINCIPAL DEL DETALLE -->
+    <div class="card shadow-sm border-0 rounded-4">
+        
+        <!-- CABECERA: Estado y Creador -->
+        {% set status_class = 'bg-warning text-dark' %}
+        {% set status_icon = 'bi-clock-history' %}
+        {% if orden.estado == 'cancelada' %}
+            {% set status_class = 'bg-secondary text-white' %}
+            {% set status_icon = 'bi-x-circle' %}
+        {% elif orden.estado == 'recibida' %}
+            {% set status_class = 'bg-success text-white' %}
+            {% set status_icon = 'bi-check-circle' %}
+        {% endif %}
+
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="mb-0 fw-bold text-body">Estado Actual:</h5>
+                <span class="badge {{ status_class }} rounded-pill px-3 py-2 shadow-sm fs-6">
+                    <i class="bi {{ status_icon }} me-1"></i> {{ orden.estado|capitalize }}
+                </span>
+            </div>
+            <div class="text-muted fw-semibold d-flex align-items-center">
+                <div class="bg-secondary bg-opacity-10 rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width:30px; height:30px;">
+                    <i class="bi bi-person text-secondary"></i>
+                </div>
+                Creada por: {{ orden.creador.username }}
+            </div>
+        </div>
+        
+        <div class="card-body p-4 p-md-5">
+            
+            <!-- CAJAS DE INFORMACIÓN (Proveedor y Almacén) -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <div class="p-4 rounded-4 border border-secondary border-opacity-25 h-100 info-box shadow-sm">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">
+                            <i class="bi bi-building me-1 text-primary"></i> Proveedor
+                        </h6>
+                        <div class="fs-4 fw-bold text-body">{{ orden.proveedor.nombre }}</div>
+                        {% if orden.proveedor.contacto or orden.proveedor.email %}
+                            <hr class="border-secondary border-opacity-25 my-2">
+                            <div class="small text-muted">
+                                {% if orden.proveedor.contacto %}<i class="bi bi-person-badge me-1"></i> {{ orden.proveedor.contacto }}<br>{% endif %}
+                                {% if orden.proveedor.email %}<i class="bi bi-envelope me-1"></i> {{ orden.proveedor.email }}{% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
                 
-                <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;" 
-                      onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden?');">
-                    <button type="submit" class="btn btn-warning">
-                        <i class="bi bi-x-circle"></i> Cancelar Orden
-                    </button>
-                </form>
-            {% endif %}
-            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Volver al Listado
-            </a>
-        </div>
-    </div>
+                <div class="col-md-6">
+                    <div class="p-4 rounded-4 border border-secondary border-opacity-25 h-100 info-box shadow-sm">
+                        <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">
+                            <i class="bi bi-shop me-1 text-primary"></i> Almacén de Destino
+                        </h6>
+                        <div class="fs-4 fw-bold text-body">{{ orden.almacen.nombre }}</div>
+                        {% if orden.almacen.ubicacion %}
+                            <hr class="border-secondary border-opacity-25 my-2">
+                            <div class="small text-muted">
+                                <i class="bi bi-geo-alt me-1"></i> {{ orden.almacen.ubicacion }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TABLA DE DETALLES -->
+            <h5 class="fw-bold mb-3 text-body"><i class="bi bi-list-check text-primary me-2"></i>Artículos Solicitados</h5>
+            
+            <div class="table-responsive border border-secondary border-opacity-25 rounded-4 shadow-sm">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-secondary text-uppercase small" style="letter-spacing: 0.5px;">
+                        <tr>
+                            <th class="ps-4 border-0">Producto</th>
+                            <th class="text-center border-0">SKU</th>
+                            <th class="text-center border-0">Cant. / Cajas</th>
+                            <th class="text-end border-0">Costo Unit.</th>
+                            <th class="text-end pe-4 border-0">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detalle in orden.detalles %}
+                        <tr>
+                            <!-- Producto con Botón de Enlace -->
+                            <td class="ps-4 py-3 text-body">
+                                <div class="fw-bold">{{ detalle.producto.nombre }}</div>
+                                {% if detalle.enlace_proveedor %}
+                                    <a href="{{ detalle.enlace_proveedor }}" target="_blank" class="btn btn-link btn-sm p-0 text-primary text-decoration-none fw-bold btn-link-proveedor">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> Ver en Proveedor
+                                    </a>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- SKU -->
+                            <td class="text-center font-monospace text-muted small">
+                                <span class="bg-secondary bg-opacity-10 px-2 py-1 rounded"><i class="bi bi-upc opacity-50 me-1"></i>{{ detalle.producto.codigo }}</span>
+                            </td>
+                            
+                            <!-- Cantidad y Cajas -->
+                            <td class="text-center">
+                                <span class="fw-bold fs-6">{{ detalle.cantidad_solicitada }}</span>
+                                {% if detalle.cajas and detalle.cajas > 0 %}
+                                    <span class="badge bg-info text-dark ms-2 shadow-sm" style="font-size: 0.7rem;" title="Cajas Aproximadas">
+                                        <i class="bi bi-box-seam me-1"></i> {{ detalle.cajas|round(2, 'floor') }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Costo Unitario -->
+                            <td class="text-end text-muted">
+                                ${{ "{:,.2f}".format(detalle.costo_unitario_estimado) }}
+                            </td>
+                            
+                            <!-- Subtotal -->
+                            <td class="text-end pe-4 fw-bold text-body">
+                                ${{ "{:,.2f}".format(detalle.subtotal) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    
+                    <!-- PIE DE TABLA CON TOTAL -->
+                    <tfoot class="table-light border-top border-secondary border-opacity-25">
+                        <tr>
+                            <td colspan="4" class="text-end py-3 fw-bold text-uppercase text-muted small" style="letter-spacing: 1px;">
+                                Total Estimado:
+                            </td>
+                            <td class="text-end pe-4 py-3 fs-4 fw-bold text-success">
+                                ${{ "{:,.2f}".format(orden.costo_total) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
 
-    <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center 
-                    {% if orden.estado == 'recibida' %}bg-success text-white
-                    {% elif orden.estado == 'enviada' %}bg-info text-dark
-                    {% else %}bg-light{% endif %}">
-            <div>
-                <strong>Proveedor: {{ orden.proveedor.nombre }}</strong>
-                <br>
-                <small>Creada: {{ orden.fecha_creacion.strftime('%Y-%m-%d') }}</small>
-            </div>
-            <div class="card-header ...">
-                <h4>
-                    Estado: <span class="badge 
-                                    {% if orden.estado == 'recibida' %}bg-success text-white
-                                    {% elif orden.estado == 'enviada' %}bg-info text-dark
-                                    {% elif orden.estado == 'cancelada' %}bg-secondary
-                                    {% else %}bg-warning text-dark{% endif %}">
-                        {{ orden.estado.capitalize() }}
-                    </span>
-                </h4>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <strong>Creada por:</strong>
-                    <i class="bi bi-person"></i> {{ orden.creador.username }}
-                </div>
-                {% if orden.estado == 'cancelada' and orden.cancelado_por %}
-                <div class="col-md-6">
-                    <strong>Cancelada por:</strong>
-                    <i class="bi bi-person-x"></i> {{ orden.cancelado_por.username }}
-                </div>
-                {% endif %}
-            </div>
-            <h5 class="card-title">Detalles de la Orden</h5>
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                        <th>Costo Unit. (Est.)</th>
-                        <th>Subtotal (Est.)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for detalle in orden.detalles %}
-                    <tr>
-                        <td>{{ detalle.producto.nombre }}</td>
-                        <td>{{ detalle.cantidad_solicitada }}</td>
-                        <td>${{ "%.2f"|format(detalle.costo_unitario_estimado) }}</td>
-                        <td>${{ "%.2f"|format(detalle.subtotal) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr class="table-group-divider">
-                        <td colspan="3" class="text-end"><strong>Total Estimado:</strong></td>
-                        <td><strong>${{ "%.2f"|format(orden.costo_total) }}</strong></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-        <div class="card-footer text-end">
-            {% if orden.estado == 'borrador' %}
-            <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-info">Marcar como "Enviada"</button>
-            </form>
-            {% elif orden.estado == 'enviada' %}
-            <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" style="display: inline;">
-                <button type="submit" class="btn btn-success">Marcar como "Recibida" (Actualizar Stock)</button>
-            </form>
-            {% elif orden.estado == 'recibida' %}
-            <span class="text-success">Recibida el {{ orden.fecha_recepcion.strftime('%Y-%m-%d') }}</span>
-            {% endif %}
         </div>
     </div>
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}

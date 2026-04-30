@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<style>
+    /* ==========================================
+       ESTILOS PARA MODO OSCURO Y UI MODERNA
+       ========================================== */
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .table-light th {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+        border-bottom: 2px solid #333 !important;
+    }
+    
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+
+    .item-link {
+        text-decoration: none;
+        transition: opacity 0.2s;
+    }
+    .item-link:hover {
+        opacity: 0.8;
+    }
+
+    .comentario-box {
+        font-size: 0.85rem;
+        border-left: 3px solid #dee2e6;
+        padding-left: 10px;
+        margin-top: 5px;
+    }
+    [data-bs-theme="dark"] .comentario-box {
+        border-left-color: #444;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- ENCABEZADO Y ACCIONES -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2">
+                    <li class="breadcrumb-item"><a href="{{ url_for('lista_proyectos_oc') }}">Proyectos</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detalle de Orden</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ proyecto_oc.nombre_proyecto }}</h2>
+            <div class="text-muted">
+                <span class="me-3"><i class="bi bi-calendar3 me-1"></i> {{ proyecto_oc.fecha_creacion.strftime('%d/%m/%Y') }}</span>
+                <span><i class="bi bi-hash me-1"></i> ID: {{ proyecto_oc.id }}</span>
+            </div>
+        </div>
+        
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('generar_proyecto_oc_pdf', id=proyecto_oc.id) }}" class="btn btn-danger rounded-pill px-3 shadow-sm" target="_blank">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+            </a>
+            
+            {% if proyecto_oc.estado == 'borrador' %}
+            <a href="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) }}" class="btn btn-warning rounded-pill px-3 shadow-sm">
+                <i class="bi bi-pencil-fill me-1"></i> Editar
+            </a>
+
+            <form action="{{ url_for('cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" style="display: inline;" 
+                  onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger rounded-pill px-3 shadow-sm">
+                    <i class="bi bi-x-circle me-1"></i> Cancelar
+                </button>
+            </form>
+            {% endif %}
+
+            <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- INFORMACIÓN DE ESTADO -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center">
+                <span class="text-muted me-2 fw-bold small text-uppercase">Estado actual:</span>
+                {% if proyecto_oc.estado == 'borrador' %}
+                    <span class="badge bg-warning text-dark status-badge shadow-sm"><i class="bi bi-pause-circle me-1"></i> Borrador</span>
+                {% elif proyecto_oc.estado == 'cancelada' %}
+                    <span class="badge bg-secondary status-badge shadow-sm"><i class="bi bi-x-circle me-1"></i> Cancelada</span>
+                {% else %}
+                    <span class="badge bg-success status-badge shadow-sm"><i class="bi bi-check-all me-1"></i> Finalizada</span>
+                {% endif %}
+            </div>
+            <div class="text-muted small fw-bold">
+                <i class="bi bi-person-circle me-1"></i> Solicitado por: {{ proyecto_oc.creador.username }} 
+                {% if proyecto_oc.almacen %}
+                <span class="ms-3"><i class="bi bi-house-door me-1 text-primary"></i> Almacén: {{ proyecto_oc.almacen.nombre }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTADO DE ARTÍCULOS -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-10">
+            <h5 class="fw-bold mb-0 text-body"><i class="bi bi-cart4 text-primary me-2"></i>Artículos Solicitados</h5>
+        </div>
+        
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-secondary text-uppercase small">
+                        <tr>
+                            <th class="ps-4 border-0">Artículo / Descripción</th>
+                            <th class="border-0">Origen</th>
+                            <th class="text-center border-0">Cantidad</th>
+                            <th class="text-end border-0">Costo Unit.</th>
+                            <th class="text-end pe-4 border-0">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detalle in proyecto_oc.detalles %}
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <div class="fw-bold text-body fs-6">
+                                    {{ detalle.producto.nombre if detalle.producto else detalle.descripcion_nuevo }}
+                                </div>
+                                
+                                {% if detalle.producto %}
+                                    <small class="text-muted font-monospace d-block">SKU: {{ detalle.producto.codigo }}</small>
+                                {% endif %}
+                                
+                                <!-- NUEVO: ENLACE Y COMENTARIOS -->
+                                <div class="mt-2">
+                                    {% if detalle.enlace_proveedor %}
+                                    <a href="{{ detalle.enlace_proveedor }}" target="_blank" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 text-decoration-none py-1 px-2 shadow-sm item-link mb-1">
+                                        <i class="bi bi-link-45deg me-1"></i> Ver en Proveedor
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if detalle.comentarios_detalle %}
+                                    <div class="comentario-box text-muted">
+                                        <i class="bi bi-chat-left-text me-1 opacity-50"></i>{{ detalle.comentarios_detalle }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if detalle.producto_id %}
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2">Catálogo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 rounded-pill px-2">Externo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center fw-bold">{{ detalle.cantidad }}</td>
+                            <td class="text-end text-muted font-monospace">${{ "%.2f"|format(detalle.costo_unitario) }}</td>
+                            <td class="text-end pe-4 fw-bold text-success font-monospace">
+                                ${{ "%.2f"|format(detalle.cantidad * detalle.costo_unitario) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="4" class="ps-4 text-end text-uppercase small fw-bold text-muted py-3">Total Estimado de la Orden:</td>
+                            <td class="text-end pe-4 py-3">
+                                <span class="h4 fw-bold text-success mb-0">${{ "%.2f"|format(proyecto_oc.costo_total) }}</span>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTA PIE DE PÁGINA -->
+    <div class="mt-4 text-center">
+        <p class="text-muted small">
+            <i class="bi bi-info-circle me-1"></i> Esta es una orden de materiales específica para proyecto. No afecta directamente al stock del almacén hasta que sea procesada.
+        </p>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,121 +1,290 @@
 {% extends 'base.html' %}
 
+{% block title %}Mi Perfil{% endblock %}
+
 {% block content %}
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Actualizar Datos de la Cuenta</h2>
+<style>
+    /* ==========================================
+       ESTILOS PERSONALIZADOS (MODO CLARO/OSCURO)
+       ========================================== */
+       
+    /* --- AJUSTES GLOBALES PARA LA BARRA DE NAVEGACIÓN SUPERIOR --- */
+    [data-bs-theme="dark"] .navbar {
+        background-color: #121212 !important;
+        border-bottom: 1px solid #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-brand,
+    [data-bs-theme="dark"] .navbar .nav-link,
+    [data-bs-theme="dark"] .navbar .navbar-text {
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .navbar .nav-link:hover {
+        color: #ffffff !important;
+    }
+
+    /* --- AJUSTES PARA MODO OSCURO (Pure Black) --- */
+    [data-bs-theme="dark"] body {
+        background-color: #000000 !important;
+        color: #e0e0e0;
+    }
+    [data-bs-theme="dark"] .card {
+        background-color: #121212 !important;
+        border-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .card-header {
+        background-color: transparent !important;
+        border-bottom-color: #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .bg-light {
+        background-color: #1a1a1a !important;
+    }
+    [data-bs-theme="dark"] .text-dark {
+        color: #ffffff !important;
+    }
+    [data-bs-theme="dark"] .text-muted {
+        color: #888888 !important;
+    }
+    [data-bs-theme="dark"] .border,
+    [data-bs-theme="dark"] .border-bottom {
+        border-color: #2a2a2a !important;
+    }
+    
+    /* Inputs y Formularios en Modo Oscuro */
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus {
+        background-color: #222 !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+    }
+    [data-bs-theme="dark"] .form-control::file-selector-button {
+        background-color: #2a2a2a !important;
+        color: #e0e0e0 !important;
+        border-right-color: #333 !important;
+    }
+
+    /* --- AJUSTES PARA MODO CLARO --- */
+    [data-bs-theme="light"] body {
+        background-color: #f8f9fa !important;
+        color: #212529;
+    }
+    [data-bs-theme="light"] .card {
+        background-color: #ffffff;
+        border-color: #dee2e6;
+    }
+</style>
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BOTÓN DE TEMA INTEGRADO -->
+    <div class="d-flex justify-content-end mb-2">
+        <button id="theme-toggle" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 rounded-pill shadow-sm px-3 py-2" title="Cambiar Tema">
+            <i id="theme-icon" class="bi bi-moon-fill"></i>
+            <span id="theme-text" class="fw-bold small">Modo Oscuro</span>
+        </button>
+    </div>
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1">Mi Perfil</h2>
+        <p class="text-muted fs-5">Gestiona tu información personal y seguridad</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- COLUMNA IZQUIERDA: DATOS DE LA CUENTA -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-person-badge me-2"></i>Información General</h4>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     
-                    <div class="text-center mb-3">
-                        <img src="{{ image_url }}" alt="Foto de Perfil" 
-                             class="rounded-circle" style="width: 125px; height: 125px; object-fit: cover;">
+                    <!-- SECCIÓN DE AVATAR -->
+                    <div class="d-flex flex-column align-items-center justify-content-center mb-4 pb-3 border-bottom border-secondary border-opacity-25">
+                        <div class="position-relative">
+                            <img src="{{ image_url }}" alt="Foto de Perfil" 
+                                 class="rounded-circle shadow-sm border border-3 border-white" style="width: 140px; height: 140px; object-fit: cover; background-color: #f8f9fa;">
+                            
+                            {% if current_user.image_file != 'default.jpg' %}
+                            <form action="{{ url_for('delete_picture') }}" method="POST" class="position-absolute bottom-0 end-0"
+                                  onsubmit="return confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm rounded-circle shadow" title="Eliminar Foto" style="width: 35px; height: 35px;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        <h5 class="mt-3 fw-bold text-body">{{ current_user.username }}</h5>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3">{{ current_user.rol | capitalize }}</span>
                     </div>
                     
-                    {% if current_user.image_file != 'default.jpg' %}
-                    <div class="text-center mb-3">
-                        <form action="{{ url_for('delete_picture') }}" method="POST" 
-                              onsubmit="return confirm('¿Estás seguro de que deseas eliminar tu foto de perfil?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Eliminar Foto
-                            </button>
-                        </form>
-                    </div>
-                    {% endif %}
+                    <!-- FORMULARIO DE DATOS -->
                     <form method="POST" action="" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {{ form_account.hidden_tag() }}
                         
-                        <div class="mb-3">
-                            {{ form_account.username.label(class="form-label") }}
-                            {% if form_account.username.errors %}
-                                {{ form_account.username(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for error in form_account.username.errors %}
-                                        <span>{{ error }}</span>
-                                    {% endfor %}
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                {{ form_account.username.label(class="form-label fw-bold small text-muted") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-person text-secondary"></i></span>
+                                    {% if form_account.username.errors %}
+                                        {{ form_account.username(class="form-control form-control-lg bg-light border-danger is-invalid") }}
+                                        <div class="invalid-feedback">
+                                            {% for error in form_account.username.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ form_account.username(class="form-control form-control-lg bg-light border-secondary border-opacity-25") }}
+                                    {% endif %}
                                 </div>
-                            {% else %}
-                                {{ form_account.username(class="form-control") }}
-                            {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                {{ form_account.email.label(class="form-label fw-bold small text-muted") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-envelope text-secondary"></i></span>
+                                    {% if form_account.email.errors %}
+                                        {{ form_account.email(class="form-control form-control-lg bg-light border-danger is-invalid") }}
+                                        <div class="invalid-feedback">
+                                            {% for error in form_account.email.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ form_account.email(class="form-control form-control-lg bg-light border-secondary border-opacity-25") }}
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            {{ form_account.email.label(class="form-label") }}
-                            {% if form_account.email.errors %}
-                                {{ form_account.email(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for error in form_account.email.errors %}
-                                        <span>{{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form_account.email(class="form-control") }}
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form_account.picture.label(class="form-label") }}
-                            {{ form_account.picture(class="form-control") }}
+                        <div class="mb-4">
+                            {{ form_account.picture.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-camera text-secondary"></i></span>
+                                {{ form_account.picture(class="form-control bg-light border-secondary border-opacity-25") }}
+                            </div>
+                            <div class="form-text small opacity-75">Selecciona una imagen en formato JPG o PNG.</div>
                             {% if form_account.picture.errors %}
-                                <div class="text-danger mt-1">
-                                    <small>
+                                <div class="text-danger mt-1 small fw-bold">
                                     {% for error in form_account.picture.errors %}
-                                        <span>{{ error }}</span>
+                                        <span><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</span>
                                     {% endfor %}
-                                    </small>
                                 </div>
                             {% endif %}
                         </div>
                         
-                        <div class="d-grid">
-                            {{ form_account.submit_account(class="btn btn-primary") }}
+                        <div class="d-grid mt-4">
+                            {{ form_account.submit_account(class="btn btn-primary btn-lg fw-bold shadow-sm") }}
                         </div>
                     </form>
+
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Cambiar Contraseña</h4>
+        <!-- COLUMNA DERECHA: SEGURIDAD -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-warning text-dark"><i class="bi bi-shield-lock me-2"></i>Seguridad</h4>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
+                    
+                    <div class="alert alert-warning bg-opacity-10 border-warning border-opacity-50 text-body mb-4 d-flex">
+                        <i class="bi bi-info-circle-fill text-warning me-3 fs-4 mt-1"></i>
+                        <small>Para cambiar tu contraseña actual, debes escribirla correctamente para verificar tu identidad antes de establecer la nueva.</small>
+                    </div>
+
                     <form method="POST" action="">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         {{ form_password.hidden_tag() }}
                         
                         <div class="mb-3">
-                            {{ form_password.old_password.label(class="form-label") }}
-                            {{ form_password.old_password(class="form-control") }}
+                            {{ form_password.old_password.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-key text-secondary"></i></span>
+                                {{ form_password.old_password(class="form-control bg-light border-secondary border-opacity-25", placeholder="Contraseña actual") }}
+                            </div>
                         </div>
                         
-                        <div class="mb-3">
-                            {{ form_password.password.label(class="form-label") }}
-                            {{ form_password.password(class="form-control") }}
-                        </div>
+                        <hr class="my-4 border-secondary border-opacity-25">
 
                         <div class="mb-3">
-                            {{ form_password.confirm_password.label(class="form-label") }}
-                            {% if form_password.confirm_password.errors %}
-                                {{ form_password.confirm_password(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for error in form_password.confirm_password.errors %}
-                                        <span>{{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form_password.confirm_password(class="form-control") }}
-                            {% endif %}
+                            {{ form_password.password.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-lock text-secondary"></i></span>
+                                {{ form_password.password(class="form-control bg-light border-secondary border-opacity-25", placeholder="Nueva contraseña") }}
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            {{ form_password.confirm_password.label(class="form-label fw-bold small text-muted") }}
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-lock-fill text-secondary"></i></span>
+                                {% if form_password.confirm_password.errors %}
+                                    {{ form_password.confirm_password(class="form-control bg-light border-danger is-invalid", placeholder="Repite la nueva contraseña") }}
+                                    <div class="invalid-feedback">
+                                        {% for error in form_password.confirm_password.errors %}
+                                            <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form_password.confirm_password(class="form-control bg-light border-secondary border-opacity-25", placeholder="Repite la nueva contraseña") }}
+                                {% endif %}
+                            </div>
                         </div>
                         
-                        <div class="d-grid">
-                            {{ form_password.submit_password(class="btn btn-warning") }}
+                        <div class="d-grid mt-4">
+                            {{ form_password.submit_password(class="btn btn-warning fw-bold shadow-sm py-2") }}
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<!-- SCRIPT DEL TEMA OSCURO/CLARO -->
+<script>
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeText = document.getElementById('theme-text');
+    const htmlElement = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+        
+        if(theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+            if(themeText) themeText.innerText = 'Modo Claro';
+            themeToggleBtn.classList.remove('btn-outline-secondary');
+            themeToggleBtn.classList.add('btn-outline-light');
+        } else {
+            themeIcon.className = 'bi bi-moon-stars-fill text-dark';
+            if(themeText) themeText.innerText = 'Modo Oscuro';
+            themeToggleBtn.classList.remove('btn-outline-light');
+            themeToggleBtn.classList.add('btn-outline-secondary');
+        }
+    }
+
+    // Inicializar Tema (Cargar desde memoria o establecer Dark por defecto)
+    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    // Evento del Botón
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+    }
+</script>
 {% endblock %}

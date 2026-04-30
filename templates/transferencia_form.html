@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:680px;">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h3 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right text-primary me-2"></i>{{ titulo }}</h3>
+            <p class="text-muted small mb-0">Mueve stock entre almacenes. Se registran dos movimientos de auditoría automáticamente.</p>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form method="POST" action="{{ url_for('nueva_transferencia') }}" id="form_transferencia">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- FILA ALMACENES -->
+                <div class="row g-3 mb-4 align-items-center">
+                    <div class="col-5">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                            <i class="bi bi-box-arrow-right text-danger me-1"></i> Almacén Origen
+                        </label>
+                        <select name="almacen_origen_id" id="sel_origen" class="form-select shadow-sm" required onchange="cargarProductos()">
+                            <option value="">-- Seleccionar --</option>
+                            {% for a in almacenes %}
+                            <option value="{{ a.id }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-2 text-center pt-4">
+                        <i class="bi bi-arrow-right fs-3 text-primary"></i>
+                    </div>
+
+                    <div class="col-5">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                            <i class="bi bi-box-arrow-in-right text-success me-1"></i> Almacén Destino
+                        </label>
+                        <select name="almacen_destino_id" id="sel_destino" class="form-select shadow-sm" required>
+                            <option value="">-- Seleccionar --</option>
+                            {% for a in almacenes %}
+                            <option value="{{ a.id }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- PRODUCTO -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                        <i class="bi bi-box-seam text-primary me-1"></i> Producto
+                    </label>
+                    <select name="producto_id" id="sel_producto" class="form-select shadow-sm" required disabled>
+                        <option value="">-- Primero selecciona un almacén origen --</option>
+                    </select>
+                </div>
+
+                <!-- STOCK DISPONIBLE (info dinámica) -->
+                <div id="info_stock" class="alert alert-info border-info border-opacity-25 small py-2 px-3 mb-3" style="display:none;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Stock disponible: <strong id="lbl_stock_disponible">0</strong> unidades.
+                </div>
+
+                <!-- CANTIDAD -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                        <i class="bi bi-123 text-primary me-1"></i> Cantidad a Transferir
+                    </label>
+                    <input type="number" name="cantidad" id="input_cantidad" class="form-control form-control-lg shadow-sm text-center fw-bold"
+                           min="1" required placeholder="0" disabled>
+                </div>
+
+                <!-- MOTIVO -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                        <i class="bi bi-chat-text text-primary me-1"></i> Motivo (para auditoría)
+                    </label>
+                    <input type="text" name="motivo" class="form-control shadow-sm"
+                           placeholder="Ej: Redistribución de temporada, corrección de stock..." maxlength="200">
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" id="btn_submit" class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm" disabled>
+                        <i class="bi bi-arrow-left-right me-2"></i> Confirmar Transferencia
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selOrigen   = document.getElementById('sel_origen');
+    const selProducto = document.getElementById('sel_producto');
+    const selDestino  = document.getElementById('sel_destino');
+    const inputCant   = document.getElementById('input_cantidad');
+    const infoStock   = document.getElementById('info_stock');
+    const lblStock    = document.getElementById('lbl_stock_disponible');
+    const btnSubmit   = document.getElementById('btn_submit');
+
+    let stockDisponible = 0;
+
+    window.cargarProductos = async function () {
+        const origenId = selOrigen.value;
+        selProducto.innerHTML = '<option value="">-- Cargando... --</option>';
+        selProducto.disabled = true;
+        inputCant.disabled = true;
+        btnSubmit.disabled = true;
+        infoStock.style.display = 'none';
+
+        if (!origenId) return;
+
+        try {
+            const res = await fetch(`/api/almacen/${origenId}/productos-con-stock`);
+            const productos = await res.json();
+
+            selProducto.innerHTML = '<option value="">-- Seleccionar producto --</option>';
+            if (productos.length === 0) {
+                selProducto.innerHTML = '<option value="">Sin productos con stock</option>';
+                return;
+            }
+            productos.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.nombre} (SKU: ${p.codigo}) — ${p.cantidad} uds`;
+                opt.dataset.stock = p.cantidad;
+                selProducto.appendChild(opt);
+            });
+            selProducto.disabled = false;
+        } catch (e) {
+            selProducto.innerHTML = '<option value="">Error al cargar</option>';
+        }
+    };
+
+    selProducto.addEventListener('change', function () {
+        const opt = this.options[this.selectedIndex];
+        if (!opt || !opt.dataset.stock) {
+            inputCant.disabled = true;
+            btnSubmit.disabled = true;
+            infoStock.style.display = 'none';
+            return;
+        }
+        stockDisponible = parseInt(opt.dataset.stock);
+        lblStock.textContent = stockDisponible;
+        infoStock.style.display = 'block';
+        inputCant.disabled = false;
+        inputCant.max = stockDisponible;
+        inputCant.value = '';
+        validarFormulario();
+    });
+
+    inputCant.addEventListener('input', validarFormulario);
+    selDestino.addEventListener('change', validarFormulario);
+
+    function validarFormulario() {
+        const cant  = parseInt(inputCant.value) || 0;
+        const dest  = selDestino.value;
+        const orig  = selOrigen.value;
+        const prod  = selProducto.value;
+        const ok    = prod && dest && orig && orig !== dest && cant > 0 && cant <= stockDisponible;
+
+        btnSubmit.disabled = !ok;
+
+        if (cant > stockDisponible) {
+            inputCant.classList.add('is-invalid');
+        } else {
+            inputCant.classList.remove('is-invalid');
+        }
+    }
+});
+</script>
+{% endblock %}

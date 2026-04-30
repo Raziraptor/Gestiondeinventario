@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:680px;">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h3 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right text-primary me-2"></i>{{ titulo }}</h3>
+            <p class="text-muted small mb-0">Mueve stock entre almacenes. Se registran dos movimientos de auditoría automáticamente.</p>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form method="POST" action="{{ url_for('nueva_transferencia') }}" id="form_transferencia">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <!-- FILA ALMACENES -->
+                <div class="row g-3 mb-4 align-items-center">
+                    <div class="col-5">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                            <i class="bi bi-box-arrow-right text-danger me-1"></i> Almacén Origen
+                        </label>
+                        <select name="almacen_origen_id" id="sel_origen" class="form-select shadow-sm" required onchange="cargarProductos()">
+                            <option value="">-- Seleccionar --</option>
+                            {% for a in almacenes %}
+                            <option value="{{ a.id }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-2 text-center pt-4">
+                        <i class="bi bi-arrow-right fs-3 text-primary"></i>
+                    </div>
+
+                    <div class="col-5">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                            <i class="bi bi-box-arrow-in-right text-success me-1"></i> Almacén Destino
+                        </label>
+                        <select name="almacen_destino_id" id="sel_destino" class="form-select shadow-sm" required onchange="validarFormulario()">
+                            <option value="">-- Seleccionar --</option>
+                            {% for a in almacenes %}
+                            <option value="{{ a.id }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- PRODUCTO (búsqueda) -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                        <i class="bi bi-box-seam text-primary me-1"></i> Producto
+                    </label>
+                    <div class="position-relative">
+                        <input type="text" id="buscar_producto" class="form-control shadow-sm"
+                               placeholder="Primero selecciona un almacén origen..."
+                               disabled autocomplete="off">
+                        <input type="hidden" name="producto_id" id="producto_id_hidden">
+                        <div id="lista_productos"
+                             class="position-absolute w-100 border rounded-3 shadow-sm bg-body"
+                             style="display:none; max-height:240px; overflow-y:auto; top:calc(100% + 4px); left:0; z-index:9;">
+                        </div>
+                    </div>
+                    <div id="hint_producto" class="form-text text-muted small mt-1" style="display:none;">
+                        <i class="bi bi-search me-1"></i> Escribe nombre o SKU para filtrar.
+                    </div>
+                </div>
+
+                <!-- STOCK DISPONIBLE (info dinámica) -->
+                <div id="info_stock" class="alert alert-info border-info border-opacity-25 small py-2 px-3 mb-3" style="display:none;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Stock disponible: <strong id="lbl_stock_disponible">0</strong> unidades.
+                </div>
+
+                <!-- CANTIDAD -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                        <i class="bi bi-123 text-primary me-1"></i> Cantidad a Transferir
+                    </label>
+                    <input type="number" name="cantidad" id="input_cantidad" class="form-control form-control-lg shadow-sm text-center fw-bold"
+                           min="1" required placeholder="0" disabled oninput="validarFormulario()">
+                </div>
+
+                <!-- MOTIVO -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                        <i class="bi bi-chat-text text-primary me-1"></i> Motivo (para auditoría)
+                    </label>
+                    <input type="text" name="motivo" class="form-control shadow-sm"
+                           placeholder="Ej: Redistribución de temporada, corrección de stock..." maxlength="200">
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" id="btn_submit" class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm" disabled>
+                        <i class="bi bi-arrow-left-right me-2"></i> Confirmar Transferencia
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+#lista_productos .item-producto {
+    padding: 0.55rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--bs-border-color);
+    transition: background 0.12s;
+}
+#lista_productos .item-producto:last-child { border-bottom: none; }
+#lista_productos .item-producto:hover,
+#lista_productos .item-producto.activo { background: var(--bs-primary-bg-subtle); }
+#lista_productos .item-producto .nombre { font-size: 0.88rem; font-weight: 600; }
+#lista_productos .item-producto .meta   { font-size: 0.76rem; color: var(--bs-secondary-color); }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selOrigen     = document.getElementById('sel_origen');
+    const selDestino    = document.getElementById('sel_destino');
+    const buscarInput   = document.getElementById('buscar_producto');
+    const productoHidden= document.getElementById('producto_id_hidden');
+    const lista         = document.getElementById('lista_productos');
+    const hintProducto  = document.getElementById('hint_producto');
+    const infoStock     = document.getElementById('info_stock');
+    const lblStock      = document.getElementById('lbl_stock_disponible');
+    const inputCant     = document.getElementById('input_cantidad');
+    const btnSubmit     = document.getElementById('btn_submit');
+
+    let productosCache  = [];
+    let stockDisponible = 0;
+
+    /* ── Cerrar dropdown al hacer clic fuera ── */
+    document.addEventListener('click', (e) => {
+        if (!buscarInput.contains(e.target) && !lista.contains(e.target)) {
+            lista.style.display = 'none';
+        }
+    });
+
+    /* ── Cargar productos al cambiar almacén origen ── */
+    window.cargarProductos = async function () {
+        const origenId = selOrigen.value;
+
+        buscarInput.value    = '';
+        buscarInput.disabled = true;
+        buscarInput.placeholder = 'Cargando productos...';
+        productoHidden.value = '';
+        lista.style.display  = 'none';
+        hintProducto.style.display = 'none';
+        infoStock.style.display    = 'none';
+        inputCant.disabled   = true;
+        btnSubmit.disabled   = true;
+        stockDisponible      = 0;
+        productosCache       = [];
+
+        if (!origenId) {
+            buscarInput.placeholder = 'Primero selecciona un almacén origen...';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/almacen/${origenId}/productos-con-stock`);
+            productosCache = await res.json();
+
+            if (productosCache.length === 0) {
+                buscarInput.placeholder = 'Sin productos con stock en este almacén';
+                return;
+            }
+            buscarInput.disabled    = false;
+            buscarInput.placeholder = 'Buscar por nombre o SKU...';
+            hintProducto.style.display = 'block';
+            buscarInput.focus();
+        } catch (e) {
+            buscarInput.placeholder = 'Error al cargar productos';
+        }
+    };
+
+    /* ── Filtrar mientras escribe ── */
+    buscarInput.addEventListener('input', function () {
+        const q = this.value.trim().toLowerCase();
+
+        /* Si el usuario borra texto después de haber seleccionado, resetear */
+        if (productoHidden.value) {
+            productoHidden.value = '';
+            infoStock.style.display = 'none';
+            inputCant.disabled  = true;
+            btnSubmit.disabled  = true;
+            stockDisponible     = 0;
+        }
+
+        if (!q) { lista.style.display = 'none'; return; }
+
+        const filtrados = productosCache.filter(p =>
+            p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)
+        );
+
+        renderLista(filtrados);
+    });
+
+    buscarInput.addEventListener('focus', function () {
+        if (!productoHidden.value && this.value.trim() && productosCache.length) {
+            const q = this.value.trim().toLowerCase();
+            const filtrados = productosCache.filter(p =>
+                p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)
+            );
+            renderLista(filtrados);
+        }
+    });
+
+    function renderLista(productos) {
+        lista.innerHTML = '';
+        if (productos.length === 0) {
+            lista.innerHTML = '<div class="p-3 text-muted small text-center">Sin resultados</div>';
+            lista.style.display = 'block';
+            return;
+        }
+        productos.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'item-producto';
+            div.innerHTML = `
+                <div class="nombre">${p.nombre}</div>
+                <div class="meta">SKU: ${p.codigo} &nbsp;·&nbsp; Disponible: <strong>${p.cantidad}</strong> uds</div>
+            `;
+            div.addEventListener('mousedown', () => seleccionarProducto(p));
+            lista.appendChild(div);
+        });
+        lista.style.display = 'block';
+    }
+
+    function seleccionarProducto(p) {
+        buscarInput.value    = `${p.nombre}  (SKU: ${p.codigo})`;
+        productoHidden.value = p.id;
+        lista.style.display  = 'none';
+
+        stockDisponible = parseInt(p.cantidad);
+        lblStock.textContent = stockDisponible;
+        infoStock.style.display = 'block';
+        inputCant.disabled  = false;
+        inputCant.max       = stockDisponible;
+        inputCant.value     = '';
+        validarFormulario();
+        inputCant.focus();
+    }
+
+    /* ── Validar formulario completo ── */
+    window.validarFormulario = function () {
+        const cant = parseInt(inputCant.value) || 0;
+        const dest = selDestino.value;
+        const orig = selOrigen.value;
+        const prod = productoHidden.value;
+        const ok   = prod && dest && orig && orig !== dest && cant > 0 && cant <= stockDisponible;
+
+        btnSubmit.disabled = !ok;
+
+        if (cant > stockDisponible && cant > 0) {
+            inputCant.classList.add('is-invalid');
+        } else {
+            inputCant.classList.remove('is-invalid');
+        }
+    };
+});
+</script>
+{% endblock %}
