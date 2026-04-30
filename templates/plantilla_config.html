@@ -64,6 +64,21 @@
                         <!-- Checkbox oculto para eliminar el logo -->
                         <input type="checkbox" name="eliminar_logo" id="check_eliminar_logo" class="d-none" value="1">
 
+                        <!-- NOTIFICACIONES WHATSAPP -->
+                        <hr class="my-4">
+                        <h5 class="fw-bold mb-1"><i class="bi bi-whatsapp text-success me-2"></i>Notificaciones WhatsApp</h5>
+                        <p class="text-muted small mb-3">Recibirás un mensaje automático cuando algún producto caiga por debajo del stock mínimo.</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-uppercase text-muted" style="letter-spacing:.5px;">Número de WhatsApp</label>
+                            <div class="input-group shadow-sm">
+                                <span class="input-group-text"><i class="bi bi-whatsapp text-success"></i></span>
+                                <input type="tel" name="whatsapp_notify" class="form-control"
+                                       placeholder="+529991234567"
+                                       value="{{ org.whatsapp_notify or '' }}">
+                            </div>
+                            <div class="form-text">Incluye el código de país. Ej: <strong>+529991234567</strong>. Deja vacío para desactivar.</div>
+                        </div>
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end border-top pt-3">
                             <button type="submit" class="btn btn-primary px-4 fw-bold">
                                 <i class="bi bi-save"></i> Guardar Cambios

@@ -146,8 +146,9 @@ class Organizacion(db.Model):
     header_subtitulo = db.Column(db.String(200), nullable=True)  # Texto Pequeño
     color_primario = db.Column(db.String(7), default='#333333') # Color hex para encabezados
     tipo_letra = db.Column(db.String(50), default='Helvetica') # Fuente del PDF
-    direccion = db.Column(db.Text, nullable=True) # Dirección fiscal/física
-    telefono = db.Column(db.String(20), nullable=True) # Teléfono de contacto
+    direccion = db.Column(db.Text, nullable=True)
+    telefono = db.Column(db.String(20), nullable=True)
+    whatsapp_notify = db.Column(db.String(25), nullable=True, default=None)
     usuarios = db.relationship('User', backref='organizacion', lazy=True)
     productos = db.relationship('Producto', backref='organizacion', lazy=True)
     categorias = db.relationship('Categoria', backref='organizacion', lazy=True)
@@ -715,6 +716,74 @@ def enviar_correo_api(destinatario, reset_url):
         print(f"❌ Error enviando correo: {e}")
         if hasattr(e, 'response') and e.response is not None:
             print(e.response.text)
+
+# ==============================================================================
+# SISTEMA DE NOTIFICACIONES WHATSAPP (Meta Cloud API)
+# ==============================================================================
+
+def _send_whatsapp_message(to_number, body):
+    """Envía un mensaje de texto vía Meta WhatsApp Cloud API."""
+    token    = os.environ.get('WHATSAPP_TOKEN')
+    phone_id = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
+    if not token or not phone_id:
+        return False
+    numero = to_number.replace('+', '').replace(' ', '').replace('-', '')
+    url     = f"https://graph.facebook.com/v19.0/{phone_id}/messages"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": numero,
+        "type": "text",
+        "text": {"body": body, "preview_url": False}
+    }
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        return resp.status_code == 200
+    except Exception as e:
+        print(f"[WhatsApp] Error al enviar: {e}")
+        return False
+
+
+def check_and_alert_stock_bajo(org_id, almacen_id):
+    """
+    Verifica si hay productos bajo mínimo en el almacén dado y,
+    si la organización tiene número de WhatsApp configurado, envía una alerta.
+    """
+    try:
+        org     = Organizacion.query.get(org_id)
+        almacen = Almacen.query.get(almacen_id)
+        if not org or not almacen or not org.whatsapp_notify:
+            return
+
+        items_bajo = Stock.query.filter(
+            Stock.almacen_id == almacen_id,
+            Stock.stock_minimo != None,
+            Stock.stock_minimo > 0,
+            Stock.cantidad < Stock.stock_minimo
+        ).all()
+
+        if not items_bajo:
+            return
+
+        lineas = [f"⚠️ *ALERTA DE STOCK BAJO*\n",
+                  f"🏢 *{org.nombre}*",
+                  f"🏪 Almacén: {almacen.nombre}\n"]
+
+        for item in items_bajo[:10]:
+            lineas.append(
+                f"• *{item.producto.nombre}*  "
+                f"Stock: {item.cantidad} / Mín: {item.stock_minimo}"
+            )
+
+        if len(items_bajo) > 10:
+            lineas.append(f"\n...y {len(items_bajo) - 10} productos más.")
+
+        lineas.append(f"\n_{datetime.now().strftime('%d/%m/%Y %H:%M')}_")
+        _send_whatsapp_message(org.whatsapp_notify, "\n".join(lineas))
+
+    except Exception as e:
+        print(f"[WhatsApp] Error en check_and_alert_stock_bajo: {e}")
+
 
 # 2. Modifica la función original de generación de token
 def send_reset_email(user):
@@ -1926,8 +1995,8 @@ def registrar_salida():
             
             db.session.commit()
             flash(f'Se añadieron {len(productos_para_actualizar)} items a la salida del día.', 'success')
-            # Redirigimos al detalle de la hoja de hoy
-            return redirect(url_for('ver_salida', id=salida_del_dia.id)) 
+            check_and_alert_stock_bajo(org_id, almacen_seleccionado.id)
+            return redirect(url_for('ver_salida', id=salida_del_dia.id))
 
         except Exception as e:
             db.session.rollback()
@@ -3565,7 +3634,8 @@ def configurar_plantilla():
             organizacion.tipo_letra = request.form.get('tipo_letra', 'Helvetica')
             organizacion.direccion = request.form.get('direccion')
             organizacion.telefono = request.form.get('telefono')
-            
+            organizacion.whatsapp_notify = request.form.get('whatsapp_notify', '').strip() or None
+
             db.session.commit()
             flash('Diseño de marca actualizado correctamente.', 'success')
             
@@ -3944,6 +4014,9 @@ def nuevo_ajuste():
                 organizacion_id=org_id
             ))
             db.session.commit()
+
+            if diferencia < 0:
+                check_and_alert_stock_bajo(org_id, almacen_id)
 
             signo = '+' if diferencia > 0 else ''
             flash(f'Ajuste registrado. Diferencia aplicada: {signo}{diferencia} unidades.', 'success')
