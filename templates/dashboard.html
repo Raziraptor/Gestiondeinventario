@@ -114,6 +114,8 @@
             </div>
         </div>
 
+        {% if current_user.rol in ['super_admin', 'admin'] %}
+
         <!-- KPI: Valor del Almacén -->
         <div class="col-12 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 h-100" style="background:linear-gradient(135deg,rgba(79,70,229,.08) 0%,rgba(59,130,246,.08) 100%);border:1px solid rgba(79,70,229,.15)!important;">
@@ -179,6 +181,8 @@
             </div>
         </div>
 
+        {% endif %}{# fin bloque admin: KPIs financieros #}
+
         <!-- GRÁFICA: Movimientos últimos 6 meses (2/3 del ancho) -->
         <div class="col-md-8">
             <div class="card border-0 shadow-sm rounded-4 h-100">
@@ -240,9 +244,9 @@
     {% else %}
 
         <!-- ==========================================
-             ANÁLISIS DE ROTACIÓN
+             ANÁLISIS DE ROTACIÓN (solo admins)
              ========================================== -->
-        {% if kpis_rotacion %}
+        {% if kpis_rotacion and current_user.rol in ['super_admin', 'admin'] %}
         <div class="row g-3 mb-4">
 
             <!-- KPI: Salidas 30 días -->
@@ -544,8 +548,8 @@
             </div>
         </div>
 
-        <!-- VALORIZACIÓN POR PRODUCTO (TOP 10) -->
-        {% if items_stock and valor_almacen > 0 %}
+        <!-- VALORIZACIÓN POR PRODUCTO (TOP 10, solo admins) -->
+        {% if items_stock and valor_almacen > 0 and current_user.rol in ['super_admin', 'admin'] %}
         <div class="card border-0 shadow-sm rounded-4 mb-5">
             <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
