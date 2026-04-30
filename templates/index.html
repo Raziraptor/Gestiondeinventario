@@ -35,7 +35,91 @@
 
 <div class="container-fluid mt-3">
 
-    
+    <!-- ENCABEZADO CENTRADO -->
+    <div class="text-center mb-5">
+        <h1 class="fw-bold" style="font-size: 2.5rem;">Centro de Control</h1>
+        <p class="text-muted fs-5">Selecciona un módulo para comenzar a trabajar</p>
+    </div>
+
+    <!-- SECCIÓN 1: MÓDULOS PRINCIPALES -->
+    <div class="mb-5">
+        <h4 class="fw-bold mb-3" style="font-size:1.25rem;">Módulos Principales</h4>
+        <div class="quick-actions-container justify-content-center justify-content-md-start">
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
+            <a href="{{ url_for('dashboard') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-grid-fill text-primary"></i>
+                <span class="small fw-bold">Dashboard</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] %}
+            <a href="{{ url_for('lista_almacenes') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-house-door" style="color:#6610f2;"></i>
+                <span class="small fw-bold">Almacenes</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+            <a href="{{ url_for('nuevo_producto') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-plus-circle text-success"></i>
+                <span class="small fw-bold text-wrap">Agregar Producto</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+            <a href="{{ url_for('lista_categorias') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-tags text-secondary"></i>
+                <span class="small fw-bold">Categorías</span>
+            </a>
+            <a href="{{ url_for('lista_proveedores') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-truck text-info"></i>
+                <span class="small fw-bold">Proveedores</span>
+            </a>
+            <a href="{{ url_for('lista_productos_sin_almacen') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                <span class="small fw-bold text-wrap">Sin Almacén</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
+            <a href="{{ url_for('lista_ordenes') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-receipt text-success"></i>
+                <span class="small fw-bold">Órdenes de Compra</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
+            <a href="{{ url_for('lista_proyectos_oc') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-clipboard-data" style="color:#6f42c1;"></i>
+                <span class="small fw-bold text-wrap">OC de Proyectos</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+            <a href="{{ url_for('historial_salidas') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-box-arrow-right text-danger"></i>
+                <span class="small fw-bold">Salidas</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
+            <a href="{{ url_for('lista_gastos') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-cash-coin text-warning"></i>
+                <span class="small fw-bold text-wrap">Control de Gastos</span>
+            </a>
+            {% endif %}
+
+            {% if current_user.rol in ['super_admin', 'admin'] %}
+            <a href="{{ url_for('configurar_plantilla') }}" class="app-card quick-action-square border text-body shadow-sm">
+                <i class="bi bi-palette text-info"></i>
+                <span class="small fw-bold text-wrap">Personalizar Marca</span>
+            </a>
+            {% endif %}
+
+        </div>
+    </div>
+
     <hr class="mb-5 border-secondary border-opacity-25">
 
     <!-- SECCIÓN 2: ALERTAS DE STOCK (Protegida) -->
