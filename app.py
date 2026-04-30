@@ -8,7 +8,7 @@ import io
 import csv
 import secrets
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
 from threading import Thread
 
@@ -1113,6 +1113,69 @@ def dashboard():
         categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
         proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
 
+    # --- KPIs de Rotación (por almacén seleccionado) ---
+    kpis_rotacion = {}
+    if almacen_seleccionado:
+        ahora = datetime.now()
+        hace_30d = ahora - timedelta(days=30)
+        hace_60d = ahora - timedelta(days=60)
+
+        def _sum_salidas(almacen_id, desde, hasta=None):
+            q = db.session.query(
+                db.func.sum(db.func.abs(Movimiento.cantidad))
+            ).filter(
+                Movimiento.almacen_id == almacen_id,
+                Movimiento.tipo == 'salida',
+                Movimiento.fecha >= desde
+            )
+            if hasta:
+                q = q.filter(Movimiento.fecha < hasta)
+            return q.scalar() or 0
+
+        salidas_30d = _sum_salidas(almacen_seleccionado.id, hace_30d)
+        salidas_prev_30d = _sum_salidas(almacen_seleccionado.id, hace_60d, hace_30d)
+
+        stock_total_uds = sum(item.cantidad for item in items_stock)
+        tasa_diaria = salidas_30d / 30 if salidas_30d > 0 else 0
+        dias_stock = round(stock_total_uds / tasa_diaria) if tasa_diaria > 0 else None
+
+        if salidas_prev_30d > 0:
+            tendencia_pct = round((salidas_30d - salidas_prev_30d) / salidas_prev_30d * 100, 1)
+        else:
+            tendencia_pct = None
+
+        # Top 5 productos con más salidas en los últimos 30 días
+        top_movers_raw = db.session.query(
+            Movimiento.producto_id,
+            db.func.sum(db.func.abs(Movimiento.cantidad)).label('total_salidas')
+        ).filter(
+            Movimiento.almacen_id == almacen_seleccionado.id,
+            Movimiento.tipo == 'salida',
+            Movimiento.fecha >= hace_30d
+        ).group_by(Movimiento.producto_id
+        ).order_by(db.func.sum(db.func.abs(Movimiento.cantidad)).desc()).limit(5).all()
+
+        prod_map = {item.producto_id: item for item in items_stock}
+        top_movers = []
+        for row in top_movers_raw:
+            stock_item = prod_map.get(row.producto_id)
+            if stock_item:
+                top_movers.append({
+                    'nombre': stock_item.producto.nombre,
+                    'codigo': stock_item.producto.codigo,
+                    'salidas': int(row.total_salidas),
+                    'stock': stock_item.cantidad,
+                })
+
+        kpis_rotacion = {
+            'salidas_30d': salidas_30d,
+            'salidas_prev_30d': salidas_prev_30d,
+            'tendencia_pct': tendencia_pct,
+            'dias_stock': dias_stock,
+            'tasa_diaria': round(tasa_diaria, 1),
+            'top_movers': top_movers,
+        }
+
     return render_template('dashboard.html',
                            items_stock=items_stock,
                            almacenes=almacenes,
@@ -1121,7 +1184,8 @@ def dashboard():
                            proveedores=proveedores,
                            valor_almacen=valor_almacen,
                            valor_total_org=valor_total_org,
-                           items_por_valor=items_por_valor)
+                           items_por_valor=items_por_valor,
+                           kpis_rotacion=kpis_rotacion)
 
 # --- Rutas de Productos ---
 
