@@ -4,156 +4,375 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Control de Inventario{% endblock %}</title>
-    
-    <!-- Favicon -->
+
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
-    
-    <!-- Google Fonts: Inter (Tipografía Premium) -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap 5 CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     {% block extra_css %}{% endblock %}
-    
-    <!-- SCRIPT DE TEMA TEMPRANO (Evita el parpadeo blanco "FOUC" al cambiar de página) -->
+
+    <!-- Prevenir FOUC al navegar entre páginas -->
     <script>
         (function() {
-            const savedTheme = localStorage.getItem('app_theme') || 'dark';
-            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            const t = localStorage.getItem('app_theme') || 'dark';
+            document.documentElement.setAttribute('data-bs-theme', t);
         })();
     </script>
 
     <style>
-        /* ==========================================
-           PALETA DE COLORES PREMIUM Y CONTRASTANTES
-           ========================================== */
-        
-        /* --- MODO CLARO (Elegante, fresco y nítido) --- */
+        /* ============================================================
+           TOKENS DE DISEÑO — MODO CLARO
+        ============================================================ */
         :root {
-            --bs-primary: #4f46e5; /* Índigo profundo y elegante */
-            --bs-primary-rgb: 79, 70, 229;
-            --bs-body-bg: #f8fafc; /* Fondo Slate muy sutil, no blanco puro */
-            --bs-body-color: #334155; /* Texto principal Slate suave */
-            --bs-dark: #0f172a; 
-            --bs-secondary: #64748b; 
-            
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(15, 23, 42, 0.08);
-            --card-bg: #ffffff;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --hover-bg: rgba(79, 70, 229, 0.05); /* Hover índigo claro */
+            --primary:          #4f46e5;
+            --primary-rgb:      79, 70, 229;
+            --bs-primary:       var(--primary);
+            --bs-primary-rgb:   var(--primary-rgb);
+            --bs-body-bg:       #f4f6fb;
+            --bs-body-color:    #1e293b;
+            --bs-secondary:     #64748b;
+
+            --surface:          #ffffff;
+            --surface-raised:   #f8fafc;
+            --border:           rgba(15, 23, 42, 0.08);
+            --shadow-sm:        0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md:        0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+            --shadow-lg:        0 12px 24px rgba(0,0,0,.10), 0 4px 8px rgba(0,0,0,.05);
+            --hover-bg:         rgba(79, 70, 229, 0.06);
+            --glass-bg:         rgba(244, 246, 251, 0.88);
+            --glass-border:     rgba(15, 23, 42, 0.08);
+
+            /* Bootstrap overrides */
+            --bs-body-font-family: 'Inter', system-ui, sans-serif;
+            --bs-card-bg:       var(--surface);
+            --bs-card-border-color: var(--border);
+            --bs-border-color:  var(--border);
         }
 
-        /* --- MODO OSCURO (Profundo, rico y moderno) --- */
+        /* ============================================================
+           TOKENS DE DISEÑO — MODO OSCURO
+        ============================================================ */
         [data-bs-theme="dark"] {
-            --bs-primary: #818cf8; /* Índigo pastel brillante para buen contraste en negro */
-            --bs-primary-rgb: 129, 140, 248;
-            --bs-body-bg: #0b0f19; /* Azul/Gris noche ultra oscuro (mejor que negro puro) */
-            --bs-body-color: #e2e8f0; /* Texto claro grisáceo, reduce fatiga visual */
-            --bs-dark: #1e293b; 
-            --bs-secondary: #94a3b8; 
-            
-            --glass-bg: rgba(11, 15, 25, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --card-bg: #111827; /* Tarjetas ligeramente más claras que el fondo para destacar */
-            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-            --hover-bg: rgba(129, 140, 248, 0.1); /* Hover índigo oscuro */
+            --primary:          #818cf8;
+            --primary-rgb:      129, 140, 248;
+            --bs-primary:       var(--primary);
+            --bs-primary-rgb:   var(--primary-rgb);
+            --bs-body-bg:       #0d1117;
+            --bs-body-color:    #e2e8f0;
+            --bs-secondary:     #94a3b8;
+
+            --surface:          #161b22;
+            --surface-raised:   #1c2230;
+            --border:           rgba(255, 255, 255, 0.08);
+            --shadow-sm:        0 1px 3px rgba(0,0,0,.3),  0 1px 2px rgba(0,0,0,.2);
+            --shadow-md:        0 4px 12px rgba(0,0,0,.4),  0 2px 4px rgba(0,0,0,.3);
+            --shadow-lg:        0 12px 32px rgba(0,0,0,.6),  0 4px 8px rgba(0,0,0,.4);
+            --hover-bg:         rgba(129, 140, 248, 0.08);
+            --glass-bg:         rgba(13, 17, 23, 0.88);
+            --glass-border:     rgba(255, 255, 255, 0.08);
+
+            --bs-card-bg:       var(--surface);
+            --bs-card-border-color: var(--border);
+            --bs-border-color:  var(--border);
         }
 
-        /* ==========================================
-           ESTILOS GLOBALES
-           ========================================== */
+        /* ============================================================
+           BASE
+        ============================================================ */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
         body {
-            font-family: 'Inter', sans-serif; 
-            transition: background-color 0.3s ease, color 0.3s ease;
+            font-family: var(--bs-body-font-family);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.25s ease, color 0.25s ease;
         }
 
-        main {
-            flex: 1; 
-        }
+        main { flex: 1; }
 
-        /* Redefinición de botones primarios para respetar nuestra paleta */
-        .btn-primary {
-            background-color: var(--bs-primary) !important;
-            border-color: var(--bs-primary) !important;
-            color: #ffffff !important;
+        /* Entrada suave de página — tipo iOS */
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
-        [data-bs-theme="dark"] .btn-primary {
-            color: #0b0f19 !important; /* Texto oscuro sobre botón claro en modo oscuro */
-            font-weight: 600;
-        }
-        .text-primary { color: var(--bs-primary) !important; }
+        main { animation: pageIn 0.22s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
-        /* --- NAVBAR GLASSMORPHISM --- */
+        /* Scrollbar delgada y elegante */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--bs-secondary); }
+
+        /* ============================================================
+           NAVBAR — GLASSMORPHISM
+        ============================================================ */
         .glass-navbar {
             background: var(--glass-bg) !important;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
             border-bottom: 1px solid var(--glass-border);
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            letter-spacing: -0.5px;
+            transition: background 0.25s ease, border-color 0.25s ease;
         }
 
-        /* Menús Desplegables Modernos */
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: -0.4px;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--bs-body-color) !important;
+            border-radius: 0.5rem;
+            transition: background 0.15s ease, color 0.15s ease;
+            padding: 0.4rem 0.75rem !important;
+        }
+        .nav-link:hover { background: var(--hover-bg); color: var(--primary) !important; }
+        .nav-link.active { color: var(--primary) !important; }
+
+        /* Dropdown premium */
         .dropdown-menu {
+            background-color: var(--surface);
             border: 1px solid var(--glass-border);
-            background-color: var(--card-bg);
-            box-shadow: var(--card-shadow);
-            border-radius: 1rem;
-            padding: 0.5rem;
-            transition: background-color 0.3s ease;
+            box-shadow: var(--shadow-lg);
+            border-radius: 0.875rem;
+            padding: 0.4rem;
+            transition: background-color 0.25s ease;
+            min-width: 15rem;
         }
         .dropdown-item {
             color: var(--bs-body-color);
             border-radius: 0.5rem;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 0.875rem;
             font-weight: 500;
-            transition: all 0.2s;
+            font-size: 0.9rem;
+            transition: background 0.15s ease, color 0.15s ease;
         }
         .dropdown-item:hover {
             background-color: var(--hover-bg);
-            color: var(--bs-primary);
+            color: var(--primary);
         }
-        [data-bs-theme="dark"] .dropdown-divider { border-color: rgba(255,255,255,0.05); }
+        .dropdown-divider { border-color: var(--border); margin: 0.3rem 0.4rem; }
 
-        /* --- ALERTAS FLASH MODERNIZADAS --- */
-        .alert-premium {
-            background-color: var(--card-bg);
+        /* Botón de perfil en navbar */
+        .profile-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--hover-bg);
+            border-radius: 100px;
+            padding: 0.35rem 0.85rem 0.35rem 0.4rem;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            text-decoration: none;
+        }
+        .profile-pill:hover { background: var(--hover-bg); border-color: var(--primary); }
+        .profile-pill img {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .profile-pill span { font-weight: 600; font-size: 0.875rem; color: var(--bs-body-color); }
+
+        /* Botón de tema */
+        .theme-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--hover-bg);
             color: var(--bs-body-color);
-            border-radius: 1rem;
-            border: 1px solid var(--glass-border);
-            border-left: 6px solid;
-            box-shadow: var(--card-shadow);
-            font-weight: 500;
-            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1), border-color 0.15s ease;
+            flex-shrink: 0;
         }
-        .alert-success.alert-premium { border-left-color: #10b981; } /* Emerald */
-        .alert-danger.alert-premium  { border-left-color: #ef4444; } /* Red */
-        .alert-warning.alert-premium { border-left-color: #f59e0b; } /* Amber */
-        .alert-info.alert-premium    { border-left-color: #3b82f6; } /* Blue */
+        .theme-btn:hover { transform: rotate(15deg) scale(1.1); border-color: var(--primary); background: var(--hover-bg); }
+        .theme-btn i { font-size: 0.95rem; transition: color 0.2s ease; }
+        [data-bs-theme="dark"]  .theme-btn i { color: #fbbf24; }
+        [data-bs-theme="light"] .theme-btn i { color: #475569; }
 
-        /* --- DASHBOARD CARDS GLOBALES --- */
+        /* ============================================================
+           CARDS
+        ============================================================ */
+        .card {
+            background-color: var(--surface) !important;
+            border-color: var(--border) !important;
+            transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .card-header {
+            background-color: transparent !important;
+            border-bottom-color: var(--border) !important;
+        }
+
+        /* ============================================================
+           FORMS — APPLE-STYLE
+        ============================================================ */
+        .form-control,
+        .form-select {
+            background-color: var(--surface-raised) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--bs-body-color) !important;
+            border-radius: 0.625rem;
+            font-size: 0.9375rem;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+        }
+        .form-control::placeholder { color: var(--bs-secondary); opacity: 0.65; }
+        .form-control:focus,
+        .form-select:focus {
+            background-color: var(--surface) !important;
+            border-color: var(--primary) !important;
+            color: var(--bs-body-color) !important;
+            box-shadow: 0 0 0 3.5px rgba(var(--primary-rgb), 0.15) !important;
+            outline: none;
+        }
+        .form-control.is-invalid { border-color: #ef4444 !important; }
+        .form-control.is-invalid:focus { box-shadow: 0 0 0 3.5px rgba(239, 68, 68, 0.15) !important; }
+        .form-control:disabled,
+        .form-select:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .input-group-text {
+            background-color: var(--surface-raised) !important;
+            border-color: var(--border) !important;
+            color: var(--bs-body-color) !important;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+        .form-label { color: var(--bs-body-color); }
+        .form-text  { color: var(--bs-secondary) !important; }
+        .form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
+
+        /* ============================================================
+           TABLES
+        ============================================================ */
+        .table {
+            color: var(--bs-body-color);
+            --bs-table-border-color: var(--border);
+            --bs-table-hover-bg: var(--hover-bg);
+            --bs-table-hover-color: var(--bs-body-color);
+            --bs-table-striped-bg: transparent;
+        }
+        .table > :not(caption) > * > * {
+            background-color: transparent;
+            color: inherit;
+            border-bottom-color: var(--border);
+        }
+        .table-light {
+            --bs-table-bg: transparent;
+        }
+        thead th, .table-light th {
+            background-color: var(--hover-bg) !important;
+            color: var(--bs-secondary) !important;
+            border-bottom: 1px solid var(--border) !important;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .table-hover tbody tr:hover > * {
+            background-color: var(--hover-bg) !important;
+            color: var(--bs-body-color) !important;
+        }
+
+        /* ============================================================
+           LIST GROUPS
+        ============================================================ */
+        .list-group-item {
+            background-color: var(--surface) !important;
+            border-color: var(--border) !important;
+            color: var(--bs-body-color) !important;
+            transition: background-color 0.15s ease;
+        }
+        .list-group-item-action:hover {
+            background-color: var(--hover-bg) !important;
+            color: var(--primary) !important;
+        }
+
+        /* ============================================================
+           BOTONES
+        ============================================================ */
+        .btn {
+            font-weight: 600;
+            letter-spacing: -0.1px;
+            transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0.5rem;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary {
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: #fff !important;
+        }
+        [data-bs-theme="dark"] .btn-primary { color: #0d1117 !important; }
+        .btn-primary:hover { filter: brightness(1.1); }
+
+        .btn-outline-primary { border-color: var(--primary) !important; color: var(--primary) !important; }
+        .btn-outline-primary:hover { background: var(--primary) !important; color: #fff !important; }
+        [data-bs-theme="dark"] .btn-outline-primary:hover { color: #0d1117 !important; }
+
+        .text-primary { color: var(--primary) !important; }
+        .border-primary { border-color: var(--primary) !important; }
+        .bg-primary { background-color: var(--primary) !important; }
+
+        /* ============================================================
+           BADGES
+        ============================================================ */
+        .badge.bg-light {
+            background-color: var(--hover-bg) !important;
+            color: var(--bs-body-color) !important;
+            border: 1px solid var(--border) !important;
+        }
+        [data-bs-theme="dark"] .badge.text-dark { color: var(--bs-body-color) !important; }
+
+        /* ============================================================
+           UTILIDADES DE COLOR SENSIBLES AL TEMA
+        ============================================================ */
+        .bg-white  { background-color: var(--surface) !important; }
+        .bg-light  { background-color: var(--surface-raised) !important; }
+        .text-dark { color: var(--bs-body-color) !important; }
+        .border, .border-bottom, .border-top { border-color: var(--border) !important; }
+
+        /* ============================================================
+           ALERTAS FLASH PREMIUM
+        ============================================================ */
+        .alert-premium {
+            background-color: var(--surface);
+            color: var(--bs-body-color);
+            border-radius: 0.875rem;
+            border: 1px solid var(--border);
+            border-left: 5px solid;
+            box-shadow: var(--shadow-md);
+            font-weight: 500;
+            transition: background-color 0.25s ease;
+        }
+        .alert-success.alert-premium { border-left-color: #10b981; }
+        .alert-danger.alert-premium  { border-left-color: #ef4444; }
+        .alert-warning.alert-premium { border-left-color: #f59e0b; }
+        .alert-info.alert-premium    { border-left-color: #3b82f6; }
+
+        /* ============================================================
+           DASHBOARD CARDS (NAVEGACIÓN)
+        ============================================================ */
         .dashboard-card {
             text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            background-color: var(--card-bg);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--card-shadow);
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
             border-radius: 1rem;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
         .dashboard-card .card-body {
             display: flex;
@@ -163,261 +382,304 @@
             padding: 2.5rem 1.5rem;
         }
         .dashboard-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
-            border-color: var(--bs-primary);
-        }
-        [data-bs-theme="dark"] .dashboard-card:hover {
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3) !important;
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg) !important;
+            border-color: var(--primary) !important;
         }
         .dashboard-card .card-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            transition: transform 0.3s ease;
+            font-size: 2.75rem;
+            margin-bottom: 0.875rem;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .dashboard-card:hover .card-icon {
-            transform: scale(1.15) rotate(-3deg);
-        }
+        .dashboard-card:hover .card-icon { transform: scale(1.15) rotate(-4deg); }
 
-        /* Icono de Perfil en Navbar */
-        .profile-img-nav {
-            width: 32px; 
-            height: 32px; 
-            object-fit: cover;
-            border: 2px solid var(--glass-border);
-            transition: border-color 0.3s ease;
+        /* ============================================================
+           TEXTAREA
+        ============================================================ */
+        textarea.form-control { resize: vertical; min-height: 90px; }
+
+        /* ============================================================
+           NÚMERO SIN SPINNERS (inputs type=number en formularios)
+        ============================================================ */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        /* ============================================================
+           RESPONSIVE UTILITY
+        ============================================================ */
+        @media (max-width: 576px) {
+            .dropdown-menu { min-width: calc(100vw - 2rem); }
         }
-        
     </style>
 </head>
 <body>
-    <!-- NAVBAR STICKY CON EFECTO GLASSMORPHISM -->
+
+    <!-- =====================================================
+         NAVBAR STICKY — GLASSMORPHISM
+    ===================================================== -->
     <nav class="navbar navbar-expand-lg sticky-top glass-navbar mb-4 py-2">
         <div class="container">
             <a class="navbar-brand text-primary d-flex align-items-center gap-2" href="{{ url_for('index') }}">
-                <i class="bi bi-box-seam-fill fs-3"></i> 
+                <i class="bi bi-box-seam-fill fs-3"></i>
                 <span>Gestor de Inventario</span>
             </a>
-            
-            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+            <button class="navbar-toggler border-0 shadow-none p-1" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <i class="bi bi-list fs-1 text-body"></i>
             </button>
-            
+
             <div class="collapse navbar-collapse" id="navbarNav">
-                
-                <!-- 1. MENÚ DE LA IZQUIERDA (GESTIÓN, OPERACIONES) -->
+
+                <!-- IZQUIERDA: menús de gestión -->
                 {% if current_user.is_authenticated %}
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
-                        
-                        {% if request.endpoint != 'index' %}
-                            <!-- Enlace a Dashboard -->
-                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
-                            <li class="nav-item">
-                                <a class="nav-link px-3 {% if request.endpoint == 'dashboard' %}active text-primary{% endif %}" href="{{ url_for('dashboard') }}">
-                                    <i class="bi bi-grid-fill me-1"></i> Dashboard
-                                </a>
-                            </li>
-                            {% endif %}
-                            
-                            <!-- Dropdown de GESTIÓN -->
-                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle px-3" href="#" id="dropdownGestion" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-folder2-open me-1"></i> Gestión
-                                </a>
-                                <ul class="dropdown-menu shadow-sm" aria-labelledby="dropdownGestion">
-                                    {% if current_user.rol in ['super_admin', 'admin'] %}
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_almacenes') }}">
-                                            <i class="bi bi-house-door me-2 text-primary"></i> Almacenes
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    {% endif %}
-                                    
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_categorias') }}">
-                                            <i class="bi bi-tags me-2 text-success"></i> Categorías
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_proveedores') }}">
-                                            <i class="bi bi-truck me-2 text-info"></i> Proveedores
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_productos_sin_almacen') }}">
-                                            <i class="bi bi-exclamation-triangle me-2 text-warning"></i> Productos Sin Almacén
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            {% endif %}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
+                    {% if request.endpoint != 'index' %}
 
-                            <!-- Dropdown de OPERACIONES -->
-                            {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas or current_user.perm_view_gastos %}
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle px-3" href="#" id="dropdownOperaciones" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-gear-wide-connected me-1"></i> Operaciones
-                                </a>
-                                <ul class="dropdown-menu shadow-sm" aria-labelledby="dropdownOperaciones">
-                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_ordenes') }}">
-                                            <i class="bi bi-receipt me-2 text-primary"></i> Órdenes de Compra
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_proyectos_oc') }}">
-                                            <i class="bi bi-clipboard-data me-2 text-info"></i> OC de Proyectos
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('historial_salidas') }}">
-                                            <i class="bi bi-box-arrow-right me-2 text-danger"></i> Historial de Salidas
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                    
-                                    {% if (current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas) and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos) %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    {% endif %}
-                                    
-                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('lista_gastos') }}">
-                                            <i class="bi bi-cash-coin me-2 text-success"></i> Control de Gastos
-                                        </a>
-                                    </li>
-                                    {% endif %}
-
-                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('nueva_transferencia') }}">
-                                            <i class="bi bi-arrow-left-right me-2 text-primary"></i> Transferir entre Almacenes
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-                                    <li>
-                                        <a class="dropdown-item" href="{{ url_for('nuevo_ajuste') }}">
-                                            <i class="bi bi-clipboard2-check me-2 text-warning"></i> Ajuste de Inventario
-                                        </a>
-                                    </li>
-                                    {% endif %}
-                                </ul>
-                            </li>
-                            {% endif %}
-                        {% endif %}
-                    </ul>
-                {% endif %}
-
-                <!-- 2. MENÚ DE LA DERECHA (USUARIO) -->
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 fw-medium align-items-lg-center">
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" style="background-color: var(--hover-bg); padding: 0.5rem 1rem; border-radius: 50rem;" href="#" 
-                               id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="{{ url_for('static', filename='uploads/profile_pics/' + current_user.image_file) }}" 
-                                     alt="Perfil" class="rounded-circle profile-img-nav shadow-sm">
-                                <span class="text-body fw-bold">{{ current_user.username }}</span>
+                        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
+                        <li class="nav-item">
+                            <a class="nav-link px-3 {% if request.endpoint == 'dashboard' %}active text-primary{% endif %}"
+                               href="{{ url_for('dashboard') }}">
+                                <i class="bi bi-grid-fill me-1"></i> Dashboard
                             </a>
-                            
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm mt-2" aria-labelledby="navbarDropdown">
+                        </li>
+                        {% endif %}
+
+                        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle px-3" href="#"
+                               id="dropdownGestion" role="button"
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-folder2-open me-1"></i> Gestión
+                            </a>
+                            <ul class="dropdown-menu shadow-sm" aria-labelledby="dropdownGestion">
                                 {% if current_user.rol in ['super_admin', 'admin'] %}
                                 <li>
-                                    {% if current_user.rol == 'super_admin' %}
-                                    <a class="dropdown-item py-2" href="{{ url_for('super_admin') }}">
-                                        <i class="bi bi-shield-lock me-2 text-danger"></i> Super Admin Panel
-                                    </a>
-                                    {% else %}
-                                    <a class="dropdown-item py-2" href="{{ url_for('admin_panel') }}">
-                                        <i class="bi bi-people-fill me-2 text-primary"></i> Panel de Admin
-                                    </a>
-                                    {% endif %}
-                                </li>
-                                
-                                <li>
-                                    <a class="dropdown-item py-2" href="{{ url_for('configurar_plantilla') }}">
-                                        <i class="bi bi-palette me-2 text-info"></i> Personalizar Marca
+                                    <a class="dropdown-item" href="{{ url_for('lista_almacenes') }}">
+                                        <i class="bi bi-house-door me-2 text-primary"></i> Almacenes
                                     </a>
                                 </li>
+                                <li><hr class="dropdown-divider"></li>
                                 {% endif %}
-                                
                                 <li>
-                                    <a class="dropdown-item py-2" href="{{ url_for('account') }}">
-                                        <i class="bi bi-gear me-2 text-secondary"></i> Configuración de Cuenta
+                                    <a class="dropdown-item" href="{{ url_for('lista_categorias') }}">
+                                        <i class="bi bi-tags me-2 text-success"></i> Categorías
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('lista_proveedores') }}">
+                                        <i class="bi bi-truck me-2 text-info"></i> Proveedores
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}">
-                                        <i class="bi bi-box-arrow-left me-2"></i> Cerrar Sesión
+                                    <a class="dropdown-item" href="{{ url_for('lista_productos_sin_almacen') }}">
+                                        <i class="bi bi-exclamation-triangle me-2 text-warning"></i> Productos Sin Almacén
                                     </a>
                                 </li>
                             </ul>
                         </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link px-3" href="{{ url_for('login') }}">
-                                <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+                        {% endif %}
+
+                        {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas or current_user.perm_view_gastos %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle px-3" href="#"
+                               id="dropdownOperaciones" role="button"
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-gear-wide-connected me-1"></i> Operaciones
                             </a>
+                            <ul class="dropdown-menu shadow-sm" aria-labelledby="dropdownOperaciones">
+                                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('lista_ordenes') }}">
+                                        <i class="bi bi-receipt me-2 text-primary"></i> Órdenes de Compra
+                                    </a>
+                                </li>
+                                {% endif %}
+                                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('lista_proyectos_oc') }}">
+                                        <i class="bi bi-clipboard-data me-2 text-info"></i> OC de Proyectos
+                                    </a>
+                                </li>
+                                {% endif %}
+                                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('historial_salidas') }}">
+                                        <i class="bi bi-box-arrow-right me-2 text-danger"></i> Historial de Salidas
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% if (current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto or current_user.perm_do_salidas) and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos) %}
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+
+                                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('lista_gastos') }}">
+                                        <i class="bi bi-cash-coin me-2 text-success"></i> Control de Gastos
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('nueva_transferencia') }}">
+                                        <i class="bi bi-arrow-left-right me-2 text-primary"></i> Transferir entre Almacenes
+                                    </a>
+                                </li>
+                                {% endif %}
+                                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('nuevo_ajuste') }}">
+                                        <i class="bi bi-clipboard2-check me-2 text-warning"></i> Ajuste de Inventario
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
                         </li>
-                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
-                            <a class="btn btn-primary rounded-pill px-4 shadow-sm" href="{{ url_for('register') }}">
-                                <i class="bi bi-person-plus me-1 text-white"></i> <span class="text-white">Registrarse</span>
-                            </a>
-                        </li>
+                        {% endif %}
                     {% endif %}
                 </ul>
-                
+                {% else %}
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0"></ul>
+                {% endif %}
+
+                <!-- DERECHA: tema + usuario -->
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-2">
+
+                    <!-- Botón de tema (disponible en todas las páginas) -->
+                    <li class="nav-item">
+                        <button id="theme-toggle" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema">
+                            <i id="theme-icon" class="bi bi-moon-fill"></i>
+                        </button>
+                    </li>
+
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="profile-pill dropdown-toggle" href="#"
+                           id="navbarDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false"
+                           style="text-decoration:none;">
+                            <img src="{{ url_for('static', filename='uploads/profile_pics/' + current_user.image_file) }}"
+                                 alt="Perfil">
+                            <span>{{ current_user.username }}</span>
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm mt-2" aria-labelledby="navbarDropdown">
+                            {% if current_user.rol in ['super_admin', 'admin'] %}
+                            <li>
+                                {% if current_user.rol == 'super_admin' %}
+                                <a class="dropdown-item py-2" href="{{ url_for('super_admin') }}">
+                                    <i class="bi bi-shield-lock me-2 text-danger"></i> Super Admin Panel
+                                </a>
+                                {% else %}
+                                <a class="dropdown-item py-2" href="{{ url_for('admin_panel') }}">
+                                    <i class="bi bi-people-fill me-2 text-primary"></i> Panel de Admin
+                                </a>
+                                {% endif %}
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2" href="{{ url_for('configurar_plantilla') }}">
+                                    <i class="bi bi-palette me-2 text-info"></i> Personalizar Marca
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            <li>
+                                <a class="dropdown-item py-2" href="{{ url_for('account') }}">
+                                    <i class="bi bi-gear me-2 text-secondary"></i> Configuración de Cuenta
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item py-2 text-danger" href="{{ url_for('logout') }}">
+                                    <i class="bi bi-box-arrow-left me-2"></i> Cerrar Sesión
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link px-3" href="{{ url_for('login') }}">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+                        </a>
+                    </li>
+                    <li class="nav-item mt-2 mt-lg-0">
+                        <a class="btn btn-primary rounded-pill px-4 shadow-sm" href="{{ url_for('register') }}">
+                            <i class="bi bi-person-plus me-1"></i> Registrarse
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+
             </div>
         </div>
     </nav>
 
-    <!-- CONTENIDO PRINCIPAL Y ALERTAS -->
+    <!-- =====================================================
+         CONTENIDO PRINCIPAL
+    ===================================================== -->
     <main class="container py-2 mb-5">
-        
-        <!-- Renderizado de Alertas Premium (CORREGIDO) -->
-        <!-- NOTA: Se quitó la clase 'toast-container' porque bloquea los clics -->
+
+        <!-- Alertas Flash -->
         <div class="mensajes-flash-container position-relative mb-4">
             {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <!-- Mapeamos los colores de bootstrap a iconos amigables -->
-                        {% set icon = 'bi-info-circle-fill text-info' %}
-                        {% if category == 'success' %}{% set icon = 'bi-check-circle-fill text-success' %}{% endif %}
-                        {% if category == 'danger' %}{% set icon = 'bi-exclamation-octagon-fill text-danger' %}{% endif %}
-                        {% if category == 'warning' %}{% set icon = 'bi-exclamation-triangle-fill text-warning' %}{% endif %}
-                        
-                        <!-- Eliminamos el d-flex del contenedor principal de la alerta para que la X se posicione bien -->
-                        <div class="alert alert-{{ category }} alert-premium alert-dismissible fade show shadow-sm" role="alert">
-                            <!-- Metemos el flexbox adentro -->
-                            <div class="d-flex align-items-center gap-3 pe-4">
-                                <i class="bi {{ icon }} fs-4 flex-shrink-0"></i>
-                                <div class="text-break">{{ message }}</div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% set icon = 'bi-info-circle-fill text-info' %}
+                    {% if category == 'success' %}{% set icon = 'bi-check-circle-fill text-success' %}{% endif %}
+                    {% if category == 'danger'  %}{% set icon = 'bi-exclamation-octagon-fill text-danger' %}{% endif %}
+                    {% if category == 'warning' %}{% set icon = 'bi-exclamation-triangle-fill text-warning' %}{% endif %}
+                    <div class="alert alert-{{ category }} alert-premium alert-dismissible fade show" role="alert">
+                        <div class="d-flex align-items-center gap-3 pe-4">
+                            <i class="bi {{ icon }} fs-4 flex-shrink-0"></i>
+                            <div class="text-break">{{ message }}</div>
                         </div>
-                    {% endfor %}
-                {% endif %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
             {% endwith %}
         </div>
-        
-        <!-- Aquí se inyectan todas las demás plantillas -->
+
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Bootstrap 5 JS Bundle -->
+    <!-- =====================================================
+         SCRIPTS
+    ===================================================== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <!-- Sistema de tema global — disponible en todas las páginas -->
+    <script>
+    (function () {
+        const html   = document.documentElement;
+        const btn    = document.getElementById('theme-toggle');
+        const icon   = document.getElementById('theme-icon');
+
+        function applyTheme(theme) {
+            html.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('app_theme', theme);
+            if (icon) {
+                icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            }
+        }
+
+        // Aplicar tema guardado (el FOUC ya está resuelto en el <head>)
+        applyTheme(localStorage.getItem('app_theme') || 'dark');
+
+        if (btn) {
+            btn.addEventListener('click', function () {
+                applyTheme(html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+            });
+        }
+    })();
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>
