@@ -2,34 +2,52 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width:620px;">
+<div class="container" style="max-width:680px;">
 
     <div class="d-flex align-items-center gap-3 mb-4">
         <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
             <i class="bi bi-arrow-left"></i>
         </a>
         <div>
-            <h3 class="mb-0 fw-bold"><i class="bi bi-clipboard2-check text-warning me-2"></i>{{ titulo }}</h3>
-            <p class="text-muted small mb-0">Corrige el stock con base en un conteo físico real. Se registra un movimiento de auditoría.</p>
+            <h3 class="mb-0 fw-bold"><i class="bi bi-arrow-left-right text-primary me-2"></i>{{ titulo }}</h3>
+            <p class="text-muted small mb-0">Mueve stock entre almacenes. Se registran dos movimientos de auditoría automáticamente.</p>
         </div>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-4">
-            <form method="POST" action="{{ url_for('nuevo_ajuste') }}" id="form_ajuste">
+            <form method="POST" action="{{ url_for('nueva_transferencia') }}" id="form_transferencia">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                <!-- ALMACÉN -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">
-                        <i class="bi bi-shop text-primary me-1"></i> Almacén
-                    </label>
-                    <select name="almacen_id" id="sel_almacen" class="form-select shadow-sm" required onchange="cargarProductos()">
-                        <option value="">-- Seleccionar almacén --</option>
-                        {% for a in almacenes %}
-                        <option value="{{ a.id }}">{{ a.nombre }}</option>
-                        {% endfor %}
-                    </select>
+                <!-- FILA ALMACENES -->
+                <div class="row g-3 mb-4 align-items-center">
+                    <div class="col-5">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                            <i class="bi bi-box-arrow-right text-danger me-1"></i> Almacén Origen
+                        </label>
+                        <select name="almacen_origen_id" id="sel_origen" class="form-select shadow-sm" required onchange="cargarProductos()">
+                            <option value="">-- Seleccionar --</option>
+                            {% for a in almacenes %}
+                            <option value="{{ a.id }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-2 text-center pt-4">
+                        <i class="bi bi-arrow-right fs-3 text-primary"></i>
+                    </div>
+
+                    <div class="col-5">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">
+                            <i class="bi bi-box-arrow-in-right text-success me-1"></i> Almacén Destino
+                        </label>
+                        <select name="almacen_destino_id" id="sel_destino" class="form-select shadow-sm" required onchange="validarFormulario()">
+                            <option value="">-- Seleccionar --</option>
+                            {% for a in almacenes %}
+                            <option value="{{ a.id }}">{{ a.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
 
                 <!-- PRODUCTO (búsqueda) -->
@@ -39,7 +57,7 @@
                     </label>
                     <div class="position-relative">
                         <input type="text" id="buscar_producto" class="form-control shadow-sm"
-                               placeholder="Primero selecciona un almacén..."
+                               placeholder="Primero selecciona un almacén origen..."
                                disabled autocomplete="off">
                         <input type="hidden" name="producto_id" id="producto_id_hidden">
                         <div id="lista_productos"
@@ -52,44 +70,33 @@
                     </div>
                 </div>
 
-                <!-- STOCK ACTUAL (info dinámica) -->
-                <div id="panel_stock" class="card border-0 rounded-3 mb-3 p-3" style="display:none; background:var(--hover-bg);">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="small text-muted fw-semibold">Stock actual en sistema:</span>
-                        <span class="fw-bold fs-5" id="lbl_stock_actual">--</span>
-                    </div>
-                    <div id="panel_diferencia" class="d-flex justify-content-between align-items-center mt-1" style="display:none;">
-                        <span class="small text-muted fw-semibold">Diferencia (conteo − sistema):</span>
-                        <span class="fw-bold" id="lbl_diferencia">--</span>
-                    </div>
+                <!-- STOCK DISPONIBLE (info dinámica) -->
+                <div id="info_stock" class="alert alert-info border-info border-opacity-25 small py-2 px-3 mb-3" style="display:none;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Stock disponible: <strong id="lbl_stock_disponible">0</strong> unidades.
                 </div>
 
-                <!-- CANTIDAD FÍSICA CONTADA -->
+                <!-- CANTIDAD -->
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">
-                        <i class="bi bi-123 text-primary me-1"></i> Cantidad Física Contada
+                        <i class="bi bi-123 text-primary me-1"></i> Cantidad a Transferir
                     </label>
-                    <input type="number" name="cantidad_fisica" id="input_conteo" class="form-control form-control-lg shadow-sm text-center fw-bold"
-                           min="0" required placeholder="Escribe el conteo real..." disabled oninput="calcularDiferencia()">
-                    <div class="form-text text-muted small mt-1">
-                        <i class="bi bi-info-circle text-info me-1"></i>
-                        Ingresa exactamente cuántas unidades contaste en físico.
-                    </div>
+                    <input type="number" name="cantidad" id="input_cantidad" class="form-control form-control-lg shadow-sm text-center fw-bold"
+                           min="1" required placeholder="0" disabled oninput="validarFormulario()">
                 </div>
 
                 <!-- MOTIVO -->
                 <div class="mb-4">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">
-                        <i class="bi bi-chat-text text-primary me-1"></i> Motivo del Ajuste <span class="text-danger">*</span>
+                        <i class="bi bi-chat-text text-primary me-1"></i> Motivo (para auditoría)
                     </label>
-                    <input type="text" name="motivo" class="form-control shadow-sm" required
-                           placeholder="Ej: Conteo físico mensual, merma, corrección de error de captura..." maxlength="200">
-                    <div class="form-text text-muted small">Obligatorio para trazabilidad.</div>
+                    <input type="text" name="motivo" class="form-control shadow-sm"
+                           placeholder="Ej: Redistribución de temporada, corrección de stock..." maxlength="200">
                 </div>
 
                 <div class="d-grid">
-                    <button type="submit" id="btn_submit" class="btn btn-warning btn-lg fw-bold rounded-pill shadow-sm text-dark" disabled>
-                        <i class="bi bi-clipboard2-check me-2"></i> Aplicar Ajuste
+                    <button type="submit" id="btn_submit" class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm" disabled>
+                        <i class="bi bi-arrow-left-right me-2"></i> Confirmar Transferencia
                     </button>
                 </div>
             </form>
@@ -113,20 +120,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const selAlmacen    = document.getElementById('sel_almacen');
+    const selOrigen     = document.getElementById('sel_origen');
+    const selDestino    = document.getElementById('sel_destino');
     const buscarInput   = document.getElementById('buscar_producto');
     const productoHidden= document.getElementById('producto_id_hidden');
     const lista         = document.getElementById('lista_productos');
     const hintProducto  = document.getElementById('hint_producto');
-    const inputConteo   = document.getElementById('input_conteo');
-    const panelStock    = document.getElementById('panel_stock');
-    const panelDif      = document.getElementById('panel_diferencia');
-    const lblActual     = document.getElementById('lbl_stock_actual');
-    const lblDif        = document.getElementById('lbl_diferencia');
+    const infoStock     = document.getElementById('info_stock');
+    const lblStock      = document.getElementById('lbl_stock_disponible');
+    const inputCant     = document.getElementById('input_cantidad');
     const btnSubmit     = document.getElementById('btn_submit');
 
-    let productosCache = [];
-    let stockActual    = null;
+    let productosCache  = [];
+    let stockDisponible = 0;
 
     /* ── Cerrar dropdown al hacer clic fuera ── */
     document.addEventListener('click', (e) => {
@@ -135,9 +141,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    /* ── Cargar productos al cambiar almacén ── */
+    /* ── Cargar productos al cambiar almacén origen ── */
     window.cargarProductos = async function () {
-        const almacenId = selAlmacen.value;
+        const origenId = selOrigen.value;
 
         buscarInput.value    = '';
         buscarInput.disabled = true;
@@ -145,19 +151,19 @@ document.addEventListener('DOMContentLoaded', function () {
         productoHidden.value = '';
         lista.style.display  = 'none';
         hintProducto.style.display = 'none';
-        panelStock.style.display   = 'none';
-        inputConteo.disabled = true;
+        infoStock.style.display    = 'none';
+        inputCant.disabled   = true;
         btnSubmit.disabled   = true;
-        stockActual          = null;
+        stockDisponible      = 0;
         productosCache       = [];
 
-        if (!almacenId) {
-            buscarInput.placeholder = 'Primero selecciona un almacén...';
+        if (!origenId) {
+            buscarInput.placeholder = 'Primero selecciona un almacén origen...';
             return;
         }
 
         try {
-            const res = await fetch(`/api/almacen/${almacenId}/productos-con-stock`);
+            const res = await fetch(`/api/almacen/${origenId}/productos-con-stock`);
             productosCache = await res.json();
 
             if (productosCache.length === 0) {
@@ -180,10 +186,10 @@ document.addEventListener('DOMContentLoaded', function () {
         /* Si el usuario borra texto después de haber seleccionado, resetear */
         if (productoHidden.value) {
             productoHidden.value = '';
-            panelStock.style.display = 'none';
-            inputConteo.disabled = true;
-            btnSubmit.disabled   = true;
-            stockActual          = null;
+            infoStock.style.display = 'none';
+            inputCant.disabled  = true;
+            btnSubmit.disabled  = true;
+            stockDisponible     = 0;
         }
 
         if (!q) { lista.style.display = 'none'; return; }
@@ -217,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
             div.className = 'item-producto';
             div.innerHTML = `
                 <div class="nombre">${p.nombre}</div>
-                <div class="meta">SKU: ${p.codigo} &nbsp;·&nbsp; Stock: <strong>${p.cantidad}</strong> uds</div>
+                <div class="meta">SKU: ${p.codigo} &nbsp;·&nbsp; Disponible: <strong>${p.cantidad}</strong> uds</div>
             `;
             div.addEventListener('mousedown', () => seleccionarProducto(p));
             lista.appendChild(div);
@@ -230,30 +236,31 @@ document.addEventListener('DOMContentLoaded', function () {
         productoHidden.value = p.id;
         lista.style.display  = 'none';
 
-        stockActual = parseInt(p.cantidad);
-        lblActual.textContent = stockActual + ' uds';
-        panelDif.style.display   = 'none';
-        panelStock.style.display = 'block';
-        inputConteo.disabled = false;
-        inputConteo.value    = '';
-        btnSubmit.disabled   = true;
-        inputConteo.focus();
+        stockDisponible = parseInt(p.cantidad);
+        lblStock.textContent = stockDisponible;
+        infoStock.style.display = 'block';
+        inputCant.disabled  = false;
+        inputCant.max       = stockDisponible;
+        inputCant.value     = '';
+        validarFormulario();
+        inputCant.focus();
     }
 
-    /* ── Calcular diferencia en tiempo real ── */
-    window.calcularDiferencia = function () {
-        if (stockActual === null) return;
-        const conteo = parseInt(inputConteo.value);
-        if (isNaN(conteo)) {
-            panelDif.style.display = 'none';
-            btnSubmit.disabled = true;
-            return;
+    /* ── Validar formulario completo ── */
+    window.validarFormulario = function () {
+        const cant = parseInt(inputCant.value) || 0;
+        const dest = selDestino.value;
+        const orig = selOrigen.value;
+        const prod = productoHidden.value;
+        const ok   = prod && dest && orig && orig !== dest && cant > 0 && cant <= stockDisponible;
+
+        btnSubmit.disabled = !ok;
+
+        if (cant > stockDisponible && cant > 0) {
+            inputCant.classList.add('is-invalid');
+        } else {
+            inputCant.classList.remove('is-invalid');
         }
-        const dif = conteo - stockActual;
-        lblDif.textContent = (dif >= 0 ? '+' : '') + dif + ' uds';
-        lblDif.className   = 'fw-bold ' + (dif > 0 ? 'text-success' : dif < 0 ? 'text-danger' : 'text-muted');
-        panelDif.style.display = 'flex';
-        btnSubmit.disabled = (dif === 0);
     };
 });
 </script>
