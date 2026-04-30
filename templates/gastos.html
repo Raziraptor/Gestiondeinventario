@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from '_macros.html' import paginator %}
 
 {% block title %}Control de Gastos{% endblock %}
 
@@ -146,8 +147,20 @@
                     </a>
                 </div>
             </div>
+        {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="bi bi-cash-coin empty-state-icon"></i>
+                <h5>Sin gastos registrados</h5>
+                <p>No hay gastos para el período seleccionado. Registra uno para llevar el control financiero.</p>
+                <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                    <i class="bi bi-plus-circle me-1"></i> Registrar Gasto
+                </a>
+            </div>
+        </div>
         {% endfor %}
     </div>
+    {{ paginator(pagination, '?mes=' ~ mes_seleccionado ~ '&ano=' ~ ano_seleccionado) }}
 </div>
 
 {% endblock %}

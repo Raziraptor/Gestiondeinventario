@@ -203,7 +203,7 @@
                                     </div>
                                     <div class="col-4">
                                         <form action="{{ url_for('cancelar_proyecto_oc', id=poc.id) }}" method="POST" class="w-100"
-                                              onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta OC?');">
+                                              data-confirm="¿Cancelar esta Orden de Compra de Proyecto?">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-danger w-100 rounded-pill fw-bold" title="Cancelar OC">
                                                 <i class="bi bi-x-lg"></i>
@@ -238,6 +238,17 @@
                     </a>
                 </div>
             </div>
+        {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="bi bi-clipboard-data empty-state-icon"></i>
+                <h5>Sin órdenes de proyecto</h5>
+                <p>No hay órdenes de compra de proyectos registradas. Crea una para gestionar los materiales de un proyecto específico.</p>
+                <a href="{{ url_for('nueva_proyecto_oc') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                    <i class="bi bi-plus-circle me-1"></i> Nueva OC de Proyecto
+                </a>
+            </div>
+        </div>
         {% endfor %}
     </div>
 </div>

@@ -70,8 +70,8 @@
                                 </a>
 
                                 <!-- BOTÓN ELIMINAR -->
-                                <form action="{{ url_for('eliminar_almacen', id=alm.id) }}" method="POST" 
-                                      onsubmit="return confirm('¿ATENCIÓN:\n\n¿Estás seguro de que deseas ELIMINAR el almacén \'{{ alm.nombre }}\'?\n\nEsta acción no se puede deshacer y podría afectar el historial si hay inventario asociado.');">
+                                <form action="{{ url_for('eliminar_almacen', id=alm.id) }}" method="POST"
+                                      data-confirm="¿Eliminar el almacén '{{ alm.nombre }}'? Esta acción no se puede deshacer y podría afectar el historial de movimientos.">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm rounded-pill px-3" title="Eliminar Almacén">
                                         <i class="bi bi-trash"></i>

@@ -47,7 +47,16 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-center">No hay proveedores registrados.</td>
+                        <td colspan="4">
+                            <div class="empty-state">
+                                <i class="bi bi-truck empty-state-icon"></i>
+                                <h5>Sin proveedores</h5>
+                                <p>No hay proveedores registrados. Agrega uno para poder asociarlo a productos y órdenes de compra.</p>
+                                <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                                    <i class="bi bi-plus-circle me-1"></i> Agregar Proveedor
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

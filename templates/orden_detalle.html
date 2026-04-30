@@ -25,8 +25,8 @@
                 <i class="bi bi-pencil me-1"></i> Editar OC
             </a>
             <!-- Botón Cancelar -->
-            <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;" 
-                  onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta orden de compra?');">
+            <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" style="display: inline;"
+                  data-confirm="¿Cancelar esta orden de compra? Esta acción no se puede deshacer.">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-outline-danger shadow-sm rounded-pill px-4 fw-bold">
                     <i class="bi bi-x-circle me-1"></i> Cancelar

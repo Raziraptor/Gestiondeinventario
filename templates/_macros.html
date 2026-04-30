@@ -1,0 +1,33 @@
+{% macro paginator(pagination, base_url) %}
+{% if pagination.pages > 1 %}
+<div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+    <small class="text-muted">
+        <strong>{{ pagination.total }}</strong> resultado{{ 's' if pagination.total != 1 else '' }} &middot;
+        Página <strong>{{ pagination.page }}</strong> de <strong>{{ pagination.pages }}</strong>
+    </small>
+    <nav aria-label="Paginación">
+        <ul class="pagination pagination-sm mb-0" style="gap:0.25rem;">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link rounded-pill px-3" href="{{ base_url }}&page={{ pagination.prev_num }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% for p in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+                {% if p %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link rounded-pill px-3" href="{{ base_url }}&page={{ p }}">{{ p }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link px-2">…</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link rounded-pill px-3" href="{{ base_url }}&page={{ pagination.next_num }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+{% endif %}
+{% endmacro %}

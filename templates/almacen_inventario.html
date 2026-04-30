@@ -185,7 +185,7 @@
                                             <i class="bi bi-upc-scan"></i>
                                         </a>
                                         <!-- Botón de Eliminar -->
-                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Quitar del almacén? Se perderá el historial de movimientos asociado a esta ubicación física.');">
+                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" data-confirm="¿Quitar este producto del almacén? Se perderá el historial de movimientos asociado a esta ubicación.">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-danger btn-sm" title="Quitar de Almacén"><i class="bi bi-trash"></i></button>
                                         </form>

@@ -1771,10 +1771,12 @@ def historial_salidas():
         extract('month', Salida.fecha) == mes,
         extract('year', Salida.fecha) == ano
     )
-    salidas = query.order_by(Salida.fecha.desc()).all()
-    
-    return render_template('salidas.html', 
-                           salidas=salidas,
+    page = request.args.get('page', 1, type=int)
+    pagination = query.order_by(Salida.fecha.desc()).paginate(page=page, per_page=12, error_out=False)
+
+    return render_template('salidas.html',
+                           salidas=pagination.items,
+                           pagination=pagination,
                            meses_lista=meses_lista,
                            mes_seleccionado=mes,
                            ano_seleccionado=ano)
@@ -2118,10 +2120,12 @@ def lista_ordenes():
     if prov_id and prov_id != 0:
         query = query.filter_by(proveedor_id=prov_id)
 
-    ordenes = query.order_by(OrdenCompra.fecha_creacion.desc()).all()
-    
-    return render_template('ordenes.html', 
-                           ordenes=ordenes,
+    page = request.args.get('page', 1, type=int)
+    pagination = query.order_by(OrdenCompra.fecha_creacion.desc()).paginate(page=page, per_page=12, error_out=False)
+
+    return render_template('ordenes.html',
+                           ordenes=pagination.items,
+                           pagination=pagination,
                            proveedores=proveedores,
                            meses_lista=meses_lista,
                            mes_seleccionado=mes,
@@ -3125,11 +3129,24 @@ def lista_gastos():
         extract('year', Gasto.fecha) == ano
     ).order_by(Gasto.fecha.desc())
     
-    gastos = query_gastos.all()
-    total_gastos = sum(g.monto for g in gastos)
-    
-    return render_template('gastos.html', 
-                           gastos=gastos, 
+    if current_user.rol == 'super_admin':
+        total_gastos = db.session.query(db.func.sum(Gasto.monto)).filter(
+            extract('month', Gasto.fecha) == mes,
+            extract('year', Gasto.fecha) == ano
+        ).scalar() or 0
+    else:
+        total_gastos = db.session.query(db.func.sum(Gasto.monto)).filter(
+            Gasto.organizacion_id == current_user.organizacion_id,
+            extract('month', Gasto.fecha) == mes,
+            extract('year', Gasto.fecha) == ano
+        ).scalar() or 0
+
+    page = request.args.get('page', 1, type=int)
+    pagination = query_gastos.paginate(page=page, per_page=15, error_out=False)
+
+    return render_template('gastos.html',
+                           gastos=pagination.items,
+                           pagination=pagination,
                            total_gastos=total_gastos,
                            mes_seleccionado=mes,
                            ano_seleccionado=ano,
@@ -4028,6 +4045,21 @@ def api_chart_top_productos():
         'labels': [r.nombre[:25] for r in resultados],
         'valores': [int(r.total) for r in resultados]
     })
+
+
+# --- Manejadores de Error ---
+
+@app.errorhandler(404)
+def not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template('500.html'), 500
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('403.html'), 403
 
 
 # --- Inicialización ---

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from '_macros.html' import paginator %}
 
 {% block title %}Órdenes de Compra{% endblock %}
 
@@ -180,7 +181,7 @@
                                             <i class="bi bi-send"></i> Enviar
                                         </button>
                                     </form>
-                                    <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" class="d-contents" onsubmit="return confirm('¿Cancelar esta orden?');">
+                                    <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" class="d-contents" data-confirm="¿Cancelar esta orden de compra?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-secondary btn-sm">
                                             <i class="bi bi-x-lg"></i>
@@ -188,7 +189,7 @@
                                     </form>
                                 </div>
                             {% elif orden.estado == 'enviada' %}
-                                <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" class="d-grid" onsubmit="return confirm('¿Confirmas la recepción física de la mercancía?');">
+                                <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" class="d-grid" data-confirm="¿Confirmar la recepción física de toda la mercancía de esta orden?">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-success fw-bold shadow-sm">
                                         <i class="bi bi-box-seam me-1"></i> Registrar Recepción
@@ -224,8 +225,20 @@
                     Crear Nueva OC
                 </a>
             </div>
+        {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="bi bi-receipt empty-state-icon"></i>
+                <h5>Sin órdenes de compra</h5>
+                <p>No hay órdenes de compra para los filtros seleccionados. Crea una nueva para gestionar tus compras a proveedores.</p>
+                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                    <i class="bi bi-plus-circle me-1"></i> Nueva Orden
+                </a>
+            </div>
+        </div>
         {% endfor %}
     </div>
+    {{ paginator(pagination, '?mes=' ~ mes_seleccionado ~ '&ano=' ~ ano_seleccionado ~ '&proveedor_id=' ~ prov_seleccionado) }}
 </div>
 
 <script>

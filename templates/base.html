@@ -411,6 +411,135 @@
         @media (max-width: 576px) {
             .dropdown-menu { min-width: calc(100vw - 2rem); }
         }
+
+        /* ============================================================
+           TOAST NOTIFICATIONS
+        ============================================================ */
+        .toast-container-app {
+            position: fixed; bottom: 1.75rem; right: 1.75rem;
+            z-index: 99999; display: flex; flex-direction: column-reverse;
+            gap: 0.65rem; max-width: min(390px, calc(100vw - 3rem));
+            pointer-events: none;
+        }
+        .toast-app {
+            pointer-events: all; position: relative; overflow: hidden;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 1rem; box-shadow: var(--shadow-lg);
+            padding: 0.9rem 1rem; display: flex; align-items: center;
+            gap: 0.75rem; min-width: 260px;
+            animation: toastSlideIn 0.38s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        .toast-app.toast-hiding { animation: toastSlideOut 0.22s ease-in forwards; }
+        @keyframes toastSlideIn {
+            from { opacity:0; transform:translateX(110%) scale(0.92); }
+            to   { opacity:1; transform:translateX(0) scale(1); }
+        }
+        @keyframes toastSlideOut {
+            from { opacity:1; transform:translateX(0) scale(1); max-height:200px; }
+            to   { opacity:0; transform:translateX(60%); max-height:0; padding:0; margin:0; }
+        }
+        .toast-app-icon  { font-size:1.25rem; flex-shrink:0; line-height:1; }
+        .toast-app-msg   { font-size:0.875rem; font-weight:500; flex:1; line-height:1.45; color:var(--bs-body-color); }
+        .toast-app-close { background:none; border:none; padding:0.1rem 0.2rem; color:var(--bs-secondary);
+                           cursor:pointer; font-size:1rem; flex-shrink:0; opacity:0.6; line-height:1;
+                           transition:opacity 0.15s; }
+        .toast-app-close:hover { opacity:1; }
+        .toast-progress-bar { position:absolute; bottom:0; left:0; height:3px;
+                              border-radius:0 0 1rem 1rem; animation:toastProgress linear forwards; }
+        @keyframes toastProgress { from{width:100%} to{width:0%} }
+        .toast-app.t-success .toast-progress-bar { background:#10b981; }
+        .toast-app.t-danger  .toast-progress-bar { background:#ef4444; }
+        .toast-app.t-warning .toast-progress-bar { background:#f59e0b; }
+        .toast-app.t-info    .toast-progress-bar { background:#3b82f6; }
+
+        /* ============================================================
+           BÚSQUEDA GLOBAL EN NAVBAR
+        ============================================================ */
+        .navbar-search-wrap { position:relative; }
+        .navbar-search-input {
+            width:190px; padding:0.38rem 0.9rem 0.38rem 2.1rem;
+            border-radius:100px; border:1px solid var(--border);
+            background:var(--hover-bg); color:var(--bs-body-color);
+            font-size:0.85rem; outline:none;
+            transition:width 0.3s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .navbar-search-input::placeholder { color:var(--bs-secondary); opacity:0.8; }
+        .navbar-search-input:focus {
+            border-color:var(--primary);
+            box-shadow:0 0 0 3px rgba(var(--primary-rgb),.13);
+            width:250px;
+        }
+        .navbar-search-icon {
+            position:absolute; left:0.72rem; top:50%; transform:translateY(-50%);
+            color:var(--bs-secondary); font-size:0.78rem; pointer-events:none; line-height:1;
+        }
+        .search-dropdown {
+            position:absolute; top:calc(100% + 0.5rem); left:50%; transform:translateX(-50%);
+            width:340px; background:var(--surface); border:1px solid var(--border);
+            border-radius:1rem; box-shadow:var(--shadow-lg); z-index:2000;
+            overflow:hidden; display:none;
+            animation:dropIn 0.18s ease both;
+        }
+        @keyframes dropIn {
+            from { opacity:0; transform:translateX(-50%) translateY(-6px); }
+            to   { opacity:1; transform:translateX(-50%) translateY(0); }
+        }
+        .search-item {
+            display:flex; align-items:center; gap:0.75rem;
+            padding:0.65rem 1rem; text-decoration:none;
+            color:var(--bs-body-color); border-bottom:1px solid var(--border);
+            transition:background 0.12s; font-size:0.875rem;
+        }
+        .search-item:last-child { border-bottom:none; }
+        .search-item:hover { background:var(--hover-bg); color:var(--primary); }
+        .search-item-icon {
+            width:34px; height:34px; border-radius:0.5rem; background:var(--hover-bg);
+            display:flex; align-items:center; justify-content:center;
+            flex-shrink:0; font-size:1rem; overflow:hidden;
+        }
+
+        /* ============================================================
+           MODAL DE CONFIRMACIÓN GLOBAL
+        ============================================================ */
+        .confirm-modal-body { background:var(--surface); border:1px solid var(--border);
+                              border-radius:1.25rem !important; }
+        .confirm-icon-wrap {
+            width:64px; height:64px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:1.75rem; margin:0 auto 1rem;
+        }
+
+        /* ============================================================
+           PAGINACIÓN
+        ============================================================ */
+        .page-link {
+            background-color: var(--surface) !important;
+            border-color: var(--border) !important;
+            color: var(--bs-body-color) !important;
+            font-weight: 500; font-size: 0.875rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .page-link:hover { background-color: var(--hover-bg) !important; color: var(--primary) !important; }
+        .page-item.active .page-link {
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important;
+            color: #fff !important;
+        }
+        .page-item.disabled .page-link { opacity: 0.4; }
+
+        /* ============================================================
+           EMPTY STATE
+        ============================================================ */
+        .empty-state {
+            text-align:center; padding:4rem 1.5rem;
+            color:var(--bs-secondary);
+        }
+        .empty-state-icon {
+            font-size:3.5rem; margin-bottom:1rem; opacity:0.4;
+            display:block;
+        }
+        .empty-state h5 { font-weight:700; color:var(--bs-body-color); margin-bottom:0.5rem; }
+        .empty-state p  { font-size:0.9rem; max-width:320px; margin:0 auto 1.5rem; }
     </style>
 </head>
 <body>
@@ -551,6 +680,16 @@
                 <!-- DERECHA: tema + usuario -->
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-2">
 
+                    <!-- Búsqueda Global -->
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item d-none d-lg-flex align-items-center navbar-search-wrap">
+                        <i class="bi bi-search navbar-search-icon"></i>
+                        <input type="text" id="globalSearch" class="navbar-search-input"
+                               placeholder="Buscar producto..." autocomplete="off" aria-label="Buscar producto">
+                        <div id="searchDropdown" class="search-dropdown"></div>
+                    </li>
+                    {% endif %}
+
                     <!-- Botón de tema (disponible en todas las páginas) -->
                     <li class="nav-item">
                         <button id="theme-toggle" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema">
@@ -625,26 +764,16 @@
     ===================================================== -->
     <main class="container py-2 mb-5">
 
-        <!-- Alertas Flash -->
-        <div class="mensajes-flash-container position-relative mb-4">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    {% set icon = 'bi-info-circle-fill text-info' %}
-                    {% if category == 'success' %}{% set icon = 'bi-check-circle-fill text-success' %}{% endif %}
-                    {% if category == 'danger'  %}{% set icon = 'bi-exclamation-octagon-fill text-danger' %}{% endif %}
-                    {% if category == 'warning' %}{% set icon = 'bi-exclamation-triangle-fill text-warning' %}{% endif %}
-                    <div class="alert alert-{{ category }} alert-premium alert-dismissible fade show" role="alert">
-                        <div class="d-flex align-items-center gap-3 pe-4">
-                            <i class="bi {{ icon }} fs-4 flex-shrink-0"></i>
-                            <div class="text-break">{{ message }}</div>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-            {% endwith %}
+        <!-- Flash messages → renderizados como toasts por JS -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div id="flashData" style="display:none" aria-hidden="true">
+            {% for category, message in messages %}
+            <span data-cat="{{ category }}" data-msg="{{ message | e }}"></span>
+            {% endfor %}
         </div>
+        {% endif %}
+        {% endwith %}
 
         {% block content %}{% endblock %}
     </main>
@@ -682,5 +811,176 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+
+    <!-- TOAST CONTAINER -->
+    <div id="toastContainer" class="toast-container-app" aria-live="polite" aria-atomic="false"></div>
+
+    <!-- MODAL DE CONFIRMACIÓN GLOBAL -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:370px;">
+            <div class="modal-content confirm-modal-body border-0">
+                <div class="modal-body text-center p-4 pb-2">
+                    <div class="confirm-icon-wrap bg-danger bg-opacity-10" id="confirmIconWrap">
+                        <i class="bi bi-exclamation-triangle-fill text-danger" id="confirmIcon"></i>
+                    </div>
+                    <h6 class="fw-bold mb-2 fs-5" id="confirmTitle">¿Estás seguro?</h6>
+                    <p class="text-muted mb-0" style="font-size:0.875rem;" id="confirmBody">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4 gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4" id="confirmOkBtn">
+                        <i class="bi bi-check2 me-1"></i> Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /* ==========================================
+       SISTEMA DE TOASTS
+    ========================================== */
+    (function() {
+        const container = document.getElementById('toastContainer');
+        const ICONS = {
+            success: { icon:'bi-check-circle-fill',      color:'#10b981' },
+            danger:  { icon:'bi-exclamation-octagon-fill',color:'#ef4444' },
+            warning: { icon:'bi-exclamation-triangle-fill',color:'#f59e0b' },
+            info:    { icon:'bi-info-circle-fill',        color:'#3b82f6' },
+        };
+
+        window.showToast = function(msg, cat, duration) {
+            cat      = cat || 'info';
+            duration = duration || 4800;
+            const cfg = ICONS[cat] || ICONS.info;
+
+            const el = document.createElement('div');
+            el.className = 'toast-app t-' + cat;
+            el.innerHTML =
+                '<i class="bi ' + cfg.icon + ' toast-app-icon" style="color:' + cfg.color + '"></i>' +
+                '<span class="toast-app-msg">' + msg + '</span>' +
+                '<button class="toast-app-close" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>' +
+                '<div class="toast-progress-bar" style="animation-duration:' + duration + 'ms"></div>';
+
+            container.appendChild(el);
+
+            function dismiss() {
+                if (el.classList.contains('toast-hiding')) return;
+                el.classList.add('toast-hiding');
+                el.addEventListener('animationend', () => el.remove(), { once: true });
+            }
+
+            el.querySelector('.toast-app-close').addEventListener('click', dismiss);
+            setTimeout(dismiss, duration);
+        };
+
+        // Mostrar flash messages del servidor
+        const flashData = document.getElementById('flashData');
+        if (flashData) {
+            flashData.querySelectorAll('[data-cat]').forEach(function(item, i) {
+                setTimeout(function() { showToast(item.dataset.msg, item.dataset.cat); }, i * 200);
+            });
+        }
+    })();
+
+    /* ==========================================
+       MODAL DE CONFIRMACIÓN GLOBAL
+    ========================================== */
+    (function() {
+        const modalEl  = document.getElementById('confirmModal');
+        if (!modalEl) return;
+        const bsModal  = new bootstrap.Modal(modalEl);
+        const titleEl  = document.getElementById('confirmTitle');
+        const bodyEl   = document.getElementById('confirmBody');
+        const okBtn    = document.getElementById('confirmOkBtn');
+        let cb = null;
+
+        window.confirmAction = function(opts) {
+            titleEl.textContent = opts.title   || '¿Confirmar acción?';
+            bodyEl.textContent  = opts.body    || 'Esta acción no se puede deshacer.';
+            okBtn.className = 'btn rounded-pill px-4 ' + (opts.btnClass || 'btn-danger');
+            okBtn.innerHTML = '<i class="bi bi-check2 me-1"></i> ' + (opts.btnText || 'Confirmar');
+            cb = opts.onConfirm || null;
+            bsModal.show();
+        };
+
+        okBtn.addEventListener('click', function() {
+            bsModal.hide();
+            if (typeof cb === 'function') cb();
+            cb = null;
+        });
+
+        // Interceptar forms con data-confirm automáticamente
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            const msg  = form.getAttribute('data-confirm');
+            if (!msg) return;
+            e.preventDefault();
+            confirmAction({
+                title: msg,
+                body: 'Esta acción no se puede deshacer.',
+                onConfirm: function() { form.removeAttribute('data-confirm'); form.submit(); }
+            });
+        }, true);
+    })();
+
+    /* ==========================================
+       BÚSQUEDA GLOBAL EN NAVBAR
+    ========================================== */
+    (function() {
+        const input    = document.getElementById('globalSearch');
+        const dropdown = document.getElementById('searchDropdown');
+        if (!input || !dropdown) return;
+        let timer;
+
+        input.addEventListener('input', function() {
+            clearTimeout(timer);
+            const q = this.value.trim();
+            if (q.length < 2) { hide(); return; }
+            timer = setTimeout(function() { doSearch(q); }, 260);
+        });
+
+        input.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2 && dropdown.innerHTML) show();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { hide(); input.blur(); }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) hide();
+        });
+
+        function doSearch(q) {
+            fetch('/api/productos/buscar?q=' + encodeURIComponent(q))
+                .then(function(r) { return r.json(); })
+                .then(function(data) { render(data, q); })
+                .catch(function() {});
+        }
+
+        function render(data, q) {
+            if (!data.length) {
+                dropdown.innerHTML = '<div class="p-3 text-center text-muted" style="font-size:0.85rem;">' +
+                    '<i class="bi bi-search me-1"></i>Sin resultados para "' + q + '"</div>';
+                show(); return;
+            }
+            dropdown.innerHTML = data.slice(0, 7).map(function(p) {
+                return '<a href="/producto/editar/' + p.id + '" class="search-item">' +
+                    '<div class="search-item-icon"><i class="bi bi-box-seam text-muted"></i></div>' +
+                    '<div>' +
+                        '<div class="fw-semibold" style="line-height:1.3;">' + p.nombre + '</div>' +
+                        '<div class="text-muted" style="font-size:0.75rem;">SKU: ' + p.codigo + ' &middot; $' + parseFloat(p.precio).toFixed(2) + '</div>' +
+                    '</div></a>';
+            }).join('');
+            show();
+        }
+
+        function show() { dropdown.style.display = 'block'; }
+        function hide() { dropdown.style.display = 'none'; }
+    })();
+    </script>
 </body>
 </html>

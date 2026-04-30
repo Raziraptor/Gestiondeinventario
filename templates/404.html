@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Página no encontrada{% endblock %}
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center text-center" style="min-height:60vh; padding:3rem 1rem;">
+    <div style="font-size:6rem; line-height:1; margin-bottom:1.5rem; opacity:0.15; font-weight:900; letter-spacing:-4px; color:var(--primary);">404</div>
+    <div style="font-size:3rem; margin-bottom:1rem;">🔍</div>
+    <h2 class="fw-bold mb-2">Página no encontrada</h2>
+    <p class="text-muted mb-4" style="max-width:380px; font-size:0.95rem;">
+        La página que buscas no existe o fue movida. Revisa la URL o regresa al inicio.
+    </p>
+    <div class="d-flex gap-3 flex-wrap justify-content-center">
+        <a href="{{ url_for('index') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+            <i class="bi bi-house me-1"></i> Ir al Inicio
+        </a>
+        <button onclick="history.back()" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+        </button>
+    </div>
+</div>
+{% endblock %}
