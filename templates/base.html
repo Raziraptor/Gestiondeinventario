@@ -17,6 +17,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    {% block extra_css %}{% endblock %}
     
     <!-- SCRIPT DE TEMA TEMPRANO (Evita el parpadeo blanco "FOUC" al cambiar de página) -->
     <script>
@@ -293,6 +295,22 @@
                                         </a>
                                     </li>
                                     {% endif %}
+
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('nueva_transferencia') }}">
+                                            <i class="bi bi-arrow-left-right me-2 text-primary"></i> Transferir entre Almacenes
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('nuevo_ajuste') }}">
+                                            <i class="bi bi-clipboard2-check me-2 text-warning"></i> Ajuste de Inventario
+                                        </a>
+                                    </li>
+                                    {% endif %}
                                 </ul>
                             </li>
                             {% endif %}
@@ -398,5 +416,9 @@
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
