@@ -7,78 +7,66 @@ import os
 import io
 import csv
 import secrets
-from dotenv import load_dotenv
-load_dotenv()
 from functools import wraps
 from datetime import datetime
 from collections import defaultdict
+from threading import Thread
+
+# --- Variables de entorno ---
+from dotenv import load_dotenv
+load_dotenv()
 
 # --- Flask y Extensiones ---
-from flask import (Flask, render_template, request, redirect, url_for, flash, 
-                   send_file, make_response)
+from flask import (Flask, render_template, request, redirect, url_for, flash,
+                   send_file, make_response, jsonify, current_app)
 from flask.cli import with_appcontext
 import click
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import (LoginManager, UserMixin, login_user, logout_user, 
+from flask_login import (LoginManager, UserMixin, login_user, logout_user,
                          login_required, current_user)
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from flask_mail import Mail, Message
+from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
-from threading import Thread
-from flask import current_app
-from itsdangerous.url_safe import URLSafeTimedSerializer
-from functools import wraps
-from flask import flash, redirect, url_for
-from flask_login import current_user
-from flask_mail import Message
 
 # --- Formularios (WTForms) ---
-from wtforms import StringField, PasswordField, SubmitField, BooleanField # <-- AÑADIDO BooleanField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError, Email
 
-# --- Utilidades y Herramientas ---
+# --- Seguridad y Tokens ---
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import extract, Date # <-- AÑADIDO Date
-from sqlalchemy.exc import IntegrityError
 from itsdangerous.url_safe import URLSafeTimedSerializer
-from PIL import Image, ImageDraw, ImageFont
-from PIL import Image
-import qrcode
-import secrets
-from functools import wraps
-from reportlab.lib.units import inch, mm
-from reportlab.graphics.barcode import qr
-from reportlab.graphics.shapes import Drawing
 
-# --- Reportes (PDF y Excel) ---
-import openpyxl
-from openpyxl.styles import (Font, PatternFill, Alignment, NamedStyle, Border, 
-                             Side)
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table as ExcelTable, TableStyleInfo
+# --- Base de Datos ---
+from sqlalchemy import extract, Date, text
+from sqlalchemy.exc import IntegrityError
+
+# --- Imágenes y QR ---
+from PIL import Image, ImageDraw, ImageFont
+import qrcode
+
+# --- Reportes (PDF) ---
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, letter
-from reportlab.lib.units import inch
+from reportlab.lib.units import inch, mm
 from reportlab.lib.utils import ImageReader
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as ReportLabImage
+from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle,
+                                Paragraph, Spacer, Image as ReportLabImage)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as ReportLabImage
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
-from werkzeug.security import generate_password_hash
-from sqlalchemy import text
+from reportlab.graphics.barcode import qr
+from reportlab.graphics.shapes import Drawing
 
+# --- Reportes (Excel) ---
+import openpyxl
+from openpyxl.styles import (Font, PatternFill, Alignment, NamedStyle, Border, Side)
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table as ExcelTable, TableStyleInfo
+
+# --- HTTP ---
 import requests
-from threading import Thread
-from flask import current_app, url_for, flash, redirect, render_template
-from itsdangerous.url_safe import URLSafeTimedSerializer
 
 
 # ==============================================================================
@@ -316,10 +304,6 @@ class OrdenCompra(db.Model):
     @property
     def costo_total(self):
         return sum(detalle.subtotal for detalle in self.detalles)
-    
-    @property
-    def costo_total(self):
-        return sum(detalle.subtotal for detalle in self.detalles)
 
 class OrdenCompraDetalle(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -545,32 +529,6 @@ def save_picture(form_picture):
 
     return picture_fn
 
-def send_async_email(app, msg):
-    with app.app_context():
-        try:
-            mail.send(msg)
-        except Exception as e:
-            print(f"Error enviando correo de recuperación: {str(e)}")
-
-def send_reset_email(user):
-    app_actual = current_app._get_current_object()
-    
-    # Usamos URLSafeTimedSerializer para generar un token directamente desde el email
-    s = URLSafeTimedSerializer(app_actual.config['SECRET_KEY'])
-    token = s.dumps(user.email, salt='password-reset-salt')
-    
-    msg = Message('Petición de Restablecimiento de Contraseña',
-                  recipients=[user.email])
-    
-    msg.body = (
-        f"Para restablecer tu contraseña, visita el siguiente enlace:\n"
-        f"{url_for('reset_password', token=token, _external=True)}\n\n"
-        f"Si no hiciste esta petición, simplemente ignora este correo y no habrá cambios."
-    )
-    
-    # Lanzar el hilo (Thread)
-    Thread(target=send_async_email, args=(app_actual, msg)).start()
-
 def check_org_permission(f):
     """
     Decorador para verificar que un usuario (no super_admin)
@@ -720,7 +678,7 @@ def enviar_correo_api(destinatario, reset_url):
         print("ERROR: Falta BREVO_API_KEY en el archivo .env")
         return
         
-    url = "https://api.brevo.com/v3/smtp/email](https://api.brevo.com/v3/smtp/email"
+    url = "https://api.brevo.com/v3/smtp/email"
     
     # IMPORTANTE: Cambia 'tu_correo@gmail.com' por el correo con el que te registraste en Brevo
     payload = {
@@ -2787,7 +2745,7 @@ def eliminar_orden(id):
     
     try:
         # Primero eliminamos los detalles para evitar errores de integridad (si no hay cascada configurada)
-        OrdenDetalle.query.filter_by(orden_id=orden.id).delete()
+        OrdenCompraDetalle.query.filter_by(orden_id=orden.id).delete()
         
         # Ahora eliminamos la cabecera
         db.session.delete(orden)
@@ -3704,7 +3662,7 @@ def ai_mejorar_descripcion():
         
     try:
         # Reemplaza esto con tu API Key (Te explico cómo obtenerla abajo)
-        API_KEY = os.environ.get("AIzaSyDTKYKVzr7M3aBrcS76rMeAd15SSitn3CU")
+        API_KEY = os.environ.get("GEMINI_API_KEY")
         
         # Cliente del NUEVO SDK de Google
         client = genai.Client(api_key=API_KEY)
@@ -3810,13 +3768,269 @@ def update_user_permissions(user_id):
             
     return redirect(url_for('admin_panel'))
 
+# ==============================================================================
+# TRANSFERENCIAS ENTRE ALMACENES
+# ==============================================================================
+
+@app.route('/transferencia/nueva', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_do_salidas')
+def nueva_transferencia():
+    """Mueve stock de un almacén origen a un almacén destino en una transacción atómica."""
+    org_id = current_user.organizacion_id
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).order_by(Almacen.nombre).all()
+
+    if len(almacenes) < 2:
+        flash('Necesitas al menos 2 almacenes para realizar una transferencia.', 'warning')
+        return redirect(url_for('lista_almacenes'))
+
+    if request.method == 'POST':
+        try:
+            origen_id  = int(request.form.get('almacen_origen_id'))
+            destino_id = int(request.form.get('almacen_destino_id'))
+            producto_id = int(request.form.get('producto_id'))
+            cantidad   = int(request.form.get('cantidad', 0))
+            motivo     = request.form.get('motivo', '').strip() or 'Transferencia entre almacenes'
+
+            if origen_id == destino_id:
+                flash('El almacén de origen y destino no pueden ser el mismo.', 'danger')
+                return redirect(url_for('nueva_transferencia'))
+            if cantidad <= 0:
+                flash('La cantidad debe ser mayor a cero.', 'danger')
+                return redirect(url_for('nueva_transferencia'))
+
+            stock_origen = Stock.query.filter_by(
+                producto_id=producto_id, almacen_id=origen_id
+            ).first()
+
+            if not stock_origen or stock_origen.cantidad < cantidad:
+                flash(f'Stock insuficiente en el almacén origen. Disponible: {stock_origen.cantidad if stock_origen else 0}', 'danger')
+                return redirect(url_for('nueva_transferencia'))
+
+            ref = secrets.token_hex(4).upper()
+
+            # Descontar del origen
+            stock_origen.cantidad -= cantidad
+
+            # Sumar (o crear) en el destino
+            stock_destino = Stock.query.filter_by(
+                producto_id=producto_id, almacen_id=destino_id
+            ).first()
+            if stock_destino:
+                stock_destino.cantidad += cantidad
+            else:
+                stock_destino = Stock(
+                    producto_id=producto_id,
+                    almacen_id=destino_id,
+                    cantidad=cantidad,
+                    stock_minimo=stock_origen.stock_minimo,
+                    stock_maximo=stock_origen.stock_maximo,
+                )
+                db.session.add(stock_destino)
+
+            now = datetime.now()
+            db.session.add(Movimiento(
+                producto_id=producto_id, cantidad=-cantidad,
+                tipo='transferencia-salida', fecha=now,
+                motivo=f'[REF:{ref}] {motivo}',
+                almacen_id=origen_id, organizacion_id=org_id
+            ))
+            db.session.add(Movimiento(
+                producto_id=producto_id, cantidad=cantidad,
+                tipo='transferencia-entrada', fecha=now,
+                motivo=f'[REF:{ref}] {motivo}',
+                almacen_id=destino_id, organizacion_id=org_id
+            ))
+
+            db.session.commit()
+            flash(f'Transferencia REF:{ref} completada. {cantidad} unidades movidas correctamente.', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al realizar la transferencia: {e}', 'danger')
+
+    return render_template('transferencia_form.html',
+                           titulo='Nueva Transferencia de Stock',
+                           almacenes=almacenes)
+
+
+@app.route('/api/almacen/<int:almacen_id>/productos-con-stock')
+@login_required
+def api_productos_con_stock(almacen_id):
+    """Retorna los productos con stock > 0 en un almacén dado (para el select dinámico)."""
+    org_id = current_user.organizacion_id
+    almacen = Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first_or_404()
+
+    items = db.session.query(Stock).filter(
+        Stock.almacen_id == almacen.id,
+        Stock.cantidad > 0
+    ).join(Producto).order_by(Producto.nombre).all()
+
+    return jsonify([{
+        'id': s.producto_id,
+        'nombre': s.producto.nombre,
+        'codigo': s.producto.codigo,
+        'cantidad': s.cantidad
+    } for s in items])
+
+
+# ==============================================================================
+# AJUSTE MANUAL DE INVENTARIO
+# ==============================================================================
+
+@app.route('/ajuste/nuevo', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def nuevo_ajuste():
+    """Registra un ajuste físico de inventario con auditoría completa."""
+    org_id = current_user.organizacion_id
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).order_by(Almacen.nombre).all()
+
+    if request.method == 'POST':
+        try:
+            almacen_id  = int(request.form.get('almacen_id'))
+            producto_id = int(request.form.get('producto_id'))
+            cantidad_fisica = int(request.form.get('cantidad_fisica', 0))
+            motivo = request.form.get('motivo', '').strip()
+
+            if not motivo:
+                flash('El motivo del ajuste es obligatorio para la auditoría.', 'danger')
+                return redirect(url_for('nuevo_ajuste'))
+
+            stock = Stock.query.filter_by(
+                producto_id=producto_id, almacen_id=almacen_id
+            ).first()
+
+            if not stock:
+                flash('No se encontró ese producto en el almacén seleccionado.', 'danger')
+                return redirect(url_for('nuevo_ajuste'))
+
+            diferencia = cantidad_fisica - stock.cantidad
+
+            if diferencia == 0:
+                flash('No hay diferencia entre el conteo físico y el sistema. No se realizó ningún ajuste.', 'info')
+                return redirect(url_for('nuevo_ajuste'))
+
+            tipo_mov = 'ajuste-entrada' if diferencia > 0 else 'ajuste-salida'
+            stock.cantidad = cantidad_fisica
+
+            db.session.add(Movimiento(
+                producto_id=producto_id,
+                cantidad=diferencia,
+                tipo=tipo_mov,
+                fecha=datetime.now(),
+                motivo=f'Ajuste Físico: {motivo}',
+                almacen_id=almacen_id,
+                organizacion_id=org_id
+            ))
+            db.session.commit()
+
+            signo = '+' if diferencia > 0 else ''
+            flash(f'Ajuste registrado. Diferencia aplicada: {signo}{diferencia} unidades.', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al registrar el ajuste: {e}', 'danger')
+
+    return render_template('ajuste_form.html',
+                           titulo='Ajuste Manual de Inventario',
+                           almacenes=almacenes)
+
+
+# ==============================================================================
+# ENDPOINTS JSON PARA GRÁFICAS (CHART.JS)
+# ==============================================================================
+
+@app.route('/api/charts/movimientos-mes')
+@login_required
+@check_org_permission
+def api_chart_movimientos_mes():
+    """Retorna entradas y salidas de los últimos 6 meses para la gráfica de barras."""
+    org_id = current_user.organizacion_id
+    hoy = datetime.now()
+
+    labels, entradas, salidas = [], [], []
+
+    for i in range(5, -1, -1):
+        mes = (hoy.month - i - 1) % 12 + 1
+        ano = hoy.year if (hoy.month - i) > 0 else hoy.year - 1
+
+        total_entrada = db.session.query(db.func.sum(Movimiento.cantidad)).filter(
+            Movimiento.organizacion_id == org_id,
+            Movimiento.tipo.in_(['entrada', 'entrada-inicial', 'ajuste-entrada']),
+            extract('month', Movimiento.fecha) == mes,
+            extract('year', Movimiento.fecha) == ano
+        ).scalar() or 0
+
+        total_salida = abs(db.session.query(db.func.sum(Movimiento.cantidad)).filter(
+            Movimiento.organizacion_id == org_id,
+            Movimiento.tipo == 'salida',
+            extract('month', Movimiento.fecha) == mes,
+            extract('year', Movimiento.fecha) == ano
+        ).scalar() or 0)
+
+        nombre_mes = datetime(ano, mes, 1).strftime('%b %Y')
+        labels.append(nombre_mes)
+        entradas.append(int(total_entrada))
+        salidas.append(int(total_salida))
+
+    return jsonify({'labels': labels, 'entradas': entradas, 'salidas': salidas})
+
+
+@app.route('/api/charts/estado-stock')
+@login_required
+@check_org_permission
+def api_chart_estado_stock():
+    """Retorna conteo de productos por estado (bajo/ok/exceso) para la gráfica de dona."""
+    org_id = current_user.organizacion_id
+
+    bajo = db.session.query(db.func.count(Stock.id)).join(Almacen).filter(
+        Almacen.organizacion_id == org_id,
+        Stock.cantidad < Stock.stock_minimo
+    ).scalar() or 0
+
+    exceso = db.session.query(db.func.count(Stock.id)).join(Almacen).filter(
+        Almacen.organizacion_id == org_id,
+        Stock.cantidad > Stock.stock_maximo
+    ).scalar() or 0
+
+    ok = db.session.query(db.func.count(Stock.id)).join(Almacen).filter(
+        Almacen.organizacion_id == org_id,
+        Stock.cantidad >= Stock.stock_minimo,
+        Stock.cantidad <= Stock.stock_maximo
+    ).scalar() or 0
+
+    return jsonify({'bajo': int(bajo), 'ok': int(ok), 'exceso': int(exceso)})
+
+
+@app.route('/api/charts/top-productos')
+@login_required
+@check_org_permission
+def api_chart_top_productos():
+    """Retorna los 8 productos con más salidas en los últimos 30 días."""
+    org_id = current_user.organizacion_id
+    desde = datetime.now().replace(day=1)
+
+    resultados = db.session.query(
+        Producto.nombre,
+        db.func.sum(db.func.abs(Movimiento.cantidad)).label('total')
+    ).join(Movimiento, Movimiento.producto_id == Producto.id).filter(
+        Movimiento.organizacion_id == org_id,
+        Movimiento.tipo == 'salida',
+        Movimiento.fecha >= desde
+    ).group_by(Producto.nombre).order_by(db.desc('total')).limit(8).all()
+
+    return jsonify({
+        'labels': [r.nombre[:25] for r in resultados],
+        'valores': [int(r.total) for r in resultados]
+    })
+
+
 # --- Inicialización ---
 if __name__ == '__main__':
-    # Creación del superadmin solo se hace dentro del contexto si es necesario
-    with app.app_context():
-        crear_superadmin()
-        
-    # Lee el modo debug del archivo .env (Por defecto será False por seguridad)
     modo_debug = os.environ.get('FLASK_DEBUG', 'False') == 'True'
     app.run(host='0.0.0.0', port=5000, debug=modo_debug)
-    app.run(debug=True, port=5000)
