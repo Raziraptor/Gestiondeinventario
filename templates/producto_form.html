@@ -1,60 +1,21 @@
 {% extends 'base.html' %}
-
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<style>
-    [data-bs-theme="dark"] .navbar {
-        background-color: #121212 !important;
-        border-bottom: 1px solid #2a2a2a !important;
-    }
-    [data-bs-theme="dark"] .navbar .navbar-brand,
-    [data-bs-theme="dark"] .navbar .nav-link,
-    [data-bs-theme="dark"] .navbar .navbar-text {
-        color: #e0e0e0 !important;
-    }
-    [data-bs-theme="dark"] .navbar .nav-link:hover { color: #ffffff !important; }
-    [data-bs-theme="dark"] body { background-color: #000000 !important; color: #e0e0e0; }
-    [data-bs-theme="dark"] .card { background-color: #121212 !important; border-color: #2a2a2a !important; }
-    [data-bs-theme="dark"] .card-header { background-color: transparent !important; border-bottom-color: #2a2a2a !important; }
-    [data-bs-theme="dark"] .bg-light { background-color: #1a1a1a !important; }
-    [data-bs-theme="dark"] .text-dark { color: #ffffff !important; }
-    [data-bs-theme="dark"] .text-muted { color: #888888 !important; }
-    [data-bs-theme="dark"] .border, [data-bs-theme="dark"] .border-bottom { border-color: #2a2a2a !important; }
-    [data-bs-theme="dark"] .form-control,
-    [data-bs-theme="dark"] .form-select,
-    [data-bs-theme="dark"] .input-group-text {
-        background-color: #1a1a1a !important;
-        border-color: #333 !important;
-        color: #e0e0e0 !important;
-    }
-    [data-bs-theme="dark"] .form-control:focus,
-    [data-bs-theme="dark"] .form-select:focus {
-        background-color: #222 !important;
-        border-color: #0d6efd !important;
-        color: #fff !important;
-    }
-    [data-bs-theme="dark"] .form-control::file-selector-button {
-        background-color: #2a2a2a !important;
-        color: #e0e0e0 !important;
-        border-right-color: #333 !important;
-    }
-    [data-bs-theme="light"] body { background-color: #f8f9fa !important; color: #212529; }
-    [data-bs-theme="light"] .card { background-color: #ffffff; border-color: #dee2e6; }
-</style>
+<div class="container-fluid mt-3 mb-5" style="max-width:1080px;">
 
-<div class="container-fluid mt-3 mb-5">
-
-    <div class="d-flex justify-content-end mb-2">
-        <button id="theme-toggle" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 rounded-pill shadow-sm px-3 py-2" title="Cambiar Tema">
-            <i id="theme-icon" class="bi bi-moon-fill"></i>
-            <span id="theme-text" class="fw-bold small">Modo Oscuro</span>
-        </button>
-    </div>
-
-    <div class="text-center mb-5">
-        <h2 class="fw-bold fs-1">{{ titulo }}</h2>
-        <p class="text-muted fs-5">Completa la información requerida para el catálogo</p>
+    <!-- ENCABEZADO -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">{{ titulo }}</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-1">
+            <i class="bi bi-box-seam text-primary me-2"></i>{{ titulo }}
+        </h2>
+        <p class="text-muted mb-0">Completa la información del catálogo de productos.</p>
     </div>
 
     <form id="formulario_producto" method="POST"
@@ -62,174 +23,190 @@
           enctype="multipart/form-data">
 
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {% if form %} {{ form.hidden_tag() }} {% endif %}
-        {% if stock_item %} <input type="hidden" name="almacen_id" value="{{ stock_item.almacen_id }}"> {% endif %}
+        {% if form %}{{ form.hidden_tag() }}{% endif %}
+        {% if stock_item %}<input type="hidden" name="almacen_id" value="{{ stock_item.almacen_id }}">{% endif %}
 
-        <div class="row g-4 justify-content-center">
+        <div class="row g-4">
 
-            <!-- COLUMNA IZQUIERDA: DATOS -->
+            <!-- ── COLUMNA IZQUIERDA ────────────────────────────── -->
             <div class="col-lg-8">
 
-                <!-- SECCIÓN 1: DETALLES DEL PRODUCTO -->
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
-                        <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-tag-fill me-2"></i>Información General</h4>
+                <!-- SECCIÓN 1: INFORMACIÓN GENERAL -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-tag-fill text-primary me-2"></i>Información General
+                        </h5>
                     </div>
                     <div class="card-body p-4">
-                        <div class="row g-4 mb-2">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="nombre" class="form-label fw-bold small text-muted">Nombre del Producto</label>
+                                <label for="nombre" class="form-label fw-semibold small text-muted mb-1">Nombre del Producto <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
-                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="nombre" name="nombre"
-                                           value="{{ producto.nombre if producto else '' }}" required placeholder="Ej: Tornillo de 1/2 pulgada">
+                                    <span class="input-group-text"><i class="bi bi-box text-secondary"></i></span>
+                                    <input type="text" class="form-control" id="nombre" name="nombre"
+                                           value="{{ producto.nombre if producto else '' }}"
+                                           required placeholder="Ej: Tornillo hexagonal 1/2&quot;">
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="codigo" class="form-label fw-bold small text-muted">Código (SKU)</label>
+                                <label for="codigo" class="form-label fw-semibold small text-muted mb-1">Código (SKU) <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-upc text-secondary"></i></span>
-                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25 font-monospace fw-bold" id="codigo" name="codigo"
-                                           value="{{ producto.codigo if producto else '' }}" required placeholder="Ej: TOR-001-A">
+                                    <span class="input-group-text"><i class="bi bi-upc text-secondary"></i></span>
+                                    <input type="text" class="form-control font-monospace fw-bold" id="codigo" name="codigo"
+                                           value="{{ producto.codigo if producto else '' }}"
+                                           required placeholder="Ej: TOR-001-A">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row g-4 mb-2">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                <label for="categoria_id" class="form-label fw-bold small text-muted">Categoría</label>
+                                <label for="categoria_id" class="form-label fw-semibold small text-muted mb-1">Categoría</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-folder text-secondary"></i></span>
-                                    <select class="form-select bg-light border-secondary border-opacity-25" id="categoria_id" name="categoria_id">
-                                        <option value="">-- Sin Categoría --</option>
+                                    <span class="input-group-text"><i class="bi bi-folder text-secondary"></i></span>
+                                    <select class="form-select" id="categoria_id" name="categoria_id">
+                                        <option value="">— Sin Categoría —</option>
                                         {% for cat in categorias %}
-                                        <option value="{{ cat.id }}" {% if producto and producto.categoria_id == cat.id %}selected{% endif %}>
-                                            {{ cat.nombre }}
-                                        </option>
+                                        <option value="{{ cat.id }}" {% if producto and producto.categoria_id == cat.id %}selected{% endif %}>{{ cat.nombre }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="proveedor_id" class="form-label fw-bold small text-muted">Proveedor</label>
+                                <label for="proveedor_id" class="form-label fw-semibold small text-muted mb-1">Proveedor</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-truck text-secondary"></i></span>
-                                    <select class="form-select bg-light border-secondary border-opacity-25" id="proveedor_id" name="proveedor_id">
-                                        <option value="">-- Sin Proveedor --</option>
+                                    <span class="input-group-text"><i class="bi bi-truck text-secondary"></i></span>
+                                    <select class="form-select" id="proveedor_id" name="proveedor_id">
+                                        <option value="">— Sin Proveedor —</option>
                                         {% for prov in proveedores %}
-                                        <option value="{{ prov.id }}" {% if producto and producto.proveedor_id == prov.id %}selected{% endif %}>
-                                            {{ prov.nombre }}
-                                        </option>
+                                        <option value="{{ prov.id }}" {% if producto and producto.proveedor_id == prov.id %}selected{% endif %}>{{ prov.nombre }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row g-4">
+                        <div class="row g-3">
                             <div class="col-12">
-                                <label for="enlace_proveedor" class="form-label fw-bold small text-muted">Enlace del Proveedor (Opcional)</label>
+                                <label for="enlace_proveedor" class="form-label fw-semibold small text-muted mb-1">Enlace del Proveedor <span class="text-muted fw-normal">(opcional)</span></label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-link-45deg text-secondary fs-5"></i></span>
-                                    <input type="url" class="form-control bg-light border-secondary border-opacity-25" id="enlace_proveedor" name="enlace_proveedor"
-                                           value="{{ producto.enlace_proveedor if producto and producto.enlace_proveedor else '' }}" placeholder="Ej: https://www.proveedor.com/mi-producto">
+                                    <span class="input-group-text"><i class="bi bi-link-45deg text-secondary fs-5"></i></span>
+                                    <input type="url" class="form-control" id="enlace_proveedor" name="enlace_proveedor"
+                                           value="{{ producto.enlace_proveedor if producto and producto.enlace_proveedor else '' }}"
+                                           placeholder="https://proveedor.com/producto">
                                 </div>
-                                <div class="form-text small opacity-75">URL directa para consultar o comprar el producto rápidamente.</div>
+                                <div class="form-text">URL directa para consultar o reordenar rápidamente.</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- SECCIÓN 2: PRECIOS Y EMPAQUE CON CALCULADORA -->
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
-                        <h4 class="mb-0 fw-bold text-success"><i class="bi bi-cash-coin me-2"></i>Costos y Empaque</h4>
+                <!-- SECCIÓN 2: COSTOS Y EMPAQUE -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-cash-coin text-success me-2"></i>Costos y Empaque
+                        </h5>
                     </div>
                     <div class="card-body p-4">
-                        <div class="row g-4 align-items-start">
+                        <div class="row g-3">
                             <div class="col-md-4">
-                                <label for="unidades_por_caja" class="form-label fw-bold small text-muted">Unidades por Caja</label>
+                                <label for="unidades_por_caja" class="form-label fw-semibold small text-muted mb-1">Unidades por Caja</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box-seam text-secondary"></i></span>
-                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="unidades_por_caja" name="unidades_por_caja"
+                                    <span class="input-group-text"><i class="bi bi-box-seam text-secondary"></i></span>
+                                    <input type="number" class="form-control" id="unidades_por_caja" name="unidades_por_caja"
                                            value="{{ producto.unidades_por_caja if producto and producto.unidades_por_caja else '0' }}" min="0">
                                 </div>
-                                <div class="form-text small opacity-75">0 si es pieza suelta.</div>
+                                <div class="form-text">0 si se vende por pieza.</div>
                             </div>
                             <div class="col-md-4">
-                                <label for="costo_caja_virtual" class="form-label fw-bold small text-muted">Costo por Caja</label>
+                                <label for="costo_caja_virtual" class="form-label fw-semibold small text-muted mb-1">Costo por Caja</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary">MXN $</span>
-                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="costo_caja_virtual"
-                                           step="0.01" min="0" placeholder="N/A">
+                                    <span class="input-group-text text-secondary small fw-semibold">MXN</span>
+                                    <input type="number" class="form-control" id="costo_caja_virtual" step="0.01" min="0" placeholder="N/A">
                                 </div>
-                                <div class="form-text small opacity-75">Costo total empaque.</div>
+                                <div class="form-text">Costo total del empaque.</div>
                             </div>
                             <div class="col-md-4">
-                                <label for="costo_estandar" class="form-label fw-bold small text-success">Costo Unitario</label>
-                                <div class="input-group shadow-sm">
-                                    <span class="input-group-text bg-light border-success text-success fw-semibold">MXN $</span>
-                                    <input type="number" class="form-control bg-light border-success fw-bold" id="costo_estandar" name="costo_estandar"
+                                <label for="costo_estandar" class="form-label fw-semibold small text-success mb-1">Costo Unitario</label>
+                                <div class="input-group">
+                                    <span class="input-group-text text-success fw-bold small">MXN</span>
+                                    <input type="number" class="form-control fw-bold" id="costo_estandar" name="costo_estandar"
                                            value="{{ producto.costo_estandar if producto else '0.00' }}" step="0.01" min="0">
                                 </div>
-                                <div class="form-text text-success small">Costo real por pieza.</div>
+                                <div class="form-text text-success">Costo real por pieza (se guarda).</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- SECCIÓN 3A: STOCK INICIAL (SOLO CREACIÓN) -->
+                <!-- SECCIÓN 3A: INVENTARIO INICIAL (solo creación) -->
                 {% if not producto or not producto.id %}
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
-                        <h4 class="mb-0 fw-bold text-info text-dark"><i class="bi bi-boxes me-2"></i>Inventario Inicial</h4>
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-boxes text-info me-2"></i>Inventario Inicial
+                        </h5>
                     </div>
                     <div class="card-body p-4">
-                        <div class="alert alert-info bg-opacity-10 border-info border-opacity-25 text-body mb-4 py-2 small">
-                            <strong>Niveles Mínimo/Máximo:</strong> Se usarán por defecto al asignar en nuevos almacenes.
+                        <div class="alert rounded-3 border-0 mb-4 py-2 small"
+                             style="background:rgba(6,182,212,.08);color:var(--bs-body-color);">
+                            <i class="bi bi-info-circle me-1 text-info"></i>
+                            Los niveles mínimo/máximo se usarán por defecto en nuevos almacenes.
                         </div>
-                        <div class="row g-4 mb-4">
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label for="stock_minimo" class="form-label fw-bold small text-muted">Stock Mínimo</label>
-                                <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="stock_minimo" name="stock_minimo" value="5" min="0">
+                                <label for="stock_minimo" class="form-label fw-semibold small text-muted mb-1">Stock Mínimo</label>
+                                <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" value="5" min="0">
                             </div>
                             <div class="col-md-6">
-                                <label for="stock_maximo" class="form-label fw-bold small text-muted">Stock Máximo</label>
-                                <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="stock_maximo" name="stock_maximo" value="100" min="0">
+                                <label for="stock_maximo" class="form-label fw-semibold small text-muted mb-1">Stock Máximo</label>
+                                <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="100" min="0">
                             </div>
                         </div>
-                        <hr class="border-secondary border-opacity-25 mb-4">
-                        <div class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-body mb-4 py-2 small">
-                            <strong>Asignación Inmediata (Opcional):</strong> Ingresa existencias directamente al sistema.
+
+                        <hr style="border-color:var(--border);" class="mb-4">
+
+                        <div class="alert rounded-3 border-0 mb-4 py-2 small"
+                             style="background:rgba(16,185,129,.08);color:var(--bs-body-color);">
+                            <i class="bi bi-plus-circle me-1 text-success"></i>
+                            <strong>Asignación Inmediata (opcional):</strong> ingresa existencias directamente al sistema.
                         </div>
-                        <div class="row g-4 mb-4">
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label for="almacen_inicial_id" class="form-label fw-bold small text-muted">Almacén de Destino</label>
-                                <select class="form-select bg-light border-secondary border-opacity-25" id="almacen_inicial_id" name="almacen_inicial_id">
-                                    <option value="">-- No asignar aún --</option>
-                                    {% for alm in almacenes %}
-                                    <option value="{{ alm.id }}">{{ alm.nombre }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="ubicacion_inicial" class="form-label fw-bold small text-muted">Ubicación (Pasillo/Estante)</label>
-                                <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="ubicacion_inicial" name="ubicacion_inicial" placeholder="Ej: A-12">
-                            </div>
-                        </div>
-                        <div class="row g-4 align-items-start">
-                            <div class="col-md-6">
-                                <label for="cajas_iniciales_virtual" class="form-label fw-bold small text-muted">Cajas Iniciales</label>
+                                <label for="almacen_inicial_id" class="form-label fw-semibold small text-muted mb-1">Almacén de Destino</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
-                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="cajas_iniciales_virtual" min="0" step="0.01" placeholder="N/A">
+                                    <span class="input-group-text"><i class="bi bi-shop text-secondary"></i></span>
+                                    <select class="form-select" id="almacen_inicial_id" name="almacen_inicial_id">
+                                        <option value="">— No asignar aún —</option>
+                                        {% for alm in almacenes %}
+                                        <option value="{{ alm.id }}">{{ alm.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label for="cantidad_inicial" class="form-label fw-bold small text-success">Unidades Totales a Ingresar</label>
-                                <div class="input-group shadow-sm">
-                                    <span class="input-group-text bg-light border-success text-success fw-bold">#</span>
-                                    <input type="number" class="form-control bg-light border-success fw-bold" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
+                                <label for="ubicacion_inicial" class="form-label fw-semibold small text-muted mb-1">Ubicación (Pasillo/Estante)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-pin-map text-secondary"></i></span>
+                                    <input type="text" class="form-control" id="ubicacion_inicial" name="ubicacion_inicial" placeholder="Ej: A-12">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="cajas_iniciales_virtual" class="form-label fw-semibold small text-muted mb-1">Cajas Iniciales</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-box text-secondary"></i></span>
+                                    <input type="number" class="form-control" id="cajas_iniciales_virtual" min="0" step="0.01" placeholder="N/A">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cantidad_inicial" class="form-label fw-semibold small text-success mb-1">Unidades Totales a Ingresar</label>
+                                <div class="input-group">
+                                    <span class="input-group-text text-success fw-bold">#</span>
+                                    <input type="number" class="form-control fw-bold" id="cantidad_inicial" name="cantidad_inicial" value="0" min="0">
                                 </div>
                             </div>
                         </div>
@@ -238,105 +215,121 @@
 
                 <!-- SECCIÓN 3B: EDICIÓN DE STOCK ESPECÍFICO -->
                 {% elif stock_item %}
-                <div class="card shadow-sm border-0 rounded-4 mb-4 border border-warning border-opacity-50">
-                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-warning border-opacity-25">
-                        <h4 class="mb-0 fw-bold text-warning text-dark"><i class="bi bi-geo-alt me-2"></i>Inventario en: {{ stock_item.almacen.nombre }}</h4>
+                <div class="card border-0 shadow-sm rounded-4 mb-4" style="border-left:3px solid #f59e0b !important;">
+                    <div class="card-header border-0 pt-4 pb-0 px-4">
+                        <h5 class="fw-bold mb-0">
+                            <i class="bi bi-geo-alt text-warning me-2"></i>Inventario en: <span class="text-warning">{{ stock_item.almacen.nombre }}</span>
+                        </h5>
                     </div>
                     <div class="card-body p-4">
-                        <div class="row g-4 mb-4">
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label for="stock_minimo" class="form-label fw-bold small text-muted">Stock Mínimo</label>
-                                <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="stock_minimo" name="stock_minimo" value="{{ stock_item.stock_minimo }}" min="0">
+                                <label for="stock_minimo" class="form-label fw-semibold small text-muted mb-1">Stock Mínimo</label>
+                                <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" value="{{ stock_item.stock_minimo }}" min="0">
                             </div>
                             <div class="col-md-6">
-                                <label for="stock_maximo" class="form-label fw-bold small text-muted">Stock Máximo</label>
-                                <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
+                                <label for="stock_maximo" class="form-label fw-semibold small text-muted mb-1">Stock Máximo</label>
+                                <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
                             </div>
                         </div>
-                        <hr class="border-secondary border-opacity-25 mb-4">
-                        <div class="row g-4 mb-4">
+                        <hr style="border-color:var(--border);" class="mb-4">
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-muted">Ubicación Física</label>
+                                <label class="form-label fw-semibold small text-muted mb-1">Ubicación Física</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-pin-map text-secondary"></i></span>
-                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" name="ubicacion"
+                                    <span class="input-group-text"><i class="bi bi-pin-map text-secondary"></i></span>
+                                    <input type="text" class="form-control" name="ubicacion"
                                            value="{{ stock_item.ubicacion or '' }}" placeholder="Ej: A-12-B">
                                 </div>
                             </div>
                         </div>
-                        <div class="row g-4 align-items-start mb-2">
+                        <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="cajas_actuales_virtual" class="form-label fw-bold small text-muted">Cajas Físicas</label>
+                                <label for="cajas_actuales_virtual" class="form-label fw-semibold small text-muted mb-1">Cajas Físicas</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
-                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="cajas_actuales_virtual" min="0" step="0.01" placeholder="N/A">
+                                    <span class="input-group-text"><i class="bi bi-box text-secondary"></i></span>
+                                    <input type="number" class="form-control" id="cajas_actuales_virtual" min="0" step="0.01" placeholder="N/A">
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-warning text-dark">Total Unidades</label>
-                                <div class="input-group shadow-sm">
-                                    <span class="input-group-text border-warning text-dark bg-warning bg-opacity-10 fw-bold">#</span>
-                                    <input type="number" class="form-control border-warning bg-warning bg-opacity-10 fw-bold" id="cantidad_actual" name="cantidad"
+                                <label class="form-label fw-semibold small text-warning mb-1">Total Unidades</label>
+                                <div class="input-group">
+                                    <span class="input-group-text text-warning fw-bold">#</span>
+                                    <input type="number" class="form-control fw-bold" id="cantidad_actual" name="cantidad"
                                            value="{{ stock_item.cantidad }}" min="0" required>
                                 </div>
-                                <small class="text-warning text-dark fw-bold d-block mt-2">
-                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Ajuste manual de inventario directo.
-                                </small>
+                                <div class="form-text text-warning">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Ajuste manual directo al inventario.
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {% else %}
-                <div class="alert alert-light border border-secondary border-opacity-25 rounded-4 shadow-sm text-muted p-4">
-                    <i class="bi bi-info-circle-fill text-primary me-2 fs-5"></i> Este producto no tiene stock específico cargado en esta vista. Para editar cantidades, ve a la sección de <a href="{{ url_for('lista_almacenes') }}" class="fw-bold">Almacenes</a>.
+                <div class="alert rounded-4 border-0 shadow-sm p-4" style="background:var(--surface-raised);">
+                    <i class="bi bi-info-circle-fill text-primary me-2 fs-5"></i>
+                    Este producto no tiene stock específico en esta vista. Para editar cantidades ve a
+                    <a href="{{ url_for('lista_almacenes') }}" class="fw-bold">Almacenes</a>.
                 </div>
                 {% endif %}
 
             </div>
 
-            <!-- COLUMNA DERECHA: IMAGEN Y GUARDAR -->
+            <!-- ── COLUMNA DERECHA: FOTO + GUARDAR ─────────────── -->
             <div class="col-lg-4">
-                <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
-                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 text-center">
-                        <h4 class="mb-0 fw-bold text-body"><i class="bi bi-image me-2"></i>Foto</h4>
+                <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top:80px;">
+                    <div class="card-header border-0 pt-4 pb-0 px-4 text-center">
+                        <h5 class="fw-bold mb-0"><i class="bi bi-image text-primary me-2"></i>Foto del Producto</h5>
                     </div>
-                    <div class="card-body p-4 text-center">
-                        <div class="position-relative d-inline-block mb-4 w-100">
+                    <div class="card-body p-4">
+
+                        <!-- Preview imagen -->
+                        <div class="mb-3 text-center">
                             {% if producto and producto.imagen_url %}
-                                <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}"
-                                     id="img_preview" class="img-thumbnail rounded-4 shadow-sm border-0" alt="Imagen del Producto"
-                                     style="max-height: 250px; object-fit: cover; width: 100%; background-color: #f8f9fa;">
+                            <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}"
+                                 id="img_preview"
+                                 class="rounded-4 shadow-sm w-100"
+                                 style="max-height:220px;object-fit:cover;"
+                                 alt="Imagen del Producto">
                             {% else %}
-                                <img src="" id="img_preview" class="img-thumbnail rounded-4 shadow-sm border-0" alt="Vista previa"
-                                     style="max-height: 250px; object-fit: cover; width: 100%; display: none; background-color: #f8f9fa;">
-                                <div id="placeholder_img" class="text-muted py-5 border border-secondary border-opacity-25 rounded-4 bg-light shadow-sm">
-                                    <i class="bi bi-camera" style="font-size: 4rem;"></i><br>Sin imagen
-                                </div>
+                            <img src="" id="img_preview"
+                                 class="rounded-4 shadow-sm w-100 d-none"
+                                 style="max-height:220px;object-fit:cover;" alt="Vista previa">
+                            <div id="placeholder_img"
+                                 class="rounded-4 py-5 text-center"
+                                 style="background:var(--surface-raised);border:2px dashed var(--border);">
+                                <i class="bi bi-camera" style="font-size:3rem;color:var(--bs-secondary);"></i>
+                                <div class="text-muted small mt-2">Sin imagen</div>
+                            </div>
                             {% endif %}
                         </div>
 
-                        <div class="input-group input-group-sm mb-2">
-                            <input class="form-control bg-light border-secondary border-opacity-25" type="file" id="imagen" name="imagen" onchange="previsualizarImagen(event)" accept="image/*">
+                        <!-- Upload manual -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted mb-1">Subir imagen</label>
+                            <input class="form-control form-control-sm" type="file" id="imagen" name="imagen"
+                                   onchange="previsualizarImagen(event)" accept="image/*">
                         </div>
 
-                        <!-- GENERADOR IA -->
-                        <div class="mb-3 p-3 rounded-3 border border-primary border-opacity-25" style="background:rgba(79,70,229,.05);">
-                            <div class="d-flex align-items-center gap-1 mb-2">
-                                <i class="bi bi-stars text-primary" style="font-size:.9rem;"></i>
-                                <span class="fw-semibold text-primary" style="font-size:.78rem;">Generar con IA (Pollinations)</span>
+                        <!-- Generador IA -->
+                        <div class="rounded-3 p-3 mb-3" style="background:rgba(var(--primary-rgb),.06);border:1px solid rgba(var(--primary-rgb),.15);">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-stars text-primary" style="font-size:.95rem;"></i>
+                                <span class="fw-semibold small" style="color:var(--primary);">Generar con IA</span>
+                                <span class="badge rounded-pill ms-auto" style="background:rgba(var(--primary-rgb),.12);color:var(--primary);font-size:.65rem;">Gratis</span>
                             </div>
                             <div class="input-group input-group-sm mb-2">
-                                <input type="text" id="ai-prompt-input" class="form-control bg-light border-secondary border-opacity-25"
-                                       placeholder="Ej: Tornillo hexagonal M8 acero" style="font-size:.8rem;">
+                                <input type="text" id="ai-prompt-input" class="form-control"
+                                       placeholder="Ej: Tornillo hexagonal M8" style="font-size:.82rem;">
                                 <button type="button" id="btn-generar-ai" class="btn btn-primary btn-sm fw-bold"
                                         onclick="generarImagenIA()">
                                     <i class="bi bi-magic me-1"></i>Generar
                                 </button>
                             </div>
-                            <div id="ai-loading" class="text-center py-1 d-none">
+                            <div id="ai-loading" class="text-center py-2 d-none">
                                 <span class="spinner-border spinner-border-sm text-primary me-1"></span>
-                                <span class="text-muted" style="font-size:.78rem;">Generando (~20 seg)…</span>
+                                <span class="small text-muted">Generando imagen (~20 seg)…</span>
                             </div>
                             <div id="ai-result" class="d-none">
                                 <div class="d-flex gap-2">
@@ -355,187 +348,143 @@
                         <input type="hidden" id="ai_imagen_filename" name="ai_imagen_filename"
                                form="formulario_producto" value="">
 
-                        <hr class="border-secondary border-opacity-25 mb-4">
+                        <hr style="border-color:var(--border);">
 
-                        <div class="d-grid gap-3">
-                            <button type="submit" form="formulario_producto" class="btn btn-primary btn-lg fw-bold shadow-sm rounded-pill">
-                                <i class="bi bi-save me-2"></i> Guardar Producto
+                        <!-- Acciones -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" form="formulario_producto"
+                                    class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm">
+                                <i class="bi bi-save me-2"></i>Guardar Producto
                             </button>
-                            <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}" class="btn btn-outline-secondary rounded-pill fw-bold">
+                            <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}"
+                               class="btn btn-outline-secondary rounded-pill fw-bold">
                                 Cancelar
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+        </div><!-- /row -->
     </form>
 </div>
 
 <script>
-    // ==========================================
-    // 0. SISTEMA DE TEMA (MODO CLARO / OSCURO)
-    // ==========================================
-    const themeToggleBtn = document.getElementById('theme-toggle');
-    const themeIcon      = document.getElementById('theme-icon');
-    const themeText      = document.getElementById('theme-text');
-    const htmlElement    = document.documentElement;
+// ── PREVISUALIZACIÓN IMAGEN MANUAL ──────────────────────────
+function previsualizarImagen(event) {
+    const preview     = document.getElementById('img_preview');
+    const placeholder = document.getElementById('placeholder_img');
+    if (event.target.files && event.target.files[0]) {
+        preview.src = URL.createObjectURL(event.target.files[0]);
+        preview.classList.remove('d-none');
+        preview.onload = () => URL.revokeObjectURL(preview.src);
+        if (placeholder) placeholder.style.display = 'none';
+        document.getElementById('ai_imagen_filename').value = '';
+    }
+}
 
-    function applyTheme(theme) {
-        htmlElement.setAttribute('data-bs-theme', theme);
-        localStorage.setItem('app_theme', theme);
-        if (theme === 'dark') {
-            themeIcon.className = 'bi bi-sun-fill text-warning';
-            if (themeText) themeText.innerText = 'Modo Claro';
-            themeToggleBtn.classList.replace('btn-outline-secondary', 'btn-outline-light');
-        } else {
-            themeIcon.className = 'bi bi-moon-stars-fill text-dark';
-            if (themeText) themeText.innerText = 'Modo Oscuro';
-            themeToggleBtn.classList.replace('btn-outline-light', 'btn-outline-secondary');
+// ── CALCULADORAS BIDIRECCIONALES ────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+    const inUPC  = document.getElementById('unidades_por_caja');
+    const inCaja = document.getElementById('costo_caja_virtual');
+    const inUnit = document.getElementById('costo_estandar');
+
+    function calcCostos(origen) {
+        const u = parseFloat(inUPC.value)  || 0;
+        const c = parseFloat(inCaja.value) || 0;
+        const p = parseFloat(inUnit.value) || 0;
+        if (u <= 1) { inCaja.disabled = true; inCaja.value = ''; inCaja.placeholder = 'N/A'; return; }
+        inCaja.disabled = false; inCaja.placeholder = '0.00';
+        if      (origen === 'caja')     inUnit.value = (c / u).toFixed(2);
+        else if (origen === 'unitario') inCaja.value = (p * u).toFixed(2);
+        else if (origen === 'unidades') {
+            if (p > 0) inCaja.value = (p * u).toFixed(2);
+            else if (c > 0) inUnit.value = (c / u).toFixed(2);
         }
     }
 
-    applyTheme(localStorage.getItem('app_theme') || 'dark');
-    if (themeToggleBtn) {
-        themeToggleBtn.addEventListener('click', () => {
-            applyTheme(htmlElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
-        });
+    const inCajaSt = document.getElementById('cajas_iniciales_virtual') || document.getElementById('cajas_actuales_virtual');
+    const inUndSt  = document.getElementById('cantidad_inicial')         || document.getElementById('cantidad_actual');
+
+    function calcStock(origen) {
+        if (!inCajaSt || !inUndSt) return;
+        const u = parseFloat(inUPC.value)    || 0;
+        const c = parseFloat(inCajaSt.value) || 0;
+        const s = parseFloat(inUndSt.value)  || 0;
+        if (u <= 1) { inCajaSt.disabled = true; inCajaSt.value = ''; inCajaSt.placeholder = 'N/A'; return; }
+        inCajaSt.disabled = false; inCajaSt.placeholder = '0.00';
+        if      (origen === 'caja_stock')  inUndSt.value  = Math.ceil(c * u);
+        else if (origen === 'unid_stock')  inCajaSt.value = (s / u).toFixed(2);
+        else if (origen === 'unidades') {
+            if (s > 0) inCajaSt.value = (s / u).toFixed(2);
+            else if (c > 0) inUndSt.value = Math.ceil(c * u);
+        }
     }
 
-    // ==========================================
-    // 1. PREVISUALIZACIÓN DE IMAGEN MANUAL
-    // ==========================================
-    function previsualizarImagen(event) {
-        const preview     = document.getElementById('img_preview');
-        const placeholder = document.getElementById('placeholder_img');
-        if (event.target.files && event.target.files[0]) {
-            preview.style.display = 'block';
+    calcCostos('unidades'); calcStock('unidades');
+    inUPC.addEventListener('input',  () => { calcCostos('unidades'); calcStock('unidades'); });
+    inCaja.addEventListener('input', () => calcCostos('caja'));
+    inUnit.addEventListener('input', () => calcCostos('unitario'));
+    if (inCajaSt && inUndSt) {
+        inCajaSt.addEventListener('input', () => calcStock('caja_stock'));
+        inUndSt.addEventListener('input',  () => calcStock('unid_stock'));
+    }
+
+    // Pre-llenar prompt IA desde el nombre del producto
+    const nombreEl = document.getElementById('nombre');
+    const promptEl = document.getElementById('ai-prompt-input');
+    if (promptEl && nombreEl && nombreEl.value.trim()) promptEl.value = nombreEl.value.trim();
+    if (nombreEl && promptEl) {
+        nombreEl.addEventListener('input', () => { if (!promptEl.dataset.customized) promptEl.value = nombreEl.value; });
+        promptEl.addEventListener('input', () => { promptEl.dataset.customized = '1'; });
+    }
+});
+
+// ── GENERADOR IA (Pollinations) ─────────────────────────────
+let _aiFilename = '';
+
+function generarImagenIA() {
+    const nombre   = document.getElementById('ai-prompt-input').value.trim()
+                  || document.getElementById('nombre')?.value.trim()
+                  || document.getElementById('codigo')?.value.trim() || '';
+    const errEl    = document.getElementById('ai-error');
+    const loadEl   = document.getElementById('ai-loading');
+    const resultEl = document.getElementById('ai-result');
+    const btn      = document.getElementById('btn-generar-ai');
+
+    errEl.classList.add('d-none');
+    resultEl.classList.add('d-none');
+    if (!nombre) { errEl.textContent = 'Escribe el nombre del producto primero.'; errEl.classList.remove('d-none'); return; }
+
+    loadEl.classList.remove('d-none');
+    btn.disabled = true;
+
+    fetch(`/api/ai/generar-imagen-producto?nombre=${encodeURIComponent(nombre)}&seed=${Math.floor(Math.random()*99999)}`)
+        .then(r => r.json())
+        .then(data => {
+            loadEl.classList.add('d-none'); btn.disabled = false;
+            if (data.error) { errEl.textContent = data.error; errEl.classList.remove('d-none'); return; }
+            _aiFilename = data.filename;
+            const preview     = document.getElementById('img_preview');
+            const placeholder = document.getElementById('placeholder_img');
+            preview.src = data.url + '?t=' + Date.now();
+            preview.classList.remove('d-none');
             if (placeholder) placeholder.style.display = 'none';
-            preview.src = URL.createObjectURL(event.target.files[0]);
-            preview.onload = () => URL.revokeObjectURL(preview.src);
-            document.getElementById('ai_imagen_filename').value = '';
-        }
-    }
-
-    // ==========================================
-    // 2. CALCULADORAS BIDIRECCIONALES
-    // ==========================================
-    document.addEventListener('DOMContentLoaded', function () {
-        const inputUnidadesPorCaja = document.getElementById('unidades_por_caja');
-        const inputCostoCaja       = document.getElementById('costo_caja_virtual');
-        const inputCostoUnitario   = document.getElementById('costo_estandar');
-
-        function calcularCostos(origen) {
-            const unidades     = parseFloat(inputUnidadesPorCaja.value) || 0;
-            const costoCaja    = parseFloat(inputCostoCaja.value)       || 0;
-            const costoUnit    = parseFloat(inputCostoUnitario.value)   || 0;
-            if (unidades <= 1) {
-                inputCostoCaja.disabled = true; inputCostoCaja.value = ''; inputCostoCaja.placeholder = 'N/A'; return;
-            }
-            inputCostoCaja.disabled = false; inputCostoCaja.placeholder = '0.00';
-            if (origen === 'caja')          inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
-            else if (origen === 'unitario') inputCostoCaja.value     = (costoUnit  * unidades).toFixed(2);
-            else if (origen === 'unidades') {
-                if (costoUnit > 0)  inputCostoCaja.value     = (costoUnit  * unidades).toFixed(2);
-                else if (costoCaja > 0) inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
-            }
-        }
-
-        const inputCajasStock    = document.getElementById('cajas_iniciales_virtual') || document.getElementById('cajas_actuales_virtual');
-        const inputUnidadesStock = document.getElementById('cantidad_inicial')         || document.getElementById('cantidad_actual');
-
-        function calcularStock(origen) {
-            if (!inputCajasStock || !inputUnidadesStock) return;
-            const upCaja   = parseFloat(inputUnidadesPorCaja.value)  || 0;
-            const cajas    = parseFloat(inputCajasStock.value)        || 0;
-            const unidades = parseFloat(inputUnidadesStock.value)     || 0;
-            if (upCaja <= 1) {
-                inputCajasStock.disabled = true; inputCajasStock.value = ''; inputCajasStock.placeholder = 'N/A'; return;
-            }
-            inputCajasStock.disabled = false; inputCajasStock.placeholder = '0.00';
-            if (origen === 'caja_stock')   inputUnidadesStock.value = Math.ceil(cajas * upCaja);
-            else if (origen === 'unidad_stock') inputCajasStock.value = (unidades / upCaja).toFixed(2);
-            else if (origen === 'unidades') {
-                if (unidades > 0) inputCajasStock.value    = (unidades / upCaja).toFixed(2);
-                else if (cajas > 0) inputUnidadesStock.value = Math.ceil(cajas * upCaja);
-            }
-        }
-
-        calcularCostos('unidades');
-        calcularStock('unidades');
-
-        inputUnidadesPorCaja.addEventListener('input', () => { calcularCostos('unidades'); calcularStock('unidades'); });
-        inputCostoCaja.addEventListener('input',       () => calcularCostos('caja'));
-        inputCostoUnitario.addEventListener('input',   () => calcularCostos('unitario'));
-        if (inputCajasStock && inputUnidadesStock) {
-            inputCajasStock.addEventListener('input',    () => calcularStock('caja_stock'));
-            inputUnidadesStock.addEventListener('input', () => calcularStock('unidad_stock'));
-        }
-
-        // Pre-llenar prompt IA desde el campo nombre
-        const nombreEl = document.getElementById('nombre');
-        const promptEl = document.getElementById('ai-prompt-input');
-        if (promptEl && nombreEl && nombreEl.value.trim()) promptEl.value = nombreEl.value.trim();
-        if (nombreEl && promptEl) {
-            nombreEl.addEventListener('input', () => { if (!promptEl.dataset.customized) promptEl.value = nombreEl.value; });
-            promptEl.addEventListener('input', () => { promptEl.dataset.customized = '1'; });
-        }
-    });
-
-    // ==========================================
-    // 3. GENERADOR DE IMAGEN IA (Pollinations)
-    // ==========================================
-    let _aiFilename = '';
-
-    function generarImagenIA() {
-        const nombre   = document.getElementById('ai-prompt-input').value.trim()
-                      || document.getElementById('nombre')?.value.trim()
-                      || document.getElementById('codigo')?.value.trim() || '';
-        const errEl    = document.getElementById('ai-error');
-        const loadEl   = document.getElementById('ai-loading');
-        const resultEl = document.getElementById('ai-result');
-        const btn      = document.getElementById('btn-generar-ai');
-
-        errEl.classList.add('d-none');
-        resultEl.classList.add('d-none');
-
-        if (!nombre) {
-            errEl.textContent = 'Escribe el nombre del producto primero.';
+            resultEl.classList.remove('d-none');
+        })
+        .catch(() => {
+            loadEl.classList.add('d-none'); btn.disabled = false;
+            errEl.textContent = 'Error de conexión. Intenta de nuevo.';
             errEl.classList.remove('d-none');
-            return;
-        }
+        });
+}
 
-        loadEl.classList.remove('d-none');
-        btn.disabled = true;
-
-        fetch(`/api/ai/generar-imagen-producto?nombre=${encodeURIComponent(nombre)}&seed=${Math.floor(Math.random()*99999)}`)
-            .then(r => r.json())
-            .then(data => {
-                loadEl.classList.add('d-none');
-                btn.disabled = false;
-                if (data.error) { errEl.textContent = data.error; errEl.classList.remove('d-none'); return; }
-                _aiFilename = data.filename;
-                const preview     = document.getElementById('img_preview');
-                const placeholder = document.getElementById('placeholder_img');
-                preview.src = data.url + '?t=' + Date.now();
-                preview.style.display = 'block';
-                if (placeholder) placeholder.style.display = 'none';
-                resultEl.classList.remove('d-none');
-            })
-            .catch(() => {
-                loadEl.classList.add('d-none');
-                btn.disabled = false;
-                errEl.textContent = 'Error de conexión. Intenta de nuevo.';
-                errEl.classList.remove('d-none');
-            });
+function usarImagenIA() {
+    if (_aiFilename) {
+        document.getElementById('ai_imagen_filename').value = _aiFilename;
+        document.getElementById('imagen').value = '';
+        document.getElementById('ai-result').classList.add('d-none');
     }
-
-    function usarImagenIA() {
-        if (_aiFilename) {
-            document.getElementById('ai_imagen_filename').value = _aiFilename;
-            document.getElementById('imagen').value = '';
-            document.getElementById('ai-result').classList.add('d-none');
-        }
-    }
+}
 </script>
 {% endblock %}
