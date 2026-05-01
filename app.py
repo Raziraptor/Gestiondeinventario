@@ -3489,6 +3489,332 @@ def cancelar_proyecto_oc(id):
     return redirect(url_for('lista_proyectos_oc'))
 
 
+# --- RUTAS DE REPORTES ---
+
+@app.route('/reportes')
+@login_required
+@check_org_permission
+@check_permission('perm_view_dashboard')
+def reportes():
+    org_id = current_user.organizacion_id
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).order_by(Almacen.nombre).all()
+    return render_template('reportes.html', titulo='Reportes', almacenes=almacenes, now=datetime.now())
+
+
+@app.route('/reportes/inventario.xlsx')
+@login_required
+@check_org_permission
+@check_permission('perm_view_dashboard')
+def exportar_inventario_excel():
+    org_id = current_user.organizacion_id
+    almacen_id = request.args.get('almacen_id', type=int)
+
+    if almacen_id:
+        almacen = Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first_or_404()
+        items = db.session.query(Stock).filter_by(almacen_id=almacen_id).join(Producto).order_by(Producto.nombre).all()
+        nombre_almacen = almacen.nombre
+    else:
+        items = db.session.query(Stock).join(
+            Almacen, Stock.almacen_id == Almacen.id
+        ).filter(Almacen.organizacion_id == org_id).join(Producto).order_by(Producto.nombre).all()
+        nombre_almacen = 'Todos los Almacenes'
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Inventario"
+
+    h_font  = Font(name='Arial', size=11, bold=True, color='FFFFFF')
+    h_fill  = PatternFill(start_color='4F46E5', end_color='4F46E5', fill_type='solid')
+    h_align = Alignment(horizontal='center', vertical='center')
+    b_font  = Font(name='Arial', size=10)
+    thin    = Side(border_style='thin', color='DEE2E6')
+    border  = Border(left=thin, right=thin, top=thin, bottom=thin)
+    mxn     = NamedStyle(name='mxn_inv', number_format='"$"#,##0.00')
+    if 'mxn_inv' not in wb.named_styles:
+        wb.add_named_style(mxn)
+
+    ws.merge_cells('A1:J1')
+    ws['A1'].value = f"Inventario — {nombre_almacen} — {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    ws['A1'].font  = Font(name='Arial', size=13, bold=True)
+    ws['A1'].alignment = Alignment(horizontal='center')
+    ws.row_dimensions[1].height = 26
+
+    headers = ['SKU', 'Producto', 'Categoría', 'Proveedor', 'Stock', 'Mín.', 'Máx.', 'Estado', 'Precio Unit. MXN', 'Valor Total MXN']
+    ws.append(headers)
+    for cell in ws[2]:
+        cell.font  = h_font
+        cell.fill  = h_fill
+        cell.alignment = h_align
+        cell.border = border
+    ws.row_dimensions[2].height = 20
+
+    estado_label = {'bajo': 'Bajo Mínimo', 'exceso': 'Exceso', 'ok': 'Óptimo'}
+    valor_total = 0
+
+    for item in items:
+        valor = (item.cantidad or 0) * (item.producto.precio_unitario or 0)
+        valor_total += valor
+        ws.append([
+            item.producto.codigo,
+            item.producto.nombre,
+            item.producto.categoria.nombre if item.producto.categoria else '',
+            item.producto.proveedor.nombre if item.producto.proveedor else '',
+            item.cantidad,
+            item.stock_minimo,
+            item.stock_maximo,
+            estado_label.get(item.estado_stock, ''),
+            item.producto.precio_unitario or 0,
+            valor,
+        ])
+        r = ws.max_row
+        for col in range(1, 11):
+            ws.cell(row=r, column=col).font   = b_font
+            ws.cell(row=r, column=col).border = border
+        estado_cell = ws.cell(row=r, column=8)
+        if item.estado_stock == 'bajo':
+            estado_cell.font = Font(name='Arial', size=10, color='DC2626', bold=True)
+        elif item.estado_stock == 'exceso':
+            estado_cell.font = Font(name='Arial', size=10, color='0891B2', bold=True)
+        else:
+            estado_cell.font = Font(name='Arial', size=10, color='059669', bold=True)
+        ws.cell(row=r, column=9).style  = 'mxn_inv'
+        ws.cell(row=r, column=10).style = 'mxn_inv'
+
+    tr = ws.max_row + 1
+    ws.cell(row=tr, column=9).value     = 'VALOR TOTAL (MXN)'
+    ws.cell(row=tr, column=9).font      = Font(name='Arial', size=11, bold=True)
+    ws.cell(row=tr, column=9).alignment = Alignment(horizontal='right')
+    ws.cell(row=tr, column=10).value    = valor_total
+    ws.cell(row=tr, column=10).style    = 'mxn_inv'
+    ws.cell(row=tr, column=10).font     = Font(name='Arial', size=11, bold=True)
+
+    for i, w in enumerate([15, 32, 18, 22, 9, 7, 7, 14, 18, 18], 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    filename = f"Inventario_{nombre_almacen.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(buf, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     as_attachment=True)
+
+
+@app.route('/reportes/movimientos.xlsx')
+@login_required
+@check_org_permission
+@check_permission('perm_view_dashboard')
+def exportar_movimientos_excel():
+    org_id     = current_user.organizacion_id
+    almacen_id = request.args.get('almacen_id', type=int)
+    desde_str  = request.args.get('desde', '')
+    hasta_str  = request.args.get('hasta', '')
+    tipo_f     = request.args.get('tipo', '')
+    ahora      = datetime.now()
+
+    try:
+        fecha_desde = datetime.strptime(desde_str, '%Y-%m-%d') if desde_str else ahora.replace(day=1, hour=0, minute=0, second=0)
+        fecha_hasta = datetime.strptime(hasta_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59) if hasta_str else ahora
+    except ValueError:
+        fecha_desde = ahora.replace(day=1, hour=0, minute=0, second=0)
+        fecha_hasta = ahora
+
+    q = Movimiento.query.filter_by(organizacion_id=org_id).filter(
+        Movimiento.fecha >= fecha_desde,
+        Movimiento.fecha <= fecha_hasta
+    )
+    if almacen_id:
+        q = q.filter(Movimiento.almacen_id == almacen_id)
+    if tipo_f:
+        q = q.filter(Movimiento.tipo == tipo_f)
+    movimientos = q.order_by(Movimiento.fecha.desc()).all()
+
+    almacen_map = {a.id: a.nombre for a in Almacen.query.filter_by(organizacion_id=org_id).all()}
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Movimientos"
+
+    h_font  = Font(name='Arial', size=11, bold=True, color='FFFFFF')
+    h_fill  = PatternFill(start_color='4F46E5', end_color='4F46E5', fill_type='solid')
+    b_font  = Font(name='Arial', size=10)
+    thin    = Side(border_style='thin', color='DEE2E6')
+    border  = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    rango_str = f"{fecha_desde.strftime('%d/%m/%Y')} al {fecha_hasta.strftime('%d/%m/%Y')}"
+    ws.merge_cells('A1:H1')
+    ws['A1'].value = f"Historial de Movimientos — {rango_str}"
+    ws['A1'].font  = Font(name='Arial', size=13, bold=True)
+    ws['A1'].alignment = Alignment(horizontal='center')
+    ws.row_dimensions[1].height = 26
+
+    headers = ['Fecha', 'Hora', 'Tipo', 'Producto', 'SKU', 'Cantidad', 'Motivo', 'Almacén']
+    ws.append(headers)
+    for cell in ws[2]:
+        cell.font      = h_font
+        cell.fill      = h_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border    = border
+    ws.row_dimensions[2].height = 20
+
+    tipo_labels = {
+        'entrada': 'Entrada', 'entrada-inicial': 'Stock Inicial',
+        'salida': 'Salida', 'ajuste-entrada': 'Ajuste (+)', 'ajuste-salida': 'Ajuste (-)',
+    }
+
+    for mov in movimientos:
+        ws.append([
+            mov.fecha.strftime('%d/%m/%Y'),
+            mov.fecha.strftime('%H:%M'),
+            tipo_labels.get(mov.tipo, mov.tipo),
+            mov.producto.nombre if mov.producto else '',
+            mov.producto.codigo if mov.producto else '',
+            mov.cantidad,
+            mov.motivo,
+            almacen_map.get(mov.almacen_id, ''),
+        ])
+        r = ws.max_row
+        for col in range(1, 9):
+            ws.cell(row=r, column=col).font   = b_font
+            ws.cell(row=r, column=col).border = border
+        qty_cell = ws.cell(row=r, column=6)
+        if mov.cantidad > 0:
+            qty_cell.font = Font(name='Arial', size=10, color='059669', bold=True)
+        elif mov.cantidad < 0:
+            qty_cell.font = Font(name='Arial', size=10, color='DC2626', bold=True)
+
+    for i, w in enumerate([12, 8, 16, 32, 15, 10, 40, 22], 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    filename = f"Movimientos_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return send_file(buf, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     as_attachment=True)
+
+
+@app.route('/reportes/valorizacion.pdf')
+@login_required
+@check_org_permission
+@check_permission('perm_view_dashboard')
+def exportar_valorizacion_pdf():
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('Solo los administradores pueden exportar reportes de valorización.', 'danger')
+        return redirect(url_for('reportes'))
+
+    org_id     = current_user.organizacion_id
+    almacen_id = request.args.get('almacen_id', type=int)
+    org        = Organizacion.query.get(org_id)
+
+    if almacen_id:
+        almacen = Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first_or_404()
+        items   = db.session.query(Stock).filter_by(almacen_id=almacen_id).join(Producto).order_by(Producto.nombre).all()
+        nombre_almacen = almacen.nombre
+    else:
+        items = db.session.query(Stock).join(
+            Almacen, Stock.almacen_id == Almacen.id
+        ).filter(Almacen.organizacion_id == org_id).join(Producto).order_by(Producto.nombre).all()
+        nombre_almacen = 'Todos los Almacenes'
+
+    items_sorted = sorted(items, key=lambda x: (x.cantidad or 0) * (x.producto.precio_unitario or 0), reverse=True)
+    valor_total  = sum((i.cantidad or 0) * (i.producto.precio_unitario or 0) for i in items)
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4,
+                            rightMargin=0.75*inch, leftMargin=0.75*inch,
+                            topMargin=0.75*inch, bottomMargin=0.75*inch)
+    story  = []
+    styles = getSampleStyleSheet()
+
+    primary    = colors.HexColor('#4F46E5')
+    light_gray = colors.HexColor('#F8F9FA')
+    mid_gray   = colors.HexColor('#DEE2E6')
+    green_c    = colors.HexColor('#059669')
+    red_c      = colors.HexColor('#DC2626')
+
+    s_title  = ParagraphStyle('RPTitle',  fontName='Helvetica-Bold', fontSize=18, textColor=primary, spaceAfter=4)
+    s_sub    = ParagraphStyle('RPSub',    fontName='Helvetica',      fontSize=10, textColor=colors.HexColor('#6B7280'), spaceAfter=2)
+    s_cell   = ParagraphStyle('RPCell',   fontName='Helvetica',      fontSize=8,  leading=10)
+    s_cellb  = ParagraphStyle('RPCellB',  fontName='Helvetica-Bold', fontSize=8,  leading=10)
+    s_cellr  = ParagraphStyle('RPCellR',  fontName='Helvetica',      fontSize=8,  leading=10, alignment=TA_RIGHT)
+    s_cellbr = ParagraphStyle('RPCellBR', fontName='Helvetica-Bold', fontSize=8,  leading=10, alignment=TA_RIGHT)
+    s_big    = ParagraphStyle('RPBig',    fontName='Helvetica-Bold', fontSize=14, textColor=primary)
+
+    # Encabezado
+    story.append(Paragraph("Reporte de Valorización de Inventario", s_title))
+    story.append(Paragraph(f"{org.nombre}  ·  {nombre_almacen}", s_sub))
+    story.append(Paragraph(f"Generado el {datetime.now().strftime('%d de %B de %Y a las %H:%M')}", s_sub))
+    story.append(Spacer(1, 0.2*inch))
+
+    # Resumen
+    resumen = [
+        [Paragraph('<b>Total Productos</b>', s_cellb),
+         Paragraph('<b>Valor Total (MXN)</b>', s_cellb),
+         Paragraph('<b>Almacén</b>', s_cellb)],
+        [Paragraph(str(len(items)), s_big),
+         Paragraph(f"$ {valor_total:,.2f}", s_big),
+         Paragraph(nombre_almacen, s_cell)],
+    ]
+    t_res = Table(resumen, colWidths=[2*inch, 2.8*inch, 2.2*inch])
+    t_res.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), light_gray),
+        ('BOX',        (0,0), (-1,-1), 1,   mid_gray),
+        ('INNERGRID',  (0,0), (-1,-1), 0.5, mid_gray),
+        ('PADDING',    (0,0), (-1,-1), 8),
+        ('VALIGN',     (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_res)
+    story.append(Spacer(1, 0.2*inch))
+
+    # Tabla principal
+    col_w = [0.3*inch, 0.85*inch, 2.1*inch, 1.1*inch, 0.5*inch, 0.95*inch, 0.95*inch, 0.65*inch]
+    hdrs  = ['#', 'SKU', 'Producto', 'Categoría', 'Stock', 'Precio Unit.', 'Valor Total', '% Total']
+    data  = [[Paragraph(h, s_cellb) for h in hdrs]]
+
+    for i, item in enumerate(items_sorted, 1):
+        valor_item = (item.cantidad or 0) * (item.producto.precio_unitario or 0)
+        pct        = (valor_item / valor_total * 100) if valor_total > 0 else 0
+        data.append([
+            Paragraph(str(i), s_cellr),
+            Paragraph(item.producto.codigo, s_cell),
+            Paragraph(item.producto.nombre[:40], s_cell),
+            Paragraph(item.producto.categoria.nombre if item.producto.categoria else '—', s_cell),
+            Paragraph(str(item.cantidad), s_cellr),
+            Paragraph(f"$ {(item.producto.precio_unitario or 0):,.2f}", s_cellr),
+            Paragraph(f"$ {valor_item:,.2f}", s_cellr),
+            Paragraph(f"{pct:.1f}%", s_cellr),
+        ])
+
+    data.append([
+        Paragraph('', s_cell), Paragraph('', s_cell), Paragraph('', s_cell), Paragraph('', s_cell),
+        Paragraph('', s_cell),
+        Paragraph('TOTAL', s_cellbr),
+        Paragraph(f"$ {valor_total:,.2f}", s_cellbr),
+        Paragraph('100%', s_cellbr),
+    ])
+
+    t_main = Table(data, colWidths=col_w, repeatRows=1)
+    t_main.setStyle(TableStyle([
+        ('BACKGROUND',   (0,0),  (-1,0),  primary),
+        ('TEXTCOLOR',    (0,0),  (-1,0),  colors.white),
+        ('ROWBACKGROUNDS',(0,1), (-1,-2), [colors.white, light_gray]),
+        ('BACKGROUND',   (0,-1), (-1,-1), colors.HexColor('#EEEDFC')),
+        ('FONTNAME',     (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('GRID',         (0,0),  (-1,-1), 0.5, mid_gray),
+        ('BOX',          (0,0),  (-1,-1), 1,   mid_gray),
+        ('PADDING',      (0,0),  (-1,-1), 5),
+        ('VALIGN',       (0,0),  (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(t_main)
+
+    doc.build(story)
+    buf.seek(0)
+    fname = f"Valorizacion_{nombre_almacen.replace(' ','_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    return send_file(buf, download_name=fname, mimetype='application/pdf', as_attachment=True)
+
+
 # --- RUTAS DE HISTORIAL DE ACTIVIDAD ---
 
 @app.route('/actividad')

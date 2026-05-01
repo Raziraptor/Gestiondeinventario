@@ -660,6 +660,12 @@
                                     </a>
                                 </li>
                                 {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('reportes') }}">
+                                        <i class="bi bi-file-earmark-bar-graph me-2 text-info"></i> Reportes
+                                    </a>
+                                </li>
 
                                 {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
                                 <li><hr class="dropdown-divider"></li>

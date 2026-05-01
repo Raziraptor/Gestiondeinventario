@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+<style>
+.reporte-card { transition: box-shadow .2s, transform .2s; }
+.reporte-card:hover { box-shadow: var(--shadow-lg) !important; transform: translateY(-2px); }
+.reporte-icon {
+    width: 56px; height: 56px; border-radius: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; flex-shrink: 0;
+}
+</style>
+
+<div class="container-fluid mt-3 mb-5" style="max-width:900px;">
+
+    <!-- ENCABEZADO -->
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Reportes</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-bar-graph text-primary me-2"></i>Reportes y Exportaciones</h2>
+        <p class="text-muted mb-0">Descarga reportes detallados de tu inventario en Excel o PDF.</p>
+    </div>
+
+    <!-- SELECTOR DE ALMACÉN COMPARTIDO -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3 d-flex align-items-center gap-3 flex-wrap">
+            <i class="bi bi-shop text-primary fs-5"></i>
+            <label class="fw-semibold mb-0 text-nowrap">Almacén para los reportes:</label>
+            <select id="almacenSelector" class="form-select w-auto shadow-sm" style="min-width:200px;">
+                <option value="">Todos los almacenes</option>
+                {% for alm in almacenes %}
+                <option value="{{ alm.id }}">{{ alm.nombre }}</option>
+                {% endfor %}
+            </select>
+            <span class="text-muted small ms-auto d-none d-md-block">
+                <i class="bi bi-info-circle me-1"></i>Se aplica a todos los reportes de esta página.
+            </span>
+        </div>
+    </div>
+
+    <!-- GRID DE REPORTES -->
+    <div class="row g-4">
+
+        <!-- REPORTE 1: Inventario Actual (Excel) -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 reporte-card">
+                <div class="card-body p-4">
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="reporte-icon" style="background:rgba(16,185,129,.12);">
+                            <i class="bi bi-file-earmark-excel text-success"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0">Inventario Actual</h5>
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 small">Excel</span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        Exporta el stock actual con SKU, nombre, categoría, proveedor, cantidades,
+                        estado (óptimo/bajo/exceso) y valor total por producto en MXN.
+                    </p>
+                    <div class="d-grid">
+                        <a id="btn-inv-excel" href="{{ url_for('exportar_inventario_excel') }}"
+                           class="btn btn-success rounded-pill fw-bold shadow-sm">
+                            <i class="bi bi-download me-2"></i>Descargar Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- REPORTE 2: Valorización (PDF) — solo admins -->
+        {% if current_user.rol in ['super_admin', 'admin'] %}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100 reporte-card">
+                <div class="card-body p-4">
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="reporte-icon" style="background:rgba(79,70,229,.12);">
+                            <i class="bi bi-file-earmark-pdf text-primary"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0">Valorización</h5>
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 small">PDF</span>
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 small ms-1">Admin</span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        Reporte PDF con membrete de tu organización mostrando todos los productos
+                        ordenados por valor, precio unitario, stock actual y porcentaje del inventario total.
+                    </p>
+                    <div class="d-grid">
+                        <a id="btn-val-pdf" href="{{ url_for('exportar_valorizacion_pdf') }}"
+                           class="btn btn-primary rounded-pill fw-bold shadow-sm">
+                            <i class="bi bi-download me-2"></i>Descargar PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- REPORTE 3: Historial de Movimientos (Excel) -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 reporte-card">
+                <div class="card-body p-4">
+                    <div class="d-flex gap-3 mb-3">
+                        <div class="reporte-icon" style="background:rgba(245,158,11,.12);">
+                            <i class="bi bi-file-earmark-spreadsheet text-warning"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0">Historial de Movimientos</h5>
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 small">Excel</span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Exporta todos los movimientos (entradas, salidas, ajustes) con fecha, hora, tipo,
+                        producto, cantidad y motivo. Filtra por rango de fechas y tipo de movimiento.
+                    </p>
+
+                    <!-- Filtros para movimientos -->
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-sm-4">
+                            <label class="form-label fw-semibold small mb-1">Desde</label>
+                            <input type="date" id="mov-desde" class="form-control shadow-sm"
+                                   value="{{ now.strftime('%Y-%m-01') }}">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label fw-semibold small mb-1">Hasta</label>
+                            <input type="date" id="mov-hasta" class="form-control shadow-sm"
+                                   value="{{ now.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-sm-4">
+                            <label class="form-label fw-semibold small mb-1">Tipo de movimiento</label>
+                            <select id="mov-tipo" class="form-select shadow-sm">
+                                <option value="">Todos los tipos</option>
+                                <option value="entrada">Entrada</option>
+                                <option value="entrada-inicial">Stock Inicial</option>
+                                <option value="salida">Salida</option>
+                                <option value="ajuste-entrada">Ajuste (+)</option>
+                                <option value="ajuste-salida">Ajuste (-)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-grid d-sm-block">
+                        <a id="btn-mov-excel" href="#"
+                           class="btn btn-warning text-dark rounded-pill fw-bold shadow-sm">
+                            <i class="bi bi-download me-2"></i>Descargar Excel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+(function () {
+    const almacenSel = document.getElementById('almacenSelector');
+    const btnInvXls  = document.getElementById('btn-inv-excel');
+    const btnValPdf  = document.getElementById('btn-val-pdf');
+    const btnMovXls  = document.getElementById('btn-mov-excel');
+    const movDesde   = document.getElementById('mov-desde');
+    const movHasta   = document.getElementById('mov-hasta');
+    const movTipo    = document.getElementById('mov-tipo');
+
+    function buildUrl(base, extra) {
+        const params = new URLSearchParams();
+        const aid = almacenSel.value;
+        if (aid) params.set('almacen_id', aid);
+        if (extra) Object.entries(extra).forEach(([k, v]) => { if (v) params.set(k, v); });
+        return base + (params.toString() ? '?' + params.toString() : '');
+    }
+
+    function updateLinks() {
+        if (btnInvXls) btnInvXls.href = buildUrl("{{ url_for('exportar_inventario_excel') }}");
+        if (btnValPdf) btnValPdf.href = buildUrl("{{ url_for('exportar_valorizacion_pdf') }}");
+        if (btnMovXls) btnMovXls.href = buildUrl("{{ url_for('exportar_movimientos_excel') }}", {
+            desde: movDesde ? movDesde.value : '',
+            hasta: movHasta ? movHasta.value : '',
+            tipo:  movTipo  ? movTipo.value  : '',
+        });
+    }
+
+    almacenSel.addEventListener('change', updateLinks);
+    if (movDesde) movDesde.addEventListener('change', updateLinks);
+    if (movHasta) movHasta.addEventListener('change', updateLinks);
+    if (movTipo)  movTipo.addEventListener('change', updateLinks);
+
+    updateLinks();
+})();
+</script>
+{% endblock %}
+{% endblock %}
