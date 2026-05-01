@@ -1517,7 +1517,14 @@ def nuevo_producto():
             elif file.filename != '' and not allowed_file(file.filename):
                 flash('Tipo de archivo de imagen no permitido.', 'danger')
                 return repoblar_formulario_con_error()
-        
+
+        if not imagen_filename:
+            ai_fn = request.form.get('ai_imagen_filename', '').strip()
+            if ai_fn:
+                ai_path = os.path.join(app.config['UPLOAD_FOLDER'], ai_fn)
+                if os.path.isfile(ai_path):
+                    imagen_filename = ai_fn
+
         try:
             # CORRECCIÓN VITAL: Validar string vacío antes de float()
             costo_raw = request.form.get('costo_estandar')
@@ -1622,6 +1629,13 @@ def editar_producto(id):
                     filename = secure_filename(file.filename)
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     producto.imagen_url = filename
+
+            if not producto.imagen_url or request.files.get('imagen', '').filename == '':
+                ai_fn = request.form.get('ai_imagen_filename', '').strip()
+                if ai_fn:
+                    ai_path = os.path.join(app.config['UPLOAD_FOLDER'], ai_fn)
+                    if os.path.isfile(ai_path):
+                        producto.imagen_url = ai_fn
 
             producto.nombre = request.form['nombre']
             producto.codigo = request.form['codigo']
@@ -4511,23 +4525,51 @@ def asignar_usuario(user_id):
 
     return redirect(url_for('super_admin'))
 
+@app.route('/api/ai/generar-imagen-producto')
+@login_required
+def ai_generar_imagen_producto():
+    import uuid as _uuid
+    nombre = request.args.get('nombre', '').strip()
+    seed   = request.args.get('seed', '42')
+    if not nombre:
+        return jsonify({'error': 'Proporciona un nombre de producto'}), 400
+    prompt = f"{nombre}, product photography, white background, professional studio, clean, high quality"
+    poll_url = (
+        f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}"
+        f"?width=512&height=512&nologo=true&seed={seed}&model=flux"
+    )
+    try:
+        resp = requests.get(poll_url, timeout=50)
+        if not resp.ok:
+            return jsonify({'error': 'Pollinations no respondió correctamente'}), 502
+        filename = f"ai_{_uuid.uuid4().hex[:12]}.jpg"
+        with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'wb') as fh:
+            fh.write(resp.content)
+        return jsonify({'filename': filename,
+                        'url': url_for('static', filename=f'uploads/{filename}')})
+    except requests.Timeout:
+        return jsonify({'error': 'La IA tardó demasiado, intenta de nuevo.'}), 504
+    except Exception as e:
+        return jsonify({'error': 'Error al generar imagen'}), 500
+
+
 @app.route('/api/ai/mejorar-descripcion', methods=['POST'])
 @login_required
 def ai_mejorar_descripcion():
     from google import genai
     import os
-    
+
     data = request.get_json()
     producto = data.get('producto', '')
-    
+
     if not producto:
         return jsonify({'error': 'Producto vacío'}), 400
-        
+
+    API_KEY = os.environ.get("GEMINI_API_KEY")
+    if not API_KEY:
+        return jsonify({'error': 'IA no configurada en el servidor (falta GEMINI_API_KEY).'}), 503
+
     try:
-        # Reemplaza esto con tu API Key (Te explico cómo obtenerla abajo)
-        API_KEY = os.environ.get("GEMINI_API_KEY")
-        
-        # Cliente del NUEVO SDK de Google
         client = genai.Client(api_key=API_KEY)
         
         prompt = f"""

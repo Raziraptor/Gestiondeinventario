@@ -255,10 +255,46 @@
                             {% endif %}
                         </div>
                         
-                        <div class="input-group input-group-sm mb-4">
+                        <div class="input-group input-group-sm mb-2">
                             <input class="form-control bg-light border-secondary border-opacity-25" type="file" id="imagen" name="imagen" onchange="previsualizarImagen(event)" accept="image/*">
                         </div>
-                        
+
+                        <!-- GENERADOR IA -->
+                        <div class="mb-3 p-3 rounded-3 border border-primary border-opacity-25" style="background:rgba(79,70,229,.05);">
+                            <div class="d-flex align-items-center gap-1 mb-2">
+                                <i class="bi bi-stars text-primary" style="font-size:.9rem;"></i>
+                                <span class="fw-semibold text-primary" style="font-size:.78rem;">Generar con IA (Pollinations)</span>
+                            </div>
+                            <div class="input-group input-group-sm mb-2">
+                                <input type="text" id="ai-prompt-input" class="form-control bg-light border-secondary border-opacity-25"
+                                       placeholder="Ej: Tornillo hexagonal M8 acero" style="font-size:.8rem;">
+                                <button type="button" id="btn-generar-ai" class="btn btn-primary btn-sm fw-bold"
+                                        onclick="generarImagenIA()">
+                                    <i class="bi bi-magic me-1"></i>Generar
+                                </button>
+                            </div>
+                            <div id="ai-loading" class="text-center py-1 d-none">
+                                <span class="spinner-border spinner-border-sm text-primary me-1"></span>
+                                <span class="text-muted" style="font-size:.78rem;">Generando (~20 seg)…</span>
+                            </div>
+                            <div id="ai-result" class="d-none">
+                                <div class="d-flex gap-2">
+                                    <button type="button" onclick="usarImagenIA()"
+                                            class="btn btn-success btn-sm rounded-pill flex-fill fw-bold">
+                                        <i class="bi bi-check-lg me-1"></i>Usar esta imagen
+                                    </button>
+                                    <button type="button" onclick="generarImagenIA()"
+                                            class="btn btn-outline-secondary btn-sm rounded-pill px-2"
+                                            title="Regenerar">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="ai-error" class="text-danger d-none mt-1" style="font-size:.78rem;"></div>
+                        </div>
+                        <input type="hidden" id="ai_imagen_filename" name="ai_imagen_filename"
+                               form="formulario_producto" value="">
+
                         <hr class="border-secondary border-opacity-25 mb-4">
                         
                         <div class="d-grid gap-3">
@@ -388,6 +424,81 @@
             inputCajasStock.addEventListener('input', () => calcularStock('caja_stock'));
             inputUnidadesStock.addEventListener('input', () => calcularStock('unidad_stock'));
         }
+
+        // Pre-llenar prompt IA desde el campo nombre (si existe)
+        const nombreEl  = document.getElementById('nombre');
+        const promptEl  = document.getElementById('ai-prompt-input');
+        if (promptEl && nombreEl && nombreEl.value.trim()) {
+            promptEl.value = nombreEl.value.trim();
+        }
+        if (nombreEl && promptEl) {
+            nombreEl.addEventListener('input', () => {
+                if (!promptEl.dataset.customized) promptEl.value = nombreEl.value;
+            });
+            promptEl.addEventListener('input', () => { promptEl.dataset.customized = '1'; });
+        }
     });
+
+    // ==========================================
+    // 3. GENERADOR DE IMAGEN IA (Pollinations)
+    // ==========================================
+    let _aiFilename = '';
+
+    function generarImagenIA() {
+        const nombre = document.getElementById('ai-prompt-input').value.trim()
+                    || document.getElementById('nombre')?.value.trim()
+                    || document.getElementById('codigo')?.value.trim()
+                    || '';
+        const errEl     = document.getElementById('ai-error');
+        const loadEl    = document.getElementById('ai-loading');
+        const resultEl  = document.getElementById('ai-result');
+        const btn       = document.getElementById('btn-generar-ai');
+
+        errEl.classList.add('d-none');
+        resultEl.classList.add('d-none');
+
+        if (!nombre) {
+            errEl.textContent = 'Escribe el nombre del producto primero.';
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        loadEl.classList.remove('d-none');
+        btn.disabled = true;
+
+        const seed = Math.floor(Math.random() * 99999);
+        fetch(`/api/ai/generar-imagen-producto?nombre=${encodeURIComponent(nombre)}&seed=${seed}`)
+            .then(r => r.json())
+            .then(data => {
+                loadEl.classList.add('d-none');
+                btn.disabled = false;
+                if (data.error) {
+                    errEl.textContent = data.error;
+                    errEl.classList.remove('d-none');
+                    return;
+                }
+                _aiFilename = data.filename;
+                const preview     = document.getElementById('img_preview');
+                const placeholder = document.getElementById('placeholder_img');
+                preview.src = data.url + '?t=' + Date.now();
+                preview.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+                resultEl.classList.remove('d-none');
+            })
+            .catch(() => {
+                loadEl.classList.add('d-none');
+                btn.disabled = false;
+                errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+                errEl.classList.remove('d-none');
+            });
+    }
+
+    function usarImagenIA() {
+        if (_aiFilename) {
+            document.getElementById('ai_imagen_filename').value = _aiFilename;
+            document.getElementById('imagen').value = '';
+            document.getElementById('ai-result').classList.add('d-none');
+        }
+    }
 </script>
 {% endblock %}
