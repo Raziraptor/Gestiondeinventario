@@ -121,12 +121,16 @@
 
 <script>
     function confirmarEliminarLogo() {
-        if(confirm('¿Estás seguro de que deseas eliminar el logo de la empresa? El cambio se guardará inmediatamente.')) {
-            // Se marca la casilla oculta para indicarle al backend que debe borrar
-            document.getElementById('check_eliminar_logo').checked = true;
-            // Se envía el formulario automáticamente
-            document.getElementById('formConfiguracion').submit();
-        }
+        confirmAction({
+            title: '¿Eliminar el logo?',
+            body: 'El logo de la empresa será eliminado. El cambio se guardará inmediatamente.',
+            btnClass: 'btn-danger',
+            btnText: 'Eliminar logo',
+            onConfirm: function() {
+                document.getElementById('check_eliminar_logo').checked = true;
+                document.getElementById('formConfiguracion').submit();
+            }
+        });
     }
 </script>
 {% endblock %}

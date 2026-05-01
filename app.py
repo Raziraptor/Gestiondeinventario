@@ -1286,6 +1286,104 @@ def api_buscar_productos():
     return jsonify(resultados)
 
 
+@app.route('/api/stock/buscar')
+@login_required
+def api_stock_buscar():
+    """Busca ítems de stock por nombre o SKU, devuelve contexto de almacén."""
+    q = request.args.get('q', '').strip()
+    if not q:
+        return jsonify([])
+    org_id = current_user.organizacion_id
+    items = (
+        db.session.query(Stock, Producto, Almacen)
+        .join(Producto, Stock.producto_id == Producto.id)
+        .join(Almacen, Stock.almacen_id == Almacen.id)
+        .filter(Producto.organizacion_id == org_id)
+        .filter(
+            (Producto.nombre.ilike(f'%{q}%')) |
+            (Producto.codigo.ilike(f'%{q}%'))
+        )
+        .order_by(Producto.nombre)
+        .limit(8)
+        .all()
+    )
+    return jsonify([{
+        'stock_id': s.id,
+        'nombre':   p.nombre,
+        'codigo':   p.codigo,
+        'almacen':  a.nombre,
+        'cantidad': s.cantidad
+    } for s, p, a in items])
+
+
+@app.route('/api/ajuste/rapido', methods=['POST'])
+@login_required
+@check_permission('perm_edit_management')
+def api_ajuste_rapido():
+    """Aplica un ajuste rápido (+/-) a un ítem de stock via AJAX."""
+    data     = request.get_json(silent=True) or {}
+    stock_id = data.get('stock_id')
+    tipo     = data.get('tipo', 'entrada')
+    motivo   = (data.get('motivo') or '').strip()
+    try:
+        cantidad = int(data.get('cantidad', 0))
+    except (ValueError, TypeError):
+        return jsonify({'ok': False, 'error': 'Cantidad inválida'}), 400
+
+    if not stock_id:
+        return jsonify({'ok': False, 'error': 'stock_id requerido'}), 400
+    if cantidad < 1:
+        return jsonify({'ok': False, 'error': 'La cantidad debe ser ≥ 1'}), 400
+    if not motivo:
+        return jsonify({'ok': False, 'error': 'El motivo es obligatorio'}), 400
+    if tipo not in ('entrada', 'salida'):
+        return jsonify({'ok': False, 'error': 'Tipo inválido'}), 400
+
+    org_id = current_user.organizacion_id
+    stock  = Stock.query.get(stock_id)
+    if not stock:
+        return jsonify({'ok': False, 'error': 'Stock no encontrado'}), 404
+
+    producto = Producto.query.get(stock.producto_id)
+    if not producto or producto.organizacion_id != org_id:
+        return jsonify({'ok': False, 'error': 'Sin acceso'}), 403
+
+    delta         = cantidad if tipo == 'entrada' else -cantidad
+    nueva_cantidad = stock.cantidad + delta
+    if nueva_cantidad < 0:
+        return jsonify({'ok': False, 'error': f'Stock insuficiente (actual: {stock.cantidad})'}), 400
+
+    stock.cantidad = nueva_cantidad
+    tipo_mov = 'ajuste-entrada' if tipo == 'entrada' else 'ajuste-salida'
+    signo    = '+' if tipo == 'entrada' else '-'
+
+    db.session.add(Movimiento(
+        producto_id=stock.producto_id,
+        cantidad=delta,
+        tipo=tipo_mov,
+        fecha=datetime.now(),
+        motivo=f'Ajuste Rápido: {motivo}',
+        almacen_id=stock.almacen_id,
+        organizacion_id=org_id
+    ))
+    log_actividad('ajuste', 'producto',
+                  f'Ajuste rápido {signo}{cantidad} uds — {motivo}',
+                  entidad_id=stock.producto_id)
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+    if tipo == 'salida':
+        check_and_alert_stock_bajo(org_id, stock.almacen_id)
+
+    return jsonify({
+        'ok': True,
+        'mensaje': f'Ajuste {signo}{cantidad} uds aplicado. Nuevo stock: {nueva_cantidad}.'
+    })
+
+
 @app.route('/productos/importar/template')
 @login_required
 @check_permission('perm_edit_management')

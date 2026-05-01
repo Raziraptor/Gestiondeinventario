@@ -231,13 +231,21 @@
     if(selectProveedor) {
         selectProveedor.addEventListener('change', () => {
             if(container.querySelectorAll('.producto-linea').length > 0) {
-                if(confirm("¿Cambiar de proveedor? Se vaciará la lista actual.")) {
-                    container.innerHTML = '';
-                    if(mensajeVacio) { container.appendChild(mensajeVacio); mensajeVacio.style.display = 'block'; }
-                    recalcularTotales();
-                }
+                confirmAction({
+                    title: '¿Cambiar de proveedor?',
+                    body: 'Se vaciará la lista de productos actual.',
+                    btnClass: 'btn-warning',
+                    btnText: 'Sí, cambiar',
+                    onConfirm: function() {
+                        container.innerHTML = '';
+                        if(mensajeVacio) { container.appendChild(mensajeVacio); mensajeVacio.style.display = 'block'; }
+                        recalcularTotales();
+                        verificarEstadoBuscador();
+                    }
+                });
+            } else {
+                verificarEstadoBuscador();
             }
-            verificarEstadoBuscador();
         });
     }
     if(selectAlmacen) selectAlmacen.addEventListener('change', verificarEstadoBuscador);
