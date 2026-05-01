@@ -1227,6 +1227,31 @@ def dashboard():
 
 # --- Rutas de Productos ---
 
+@app.route('/api/alertas/stock-bajo')
+@login_required
+def api_alertas_stock_bajo():
+    org_id = current_user.organizacion_id
+    items = db.session.query(Stock).join(
+        Almacen, Stock.almacen_id == Almacen.id
+    ).join(Producto, Stock.producto_id == Producto.id).filter(
+        Almacen.organizacion_id == org_id,
+        Stock.stock_minimo > 0,
+        Stock.cantidad < Stock.stock_minimo
+    ).order_by(Stock.cantidad.asc()).limit(10).all()
+
+    return jsonify({
+        'count': len(items),
+        'items': [{
+            'nombre':     item.producto.nombre,
+            'sku':        item.producto.codigo,
+            'cantidad':   item.cantidad,
+            'minimo':     item.stock_minimo,
+            'almacen':    item.almacen.nombre,
+            'producto_id': item.producto_id,
+        } for item in items]
+    })
+
+
 @app.route('/api/productos/buscar')
 @login_required
 def api_buscar_productos():

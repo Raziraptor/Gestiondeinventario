@@ -711,6 +711,40 @@
                         </button>
                     </li>
 
+                    <!-- CAMPANITA DE ALERTAS -->
+                    {% if current_user.is_authenticated and current_user.perm_view_dashboard %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link position-relative px-2 py-1" href="#"
+                           id="alertaBell" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false"
+                           title="Alertas de stock bajo">
+                            <i class="bi bi-bell fs-5"></i>
+                            <span id="alerta-badge"
+                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
+                                  style="font-size:.6rem;min-width:1.1rem;">0</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end shadow-sm rounded-4 p-0 border-0"
+                             style="min-width:310px;max-width:340px;"
+                             aria-labelledby="alertaBell">
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-top-4"
+                                 style="background:rgba(239,68,68,.07);border-bottom:1px solid var(--border);">
+                                <span class="fw-bold small">
+                                    <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>Stock Bajo
+                                </span>
+                                <span id="alerta-count-label" class="badge rounded-pill bg-danger">0</span>
+                            </div>
+                            <div id="alerta-lista" style="max-height:280px;overflow-y:auto;"></div>
+                            <div class="border-top text-center px-3 py-2 rounded-bottom-4"
+                                 style="background:var(--hover-bg);">
+                                <a href="{{ url_for('dashboard') }}"
+                                   class="text-decoration-none small fw-semibold text-primary">
+                                    Ver inventario completo →
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                    {% endif %}
+
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="profile-pill dropdown-toggle" href="#"
@@ -830,6 +864,66 @@
     </script>
 
     {% block extra_js %}{% endblock %}
+
+    <!-- ALERTAS DE STOCK BAJO -->
+    {% if current_user.is_authenticated and current_user.perm_view_dashboard %}
+    <script>
+    (function () {
+        const badge  = document.getElementById('alerta-badge');
+        const label  = document.getElementById('alerta-count-label');
+        const lista  = document.getElementById('alerta-lista');
+        if (!badge) return;
+
+        function renderItem(item) {
+            const pct = Math.round((item.cantidad / item.minimo) * 100);
+            return `
+            <div class="px-3 py-2 d-flex justify-content-between align-items-start gap-3"
+                 style="border-bottom:1px solid var(--border);">
+                <div class="min-w-0 flex-grow-1">
+                    <div class="fw-semibold text-body text-truncate" style="font-size:.82rem;">${item.nombre}</div>
+                    <div class="text-muted" style="font-size:.7rem;">
+                        <i class="bi bi-shop me-1"></i>${item.almacen}
+                        &nbsp;·&nbsp;
+                        <span class="font-monospace">${item.sku}</span>
+                    </div>
+                    <div class="progress mt-1 rounded-pill" style="height:4px;max-width:140px;">
+                        <div class="progress-bar bg-danger rounded-pill" style="width:${Math.min(pct,100)}%;"></div>
+                    </div>
+                </div>
+                <div class="text-end flex-shrink-0">
+                    <span class="badge bg-danger rounded-pill px-2" style="font-size:.75rem;">${item.cantidad}</span>
+                    <div class="text-muted" style="font-size:.65rem;">mín: ${item.minimo}</div>
+                </div>
+            </div>`;
+        }
+
+        async function cargarAlertas() {
+            try {
+                const res  = await fetch('/api/alertas/stock-bajo');
+                const data = await res.json();
+
+                if (data.count > 0) {
+                    badge.textContent = data.count > 9 ? '9+' : data.count;
+                    badge.classList.remove('d-none');
+                    label.textContent = data.count;
+                    lista.innerHTML   = data.items.map(renderItem).join('');
+                } else {
+                    badge.classList.add('d-none');
+                    label.textContent = '0';
+                    lista.innerHTML   = `
+                    <div class="text-center text-muted py-4" style="font-size:.85rem;">
+                        <i class="bi bi-check-circle-fill text-success fs-4 d-block mb-2"></i>
+                        Todo el stock está en niveles óptimos
+                    </div>`;
+                }
+            } catch (e) { /* silencioso */ }
+        }
+
+        cargarAlertas();
+        setInterval(cargarAlertas, 5 * 60 * 1000); // refresca cada 5 min
+    })();
+    </script>
+    {% endif %}
 
     <!-- TOAST CONTAINER -->
     <div id="toastContainer" class="toast-container-app" aria-live="polite" aria-atomic="false"></div>
