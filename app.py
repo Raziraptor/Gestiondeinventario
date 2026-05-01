@@ -2183,12 +2183,87 @@ def historial_salidas():
     page = request.args.get('page', 1, type=int)
     pagination = query.order_by(Salida.fecha.desc()).paginate(page=page, per_page=12, error_out=False)
 
+    # --- Analytics del período ---
+    org_id   = current_user.organizacion_id
+    base_mov = Movimiento.query.filter(
+        Movimiento.organizacion_id == org_id,
+        Movimiento.tipo == 'salida',
+        extract('month', Movimiento.fecha) == mes,
+        extract('year',  Movimiento.fecha) == ano,
+    )
+
+    total_unidades = db.session.query(
+        db.func.sum(db.func.abs(Movimiento.cantidad))
+    ).filter(
+        Movimiento.organizacion_id == org_id,
+        Movimiento.tipo == 'salida',
+        extract('month', Movimiento.fecha) == mes,
+        extract('year',  Movimiento.fecha) == ano,
+    ).scalar() or 0
+
+    # Top 5 productos por unidades despachadas
+    top_productos_raw = db.session.query(
+        Movimiento.producto_id,
+        db.func.sum(db.func.abs(Movimiento.cantidad)).label('uds')
+    ).filter(
+        Movimiento.organizacion_id == org_id,
+        Movimiento.tipo == 'salida',
+        extract('month', Movimiento.fecha) == mes,
+        extract('year',  Movimiento.fecha) == ano,
+    ).group_by(Movimiento.producto_id
+    ).order_by(db.func.sum(db.func.abs(Movimiento.cantidad)).desc()).limit(5).all()
+
+    top_productos = []
+    for row in top_productos_raw:
+        prod = Producto.query.get(row.producto_id)
+        if prod:
+            top_productos.append({'nombre': prod.nombre, 'sku': prod.codigo, 'uds': int(row.uds)})
+
+    # Unidades por día (para la gráfica)
+    import calendar
+    dias_mes = calendar.monthrange(ano, mes)[1]
+    daily_raw = db.session.query(
+        db.func.extract('day', Movimiento.fecha).label('dia'),
+        db.func.sum(db.func.abs(Movimiento.cantidad)).label('uds')
+    ).filter(
+        Movimiento.organizacion_id == org_id,
+        Movimiento.tipo == 'salida',
+        extract('month', Movimiento.fecha) == mes,
+        extract('year',  Movimiento.fecha) == ano,
+    ).group_by('dia').all()
+
+    daily_map = {int(r.dia): int(r.uds) for r in daily_raw}
+    chart_labels = list(range(1, dias_mes + 1))
+    chart_data   = [daily_map.get(d, 0) for d in chart_labels]
+
+    # Almacén más activo
+    almacen_top_raw = db.session.query(
+        Salida.almacen_id,
+        db.func.count(Salida.id).label('total')
+    ).filter(
+        Salida.organizacion_id == org_id,
+        extract('month', Salida.fecha) == mes,
+        extract('year',  Salida.fecha) == ano,
+    ).group_by(Salida.almacen_id
+    ).order_by(db.func.count(Salida.id).desc()).first()
+
+    almacen_top = None
+    if almacen_top_raw:
+        a = Almacen.query.get(almacen_top_raw.almacen_id)
+        if a:
+            almacen_top = {'nombre': a.nombre, 'total': almacen_top_raw.total}
+
     return render_template('salidas.html',
                            salidas=pagination.items,
                            pagination=pagination,
                            meses_lista=meses_lista,
                            mes_seleccionado=mes,
-                           ano_seleccionado=ano)
+                           ano_seleccionado=ano,
+                           total_unidades=total_unidades,
+                           top_productos=top_productos,
+                           almacen_top=almacen_top,
+                           chart_labels=chart_labels,
+                           chart_data=chart_data)
 
 @app.route('/salida/<int:id>')
 @login_required

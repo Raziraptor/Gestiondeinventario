@@ -28,6 +28,135 @@
         </a>
     </div>
 
+    <!-- KPIs DEL PERÍODO -->
+    <div class="row g-3 mb-4">
+
+        <!-- Total documentos de salida -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(239,68,68,.12);">
+                        <i class="bi bi-file-earmark-minus fs-4 text-danger"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Hojas de Salida</div>
+                        <div class="fw-bold fs-4">{{ pagination.total }}</div>
+                        <div class="text-muted" style="font-size:.7rem;">en el período</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total unidades despachadas -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(245,158,11,.12);">
+                        <i class="bi bi-box-arrow-right fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Unidades Despachadas</div>
+                        <div class="fw-bold fs-4">{{ total_unidades }}</div>
+                        <div class="text-muted" style="font-size:.7rem;">unidades totales</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Producto más despachado -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(139,92,246,.12);">
+                        <i class="bi bi-trophy fs-4" style="color:#8b5cf6;"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Más Despachado</div>
+                        {% if top_productos %}
+                        <div class="fw-bold text-truncate" style="font-size:.85rem;max-width:130px;">{{ top_productos[0].nombre }}</div>
+                        <div class="text-muted" style="font-size:.7rem;">{{ top_productos[0].uds }} uds</div>
+                        {% else %}
+                        <div class="text-muted small">—</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Almacén más activo -->
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:48px;height:48px;background:rgba(16,185,129,.12);">
+                        <i class="bi bi-shop fs-4 text-success"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Almacén más Activo</div>
+                        {% if almacen_top %}
+                        <div class="fw-bold text-truncate" style="font-size:.85rem;max-width:130px;">{{ almacen_top.nombre }}</div>
+                        <div class="text-muted" style="font-size:.7rem;">{{ almacen_top.total }} salidas</div>
+                        {% else %}
+                        <div class="text-muted small">—</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica: unidades por día -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
+                        <i class="bi bi-bar-chart-fill text-danger me-1"></i>
+                        Unidades Despachadas por Día
+                    </span>
+                </div>
+                <div class="card-body pt-2" style="min-height:200px;">
+                    <canvas id="chartSalidasDia" style="max-height:180px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 5 productos -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
+                        <i class="bi bi-fire text-danger me-1"></i> Top 5 Productos
+                    </span>
+                </div>
+                <div class="card-body pt-2 pb-3">
+                    {% if top_productos %}
+                    {% set max_uds = top_productos[0].uds %}
+                    <ol class="mb-0 ps-3">
+                        {% for p in top_productos %}
+                        <li class="mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold text-truncate text-body" style="font-size:.8rem;max-width:160px;">{{ p.nombre }}</span>
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 ms-1">{{ p.uds }}</span>
+                            </div>
+                            <div class="progress rounded-pill" style="height:4px;">
+                                <div class="progress-bar bg-danger rounded-pill"
+                                     style="width:{{ (p.uds / max_uds * 100) | round(0) }}%;"></div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ol>
+                    {% else %}
+                    <div class="text-muted small fst-italic text-center pt-3">Sin movimientos en el período</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- FIN KPIs -->
+
     <!-- SECCIÓN DE FILTROS -->
     <div class="card shadow-sm border-0 rounded-4 mb-5">
         <div class="card-body p-4 bg-light rounded-4">
@@ -204,9 +333,9 @@
 
             // Si la tarjeta NO está cancelada y la fecha coincide con HOY
             if (estadoBase === 'activa' && fechaCard === fechaHoyStr) {
-                
+
                 // CAMBIAR A ESTADO "ABIERTA" (VERDE)
-                
+
                 // 1. Borde de la tarjeta
                 card.classList.remove('border-danger');
                 card.classList.add('border-success');
@@ -224,10 +353,10 @@
                 // 4. Texto e Icono
                 const texto = card.querySelector('.text-area');
                 texto.textContent = 'Abierta';
-                
+
                 const icono = card.querySelector('.icon-area');
                 icono.className = 'bi bi-unlock-fill icon-area me-1'; // Cambiar candado
-                
+
                 // Cambiamos el color de los puntitos de la lista para que coincidan con verde
                 const dots = card.querySelectorAll('.bi-dot');
                 dots.forEach(dot => {
@@ -242,5 +371,59 @@
         });
     });
 
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const labels = {{ chart_labels | tojson }};
+    const data   = {{ chart_data   | tojson }};
+
+    const ctx = document.getElementById('chartSalidasDia');
+    if (!ctx) return;
+
+    const isDark    = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+    const textColor = isDark ? '#adb5bd' : '#6c757d';
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Unidades',
+                data: data,
+                backgroundColor: 'rgba(239,68,68,.65)',
+                borderColor:     'rgba(239,68,68,1)',
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: c => `${c.parsed.y} unidades`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor, maxTicksLimit: 12 }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor },
+                    ticks: { color: textColor, precision: 0 }
+                }
+            }
+        }
+    });
+})();
 </script>
 {% endblock %}

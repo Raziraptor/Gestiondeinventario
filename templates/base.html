@@ -712,7 +712,7 @@
                     </li>
 
                     <!-- CAMPANITA DE ALERTAS -->
-                    {% if current_user.is_authenticated and current_user.perm_view_dashboard %}
+                    {% if current_user.is_authenticated and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard) %}
                     <li class="nav-item dropdown">
                         <a class="nav-link position-relative px-2 py-1" href="#"
                            id="alertaBell" role="button"
@@ -866,7 +866,7 @@
     {% block extra_js %}{% endblock %}
 
     <!-- ALERTAS DE STOCK BAJO -->
-    {% if current_user.is_authenticated and current_user.perm_view_dashboard %}
+    {% if current_user.is_authenticated and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard) %}
     <script>
     (function () {
         const badge  = document.getElementById('alerta-badge');
