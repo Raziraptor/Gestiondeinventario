@@ -3,14 +3,93 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
+<style>
+    [data-bs-theme="dark"] .navbar {
+        background-color: #121212 !important;
+        border-bottom: 1px solid #2a2a2a !important;
+    }
+    [data-bs-theme="dark"] .navbar .navbar-brand,
+    [data-bs-theme="dark"] .navbar .nav-link,
+    [data-bs-theme="dark"] .navbar .navbar-text {
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .navbar .nav-link:hover { color: #ffffff !important; }
+    [data-bs-theme="dark"] body { background-color: #000000 !important; color: #e0e0e0; }
+    [data-bs-theme="dark"] .card { background-color: #121212 !important; border-color: #2a2a2a !important; }
+    [data-bs-theme="dark"] .card-header { background-color: transparent !important; border-bottom-color: #2a2a2a !important; }
+    [data-bs-theme="dark"] .bg-light { background-color: #1a1a1a !important; }
+    [data-bs-theme="dark"] .text-dark { color: #ffffff !important; }
+    [data-bs-theme="dark"] .text-muted { color: #888888 !important; }
+    [data-bs-theme="dark"] .border, [data-bs-theme="dark"] .border-bottom { border-color: #2a2a2a !important; }
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+        background-color: #1a1a1a !important;
+        border-color: #333 !important;
+        color: #e0e0e0 !important;
+    }
+    [data-bs-theme="dark"] .form-control:focus,
+    [data-bs-theme="dark"] .form-select:focus {
+        background-color: #222 !important;
+        border-color: #0d6efd !important;
+        color: #fff !important;
+    }
+    [data-bs-theme="dark"] .form-control::file-selector-button {
+        background-color: #2a2a2a !important;
+        color: #e0e0e0 !important;
+        border-right-color: #333 !important;
+    }
+    [data-bs-theme="light"] body { background-color: #f8f9fa !important; color: #212529; }
+    [data-bs-theme="light"] .card { background-color: #ffffff; border-color: #dee2e6; }
+</style>
 
 <div class="container-fluid mt-3 mb-5">
 
+    <div class="d-flex justify-content-end mb-2">
+        <button id="theme-toggle" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2 rounded-pill shadow-sm px-3 py-2" title="Cambiar Tema">
+            <i id="theme-icon" class="bi bi-moon-fill"></i>
+            <span id="theme-text" class="fw-bold small">Modo Oscuro</span>
+        </button>
+    </div>
+
+    <div class="text-center mb-5">
+        <h2 class="fw-bold fs-1">{{ titulo }}</h2>
+        <p class="text-muted fs-5">Completa la información requerida para el catálogo</p>
+    </div>
+
+    <form id="formulario_producto" method="POST"
+          action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto')) }}"
+          enctype="multipart/form-data">
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if form %} {{ form.hidden_tag() }} {% endif %}
+        {% if stock_item %} <input type="hidden" name="almacen_id" value="{{ stock_item.almacen_id }}"> {% endif %}
+
+        <div class="row g-4 justify-content-center">
+
+            <!-- COLUMNA IZQUIERDA: DATOS -->
+            <div class="col-lg-8">
+
+                <!-- SECCIÓN 1: DETALLES DEL PRODUCTO -->
+                <div class="card shadow-sm border-0 rounded-4 mb-4">
+                    <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                        <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-tag-fill me-2"></i>Información General</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4 mb-2">
+                            <div class="col-md-6">
+                                <label for="nombre" class="form-label fw-bold small text-muted">Nombre del Producto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box text-secondary"></i></span>
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="nombre" name="nombre"
+                                           value="{{ producto.nombre if producto else '' }}" required placeholder="Ej: Tornillo de 1/2 pulgada">
+                                </div>
+                            </div>
                             <div class="col-md-6">
                                 <label for="codigo" class="form-label fw-bold small text-muted">Código (SKU)</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-upc text-secondary"></i></span>
-                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25 font-monospace fw-bold" id="codigo" name="codigo" 
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25 font-monospace fw-bold" id="codigo" name="codigo"
                                            value="{{ producto.codigo if producto else '' }}" required placeholder="Ej: TOR-001-A">
                                 </div>
                             </div>
@@ -47,19 +126,17 @@
                             </div>
                         </div>
 
-                        <!-- NUEVO CAMPO: ENLACE DEL PROVEEDOR -->
                         <div class="row g-4">
                             <div class="col-12">
                                 <label for="enlace_proveedor" class="form-label fw-bold small text-muted">Enlace del Proveedor (Opcional)</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-link-45deg text-secondary fs-5"></i></span>
-                                    <input type="url" class="form-control bg-light border-secondary border-opacity-25" id="enlace_proveedor" name="enlace_proveedor" 
+                                    <input type="url" class="form-control bg-light border-secondary border-opacity-25" id="enlace_proveedor" name="enlace_proveedor"
                                            value="{{ producto.enlace_proveedor if producto and producto.enlace_proveedor else '' }}" placeholder="Ej: https://www.proveedor.com/mi-producto">
                                 </div>
                                 <div class="form-text small opacity-75">URL directa para consultar o comprar el producto rápidamente.</div>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
@@ -70,34 +147,29 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="row g-4 align-items-start">
-                            <!-- Unidades por Caja -->
                             <div class="col-md-4">
                                 <label for="unidades_por_caja" class="form-label fw-bold small text-muted">Unidades por Caja</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box-seam text-secondary"></i></span>
-                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="unidades_por_caja" name="unidades_por_caja" 
+                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="unidades_por_caja" name="unidades_por_caja"
                                            value="{{ producto.unidades_por_caja if producto and producto.unidades_por_caja else '0' }}" min="0">
                                 </div>
                                 <div class="form-text small opacity-75">0 si es pieza suelta.</div>
                             </div>
-                            
-                            <!-- Costo por Caja (Virtual) -->
                             <div class="col-md-4">
                                 <label for="costo_caja_virtual" class="form-label fw-bold small text-muted">Costo por Caja</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-secondary border-opacity-25 text-secondary">MXN $</span>
-                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="costo_caja_virtual" 
+                                    <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="costo_caja_virtual"
                                            step="0.01" min="0" placeholder="N/A">
                                 </div>
                                 <div class="form-text small opacity-75">Costo total empaque.</div>
                             </div>
-
-                            <!-- Costo Unitario (Real a BD) -->
                             <div class="col-md-4">
                                 <label for="costo_estandar" class="form-label fw-bold small text-success">Costo Unitario</label>
                                 <div class="input-group shadow-sm">
                                     <span class="input-group-text bg-light border-success text-success fw-semibold">MXN $</span>
-                                    <input type="number" class="form-control bg-light border-success fw-bold" id="costo_estandar" name="costo_estandar" 
+                                    <input type="number" class="form-control bg-light border-success fw-bold" id="costo_estandar" name="costo_estandar"
                                            value="{{ producto.costo_estandar if producto else '0.00' }}" step="0.01" min="0">
                                 </div>
                                 <div class="form-text text-success small">Costo real por pieza.</div>
@@ -105,9 +177,9 @@
                         </div>
                     </div>
                 </div>
-                        
-                <!-- SECCIÓN 3A: LÓGICA DE STOCK INICIAL (SOLO CREACIÓN) -->
-                {% if not producto or not producto.id %} 
+
+                <!-- SECCIÓN 3A: STOCK INICIAL (SOLO CREACIÓN) -->
+                {% if not producto or not producto.id %}
                 <div class="card shadow-sm border-0 rounded-4 mb-4">
                     <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
                         <h4 class="mb-0 fw-bold text-info text-dark"><i class="bi bi-boxes me-2"></i>Inventario Inicial</h4>
@@ -126,13 +198,10 @@
                                 <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="stock_maximo" name="stock_maximo" value="100" min="0">
                             </div>
                         </div>
-                        
                         <hr class="border-secondary border-opacity-25 mb-4">
-                        
                         <div class="alert alert-success bg-opacity-10 border-success border-opacity-25 text-body mb-4 py-2 small">
                             <strong>Asignación Inmediata (Opcional):</strong> Ingresa existencias directamente al sistema.
                         </div>
-                        
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label for="almacen_inicial_id" class="form-label fw-bold small text-muted">Almacén de Destino</label>
@@ -148,8 +217,6 @@
                                 <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="ubicacion_inicial" name="ubicacion_inicial" placeholder="Ej: A-12">
                             </div>
                         </div>
-
-                        <!-- CALCULADORA DE STOCK INICIAL -->
                         <div class="row g-4 align-items-start">
                             <div class="col-md-6">
                                 <label for="cajas_iniciales_virtual" class="form-label fw-bold small text-muted">Cajas Iniciales</label>
@@ -169,14 +236,13 @@
                     </div>
                 </div>
 
-                <!-- SECCIÓN 3B: LÓGICA DE EDICIÓN DE STOCK ESPECÍFICO -->
-                {% elif stock_item %} 
+                <!-- SECCIÓN 3B: EDICIÓN DE STOCK ESPECÍFICO -->
+                {% elif stock_item %}
                 <div class="card shadow-sm border-0 rounded-4 mb-4 border border-warning border-opacity-50">
                     <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-warning border-opacity-25">
                         <h4 class="mb-0 fw-bold text-warning text-dark"><i class="bi bi-geo-alt me-2"></i>Inventario en: {{ stock_item.almacen.nombre }}</h4>
                     </div>
                     <div class="card-body p-4">
-                        
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label for="stock_minimo" class="form-label fw-bold small text-muted">Stock Mínimo</label>
@@ -187,21 +253,17 @@
                                 <input type="number" class="form-control bg-light border-secondary border-opacity-25" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
                             </div>
                         </div>
-
                         <hr class="border-secondary border-opacity-25 mb-4">
-                        
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small text-muted">Ubicación Física</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-pin-map text-secondary"></i></span>
-                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" name="ubicacion" 
+                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" name="ubicacion"
                                            value="{{ stock_item.ubicacion or '' }}" placeholder="Ej: A-12-B">
                                 </div>
                             </div>
                         </div>
-
-                        <!-- CALCULADORA DE EDICIÓN DE STOCK -->
                         <div class="row g-4 align-items-start mb-2">
                             <div class="col-md-6">
                                 <label for="cajas_actuales_virtual" class="form-label fw-bold small text-muted">Cajas Físicas</label>
@@ -214,7 +276,7 @@
                                 <label class="form-label fw-bold text-warning text-dark">Total Unidades</label>
                                 <div class="input-group shadow-sm">
                                     <span class="input-group-text border-warning text-dark bg-warning bg-opacity-10 fw-bold">#</span>
-                                    <input type="number" class="form-control border-warning bg-warning bg-opacity-10 fw-bold" id="cantidad_actual" name="cantidad" 
+                                    <input type="number" class="form-control border-warning bg-warning bg-opacity-10 fw-bold" id="cantidad_actual" name="cantidad"
                                            value="{{ stock_item.cantidad }}" min="0" required>
                                 </div>
                                 <small class="text-warning text-dark fw-bold d-block mt-2">
@@ -225,15 +287,14 @@
                     </div>
                 </div>
 
-                {% else %} 
-                <!-- MENSAJE INFORMATIVO -->
+                {% else %}
                 <div class="alert alert-light border border-secondary border-opacity-25 rounded-4 shadow-sm text-muted p-4">
                     <i class="bi bi-info-circle-fill text-primary me-2 fs-5"></i> Este producto no tiene stock específico cargado en esta vista. Para editar cantidades, ve a la sección de <a href="{{ url_for('lista_almacenes') }}" class="fw-bold">Almacenes</a>.
                 </div>
                 {% endif %}
 
             </div>
-            
+
             <!-- COLUMNA DERECHA: IMAGEN Y GUARDAR -->
             <div class="col-lg-4">
                 <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 20px;">
@@ -243,18 +304,18 @@
                     <div class="card-body p-4 text-center">
                         <div class="position-relative d-inline-block mb-4 w-100">
                             {% if producto and producto.imagen_url %}
-                                <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" 
-                                     id="img_preview" class="img-thumbnail rounded-4 shadow-sm border-0" alt="Imagen del Producto" 
+                                <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}"
+                                     id="img_preview" class="img-thumbnail rounded-4 shadow-sm border-0" alt="Imagen del Producto"
                                      style="max-height: 250px; object-fit: cover; width: 100%; background-color: #f8f9fa;">
                             {% else %}
-                                <img src="" id="img_preview" class="img-thumbnail rounded-4 shadow-sm border-0" alt="Vista previa" 
+                                <img src="" id="img_preview" class="img-thumbnail rounded-4 shadow-sm border-0" alt="Vista previa"
                                      style="max-height: 250px; object-fit: cover; width: 100%; display: none; background-color: #f8f9fa;">
                                 <div id="placeholder_img" class="text-muted py-5 border border-secondary border-opacity-25 rounded-4 bg-light shadow-sm">
                                     <i class="bi bi-camera" style="font-size: 4rem;"></i><br>Sin imagen
                                 </div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="input-group input-group-sm mb-2">
                             <input class="form-control bg-light border-secondary border-opacity-25" type="file" id="imagen" name="imagen" onchange="previsualizarImagen(event)" accept="image/*">
                         </div>
@@ -284,8 +345,7 @@
                                         <i class="bi bi-check-lg me-1"></i>Usar esta imagen
                                     </button>
                                     <button type="button" onclick="generarImagenIA()"
-                                            class="btn btn-outline-secondary btn-sm rounded-pill px-2"
-                                            title="Regenerar">
+                                            class="btn btn-outline-secondary btn-sm rounded-pill px-2" title="Regenerar">
                                         <i class="bi bi-arrow-clockwise"></i>
                                     </button>
                                 </div>
@@ -296,7 +356,7 @@
                                form="formulario_producto" value="">
 
                         <hr class="border-secondary border-opacity-25 mb-4">
-                        
+
                         <div class="d-grid gap-3">
                             <button type="submit" form="formulario_producto" class="btn btn-primary btn-lg fw-bold shadow-sm rounded-pill">
                                 <i class="bi bi-save me-2"></i> Guardar Producto
@@ -311,130 +371,113 @@
         </div>
     </form>
 </div>
-    
-<!-- SCRIPTS PARA LÓGICA DE UI Y CALCULADORAS -->
+
 <script>
     // ==========================================
-    // 1. PREVISUALIZACIÓN DE IMAGEN
+    // 0. SISTEMA DE TEMA (MODO CLARO / OSCURO)
+    // ==========================================
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon      = document.getElementById('theme-icon');
+    const themeText      = document.getElementById('theme-text');
+    const htmlElement    = document.documentElement;
+
+    function applyTheme(theme) {
+        htmlElement.setAttribute('data-bs-theme', theme);
+        localStorage.setItem('app_theme', theme);
+        if (theme === 'dark') {
+            themeIcon.className = 'bi bi-sun-fill text-warning';
+            if (themeText) themeText.innerText = 'Modo Claro';
+            themeToggleBtn.classList.replace('btn-outline-secondary', 'btn-outline-light');
+        } else {
+            themeIcon.className = 'bi bi-moon-stars-fill text-dark';
+            if (themeText) themeText.innerText = 'Modo Oscuro';
+            themeToggleBtn.classList.replace('btn-outline-light', 'btn-outline-secondary');
+        }
+    }
+
+    applyTheme(localStorage.getItem('app_theme') || 'dark');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            applyTheme(htmlElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+        });
+    }
+
+    // ==========================================
+    // 1. PREVISUALIZACIÓN DE IMAGEN MANUAL
     // ==========================================
     function previsualizarImagen(event) {
-        const preview = document.getElementById('img_preview');
+        const preview     = document.getElementById('img_preview');
         const placeholder = document.getElementById('placeholder_img');
-        
         if (event.target.files && event.target.files[0]) {
             preview.style.display = 'block';
-            if(placeholder) placeholder.style.display = 'none';
+            if (placeholder) placeholder.style.display = 'none';
             preview.src = URL.createObjectURL(event.target.files[0]);
             preview.onload = () => URL.revokeObjectURL(preview.src);
+            document.getElementById('ai_imagen_filename').value = '';
         }
     }
 
     // ==========================================
-    // 2. CALCULADORAS BIDIRECCIONALES (COSTOS Y STOCK)
+    // 2. CALCULADORAS BIDIRECCIONALES
     // ==========================================
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const inputUnidadesPorCaja = document.getElementById('unidades_por_caja');
-        
-        // --- COSTOS ---
-        const inputCostoCaja = document.getElementById('costo_caja_virtual');
-        const inputCostoUnitario = document.getElementById('costo_estandar');
+        const inputCostoCaja       = document.getElementById('costo_caja_virtual');
+        const inputCostoUnitario   = document.getElementById('costo_estandar');
 
-        function calcularCostos(origenModificado) {
-            const unidades = parseFloat(inputUnidadesPorCaja.value) || 0;
-            const costoCaja = parseFloat(inputCostoCaja.value) || 0;
-            const costoUnitario = parseFloat(inputCostoUnitario.value) || 0;
-
+        function calcularCostos(origen) {
+            const unidades     = parseFloat(inputUnidadesPorCaja.value) || 0;
+            const costoCaja    = parseFloat(inputCostoCaja.value)       || 0;
+            const costoUnit    = parseFloat(inputCostoUnitario.value)   || 0;
             if (unidades <= 1) {
-                inputCostoCaja.disabled = true;
-                inputCostoCaja.value = '';
-                inputCostoCaja.placeholder = 'N/A';
-                return;
-            } 
-
-            inputCostoCaja.disabled = false;
-            inputCostoCaja.placeholder = '0.00';
-
-            if (origenModificado === 'caja') {
-                inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
-            } 
-            else if (origenModificado === 'unitario') {
-                inputCostoCaja.value = (costoUnitario * unidades).toFixed(2);
-            } 
-            else if (origenModificado === 'unidades') {
-                if (costoUnitario > 0) {
-                    inputCostoCaja.value = (costoUnitario * unidades).toFixed(2);
-                } else if (costoCaja > 0) {
-                    inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
-                }
+                inputCostoCaja.disabled = true; inputCostoCaja.value = ''; inputCostoCaja.placeholder = 'N/A'; return;
+            }
+            inputCostoCaja.disabled = false; inputCostoCaja.placeholder = '0.00';
+            if (origen === 'caja')          inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
+            else if (origen === 'unitario') inputCostoCaja.value     = (costoUnit  * unidades).toFixed(2);
+            else if (origen === 'unidades') {
+                if (costoUnit > 0)  inputCostoCaja.value     = (costoUnit  * unidades).toFixed(2);
+                else if (costoCaja > 0) inputCostoUnitario.value = (costoCaja / unidades).toFixed(2);
             }
         }
 
-        // --- STOCK ---
-        const inputCajasStock = document.getElementById('cajas_iniciales_virtual') || document.getElementById('cajas_actuales_virtual');
-        const inputUnidadesStock = document.getElementById('cantidad_inicial') || document.getElementById('cantidad_actual');
+        const inputCajasStock    = document.getElementById('cajas_iniciales_virtual') || document.getElementById('cajas_actuales_virtual');
+        const inputUnidadesStock = document.getElementById('cantidad_inicial')         || document.getElementById('cantidad_actual');
 
-        function calcularStock(origenModificado) {
+        function calcularStock(origen) {
             if (!inputCajasStock || !inputUnidadesStock) return;
-
-            const unidadesPorCaja = parseFloat(inputUnidadesPorCaja.value) || 0;
-            const cajasStock = parseFloat(inputCajasStock.value) || 0;
-            const unidadesStockTotales = parseFloat(inputUnidadesStock.value) || 0;
-
-            if (unidadesPorCaja <= 1) {
-                inputCajasStock.disabled = true;
-                inputCajasStock.value = '';
-                inputCajasStock.placeholder = 'N/A';
-                return;
+            const upCaja   = parseFloat(inputUnidadesPorCaja.value)  || 0;
+            const cajas    = parseFloat(inputCajasStock.value)        || 0;
+            const unidades = parseFloat(inputUnidadesStock.value)     || 0;
+            if (upCaja <= 1) {
+                inputCajasStock.disabled = true; inputCajasStock.value = ''; inputCajasStock.placeholder = 'N/A'; return;
             }
-
-            inputCajasStock.disabled = false;
-            inputCajasStock.placeholder = '0.00';
-
-            if (origenModificado === 'caja_stock') {
-                inputUnidadesStock.value = Math.ceil(cajasStock * unidadesPorCaja);
-            } 
-            else if (origenModificado === 'unidad_stock') {
-                inputCajasStock.value = (unidadesStockTotales / unidadesPorCaja).toFixed(2);
-            } 
-            else if (origenModificado === 'unidades') {
-                if (unidadesStockTotales > 0) {
-                    inputCajasStock.value = (unidadesStockTotales / unidadesPorCaja).toFixed(2);
-                } else if (cajasStock > 0) {
-                    inputUnidadesStock.value = Math.ceil(cajasStock * unidadesPorCaja);
-                }
+            inputCajasStock.disabled = false; inputCajasStock.placeholder = '0.00';
+            if (origen === 'caja_stock')   inputUnidadesStock.value = Math.ceil(cajas * upCaja);
+            else if (origen === 'unidad_stock') inputCajasStock.value = (unidades / upCaja).toFixed(2);
+            else if (origen === 'unidades') {
+                if (unidades > 0) inputCajasStock.value    = (unidades / upCaja).toFixed(2);
+                else if (cajas > 0) inputUnidadesStock.value = Math.ceil(cajas * upCaja);
             }
         }
 
-        // Inicializar ambas calculadoras al cargar
         calcularCostos('unidades');
         calcularStock('unidades');
 
-        // Listeners Generales
-        inputUnidadesPorCaja.addEventListener('input', () => {
-            calcularCostos('unidades');
-            calcularStock('unidades');
-        });
-
-        // Listeners Costos
-        inputCostoCaja.addEventListener('input', () => calcularCostos('caja'));
-        inputCostoUnitario.addEventListener('input', () => calcularCostos('unitario'));
-
-        // Listeners Stock
+        inputUnidadesPorCaja.addEventListener('input', () => { calcularCostos('unidades'); calcularStock('unidades'); });
+        inputCostoCaja.addEventListener('input',       () => calcularCostos('caja'));
+        inputCostoUnitario.addEventListener('input',   () => calcularCostos('unitario'));
         if (inputCajasStock && inputUnidadesStock) {
-            inputCajasStock.addEventListener('input', () => calcularStock('caja_stock'));
+            inputCajasStock.addEventListener('input',    () => calcularStock('caja_stock'));
             inputUnidadesStock.addEventListener('input', () => calcularStock('unidad_stock'));
         }
 
-        // Pre-llenar prompt IA desde el campo nombre (si existe)
-        const nombreEl  = document.getElementById('nombre');
-        const promptEl  = document.getElementById('ai-prompt-input');
-        if (promptEl && nombreEl && nombreEl.value.trim()) {
-            promptEl.value = nombreEl.value.trim();
-        }
+        // Pre-llenar prompt IA desde el campo nombre
+        const nombreEl = document.getElementById('nombre');
+        const promptEl = document.getElementById('ai-prompt-input');
+        if (promptEl && nombreEl && nombreEl.value.trim()) promptEl.value = nombreEl.value.trim();
         if (nombreEl && promptEl) {
-            nombreEl.addEventListener('input', () => {
-                if (!promptEl.dataset.customized) promptEl.value = nombreEl.value;
-            });
+            nombreEl.addEventListener('input', () => { if (!promptEl.dataset.customized) promptEl.value = nombreEl.value; });
             promptEl.addEventListener('input', () => { promptEl.dataset.customized = '1'; });
         }
     });
@@ -445,14 +488,13 @@
     let _aiFilename = '';
 
     function generarImagenIA() {
-        const nombre = document.getElementById('ai-prompt-input').value.trim()
-                    || document.getElementById('nombre')?.value.trim()
-                    || document.getElementById('codigo')?.value.trim()
-                    || '';
-        const errEl     = document.getElementById('ai-error');
-        const loadEl    = document.getElementById('ai-loading');
-        const resultEl  = document.getElementById('ai-result');
-        const btn       = document.getElementById('btn-generar-ai');
+        const nombre   = document.getElementById('ai-prompt-input').value.trim()
+                      || document.getElementById('nombre')?.value.trim()
+                      || document.getElementById('codigo')?.value.trim() || '';
+        const errEl    = document.getElementById('ai-error');
+        const loadEl   = document.getElementById('ai-loading');
+        const resultEl = document.getElementById('ai-result');
+        const btn      = document.getElementById('btn-generar-ai');
 
         errEl.classList.add('d-none');
         resultEl.classList.add('d-none');
@@ -466,17 +508,12 @@
         loadEl.classList.remove('d-none');
         btn.disabled = true;
 
-        const seed = Math.floor(Math.random() * 99999);
-        fetch(`/api/ai/generar-imagen-producto?nombre=${encodeURIComponent(nombre)}&seed=${seed}`)
+        fetch(`/api/ai/generar-imagen-producto?nombre=${encodeURIComponent(nombre)}&seed=${Math.floor(Math.random()*99999)}`)
             .then(r => r.json())
             .then(data => {
                 loadEl.classList.add('d-none');
                 btn.disabled = false;
-                if (data.error) {
-                    errEl.textContent = data.error;
-                    errEl.classList.remove('d-none');
-                    return;
-                }
+                if (data.error) { errEl.textContent = data.error; errEl.classList.remove('d-none'); return; }
                 _aiFilename = data.filename;
                 const preview     = document.getElementById('img_preview');
                 const placeholder = document.getElementById('placeholder_img');
