@@ -727,11 +727,13 @@ def enviar_correo_api(destinatario, reset_url):
     try:
         response = requests.post(url, json=payload, headers=headers)
         response.raise_for_status()
-        print("✅ Correo enviado exitosamente vía API")
+        import logging
+        logging.info(f"[BREVO] Correo enviado a {destinatario}")
     except Exception as e:
-        print(f"❌ Error enviando correo: {e}")
+        import logging
+        logging.error(f"[BREVO] Error enviando correo a {destinatario}: {e}")
         if hasattr(e, 'response') and e.response is not None:
-            print(e.response.text)
+            logging.error(f"[BREVO] Respuesta: {e.response.text}")
 
 # ==============================================================================
 # HISTORIAL DE ACTIVIDAD / AUDIT LOG
@@ -4572,33 +4574,62 @@ def ai_mejorar_descripcion():
     try:
         client = genai.Client(api_key=API_KEY)
         
-        prompt = f"""
-        Eres un experto Director de Compras Corporativas (Procurement Manager).
-        Un usuario de tu empresa necesita comprar esto: "{producto}"
-        
-        Tu tarea es generar las "Especificaciones Técnicas Sugeridas" para incluir en la Orden de Compra.
-        Incluye detalles clave como: materiales, capacidad mínima sugerida, dimensiones comunes, o estándares de calidad.
-        
-        REGLAS ESTRICTAS:
-        1. NO saludes ni des introducciones (ej. "Aquí tienes...").
-        2. NO des explicaciones.
-        3. Responde ÚNICAMENTE con el texto de las especificaciones, listo para copiar y pegar.
-        4. Usa un tono técnico, estructurado por viñetas cortas (-).
-        5. Máximo 4-5 líneas.
-        """
-        
-        # Llamada con el nuevo formato usando el modelo más reciente
+        import json as _json
+        prompt = f"""Eres un experto en compras corporativas (Procurement Manager) para una empresa en México.
+El usuario necesita comprar: "{producto}"
+
+Devuelve ÚNICAMENTE un objeto JSON válido con estos dos campos (sin markdown, sin texto extra):
+{{
+  "especificaciones": "especificaciones técnicas breves en 3-5 viñetas con guion, listas para pegar en una OC",
+  "costo_estimado_mxn": <número entero, precio unitario realista en pesos mexicanos (MXN)>
+}}
+
+Reglas:
+- especificaciones: máximo 5 líneas, tono técnico, sin saludos ni introducción
+- costo_estimado_mxn: precio unitario promedio de mercado en México, solo el número sin símbolo"""
+
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
-        
-        return jsonify({'sugerencia': response.text.strip()})
-        
+
+        text = response.text.strip()
+        if text.startswith('```'):
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        result = _json.loads(text)
+        return jsonify({
+            'sugerencia':          result.get('especificaciones', ''),
+            'costo_estimado_mxn':  result.get('costo_estimado_mxn', 0),
+        })
+
     except Exception as e:
-        print(f"Error AI: {e}")
+        import logging
+        logging.error(f"Error AI Gemini: {e}")
         return jsonify({'error': 'No se pudo conectar con la IA en este momento.'}), 500
     
+# ========================
+# DIAGNÓSTICO / TEST
+# ========================
+
+@app.route('/admin/test-email')
+@login_required
+def test_email():
+    """Envía un correo de prueba al usuario actual para verificar Brevo."""
+    if current_user.rol not in ['super_admin', 'admin']:
+        return "Acceso denegado", 403
+    import os
+    API_KEY = os.environ.get("BREVO_API_KEY")
+    if not API_KEY:
+        return "<b style='color:red'>ERROR:</b> BREVO_API_KEY no está definida en el entorno del servidor.", 500
+    test_url = "https://example.com/reset/token-de-prueba"
+    try:
+        enviar_correo_api(current_user.email, test_url)
+        return f"<b style='color:green'>Correo de prueba enviado a {current_user.email}.</b> Revisa tu bandeja (y spam)."
+    except Exception as e:
+        return f"<b style='color:red'>Error:</b> {e}", 500
+
 # ========================
 # NUEVAS RUTAS DEL ADMIN
 # ========================
