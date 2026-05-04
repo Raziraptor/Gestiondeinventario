@@ -2542,7 +2542,7 @@ def registrar_salida():
                 )
                 db.session.add(movimiento)
             
-            total_uds = sum(v['cantidad'] for v in productos_para_actualizar)
+            total_uds = sum(v[1] for v in productos_para_actualizar)
             log_actividad('salida', 'salida', f'Salida registrada: {len(productos_para_actualizar)} producto(s), {total_uds} uds — Almacén: {almacen_seleccionado.nombre}', entidad_id=salida_del_dia.id)
             db.session.commit()
             flash(f'Se añadieron {len(productos_para_actualizar)} items a la salida del día.', 'success')
