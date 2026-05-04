@@ -5068,6 +5068,48 @@ def api_chart_top_productos():
     })
 
 
+@app.route('/api/dashboard/actividad-reciente')
+@login_required
+@check_org_permission
+def api_actividad_reciente():
+    """Retorna los últimos 10 movimientos de la organización para el feed del dashboard."""
+    org_id = current_user.organizacion_id
+    movs = (
+        Movimiento.query
+        .filter_by(organizacion_id=org_id)
+        .order_by(Movimiento.fecha.desc())
+        .limit(10)
+        .all()
+    )
+    TIPO_META = {
+        'entrada':         {'icon': 'bi-box-arrow-in-down', 'color': '#10b981', 'label': 'Entrada'},
+        'entrada-inicial': {'icon': 'bi-database-add',      'color': '#3b82f6', 'label': 'Stock Inicial'},
+        'salida':          {'icon': 'bi-box-arrow-right',   'color': '#ef4444', 'label': 'Salida'},
+        'ajuste-entrada':  {'icon': 'bi-plus-circle',       'color': '#8b5cf6', 'label': 'Ajuste (+)'},
+        'ajuste-salida':   {'icon': 'bi-dash-circle',       'color': '#f59e0b', 'label': 'Ajuste (-)'},
+        'transferencia-entrada': {'icon': 'bi-arrow-left-right', 'color': '#06b6d4', 'label': 'Transferencia (+)'},
+        'transferencia-salida':  {'icon': 'bi-arrow-left-right', 'color': '#64748b', 'label': 'Transferencia (-)'},
+    }
+    resultado = []
+    for m in movs:
+        meta = TIPO_META.get(m.tipo, {'icon': 'bi-arrow-repeat', 'color': '#64748b', 'label': m.tipo})
+        almacen_nombre = m.almacen.nombre if m.almacen else '—'
+        resultado.append({
+            'id':       m.id,
+            'tipo':     m.tipo,
+            'label':    meta['label'],
+            'icon':     meta['icon'],
+            'color':    meta['color'],
+            'cantidad': abs(m.cantidad),
+            'signo':    '+' if m.cantidad >= 0 else '−',
+            'producto': m.producto.nombre if m.producto else '—',
+            'almacen':  almacen_nombre,
+            'motivo':   m.motivo or '',
+            'fecha':    m.fecha.strftime('%d/%m %H:%M'),
+        })
+    return jsonify(resultado)
+
+
 # --- Manejadores de Error ---
 
 @app.errorhandler(404)
