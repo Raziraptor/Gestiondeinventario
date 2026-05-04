@@ -854,6 +854,15 @@
                         </button>
                     </li>
 
+                    <!-- Botón Web Push Notifications -->
+                    {% if current_user.is_authenticated and vapid_public_key %}
+                    <li class="nav-item" id="pushNavItem" style="display:none;">
+                        <button id="pushToggleBtn" class="theme-btn" title="Activar notificaciones push" aria-label="Notificaciones push">
+                            <i id="pushBellIcon" class="bi bi-bell-slash"></i>
+                        </button>
+                    </li>
+                    {% endif %}
+
                     <!-- CAMPANITA DE ALERTAS -->
                     {% if current_user.is_authenticated and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard) %}
                     <li class="nav-item dropdown">
@@ -1244,6 +1253,94 @@
             .catch(() => {});
     }
     </script>
+
+    {% if current_user.is_authenticated and vapid_public_key %}
+    <script>
+    (function() {
+        const VAPID_PUBLIC = {{ vapid_public_key | tojson }};
+        const pushNavItem  = document.getElementById('pushNavItem');
+        const pushBtn      = document.getElementById('pushToggleBtn');
+        const pushIcon     = document.getElementById('pushBellIcon');
+
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !pushBtn) return;
+        pushNavItem.style.display = '';
+
+        function urlBase64ToUint8Array(b64) {
+            const pad = '='.repeat((4 - b64.length % 4) % 4);
+            const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+            return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+        }
+
+        async function getSubscription() {
+            const reg = await navigator.serviceWorker.ready;
+            return reg.pushManager.getSubscription();
+        }
+
+        async function actualizarBoton() {
+            const sub = await getSubscription();
+            if (sub) {
+                pushIcon.className = 'bi bi-bell-fill';
+                pushBtn.title = 'Desactivar notificaciones push';
+                pushBtn.style.color = 'var(--primary)';
+            } else {
+                pushIcon.className = 'bi bi-bell-slash';
+                pushBtn.title = 'Activar notificaciones push';
+                pushBtn.style.color = '';
+            }
+        }
+
+        async function suscribir() {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+            });
+            await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json',
+                           'X-CSRFToken': '{{ csrf_token() }}' },
+                body: JSON.stringify(sub.toJSON())
+            });
+            showToast('Notificaciones activadas ✓', 'success');
+            actualizarBoton();
+        }
+
+        async function desuscribir() {
+            const sub = await getSubscription();
+            if (sub) {
+                await sub.unsubscribe();
+                await fetch('/api/push/unsubscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json',
+                               'X-CSRFToken': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ endpoint: sub.endpoint })
+                });
+            }
+            showToast('Notificaciones desactivadas', 'secondary');
+            actualizarBoton();
+        }
+
+        pushBtn.addEventListener('click', async function() {
+            const sub = await getSubscription();
+            if (sub) {
+                await desuscribir();
+            } else {
+                if (Notification.permission === 'denied') {
+                    showToast('Notificaciones bloqueadas en el navegador. Habilítalas en la configuración del sitio.', 'warning', 5000);
+                    return;
+                }
+                const perm = await Notification.requestPermission();
+                if (perm === 'granted') {
+                    try { await suscribir(); }
+                    catch(e) { showToast('No se pudieron activar las notificaciones.', 'danger'); }
+                }
+            }
+        });
+
+        navigator.serviceWorker.ready.then(actualizarBoton);
+    })();
+    </script>
+    {% endif %}
 
     {% if current_user.is_authenticated and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management or current_user.perm_do_salidas or current_user.perm_create_oc_standard) %}
     <!-- FAB BACKDROP -->

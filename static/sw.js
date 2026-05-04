@@ -1,4 +1,4 @@
-const CACHE = 'inventario-v1';
+const CACHE = 'inventario-v2';
 
 const PRECACHE = [
   '/',
@@ -63,4 +63,33 @@ self.addEventListener('fetch', e => {
       )
     );
   }
+});
+
+// ── WEB PUSH ──────────────────────────────────────────────
+self.addEventListener('push', function(e) {
+  let data = { title: 'Gestor de Inventario', body: '', url: '/dashboard' };
+  try { data = Object.assign(data, e.data.json()); } catch (_) {}
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body:  data.body,
+      icon:  '/static/icons/icon-192.png',
+      badge: '/static/icons/icon-192.png',
+      data:  { url: data.url },
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+self.addEventListener('notificationclick', function(e) {
+  e.notification.close();
+  const target = e.notification.data && e.notification.data.url || '/dashboard';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(target) && 'focus' in c) return c.focus();
+      }
+      return clients.openWindow(target);
+    })
+  );
 });

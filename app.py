@@ -6,6 +6,7 @@
 import os
 import io
 import csv
+import json
 import secrets
 from functools import wraps
 from datetime import datetime, timedelta
@@ -114,6 +115,30 @@ def create_db_command():
     """Crea todas las tablas de la base de datos."""
     db.create_all()
     print("¡Base de datos y tablas creadas exitosamente!")
+
+@app.cli.command("gen-vapid")
+@with_appcontext
+def gen_vapid_command():
+    """Genera un par de claves VAPID para Web Push Notifications."""
+    try:
+        from py_vapid import Vapid
+        v = Vapid()
+        v.generate_keys()
+        pub  = v.public_key_urlsafe_b64
+        priv = v.private_key_urlsafe_b64
+        if isinstance(pub,  bytes): pub  = pub.decode()
+        if isinstance(priv, bytes): priv = priv.decode()
+        print("\n=== CLAVES VAPID GENERADAS ===")
+        print(f"VAPID_PUBLIC_KEY={pub}")
+        print(f"VAPID_PRIVATE_KEY={priv}")
+        print(f"VAPID_CLAIMS_EMAIL=notifications@tudominio.com")
+        print("\nAgrega estas líneas a tu archivo .env en el servidor.")
+    except ImportError:
+        print("Error: ejecuta 'pip install pywebpush' primero.")
+
+@app.context_processor
+def inject_vapid_key():
+    return {'vapid_public_key': os.environ.get('VAPID_PUBLIC_KEY', '')}
 
 @app.cli.command("make-super-admin")
 @with_appcontext
@@ -387,6 +412,17 @@ class AuditLog(db.Model):
 
     def __repr__(self):
         return f'<AuditLog {self.accion} {self.entidad} #{self.entidad_id}>'
+
+# --- MODELO 'PushSubscription' ---
+class PushSubscription(db.Model):
+    __tablename__ = 'push_subscription'
+    id                = db.Column(db.Integer, primary_key=True)
+    user_id           = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    organizacion_id   = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    endpoint          = db.Column(db.Text, nullable=False, unique=True)
+    subscription_json = db.Column(db.Text, nullable=False)
+    creada_en         = db.Column(db.DateTime, default=datetime.now)
+    user              = db.relationship('User', backref='push_subscriptions')
 
 # --- MODELO 'ProyectoOC' MODIFICADO ---
             
@@ -804,6 +840,39 @@ def _send_whatsapp_message(to_number, body):
         return False
 
 
+def enviar_push_notificacion(org_id, titulo, cuerpo, url='/dashboard'):
+    """Envía una Web Push Notification a todos los suscriptores activos de la organización."""
+    vapid_private = os.environ.get('VAPID_PRIVATE_KEY')
+    vapid_email   = os.environ.get('VAPID_CLAIMS_EMAIL', 'notifications@inventario.app')
+    if not vapid_private:
+        return
+    try:
+        from pywebpush import webpush, WebPushException
+        subs = PushSubscription.query.filter_by(organizacion_id=org_id).all()
+        if not subs:
+            return
+        payload = json.dumps({'title': titulo, 'body': cuerpo, 'url': url,
+                              'icon': '/static/icons/icon-192.png'})
+        to_delete = []
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info=json.loads(sub.subscription_json),
+                    data=payload,
+                    vapid_private_key=vapid_private,
+                    vapid_claims={"sub": f"mailto:{vapid_email}"}
+                )
+            except WebPushException as ex:
+                if ex.response and ex.response.status_code in [404, 410]:
+                    to_delete.append(sub)
+        for sub in to_delete:
+            db.session.delete(sub)
+        if to_delete:
+            db.session.commit()
+    except Exception as e:
+        print(f"[Push] Error: {e}")
+
+
 def check_and_alert_stock_bajo(org_id, almacen_id):
     """
     Verifica si hay productos bajo mínimo en el almacén dado y,
@@ -840,6 +909,16 @@ def check_and_alert_stock_bajo(org_id, almacen_id):
 
         lineas.append(f"\n_{datetime.now().strftime('%d/%m/%Y %H:%M')}_")
         _send_whatsapp_message(org.whatsapp_notify, "\n".join(lineas))
+
+        # Push notification (independiente del WhatsApp)
+        nombres = [i.producto.nombre for i in items_bajo[:3]]
+        extra = f' y {len(items_bajo)-3} más' if len(items_bajo) > 3 else ''
+        enviar_push_notificacion(
+            org_id=org_id,
+            titulo=f'⚠️ Stock bajo — {almacen.nombre}',
+            cuerpo=', '.join(nombres) + extra,
+            url='/dashboard'
+        )
 
     except Exception as e:
         print(f"[WhatsApp] Error en check_and_alert_stock_bajo: {e}")
@@ -2897,6 +2976,12 @@ def recibir_orden(id):
         log_actividad('recibir_oc', 'orden_compra', f'OC #{orden.id} recibida — {len(orden.detalles)} producto(s) ingresados al almacén {orden.almacen.nombre}', entidad_id=orden.id)
         db.session.commit()
         flash(f'¡Orden recibida! Stock ingresado correctamente al almacén: {orden.almacen.nombre}', 'success')
+        enviar_push_notificacion(
+            org_id=org_id,
+            titulo='📦 OC Recibida',
+            cuerpo=f'OC #{orden.id} de {orden.proveedor.nombre} — {len(orden.detalles)} producto(s) ingresados a {orden.almacen.nombre}.',
+            url=url_for('ver_orden', id=orden.id)
+        )
         
     except Exception as e:
         db.session.rollback()
@@ -5162,6 +5247,51 @@ def api_actividad_reciente():
             'fecha':    m.fecha.strftime('%d/%m %H:%M'),
         })
     return jsonify(resultado)
+
+
+# ==============================================================================
+# WEB PUSH NOTIFICATIONS — API
+# ==============================================================================
+
+@app.route('/api/push/vapid-key')
+@login_required
+def api_vapid_key():
+    return jsonify({'publicKey': os.environ.get('VAPID_PUBLIC_KEY', '')})
+
+
+@app.route('/api/push/subscribe', methods=['POST'])
+@login_required
+def api_push_subscribe():
+    data = request.get_json(silent=True)
+    if not data or 'endpoint' not in data:
+        return jsonify({'error': 'datos inválidos'}), 400
+    endpoint = data['endpoint']
+    existing = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if existing:
+        existing.subscription_json = json.dumps(data)
+        existing.user_id = current_user.id
+    else:
+        db.session.add(PushSubscription(
+            user_id=current_user.id,
+            organizacion_id=current_user.organizacion_id,
+            endpoint=endpoint,
+            subscription_json=json.dumps(data)
+        ))
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+@login_required
+def api_push_unsubscribe():
+    data = request.get_json(silent=True)
+    if not data or 'endpoint' not in data:
+        return jsonify({'error': 'datos inválidos'}), 400
+    sub = PushSubscription.query.filter_by(endpoint=data['endpoint']).first()
+    if sub:
+        db.session.delete(sub)
+        db.session.commit()
+    return jsonify({'ok': True})
 
 
 # --- Manejadores de Error ---
