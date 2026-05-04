@@ -694,7 +694,7 @@ def enviar_correo_api(destinatario, reset_url):
     """
     import logging
     API_KEY = os.environ.get("BREVO_API_KEY")
-    SENDER_EMAIL = os.environ.get("BREVO_SENDER_EMAIL", "dinventarioc@gmail.com")
+    SENDER_EMAIL = os.environ.get("BREVO_SENDER_EMAIL", "deinventarioc@gmail.com")
     SENDER_NAME  = os.environ.get("BREVO_SENDER_NAME",  "Soporte Inventario")
 
     if not API_KEY:
@@ -4739,7 +4739,7 @@ def test_email():
         return "Acceso denegado", 403
 
     API_KEY      = os.environ.get("BREVO_API_KEY", "")
-    SENDER_EMAIL = os.environ.get("BREVO_SENDER_EMAIL", "dinventarioc@gmail.com")
+    SENDER_EMAIL = os.environ.get("BREVO_SENDER_EMAIL", "deinventarioc@gmail.com")
     destinatario = current_user.email
     test_url     = url_for('dashboard', _external=True)
 
