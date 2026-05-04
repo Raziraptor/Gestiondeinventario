@@ -22,19 +22,30 @@
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO Y BOTONES -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-            <h2 class="mb-1 fw-bold"><i class="bi bi-cash-coin text-success me-2"></i>Control de Gastos</h2>
-            <p class="text-muted mb-0">Registro, seguimiento y análisis de egresos.</p>
-        </div>
-        <div class="d-flex gap-2">
-            <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}" class="btn btn-success shadow-sm rounded-pill px-4 fw-bold text-nowrap">
-                <i class="bi bi-file-earmark-excel me-1"></i> Excel
-            </a>
-            <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
-                <i class="bi bi-plus-lg me-1"></i> Registrar Gasto
-            </a>
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="#">Finanzas</a></li>
+            <li class="breadcrumb-item active">Control de Gastos</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-cash-coin text-success me-2"></i>Control de Gastos</h1>
+                <p class="page-subtitle">Registro, seguimiento y análisis de egresos.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}" class="btn btn-success shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                </a>
+                <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                    <i class="bi bi-plus-lg me-1"></i> Registrar Gasto
+                </a>
+            </div>
         </div>
     </div>
 
@@ -90,10 +101,10 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         {% for gasto in gastos %}
             <div class="col">
-                <div class="card h-100 shadow-sm border border-secondary border-opacity-25 rounded-4 gasto-card">
+                <div class="card h-100 shadow-sm rounded-4 gasto-card" style="border:1px solid var(--border)">
                     
                     <!-- ENCABEZADO: Categoría y Fecha -->
-                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 pt-3 pb-2">
+                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center pt-3 pb-2" style="border-bottom:1px solid var(--border)">
                         <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 shadow-sm">
                             <i class="bi bi-tag-fill me-1"></i> {{ gasto.categoria }}
                         </span>
@@ -117,7 +128,7 @@
                             {% endif %}
                             
                             <!-- Monto Grande con Formato -->
-                            <div class="bg-secondary bg-opacity-10 rounded-4 p-3 text-center border border-secondary border-opacity-25 mt-2">
+                            <div class="surface-panel rounded-4 p-3 text-center mt-2">
                                 <small class="text-uppercase fw-bold text-muted mb-1 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">Monto</small>
                                 <div class="fs-3 fw-bold text-body">${{ "{:,.2f}".format(gasto.monto) }}</div>
                             </div>

@@ -9,18 +9,29 @@
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 gap-3">
-        <div>
-            <h2 class="mb-1 fw-bold"><i class="bi bi-box-arrow-up text-danger me-2"></i>{{ titulo }}</h2>
-            <p class="text-muted mb-0">Retira stock escaneando o buscando productos.</p>
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('historial_salidas') }}">Salidas</a></li>
+            <li class="breadcrumb-item active">{{ titulo }}</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-box-arrow-up text-danger me-2"></i>{{ titulo }}</h1>
+                <p class="page-subtitle">Retira stock escaneando o buscando productos.</p>
+            </div>
+            <a href="{{ url_for('ver_salida', id=salida_id) }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-eye me-1"></i> Ver Hoja de Hoy
+            </a>
         </div>
-        <a href="{{ url_for('ver_salida', id=salida_id) }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
-            <i class="bi bi-eye me-1"></i> Ver Hoja de Hoy
-        </a>
     </div>
     
-    <div class="alert alert-light border border-secondary border-opacity-25 shadow-sm rounded-4 d-flex align-items-center p-3 mb-4">
+    <div class="surface-panel shadow-sm rounded-4 d-flex align-items-center p-3 mb-4">
         <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
             <i class="bi bi-shop fs-5"></i>
         </div>
@@ -35,10 +46,10 @@
         <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-primary border-opacity-25 d-flex justify-content-between align-items-center">
             <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-search me-2"></i>Buscar o Escanear</h4>
         </div>
-        <div class="card-body p-4 bg-light rounded-bottom-4">
+        <div class="card-body p-4 rounded-bottom-4" style="background:var(--surface-raised)">
             
             <!-- ÁREA DE CÁMARA (Oculta por defecto) -->
-            <div id="reader-container" class="mb-4 shadow-sm border border-secondary border-opacity-25 rounded-4 bg-white p-3" style="display: none;">
+            <div id="reader-container" class="mb-4 shadow-sm surface-panel rounded-4 p-3" style="display: none;">
                 <div id="reader" style="width: 100%; border-radius: 8px; overflow: hidden;"></div>
                 <div class="text-center mt-3">
                     <button type="button" class="btn btn-danger btn-sm fw-bold rounded-pill shadow-sm px-4" onclick="detenerEscaner()">
@@ -51,10 +62,10 @@
             <div class="position-relative">
                 <div class="input-group input-group-lg shadow-sm">
                     <!-- Icono de teclado/lupa -->
-                    <span class="input-group-text bg-white border-secondary border-opacity-25 text-primary"><i class="bi bi-upc-scan"></i></span>
-                    
+                    <span class="input-group-text text-primary"><i class="bi bi-upc-scan"></i></span>
+
                     <!-- Input de Texto -->
-                    <input type="text" id="buscador" class="form-control bg-white border-secondary border-opacity-25 text-body" 
+                    <input type="text" id="buscador" class="form-control text-body"
                            placeholder="Escribe Nombre, SKU o usa el escáner..." autocomplete="off">
                     
                     <!-- BOTÓN PARA ACTIVAR CÁMARA -->
@@ -64,7 +75,7 @@
                 </div>
 
                 <!-- Lista flotante de sugerencias -->
-                <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg border border-secondary border-opacity-25 rounded-3" 
+                <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg rounded-3" style="border:1px solid var(--border)"
                      style="z-index: 1050; top: 100%; display: none; max-height: 300px; overflow-y: auto; margin-top: 5px;">
                 </div>
             </div>
@@ -90,8 +101,8 @@
         <!-- CONTENEDOR DE ITEMS -->
         <div id="lineas_productos_container" class="mb-4">
             <!-- Mensaje cuando está vacío -->
-            <div id="mensaje_vacio" class="text-center text-muted py-5 border border-secondary border-opacity-25 rounded-4 bg-light shadow-sm border-dashed">
-                <div class="bg-white rounded-circle d-inline-flex justify-content-center align-items-center shadow-sm mb-3" style="width: 80px; height: 80px;">
+            <div id="mensaje_vacio" class="text-center text-muted py-5 surface-panel rounded-4 shadow-sm">
+                <div class="rounded-circle d-inline-flex justify-content-center align-items-center shadow-sm mb-3" style="width:80px;height:80px;background:var(--hover-bg);border:1px solid var(--border)">
                     <i class="bi bi-basket text-muted opacity-50" style="font-size: 2.5rem;"></i>
                 </div>
                 <h5 class="fw-bold text-body mb-1">Lista vacía</h5>
@@ -332,14 +343,14 @@
         }
 
         const div = document.createElement('div');
-        div.classList.add('row', 'g-3', 'mb-3', 'p-3', 'border', 'border-secondary', 'border-opacity-25', 'rounded-4', 'bg-white', 'shadow-sm', 'producto-linea', 'align-items-start');
-        
+        div.classList.add('row', 'g-3', 'mb-3', 'p-3', 'rounded-4', 'shadow-sm', 'surface-panel', 'producto-linea', 'align-items-start');
+
         div.innerHTML = `
             <div class="col-md-5">
                 <label class="form-label fw-bold text-muted small mb-1">Producto</label>
                 <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-box-seam text-secondary"></i></span>
-                    <input type="text" class="form-control bg-light border-secondary border-opacity-25 fw-bold text-body" value="${producto.nombre}" readonly>
+                    <span class="input-group-text"><i class="bi bi-box-seam text-secondary"></i></span>
+                    <input type="text" class="form-control fw-bold text-body" value="${producto.nombre}" readonly>
                 </div>
                 <div class="d-flex justify-content-between mt-2 px-1">
                     <small class="text-muted font-monospace"><i class="bi bi-upc me-1"></i>${producto.codigo}</small>
@@ -350,12 +361,12 @@
 
             <div class="col-md-2">
                 <label class="form-label fw-bold text-muted small mb-1">Cantidad</label>
-                <input type="number" name="cantidad[]" class="form-control bg-white border-secondary border-opacity-25 text-center fw-bold fs-5 text-danger shadow-sm" value="1" min="1" max="${producto.stock_actual}" required>
+                <input type="number" name="cantidad[]" class="form-control text-center fw-bold fs-5 text-danger shadow-sm" value="1" min="1" max="${producto.stock_actual}" required>
             </div>
 
             <div class="col-md-4">
                 <label class="form-label fw-bold text-muted small mb-1">Motivo</label>
-                <input type="text" name="motivo[]" class="form-control bg-white border-secondary border-opacity-25 shadow-sm" placeholder="Ej: Venta, Merma, Traslado..." required>
+                <input type="text" name="motivo[]" class="form-control shadow-sm" placeholder="Ej: Venta, Merma, Traslado..." required>
             </div>
 
             <div class="col-md-1 d-flex align-items-end" style="height: 68px;">
