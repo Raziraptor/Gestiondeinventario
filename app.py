@@ -363,9 +363,9 @@ class Movimiento(db.Model):
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
     salida_id = db.Column(db.Integer, db.ForeignKey('salida.id'), nullable=True)
-    
-    # --- LÍNEA AÑADIDA ---
-    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=False)
+
+    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=True)
+    almacen    = db.relationship('Almacen', foreign_keys=[almacen_id], backref='movimientos', lazy=True)
 
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
