@@ -10,7 +10,7 @@ import subprocess
 if not os.environ.get('DATABASE_URL'):
     try:
         result = subprocess.run(
-            ['systemctl', 'show', 'gunicorn', '--property=Environment', '--value'],
+            ['systemctl', 'show', 'inventario', '--property=Environment', '--value'],
             capture_output=True, text=True
         )
         for token in result.stdout.split():
@@ -24,7 +24,7 @@ if not os.environ.get('DATABASE_URL'):
 if not os.environ.get('DATABASE_URL'):
     try:
         result = subprocess.run(
-            ['systemctl', 'cat', 'gunicorn'],
+            ['systemctl', 'cat', 'inventario'],
             capture_output=True, text=True
         )
         for line in result.stdout.splitlines():
