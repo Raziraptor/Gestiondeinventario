@@ -5,6 +5,7 @@
 # Variables de entorno y secretos
 .env
 .env.*
+vapid_private.pem
 
 # Python
 __pycache__/
