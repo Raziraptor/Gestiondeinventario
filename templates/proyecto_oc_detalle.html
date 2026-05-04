@@ -1,118 +1,215 @@
 {% extends 'base.html' %}
-
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
 <style>
-.status-badge { padding: .4em .9em; border-radius: 50rem; font-weight: 700; text-transform: uppercase; font-size: .75rem; letter-spacing: .5px; }
-.item-link { text-decoration: none; transition: opacity 0.2s; }
-.item-link:hover { opacity: 0.75; }
-.comentario-box { font-size: .85rem; border-left: 3px solid var(--border); padding-left: 10px; margin-top: 5px; }
+.item-link { text-decoration:none; transition:opacity .2s; }
+.item-link:hover { opacity:.75; }
+.comentario-box { font-size:.85rem; border-left:3px solid var(--border); padding-left:10px; margin-top:5px; }
+.timeline { display:flex; gap:0; align-items:center; }
+.timeline-step { display:flex; flex-direction:column; align-items:center; flex:1; position:relative; }
+.timeline-step:not(:last-child)::after {
+    content:''; position:absolute; top:18px; left:50%; width:100%;
+    height:2px; background:var(--border); z-index:0;
+}
+.timeline-dot {
+    width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:.9rem; font-weight:700; position:relative; z-index:1;
+    border:2px solid var(--border); background:var(--surface-raised); color:var(--bs-secondary);
+}
+.timeline-dot.done  { background:#10b981; border-color:#10b981; color:#fff; }
+.timeline-dot.active{ background:var(--primary); border-color:var(--primary); color:#fff; }
+.timeline-dot.cancel{ background:rgba(100,116,139,.2); border-color:#64748b; color:#64748b; }
+.timeline-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:.4rem; color:var(--bs-secondary); }
+.timeline-label.active { color:var(--primary); }
+.timeline-label.done   { color:#10b981; }
+.timeline-date { font-size:.65rem; color:var(--bs-secondary); margin-top:.1rem; }
 </style>
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO Y ACCIONES -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4 gap-3">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-2">
-                    <li class="breadcrumb-item"><a href="{{ url_for('lista_proyectos_oc') }}">Proyectos</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Detalle de Orden</li>
-                </ol>
-            </nav>
-            <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ proyecto_oc.nombre_proyecto }}</h2>
-            <div class="text-muted">
-                <span class="me-3"><i class="bi bi-calendar3 me-1"></i> {{ proyecto_oc.fecha_creacion.strftime('%d/%m/%Y') }}</span>
-                <span><i class="bi bi-hash me-1"></i> ID: {{ proyecto_oc.id }}</span>
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('lista_proyectos_oc') }}">OC de Proyectos</a></li>
+            <li class="breadcrumb-item active">OC Proyecto #{{ proyecto_oc.id }}</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-briefcase-fill text-primary me-2"></i>{{ proyecto_oc.nombre_proyecto }}</h1>
+                <p class="page-subtitle">
+                    <i class="bi bi-hash me-1"></i>OC-PROY-{{ proyecto_oc.id }} &nbsp;·&nbsp;
+                    <i class="bi bi-calendar3 me-1"></i>{{ proyecto_oc.fecha_creacion.strftime('%d/%m/%Y') }} &nbsp;·&nbsp;
+                    <i class="bi bi-person me-1"></i>{{ proyecto_oc.creador.username }}
+                </p>
             </div>
-        </div>
-        
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ url_for('generar_proyecto_oc_pdf', id=proyecto_oc.id) }}" class="btn btn-danger rounded-pill px-3 shadow-sm" target="_blank">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
-            </a>
-            
-            {% if proyecto_oc.estado == 'borrador' %}
-            <a href="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) }}" class="btn btn-warning rounded-pill px-3 shadow-sm">
-                <i class="bi bi-pencil-fill me-1"></i> Editar
-            </a>
 
-            <form action="{{ url_for('cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" style="display: inline;"
-                  data-confirm="¿Cancelar esta Orden de Compra de Proyecto? Esta acción no se puede deshacer.">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-outline-danger rounded-pill px-3 shadow-sm">
-                    <i class="bi bi-x-circle me-1"></i> Cancelar
-                </button>
-            </form>
-            {% endif %}
+            <!-- ACCIONES POR ESTADO -->
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('generar_proyecto_oc_pdf', id=proyecto_oc.id) }}"
+                   class="btn btn-outline-danger rounded-pill px-3 shadow-sm fw-bold" target="_blank">
+                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+                </a>
 
-            <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm">
-                <i class="bi bi-arrow-left me-1"></i> Volver
-            </a>
+                {% if proyecto_oc.estado == 'borrador' %}
+                    <a href="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) }}"
+                       class="btn btn-warning rounded-pill px-3 shadow-sm fw-bold text-dark">
+                        <i class="bi bi-pencil-fill me-1"></i> Editar
+                    </a>
+                    <form action="{{ url_for('enviar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
+                          data-confirm="¿Marcar esta OC como enviada al proveedor?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-info rounded-pill px-3 shadow-sm fw-bold text-white">
+                            <i class="bi bi-send me-1"></i> Marcar como Enviada
+                        </button>
+                    </form>
+                    <form action="{{ url_for('cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
+                          data-confirm="¿Cancelar esta Orden de Compra de Proyecto?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm fw-bold">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar OC
+                        </button>
+                    </form>
+
+                {% elif proyecto_oc.estado == 'enviada' %}
+                    <a href="{{ url_for('recibir_proyecto_oc', id=proyecto_oc.id) }}"
+                       class="btn btn-success rounded-pill px-4 shadow-sm fw-bold">
+                        <i class="bi bi-box-seam me-1"></i> Registrar Recepción
+                    </a>
+                    <form action="{{ url_for('cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
+                          data-confirm="¿Cancelar esta Orden de Compra de Proyecto?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm fw-bold">
+                            <i class="bi bi-x-circle me-1"></i> Cancelar OC
+                        </button>
+                    </form>
+                {% endif %}
+
+                <a href="{{ url_for('lista_proyectos_oc') }}"
+                   class="btn btn-outline-secondary rounded-pill px-3 shadow-sm fw-bold">
+                    <i class="bi bi-arrow-left me-1"></i> Volver
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- INFORMACIÓN DE ESTADO -->
-    <div class="card shadow-sm border-0 rounded-4 mb-4">
-        <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div class="d-flex align-items-center">
-                <span class="text-muted me-2 fw-bold small text-uppercase">Estado actual:</span>
-                {% if proyecto_oc.estado == 'borrador' %}
-                    <span class="badge bg-warning text-dark status-badge shadow-sm"><i class="bi bi-pause-circle me-1"></i> Borrador</span>
-                {% elif proyecto_oc.estado == 'cancelada' %}
-                    <span class="badge bg-secondary status-badge shadow-sm"><i class="bi bi-x-circle me-1"></i> Cancelada</span>
+    <!-- TIMELINE DE ESTADOS -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4">
+        {% if proyecto_oc.estado == 'cancelada' %}
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:44px;height:44px;background:rgba(100,116,139,.15);">
+                <i class="bi bi-x-circle-fill text-secondary fs-5"></i>
+            </div>
+            <div>
+                <div class="fw-bold text-secondary">OC Cancelada</div>
+                <small class="text-muted">Esta orden fue cancelada y ya no está activa.</small>
+            </div>
+        </div>
+        {% else %}
+        <div class="timeline">
+            <!-- Creada -->
+            <div class="timeline-step">
+                <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                <div class="timeline-label done">Borrador</div>
+                <div class="timeline-date">{{ proyecto_oc.fecha_creacion.strftime('%d/%m/%Y') }}</div>
+            </div>
+            <!-- Enviada -->
+            <div class="timeline-step">
+                {% if proyecto_oc.estado in ['enviada', 'recibida'] %}
+                    <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                    <div class="timeline-label done">Enviada</div>
+                    <div class="timeline-date">{{ proyecto_oc.fecha_envio.strftime('%d/%m/%Y') if proyecto_oc.fecha_envio else '—' }}</div>
                 {% else %}
-                    <span class="badge bg-success status-badge shadow-sm"><i class="bi bi-check-all me-1"></i> Finalizada</span>
+                    <div class="timeline-dot"><i class="bi bi-send"></i></div>
+                    <div class="timeline-label">Enviada</div>
+                    <div class="timeline-date">Pendiente</div>
                 {% endif %}
             </div>
-            <div class="text-muted small fw-bold">
-                <i class="bi bi-person-circle me-1"></i> Solicitado por: {{ proyecto_oc.creador.username }} 
-                {% if proyecto_oc.almacen %}
-                <span class="ms-3"><i class="bi bi-house-door me-1 text-primary"></i> Almacén: {{ proyecto_oc.almacen.nombre }}</span>
+            <!-- Recibida -->
+            <div class="timeline-step">
+                {% if proyecto_oc.estado == 'recibida' %}
+                    <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                    <div class="timeline-label done">Recibida</div>
+                    <div class="timeline-date">{{ proyecto_oc.fecha_recepcion.strftime('%d/%m/%Y') if proyecto_oc.fecha_recepcion else '—' }}</div>
+                {% elif proyecto_oc.estado == 'enviada' %}
+                    <div class="timeline-dot active"><i class="bi bi-box-seam"></i></div>
+                    <div class="timeline-label active">Recibir</div>
+                    <div class="timeline-date">En espera</div>
+                {% else %}
+                    <div class="timeline-dot"><i class="bi bi-box-seam"></i></div>
+                    <div class="timeline-label">Recibida</div>
+                    <div class="timeline-date">Pendiente</div>
                 {% endif %}
             </div>
         </div>
+        {% endif %}
+
+        <!-- Info recepción -->
+        {% if proyecto_oc.estado == 'recibida' %}
+        <div class="mt-3 pt-3 d-flex gap-4 flex-wrap" style="border-top:1px solid var(--border)">
+            {% if proyecto_oc.almacen %}
+            <div>
+                <small class="text-muted text-uppercase fw-bold" style="font-size:.65rem;letter-spacing:.5px;">Almacén destino</small>
+                <div class="fw-bold text-body"><i class="bi bi-building me-1 text-primary"></i>{{ proyecto_oc.almacen.nombre }}</div>
+            </div>
+            {% endif %}
+            {% if proyecto_oc.recibido_por %}
+            <div>
+                <small class="text-muted text-uppercase fw-bold" style="font-size:.65rem;letter-spacing:.5px;">Recibido por</small>
+                <div class="fw-bold text-body"><i class="bi bi-person-check me-1 text-success"></i>{{ proyecto_oc.recibido_por.username }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- LISTADO DE ARTÍCULOS -->
-    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-10">
-            <h5 class="fw-bold mb-0 text-body"><i class="bi bi-cart4 text-primary me-2"></i>Artículos Solicitados</h5>
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-transparent pt-4 pb-3" style="border-bottom:1px solid var(--border)">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-body"><i class="bi bi-cart4 text-primary me-2"></i>Artículos Solicitados</h5>
+                <span class="rounded-pill px-3 py-1 fw-bold small"
+                      style="background:var(--hover-bg);color:var(--bs-secondary);border:1px solid var(--border);">
+                    {{ proyecto_oc.detalles|length }} artículo(s)
+                </span>
+            </div>
         </div>
-        
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light text-secondary text-uppercase small">
+                    <thead class="text-secondary text-uppercase small" style="border-bottom:1px solid var(--border)">
                         <tr>
-                            <th class="ps-4 border-0">Artículo / Descripción</th>
-                            <th class="border-0">Origen</th>
-                            <th class="text-center border-0">Cantidad</th>
-                            <th class="text-end border-0">Costo Unit.</th>
-                            <th class="text-end pe-4 border-0">Subtotal</th>
+                            <th class="ps-4 py-3">Artículo / Descripción</th>
+                            <th class="py-3">Origen</th>
+                            <th class="text-center py-3">Cant.</th>
+                            <th class="text-end py-3">Costo Unit.</th>
+                            <th class="text-end pe-4 py-3">Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for detalle in proyecto_oc.detalles %}
                         <tr>
                             <td class="ps-4 py-3">
-                                <div class="fw-bold text-body fs-6">
+                                <div class="fw-bold text-body">
                                     {{ detalle.producto.nombre if detalle.producto else detalle.descripcion_nuevo }}
                                 </div>
-                                
                                 {% if detalle.producto %}
-                                    <small class="text-muted font-monospace d-block">SKU: {{ detalle.producto.codigo }}</small>
+                                <small class="text-muted font-monospace">SKU: {{ detalle.producto.codigo }}</small>
                                 {% endif %}
-                                
-                                <!-- NUEVO: ENLACE Y COMENTARIOS -->
                                 <div class="mt-2">
                                     {% if detalle.enlace_proveedor %}
-                                    <a href="{{ detalle.enlace_proveedor }}" target="_blank" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 text-decoration-none py-1 px-2 shadow-sm item-link mb-1">
+                                    <a href="{{ detalle.enlace_proveedor }}" target="_blank"
+                                       class="badge text-decoration-none py-1 px-2 item-link mb-1"
+                                       style="background:rgba(79,70,229,.12);color:var(--primary);border:1px solid rgba(79,70,229,.2);">
                                         <i class="bi bi-link-45deg me-1"></i> Ver en Proveedor
                                     </a>
                                     {% endif %}
-                                    
                                     {% if detalle.comentarios_detalle %}
                                     <div class="comentario-box text-muted">
                                         <i class="bi bi-chat-left-text me-1 opacity-50"></i>{{ detalle.comentarios_detalle }}
@@ -122,12 +219,12 @@
                             </td>
                             <td>
                                 {% if detalle.producto_id %}
-                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2">Catálogo</span>
+                                <span class="badge rounded-pill" style="background:rgba(6,182,212,.15);color:#06b6d4;font-size:.7rem;font-weight:700;">Catálogo</span>
                                 {% else %}
-                                    <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 rounded-pill px-2">Externo</span>
+                                <span class="badge rounded-pill" style="background:var(--hover-bg);color:var(--bs-secondary);font-size:.7rem;font-weight:700;">Externo</span>
                                 {% endif %}
                             </td>
-                            <td class="text-center fw-bold">{{ detalle.cantidad }}</td>
+                            <td class="text-center fw-bold text-body">{{ detalle.cantidad }}</td>
                             <td class="text-end text-muted font-monospace">${{ "%.2f"|format(detalle.costo_unitario) }}</td>
                             <td class="text-end pe-4 fw-bold text-success font-monospace">
                                 ${{ "%.2f"|format(detalle.cantidad * detalle.costo_unitario) }}
@@ -135,9 +232,9 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                    <tfoot class="table-light">
+                    <tfoot style="border-top:2px solid var(--border)">
                         <tr>
-                            <td colspan="4" class="ps-4 text-end text-uppercase small fw-bold text-muted py-3">Total Estimado de la Orden:</td>
+                            <td colspan="4" class="ps-4 text-end text-uppercase small fw-bold text-muted py-3">Total Estimado:</td>
                             <td class="text-end pe-4 py-3">
                                 <span class="h4 fw-bold text-success mb-0">${{ "%.2f"|format(proyecto_oc.costo_total) }}</span>
                             </td>
@@ -146,13 +243,6 @@
                 </table>
             </div>
         </div>
-    </div>
-
-    <!-- NOTA PIE DE PÁGINA -->
-    <div class="mt-4 text-center">
-        <p class="text-muted small">
-            <i class="bi bi-info-circle me-1"></i> Esta es una orden de materiales específica para proyecto. No afecta directamente al stock del almacén hasta que sea procesada.
-        </p>
     </div>
 
 </div>

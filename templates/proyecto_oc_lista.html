@@ -40,65 +40,39 @@
     </div>
 
     <!-- SECCIÓN DE FILTROS -->
-    <div class="card shadow-sm border-0 rounded-4 mb-5">
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
         <div class="card-body p-4 rounded-4" style="background:var(--surface-raised)">
-            <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
-            
-            <form method="GET" action="{{ url_for('lista_proyectos_oc') if 'lista_proyectos_oc' in config else '#' }}" class="row g-3 align-items-end">
-                
-                <!-- Filtro Mes -->
-                <div class="col-md-3">
-                    <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
-                    <select id="mes" name="mes" class="form-select shadow-sm border-secondary border-opacity-25">
-                        <option value="">-- Todos --</option>
-                        {% set meses = [
-                            (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
-                            (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
-                            (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
-                        ] %}
-                        {% for num, nombre in meses %}
-                            <option value="{{ num }}" {% if request.args.get('mes') and request.args.get('mes')|int == num %}selected{% endif %}>
-                                {{ nombre }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <!-- Filtro Año -->
+            <form method="GET" action="{{ url_for('lista_proyectos_oc') }}" class="row g-3 align-items-end">
                 <div class="col-md-2">
-                    <label for="ano" class="form-label fw-bold small text-body mb-1">Año</label>
-                    <input type="number" id="ano" name="ano" class="form-control shadow-sm border-secondary border-opacity-25" 
-                           value="{{ request.args.get('ano', 2025) }}" min="2020" max="2050">
-                </div>
-                
-                <!-- Filtro Proyecto (Opcional) -->
-                {% if proyectos %}
-                <div class="col-md-3">
-                    <label for="proyecto_id" class="form-label fw-bold small text-body mb-1">Proyecto</label>
-                    <select id="proyecto_id" name="proyecto_id" class="form-select shadow-sm border-secondary border-opacity-25">
-                        <option value="0">-- Todos --</option>
-                        {% for proy in proyectos %} 
-                            <option value="{{ proy.id }}" {% if request.args.get('proyecto_id')|int == proy.id %}selected{% endif %}>
-                                {{ proy.nombre }}
-                            </option>
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Mes</label>
+                    <select name="mes" class="form-select shadow-sm">
+                        <option value="">Todos</option>
+                        {% for num, nombre in [(1,'Enero'),(2,'Febrero'),(3,'Marzo'),(4,'Abril'),(5,'Mayo'),(6,'Junio'),(7,'Julio'),(8,'Agosto'),(9,'Septiembre'),(10,'Octubre'),(11,'Noviembre'),(12,'Diciembre')] %}
+                        <option value="{{ num }}" {% if mes_sel == num %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                {% endif %}
-
-                <!-- Checkbox y Botón -->
-                <div class="col-md-4 d-flex justify-content-between align-items-center">
-                    <div class="form-check form-switch mt-2">
-                        <input class="form-check-input" type="checkbox" id="ver_canceladas" name="ver_canceladas" 
-                               {% if request.args.get('ver_canceladas') == 'on' %}checked{% endif %}>
-                        <label class="form-check-label fw-bold small text-muted" for="ver_canceladas">
-                            Incluir Canceladas
-                        </label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-secondary shadow-sm fw-bold px-4 rounded-pill">
-                        <i class="bi bi-search me-1"></i> Filtrar
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Año</label>
+                    <input type="number" name="ano" class="form-control shadow-sm" value="{{ ano_sel or '' }}" min="2020" max="2050" placeholder="Todos">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Estado</label>
+                    <select name="estado" class="form-select shadow-sm">
+                        <option value="">Todos los estados</option>
+                        <option value="borrador"  {% if estado_sel == 'borrador'  %}selected{% endif %}>Borrador</option>
+                        <option value="enviada"   {% if estado_sel == 'enviada'   %}selected{% endif %}>Enviada</option>
+                        <option value="recibida"  {% if estado_sel == 'recibida'  %}selected{% endif %}>Recibida</option>
+                        <option value="cancelada" {% if estado_sel == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-5 d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
+                        <i class="bi bi-filter me-1"></i> Aplicar
                     </button>
+                    <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-outline-secondary shadow-sm fw-bold">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
                 </div>
             </form>
         </div>
@@ -107,31 +81,24 @@
     <!-- GRID DE TARJETAS (ÓRDENES DE PROYECTO) -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         
-        {% set mostrar_canceladas = request.args.get('ver_canceladas') == 'on' %}
-
         {% for poc in proyectos_oc %}
-            
-            {% if poc.estado|lower != 'cancelada' or mostrar_canceladas %}
-
-                <!-- Mapeo de Colores Premium (Se adaptan en Modo Claro/Oscuro) -->
-                {% set color_theme = 'secondary' %}
-                {% set icon_state = 'bi-question-circle' %}
+            {% if true %}
 
                 {% if poc.estado == 'borrador' %}
                     {% set color_theme = 'warning' %}
-                    {% set icon_state = 'bi-pause-circle' %}
-                {% elif poc.estado == 'aprobada' %}
-                    {% set color_theme = 'info' %}
-                    {% set icon_state = 'bi-check2-circle' %}
+                    {% set icon_state = 'bi-pencil-square' %}
                 {% elif poc.estado == 'enviada' %}
-                    {% set color_theme = 'primary' %}
+                    {% set color_theme = 'info' %}
                     {% set icon_state = 'bi-send' %}
-                {% elif poc.estado == 'completada' %}
+                {% elif poc.estado == 'recibida' %}
                     {% set color_theme = 'success' %}
                     {% set icon_state = 'bi-check-all' %}
                 {% elif poc.estado == 'cancelada' %}
-                    {% set color_theme = 'danger' %}
+                    {% set color_theme = 'secondary' %}
                     {% set icon_state = 'bi-x-circle' %}
+                {% else %}
+                    {% set color_theme = 'secondary' %}
+                    {% set icon_state = 'bi-question-circle' %}
                 {% endif %}
 
                 <div class="col">
@@ -145,8 +112,11 @@
                                 </h5>
                                 <small class="text-muted fw-bold font-monospace"><i class="bi bi-hash"></i>OC-PROY-{{ poc.id }}</small>
                             </div>
-                            <!-- Badge Moderno (Transparente) -->
-                            <span class="badge bg-{{ color_theme }} bg-opacity-10 text-{{ color_theme }} border border-{{ color_theme }} border-opacity-25 rounded-pill px-3 py-2 shadow-sm d-flex align-items-center">
+                            <span class="badge-status
+                                {% if poc.estado == 'borrador' %}badge-borrador
+                                {% elif poc.estado == 'enviada' %}badge-enviada
+                                {% elif poc.estado == 'recibida' %}badge-recibida
+                                {% else %}badge-cancelada{% endif %}">
                                 <i class="bi {{ icon_state }} me-1"></i> {{ poc.estado.capitalize() }}
                             </span>
                         </div>
@@ -205,32 +175,56 @@
                         <!-- FOOTER: Acciones -->
                         <div class="card-footer bg-transparent py-3 px-4" style="border-top:1px solid var(--border)">
                             
+                            <!-- Acciones por estado -->
                             {% if poc.estado == 'borrador' %}
-                                <div class="row g-2 mb-3">
-                                    <div class="col-8">
-                                        <a href="{{ url_for('editar_proyecto_oc', id=poc.id) }}" class="btn btn-warning w-100 rounded-pill fw-bold shadow-sm text-dark">
-                                            <i class="bi bi-pencil-fill me-1"></i> Editar
-                                        </a>
-                                    </div>
-                                    <div class="col-4">
-                                        <form action="{{ url_for('cancelar_proyecto_oc', id=poc.id) }}" method="POST" class="w-100"
-                                              data-confirm="¿Cancelar esta Orden de Compra de Proyecto?">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-danger w-100 rounded-pill fw-bold" title="Cancelar OC">
-                                                <i class="bi bi-x-lg"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                            <div class="d-grid gap-2 mb-2">
+                                <div class="btn-group shadow-sm">
+                                    <a href="{{ url_for('editar_proyecto_oc', id=poc.id) }}"
+                                       class="btn btn-warning btn-sm fw-bold text-dark">
+                                        <i class="bi bi-pencil"></i> Editar
+                                    </a>
+                                    <form action="{{ url_for('enviar_proyecto_oc', id=poc.id) }}" method="POST" class="d-contents"
+                                          data-confirm="¿Marcar como enviada al proveedor?">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-info btn-sm fw-bold text-white border-start border-white border-opacity-25">
+                                            <i class="bi bi-send"></i> Enviar
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('cancelar_proyecto_oc', id=poc.id) }}" method="POST" class="d-contents"
+                                          data-confirm="¿Cancelar esta OC de Proyecto?">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-secondary btn-sm" title="Cancelar">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
                                 </div>
+                            </div>
+                            {% elif poc.estado == 'enviada' %}
+                            <div class="d-grid mb-2">
+                                <a href="{{ url_for('recibir_proyecto_oc', id=poc.id) }}"
+                                   class="btn btn-success btn-sm fw-bold shadow-sm">
+                                    <i class="bi bi-box-seam me-1"></i> Registrar Recepción
+                                </a>
+                            </div>
+                            {% elif poc.estado == 'recibida' %}
+                            <div class="alert alert-success m-0 mb-2 py-2 text-center small fw-bold" style="border-color:rgba(16,185,129,.3)">
+                                <i class="bi bi-calendar-check me-1"></i>
+                                Recibida: {{ poc.fecha_recepcion.strftime('%d/%m/%Y') if poc.fecha_recepcion else '—' }}
+                            </div>
+                            {% elif poc.estado == 'cancelada' %}
+                            <div class="alert alert-secondary m-0 mb-2 py-2 text-center small fw-bold">
+                                <i class="bi bi-x-circle me-1"></i> Cancelada
+                            </div>
                             {% endif %}
 
-                            <!-- Herramientas Fijas: Ver y PDF -->
                             <div class="d-flex justify-content-between align-items-center">
-                                <a href="{{ url_for('ver_proyecto_oc', id=poc.id) }}" class="btn btn-link text-decoration-none text-body fw-bold ps-0 p-1">
-                                    <i class="bi bi-eye text-primary me-1"></i> Ver Detalles
+                                <a href="{{ url_for('ver_proyecto_oc', id=poc.id) }}"
+                                   class="btn btn-link text-decoration-none text-secondary fw-bold p-0 small">
+                                    <i class="bi bi-eye text-primary me-1"></i> Ver Detalle
                                 </a>
-                                <a href="{{ url_for('generar_proyecto_oc_pdf', id=poc.id) }}" class="btn btn-outline-danger btn-sm rounded-pill fw-bold shadow-sm px-3" target="_blank">
-                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+                                <a href="{{ url_for('generar_proyecto_oc_pdf', id=poc.id) }}"
+                                   class="btn btn-link text-decoration-none text-danger fw-bold p-0 small" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i> PDF
                                 </a>
                             </div>
                         </div>

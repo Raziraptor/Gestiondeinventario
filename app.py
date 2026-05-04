@@ -429,16 +429,23 @@ class PushSubscription(db.Model):
 class ProyectoOC(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_proyecto = db.Column(db.String(255), nullable=False)
-    fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.now)
-    estado = db.Column(db.String(20), nullable=False, default='borrador')
-    
-    creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    fecha_creacion  = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    estado          = db.Column(db.String(20), nullable=False, default='borrador')
+
+    creador_id      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
-    
-    # MODIFICADO: nullable=True para que el almacén sea opcional
-    almacen_id = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=True) 
-    almacen = db.relationship('Almacen')
-    
+
+    almacen_id      = db.Column(db.Integer, db.ForeignKey('almacen.id'), nullable=True)
+    almacen         = db.relationship('Almacen', foreign_keys=[almacen_id])
+
+    # Trazabilidad de estados
+    fecha_envio      = db.Column(db.DateTime, nullable=True)
+    fecha_recepcion  = db.Column(db.DateTime, nullable=True)
+    recibido_por_id  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    creador      = db.relationship('User', foreign_keys=[creador_id])
+    recibido_por = db.relationship('User', foreign_keys=[recibido_por_id])
+
     detalles = db.relationship('ProyectoOCDetalle', backref='proyecto_oc', lazy=True, cascade="all, delete-orphan")
 
     @property
@@ -3481,15 +3488,35 @@ def eliminar_orden(id):
 @check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def lista_proyectos_oc():
+    org_id = current_user.organizacion_id
     if current_user.rol == 'super_admin':
         query = ProyectoOC.query
     else:
-        query = ProyectoOC.query.filter_by(organizacion_id=current_user.organizacion_id)
-        
+        query = ProyectoOC.query.filter_by(organizacion_id=org_id)
+
+    # Filtros
+    mes  = request.args.get('mes',  type=int)
+    ano  = request.args.get('ano',  type=int)
+    estado_filtro = request.args.get('estado', '')
+
+    if mes:
+        query = query.filter(extract('month', ProyectoOC.fecha_creacion) == mes)
+    if ano:
+        query = query.filter(extract('year',  ProyectoOC.fecha_creacion) == ano)
+    if estado_filtro:
+        query = query.filter(ProyectoOC.estado == estado_filtro)
+
     proyectos_oc = query.order_by(ProyectoOC.fecha_creacion.desc()).all()
-    
-    return render_template('proyecto_oc_lista.html', 
+    proyectos    = ProyectoOC.query.filter_by(
+        organizacion_id=org_id).with_entities(
+        ProyectoOC.id, ProyectoOC.nombre_proyecto).distinct().all() \
+        if current_user.rol != 'super_admin' else \
+        ProyectoOC.query.with_entities(ProyectoOC.id, ProyectoOC.nombre_proyecto).all()
+
+    return render_template('proyecto_oc_lista.html',
                            proyectos_oc=proyectos_oc,
+                           proyectos=proyectos,
+                           mes_sel=mes, ano_sel=ano, estado_sel=estado_filtro,
                            titulo="OC de Proyectos")
 
 @app.route('/proyecto-oc/<int:id>')
@@ -3497,9 +3524,9 @@ def lista_proyectos_oc():
 @check_permission('perm_create_oc_proyecto')
 def ver_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
-    return render_template('proyecto_oc_detalle.html', 
-                           proyecto_oc=proyecto_oc, 
-                           titulo=f"Detalle OC Proyecto #{proyecto_oc.id}")
+    return render_template('proyecto_oc_detalle.html',
+                           proyecto_oc=proyecto_oc,
+                           titulo=f"OC Proyecto #{proyecto_oc.id} — {proyecto_oc.nombre_proyecto}")
 
 @app.route('/proyecto-oc/nueva', methods=['GET', 'POST'])
 @login_required
@@ -3616,7 +3643,9 @@ def editar_proyecto_oc(id):
     if request.method == 'POST':
         try:
             proyecto_oc.nombre_proyecto = request.form.get('nombre_proyecto')
-            
+            almacen_id_val = request.form.get('almacen_id', type=int)
+            proyecto_oc.almacen_id = almacen_id_val if almacen_id_val else None
+
             # Borrar detalles viejos y crear los nuevos
             ProyectoOCDetalle.query.filter_by(proyecto_oc_id=id).delete()
             
@@ -3695,6 +3724,113 @@ def editar_proyecto_oc(id):
                            almacenes=almacenes,
                            proyecto_oc=proyecto_oc,
                            detalles_json=detalles_json)
+
+
+@app.route('/proyecto-oc/<int:id>/enviar', methods=['POST'])
+@login_required
+@check_permission('perm_create_oc_proyecto')
+def enviar_proyecto_oc(id):
+    """Marca la OC de Proyecto como enviada al proveedor."""
+    proyecto_oc = get_item_or_404(ProyectoOC, id)
+
+    if proyecto_oc.estado != 'borrador':
+        flash('Solo se puede enviar una OC en estado Borrador.', 'danger')
+        return redirect(url_for('ver_proyecto_oc', id=id))
+
+    try:
+        proyecto_oc.estado      = 'enviada'
+        proyecto_oc.fecha_envio = datetime.now()
+        log_actividad('enviar', 'proyecto_oc', f'OC de Proyecto #{proyecto_oc.id} "{proyecto_oc.nombre_proyecto}" marcada como enviada.', entidad_id=proyecto_oc.id)
+        db.session.commit()
+        flash(f'OC #{proyecto_oc.id} marcada como enviada al proveedor.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {e}', 'danger')
+
+    return redirect(url_for('ver_proyecto_oc', id=id))
+
+
+@app.route('/proyecto-oc/<int:id>/recibir', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_create_oc_proyecto')
+def recibir_proyecto_oc(id):
+    """Registra la recepción física de la OC de Proyecto e ingresa stock al almacén seleccionado."""
+    proyecto_oc = get_item_or_404(ProyectoOC, id)
+    org_id = proyecto_oc.organizacion_id
+
+    if proyecto_oc.estado != 'enviada':
+        flash('Solo se puede registrar la recepción de una OC en estado "Enviada".', 'danger')
+        return redirect(url_for('ver_proyecto_oc', id=id))
+
+    almacenes = Almacen.query.filter_by(organizacion_id=org_id).order_by(Almacen.nombre).all()
+
+    if request.method == 'POST':
+        almacen_id_dest = request.form.get('almacen_id', type=int)
+        if not almacen_id_dest:
+            flash('Debes seleccionar un almacén destino.', 'danger')
+            return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
+
+        almacen_dest = Almacen.query.get(almacen_id_dest)
+        if not almacen_dest or almacen_dest.organizacion_id != org_id:
+            flash('Almacén no válido.', 'danger')
+            return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
+
+        # IDs de items del catálogo que el usuario quiere ingresar al stock
+        items_a_ingresar = set(request.form.getlist('ingresar_item[]', type=int))
+
+        try:
+            items_ingresados = 0
+            for detalle in proyecto_oc.detalles:
+                if detalle.producto_id and detalle.producto_id in items_a_ingresar:
+                    # Actualizar Stock
+                    stock_item = Stock.query.filter_by(
+                        producto_id=detalle.producto_id,
+                        almacen_id=almacen_id_dest
+                    ).first()
+                    if stock_item:
+                        stock_item.cantidad += detalle.cantidad
+                    else:
+                        stock_item = Stock(
+                            producto_id=detalle.producto_id,
+                            almacen_id=almacen_id_dest,
+                            organizacion_id=org_id,
+                            cantidad=detalle.cantidad,
+                            stock_minimo=5,
+                            stock_maximo=100
+                        )
+                        db.session.add(stock_item)
+
+                    # Registrar Movimiento (Kárdex)
+                    db.session.add(Movimiento(
+                        producto_id=detalle.producto_id,
+                        cantidad=detalle.cantidad,
+                        tipo='entrada',
+                        fecha=datetime.now(),
+                        motivo=f'Recepción OC Proyecto #{proyecto_oc.id} — {proyecto_oc.nombre_proyecto}',
+                        almacen_id=almacen_id_dest,
+                        organizacion_id=org_id
+                    ))
+                    items_ingresados += 1
+
+            proyecto_oc.estado          = 'recibida'
+            proyecto_oc.fecha_recepcion = datetime.now()
+            proyecto_oc.almacen_id      = almacen_id_dest
+            proyecto_oc.recibido_por_id = current_user.id
+
+            log_actividad('recibir', 'proyecto_oc',
+                f'OC Proyecto #{proyecto_oc.id} recibida en "{almacen_dest.nombre}". '
+                f'{items_ingresados} producto(s) ingresados al inventario.',
+                entidad_id=proyecto_oc.id)
+            db.session.commit()
+
+            flash(f'✓ OC #{proyecto_oc.id} recibida. {items_ingresados} producto(s) ingresados al inventario de "{almacen_dest.nombre}".', 'success')
+            return redirect(url_for('ver_proyecto_oc', id=id))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al registrar la recepción: {e}', 'danger')
+
+    return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
 
 
 @app.route('/proyecto-oc/<int:id>/pdf')
@@ -3790,21 +3926,22 @@ def generar_proyecto_oc_pdf(id):
 @login_required
 @check_permission('perm_create_oc_proyecto')
 def cancelar_proyecto_oc(id):
-    """ Cancela una OC de Proyecto (solo si está en 'borrador'). """
+    """Cancela una OC de Proyecto (soft delete — cambia estado, no borra el registro)."""
     proyecto_oc = get_item_or_404(ProyectoOC, id)
-    
-    if proyecto_oc.estado != 'borrador':
-        flash('Error: Solo se pueden cancelar órdenes en estado "Borrador".', 'danger')
-        return redirect(url_for('lista_proyectos_oc'))
+
+    if proyecto_oc.estado in ['recibida', 'cancelada']:
+        flash('No se puede cancelar una orden ya recibida o previamente cancelada.', 'danger')
+        return redirect(url_for('ver_proyecto_oc', id=id))
 
     try:
-        db.session.delete(proyecto_oc)
+        proyecto_oc.estado = 'cancelada'
+        log_actividad('cancelar', 'proyecto_oc', f'OC de Proyecto #{proyecto_oc.id} "{proyecto_oc.nombre_proyecto}" cancelada.', entidad_id=proyecto_oc.id)
         db.session.commit()
-        flash(f'OC de Proyecto #{proyecto_oc.id} cancelada exitosamente.', 'success')
+        flash(f'OC de Proyecto #{proyecto_oc.id} cancelada.', 'warning')
     except Exception as e:
         db.session.rollback()
         flash(f'Error al cancelar la orden: {e}', 'danger')
-    
+
     return redirect(url_for('lista_proyectos_oc'))
 
 
