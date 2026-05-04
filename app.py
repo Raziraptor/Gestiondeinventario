@@ -688,52 +688,72 @@ def admin_reset_password(id):
     return redirect(url_for('lista_usuarios'))
 
 def enviar_correo_api(destinatario, reset_url):
-    import os
+    """
+    Envía correo de recuperación via Brevo API.
+    Devuelve (True, None) en éxito o (False, mensaje_error) en fallo.
+    """
+    import logging
     API_KEY = os.environ.get("BREVO_API_KEY")
-    
+    SENDER_EMAIL = os.environ.get("BREVO_SENDER_EMAIL", "dinventarioc@gmail.com")
+    SENDER_NAME  = os.environ.get("BREVO_SENDER_NAME",  "Soporte Inventario")
+
     if not API_KEY:
-        print("ERROR: Falta BREVO_API_KEY en el archivo .env")
-        return
-        
-    url = "https://api.brevo.com/v3/smtp/email"
-    
-    # IMPORTANTE: Cambia 'tu_correo@gmail.com' por el correo con el que te registraste en Brevo
+        logging.error("[BREVO] Falta BREVO_API_KEY en el entorno del servidor.")
+        return False, "BREVO_API_KEY no configurada"
+
     payload = {
-        "sender": {"name": "Soporte Inventario", "email": "dinventarioc@gmail.com"},
+        "sender": {"name": SENDER_NAME, "email": SENDER_EMAIL},
         "to": [{"email": destinatario}],
-        "subject": "Restablecimiento de Contraseña - Inventario",
+        "subject": "Restablecimiento de Contraseña — Gestor de Inventario",
         "htmlContent": f"""
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
-                <div style="background-color: #0d6efd; padding: 20px; text-align: center; color: white;">
-                    <h2 style="margin: 0;">Gestor de Inventario</h2>
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;
+                        border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+                <div style="background:#4f46e5;padding:24px;text-align:center;">
+                    <h2 style="margin:0;color:#fff;font-size:20px;">🔑 Gestor de Inventario</h2>
                 </div>
-                <div style="padding: 30px; background-color: #f9f9f9; text-align: center;">
-                    <p style="font-size: 16px; color: #333;">Hemos recibido una solicitud para restablecer tu contraseña.</p>
-                    <a href="{reset_url}" style="display: inline-block; padding: 12px 25px; margin: 20px 0; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                        Restablecer mi Contraseña
+                <div style="padding:32px;background:#f8fafc;text-align:center;">
+                    <p style="font-size:16px;color:#1e293b;">
+                        Recibimos una solicitud para restablecer la contraseña de tu cuenta.
+                    </p>
+                    <a href="{reset_url}"
+                       style="display:inline-block;padding:14px 32px;margin:20px 0;
+                              background:#4f46e5;color:#fff;text-decoration:none;
+                              border-radius:8px;font-weight:bold;font-size:15px;">
+                        Restablecer contraseña
                     </a>
-                    <p style="font-size: 14px; color: #777;">Si no solicitaste este cambio, puedes ignorar este correo sin problemas.</p>
+                    <p style="font-size:13px;color:#64748b;">
+                        El enlace expira en <strong>1 hora</strong>.<br>
+                        Si no solicitaste este cambio, ignora este correo.
+                    </p>
+                </div>
+                <div style="padding:16px;text-align:center;background:#f1f5f9;">
+                    <p style="font-size:11px;color:#94a3b8;margin:0;">
+                        Enviado desde: {SENDER_EMAIL}
+                    </p>
                 </div>
             </div>
         """
     }
-    
+
     headers = {
         "accept": "application/json",
         "api-key": API_KEY,
         "content-type": "application/json"
     }
-    
+
     try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        import logging
-        logging.info(f"[BREVO] Correo enviado a {destinatario}")
+        response = requests.post("https://api.brevo.com/v3/smtp/email",
+                                 json=payload, headers=headers, timeout=10)
+        if response.status_code in (200, 201):
+            logging.info(f"[BREVO] OK — correo enviado a {destinatario}")
+            return True, None
+        else:
+            detail = response.text[:500]
+            logging.error(f"[BREVO] HTTP {response.status_code} — {detail}")
+            return False, f"HTTP {response.status_code}: {detail}"
     except Exception as e:
-        import logging
-        logging.error(f"[BREVO] Error enviando correo a {destinatario}: {e}")
-        if hasattr(e, 'response') and e.response is not None:
-            logging.error(f"[BREVO] Respuesta: {e.response.text}")
+        logging.error(f"[BREVO] Excepción: {e}")
+        return False, str(e)
 
 # ==============================================================================
 # HISTORIAL DE ACTIVIDAD / AUDIT LOG
@@ -4714,19 +4734,53 @@ Reglas:
 @app.route('/admin/test-email')
 @login_required
 def test_email():
-    """Envía un correo de prueba al usuario actual para verificar Brevo."""
+    """Diagnóstico Brevo: envía un correo de prueba y muestra el resultado real."""
     if current_user.rol not in ['super_admin', 'admin']:
         return "Acceso denegado", 403
-    import os
-    API_KEY = os.environ.get("BREVO_API_KEY")
+
+    API_KEY      = os.environ.get("BREVO_API_KEY", "")
+    SENDER_EMAIL = os.environ.get("BREVO_SENDER_EMAIL", "dinventarioc@gmail.com")
+    destinatario = current_user.email
+    test_url     = url_for('dashboard', _external=True)
+
     if not API_KEY:
-        return "<b style='color:red'>ERROR:</b> BREVO_API_KEY no está definida en el entorno del servidor.", 500
-    test_url = "https://example.com/reset/token-de-prueba"
-    try:
-        enviar_correo_api(current_user.email, test_url)
-        return f"<b style='color:green'>Correo de prueba enviado a {current_user.email}.</b> Revisa tu bandeja (y spam)."
-    except Exception as e:
-        return f"<b style='color:red'>Error:</b> {e}", 500
+        return (
+            "<h3>❌ BREVO_API_KEY no está definida</h3>"
+            "<p>Agrégala en <code>/etc/systemd/system/inventario.service.d/override.conf</code> "
+            "con <code>Environment=BREVO_API_KEY=tu_clave</code> y haz "
+            "<code>systemctl daemon-reload && systemctl restart inventario</code></p>"
+        ), 500
+
+    ok, error = enviar_correo_api(destinatario, test_url)
+
+    if ok:
+        return (
+            f"<h3 style='color:green'>✅ Correo enviado correctamente</h3>"
+            f"<p>Enviado a: <strong>{destinatario}</strong><br>"
+            f"Remitente configurado: <strong>{SENDER_EMAIL}</strong></p>"
+            f"<p>Si no llega en 2 minutos:</p>"
+            f"<ol>"
+            f"<li>Revisa la carpeta de <strong>Spam / No deseado</strong></li>"
+            f"<li>Verifica en Brevo → <em>Settings → Senders &amp; IP → Senders</em> "
+            f"que <strong>{SENDER_EMAIL}</strong> esté verificado (ícono verde)</li>"
+            f"<li>Si el remitente no está verificado, Brevo puede aceptar la llamada "
+            f"API pero NO entregar el correo</li>"
+            f"</ol>"
+        )
+    else:
+        return (
+            f"<h3 style='color:red'>❌ Error al enviar</h3>"
+            f"<p>Remitente: <strong>{SENDER_EMAIL}</strong><br>"
+            f"Destinatario: <strong>{destinatario}</strong></p>"
+            f"<pre style='background:#fee;padding:12px;border-radius:6px;'>{error}</pre>"
+            f"<h4>Causas comunes:</h4>"
+            f"<ol>"
+            f"<li><strong>Sender not verified</strong> — Ve a Brevo → Settings → Senders &amp; IP → Senders "
+            f"y agrega/verifica <code>{SENDER_EMAIL}</code></li>"
+            f"<li><strong>API Key inválida</strong> — Ve a Brevo → Settings → API Keys y regenera la clave</li>"
+            f"<li><strong>Plan gratuito agotado</strong> — Brevo Free permite 300 correos/día</li>"
+            f"</ol>"
+        ), 500
 
 # ========================
 # NUEVAS RUTAS DEL ADMIN
