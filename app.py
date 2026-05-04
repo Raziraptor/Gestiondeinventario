@@ -443,8 +443,7 @@ class ProyectoOC(db.Model):
     fecha_recepcion  = db.Column(db.DateTime, nullable=True)
     recibido_por_id  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
-    creador      = db.relationship('User', foreign_keys=[creador_id])
-    recibido_por = db.relationship('User', foreign_keys=[recibido_por_id])
+    recibido_por = db.relationship('User', foreign_keys=[recibido_por_id], overlaps="proyectos_oc_creados")
 
     detalles = db.relationship('ProyectoOCDetalle', backref='proyecto_oc', lazy=True, cascade="all, delete-orphan")
 
