@@ -6,23 +6,36 @@
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO Y BOTÓN DE RETORNO -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-            <h2 class="mb-1 fw-bold"><i class="bi bi-tags-fill text-primary me-2"></i>Gestión de Categorías</h2>
-            <p class="text-muted mb-0">Administra las agrupaciones de tus productos para un mejor control.</p>
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="#">Gestión</a></li>
+            <li class="breadcrumb-item active">Categorías</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-tags-fill text-primary me-2"></i>Categorías</h1>
+                <p class="page-subtitle">Administra las agrupaciones de tus productos para un mejor control.</p>
+            </div>
+            <a href="{{ url_for('nueva_categoria') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-plus-circle me-1"></i> Nueva Categoría
+            </a>
         </div>
-        <a href="{{ url_for('nueva_categoria') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
-            <i class="bi bi-plus-circle me-1"></i> Nueva Categoría
-        </a>
     </div>
 
     <!-- TARJETA CON TABLA -->
     <div class="card shadow-sm border-0 rounded-4">
-        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
-            <h4 class="mb-0 fw-bold text-body"><i class="bi bi-list-ul text-primary me-2"></i>Lista de Categorías</h4>
-            <span class="badge bg-secondary bg-opacity-25 text-body rounded-pill shadow-sm border border-secondary border-opacity-25 px-3 py-2">
-                {{ categorias|length }} Registros
+        <div class="card-header bg-transparent pt-4 pb-3 d-flex justify-content-between align-items-center"
+             style="border-bottom:1px solid var(--border);">
+            <h5 class="mb-0 fw-bold text-body"><i class="bi bi-list-ul text-primary me-2"></i>Lista de Categorías</h5>
+            <span class="badge rounded-pill px-3 py-2 fw-semibold"
+                  style="background:var(--hover-bg);color:var(--bs-secondary);border:1px solid var(--border);">
+                {{ categorias|length }} registros
             </span>
         </div>
         

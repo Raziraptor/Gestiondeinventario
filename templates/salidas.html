@@ -17,15 +17,26 @@
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-            <h2 class="mb-1 fw-bold"><i class="bi bi-box-arrow-right text-danger me-2"></i>Historial de Salidas</h2>
-            <p class="text-muted mb-0">Registro de movimientos de salida de almacén.</p>
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="#">Operaciones</a></li>
+            <li class="breadcrumb-item active">Historial de Salidas</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-box-arrow-right text-danger me-2"></i>Historial de Salidas</h1>
+                <p class="page-subtitle">Registro de movimientos de salida de almacén.</p>
+            </div>
+            <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Salida
+            </a>
         </div>
-        <a href="{{ url_for('registrar_salida') }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold text-nowrap">
-            <i class="bi bi-plus-lg me-1"></i> Registrar Nueva Salida
-        </a>
     </div>
 
     <!-- KPIs DEL PERÍODO -->

@@ -535,6 +535,60 @@
         .page-item.disabled .page-link { opacity: 0.4; }
 
         /* ============================================================
+           BREADCRUMBS
+        ============================================================ */
+        .breadcrumb {
+            --bs-breadcrumb-divider-color: var(--bs-secondary);
+            margin-bottom: 0;
+            font-size: .82rem;
+        }
+        .breadcrumb-item + .breadcrumb-item::before { color: var(--bs-secondary) !important; opacity: .6; }
+        .breadcrumb-item a { color: var(--bs-secondary); text-decoration: none; transition: color .15s; }
+        .breadcrumb-item a:hover { color: var(--primary); }
+        .breadcrumb-item.active { color: var(--bs-body-color); font-weight: 600; }
+
+        /* ============================================================
+           PAGE HEADER (título + subtítulo + acción)
+        ============================================================ */
+        .page-header {
+            display: flex; flex-direction: column;
+            gap: .2rem; margin-bottom: 1.5rem;
+        }
+        .page-header-row {
+            display: flex; flex-wrap: wrap;
+            justify-content: space-between; align-items: center;
+            gap: 1rem;
+        }
+        .page-title {
+            font-size: 1.45rem; font-weight: 700;
+            letter-spacing: -.3px; margin: 0; line-height: 1.2;
+        }
+        .page-subtitle { font-size: .875rem; color: var(--bs-secondary); margin: 0; }
+
+        /* ============================================================
+           STATUS BADGES (theme-aware)
+        ============================================================ */
+        .badge-status {
+            font-size: .72rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .5px; padding: .35em .9em; border-radius: 50rem;
+            display: inline-flex; align-items: center; gap: .3em;
+        }
+        .badge-borrador { background: rgba(245,158,11,.15); color: #f59e0b; }
+        .badge-enviada  { background: rgba(6,182,212,.15);  color: #06b6d4; }
+        .badge-recibida { background: rgba(16,185,129,.15); color: #10b981; }
+        .badge-cancelada{ background: rgba(100,116,139,.15);color: var(--bs-secondary); }
+        .badge-activo   { background: rgba(16,185,129,.15); color: #10b981; }
+
+        /* ============================================================
+           SURFACE PANEL (reemplaza bg-light en cards internas)
+        ============================================================ */
+        .surface-panel {
+            background: var(--surface-raised);
+            border: 1px solid var(--border);
+            border-radius: .75rem;
+        }
+
+        /* ============================================================
            EMPTY STATE
         ============================================================ */
         .empty-state {
