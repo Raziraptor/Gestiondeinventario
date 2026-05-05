@@ -5295,41 +5295,72 @@ def admin_panel():
 @login_required
 @admin_required
 def update_user_permissions(user_id):
-    """ Actualiza los permisos de un usuario específico. """
-    
     user_to_update = User.query.get_or_404(user_id)
-    
-    # --- CHEQUEO DE SEGURIDAD ---
+
     if current_user.rol == 'admin' and user_to_update.organizacion_id != current_user.organizacion_id:
         flash('No tienes permiso para editar a este usuario.', 'danger')
         return redirect(url_for('admin_panel'))
-        
+
     if user_to_update.id == current_user.id and current_user.rol != 'super_admin':
-        flash('No puedes editar tus propios permisos. Pide a otro admin o al Super Admin que lo haga.', 'warning')
+        flash('No puedes editar tus propios permisos.', 'warning')
         return redirect(url_for('admin_panel'))
-    # --- FIN CHEQUEO ---
 
     form = AdminPermissionForm()
-    
     if form.validate_on_submit():
         try:
-            user_to_update.perm_view_dashboard = form.perm_view_dashboard.data
-            user_to_update.perm_view_management = form.perm_view_management.data
-            user_to_update.perm_edit_management = form.perm_edit_management.data
+            user_to_update.perm_view_dashboard    = form.perm_view_dashboard.data
+            user_to_update.perm_view_management   = form.perm_view_management.data
+            user_to_update.perm_edit_management   = form.perm_edit_management.data
             user_to_update.perm_create_oc_standard = form.perm_create_oc_standard.data
             user_to_update.perm_create_oc_proyecto = form.perm_create_oc_proyecto.data
-            user_to_update.perm_do_salidas = form.perm_do_salidas.data
-            user_to_update.perm_view_gastos = form.perm_view_gastos.data
-            
+            user_to_update.perm_do_salidas        = form.perm_do_salidas.data
+            user_to_update.perm_view_gastos       = form.perm_view_gastos.data
             db.session.commit()
             flash(f'Permisos para {user_to_update.username} actualizados.', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar permisos: {e}', 'danger')
     else:
-        flash('Error de validación del formulario. Inténtalo de nuevo.', 'danger')
-            
+        flash('Error de validación del formulario.', 'danger')
+
     return redirect(url_for('admin_panel'))
+
+
+@app.route('/api/permisos/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def api_toggle_permiso(user_id):
+    """API para auto-guardar un permiso individual vía AJAX."""
+    PERMS_VALIDOS = {
+        'perm_view_dashboard', 'perm_view_management', 'perm_edit_management',
+        'perm_create_oc_standard', 'perm_create_oc_proyecto',
+        'perm_do_salidas', 'perm_view_gastos',
+    }
+    user_to_update = User.query.get_or_404(user_id)
+
+    if current_user.rol == 'admin' and user_to_update.organizacion_id != current_user.organizacion_id:
+        return jsonify(ok=False, error='Sin permiso'), 403
+
+    if user_to_update.id == current_user.id and current_user.rol != 'super_admin':
+        return jsonify(ok=False, error='No puedes editar tus propios permisos'), 403
+
+    if user_to_update.rol != 'user':
+        return jsonify(ok=False, error='Solo se pueden editar permisos de usuarios base'), 400
+
+    data = request.get_json(silent=True) or {}
+    perm  = data.get('perm')
+    value = data.get('value')
+
+    if perm not in PERMS_VALIDOS or not isinstance(value, bool):
+        return jsonify(ok=False, error='Datos inválidos'), 400
+
+    try:
+        setattr(user_to_update, perm, value)
+        db.session.commit()
+        return jsonify(ok=True, username=user_to_update.username, perm=perm, value=value)
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(ok=False, error=str(e)), 500
 
 # ==============================================================================
 # TRANSFERENCIAS ENTRE ALMACENES
