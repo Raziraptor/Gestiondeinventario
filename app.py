@@ -2721,74 +2721,119 @@ def eliminar_movimiento_salida(id):
 @login_required
 @check_permission('perm_do_salidas')
 def generar_salida_pdf(id):
-    """ Genera un PDF de Salida (Multiusuario, Multi-Almacén). """
     salida = get_item_or_404(Salida, id)
-    
+    org = Organizacion.query.get(salida.organizacion_id)
+
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=inch, leftMargin=inch,
-                            topMargin=inch, bottomMargin=inch)
+                            topMargin=0.5*inch, bottomMargin=inch)
     story = []
     styles = getSampleStyleSheet()
 
-    style_body = ParagraphStyle(name='Body', parent=styles['BodyText'], fontName='Helvetica', fontSize=10)
-    style_right = ParagraphStyle(name='BodyRight', parent=style_body, alignment=TA_RIGHT)
-    style_left = ParagraphStyle(name='BodyLeft', parent=style_body, alignment=TA_LEFT)
-    style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
+    fuente = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
+    color_org = colors.HexColor(org.color_primario) if org.color_primario else colors.HexColor('#4F46E5')
 
-    story.append(Paragraph(f"COMPROBANTE DE SALIDA #{salida.id}", styles['h1']))
-    # --- AÑADIDO ALMACÉN ---
-    story.append(Paragraph(f"<b>Almacén:</b> {salida.almacen.nombre}", styles['h3']))
-    story.append(Spacer(1, 0.25 * inch))
-    info_salida = f"""
-        <b>Fecha:</b> {salida.fecha.strftime('%Y-%m-%d')}<br/>
-        <b>Estado:</b> <font color="{'red' if salida.estado == 'cancelada' else 'green'}">
-            {salida.estado.capitalize()}
-        </font><br/>
-        <b>Creada por:</b> {salida.creador.username}
-    """
-    story.append(Paragraph(info_salida, styles['BodyText']))
-    story.append(Spacer(1, 0.5 * inch))
+    s_brand  = ParagraphStyle('SBrand', fontName=f'{fuente}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
+    s_sub    = ParagraphStyle('SSub',   fontName=fuente, fontSize=10, leading=12, textColor=colors.gray)
+    s_normal = ParagraphStyle('SNorm',  fontName=fuente, fontSize=10, leading=12)
+    s_bold   = ParagraphStyle('SBold',  fontName=f'{fuente}-Bold', fontSize=10, leading=12)
+    s_th     = ParagraphStyle('STH',    fontName=f'{fuente}-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)
+    s_cell   = ParagraphStyle('SCell',  fontName=fuente, fontSize=9, leading=11)
+    s_cellr  = ParagraphStyle('SCellR', fontName=fuente, fontSize=9, leading=11, alignment=TA_RIGHT)
 
-    # --- TABLA PDF MODIFICADA ---
-    data = [[
-        Paragraph('Producto', style_header), 
-        Paragraph('SKU', style_header), 
-        Paragraph('Motivo', style_header),
-        Paragraph('Cantidad Retirada', style_header)
-    ]]
-    # Usamos .all() porque la relación ahora es 'dynamic'
-    for mov in salida.movimientos.order_by(Movimiento.fecha.asc()).all():
-        producto = Paragraph(mov.producto.nombre, style_left)
-        sku = Paragraph(mov.producto.codigo, style_left)
-        motivo = Paragraph(mov.motivo, style_left)
-        cantidad = Paragraph(str(abs(mov.cantidad)), style_right)
-        data.append([producto, sku, motivo, cantidad])
+    # ── 1. ENCABEZADO ──────────────────────────────────────────────────────
+    logo_el = []
+    if org.logo_url:
+        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
+        if os.path.exists(logo_path):
+            img = ReportLabImage(logo_path)
+            max_h = 1.0 * inch
+            img.drawHeight = max_h
+            img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
+            logo_el.append(img)
 
-    style = TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E9ECEF")),
+    texto_org = org.header_titulo if org.header_titulo else org.nombre
+    text_el = [Paragraph(texto_org, s_brand)]
+    if org.header_subtitulo:
+        text_el.append(Paragraph(org.header_subtitulo, s_sub))
+
+    if logo_el:
+        t_hdr = Table([[logo_el, text_el]], colWidths=[1.5*inch, 4.5*inch])
+    else:
+        t_hdr = Table([[text_el]], colWidths=[6*inch])
+    t_hdr.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 8),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor("#F8F9FA")]), 
-        ('GRID', (0,0), (-1,-1), 1, colors.HexColor("#DEE2E6")),
-        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#DEE2E6")),
-    ])
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+    ]))
+    story.append(t_hdr)
 
-    tabla_salida = Table(data, colWidths=[2.5*inch, 1.5*inch, 1.25*inch, 1.25*inch])
-    tabla_salida.setStyle(style)
-    story.append(tabla_salida)
+    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2],
+                       style=TableStyle([('BACKGROUND', (0,0), (-1,-1), color_org)])))
+    story.append(Spacer(1, 0.2*inch))
+
+    # ── 2. INFO SALIDA ─────────────────────────────────────────────────────
+    estado_color = '#DC2626' if salida.estado == 'cancelada' else '#059669'
+
+    info_izq = [
+        Paragraph('<b>ALMACÉN:</b>', s_normal),
+        Paragraph(salida.almacen.nombre, s_bold),
+        Paragraph(f'Fecha: {salida.fecha.strftime("%d/%m/%Y")}', s_normal),
+        Paragraph(f'Creada por: {salida.creador.username}', s_normal),
+    ]
+    info_der = [
+        Paragraph(f'<b>SALIDA #{salida.id}</b>', s_brand),
+        Paragraph(f'<font color="{estado_color}"><b>{salida.estado.upper()}</b></font>', s_bold),
+    ]
+
+    t_info = Table([[info_izq, info_der]], colWidths=[3.5*inch, 2.7*inch])
+    t_info.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 0)]))
+    story.append(t_info)
+    story.append(Spacer(1, 0.25*inch))
+
+    # ── 3. TABLA DE MOVIMIENTOS ────────────────────────────────────────────
+    data = [[
+        Paragraph('Producto', s_th),
+        Paragraph('SKU', s_th),
+        Paragraph('Motivo', s_th),
+        Paragraph('Cantidad', s_th),
+    ]]
+    total_items = 0
+    for mov in salida.movimientos.order_by(Movimiento.fecha.asc()).all():
+        cant = abs(mov.cantidad)
+        total_items += cant
+        data.append([
+            Paragraph(mov.producto.nombre, s_cell),
+            Paragraph(mov.producto.codigo, s_cell),
+            Paragraph(mov.motivo or '—', s_cell),
+            Paragraph(str(cant), s_cellr),
+        ])
+
+    data.append(['', '', Paragraph('TOTAL UNIDADES:', ParagraphStyle('STotL', fontName=f'{fuente}-Bold', fontSize=10, alignment=TA_RIGHT)),
+                 Paragraph(str(total_items), ParagraphStyle('STotV', fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=color_org))])
+
+    col_w = [2.8*inch, 1.2*inch, 1.4*inch, 0.8*inch]
+    t_mov = Table(data, colWidths=col_w, repeatRows=1)
+    t_mov.setStyle(TableStyle([
+        ('BACKGROUND',    (0,0),  (-1,0),  color_org),
+        ('TEXTCOLOR',     (0,0),  (-1,0),  colors.white),
+        ('ROWBACKGROUNDS',(0,1),  (-1,-2), [colors.white, colors.HexColor('#F8F9FA')]),
+        ('GRID',          (0,0),  (-1,-2), 0.5, colors.HexColor('#DEE2E6')),
+        ('VALIGN',        (0,0),  (-1,-1), 'MIDDLE'),
+        ('ALIGN',         (3,0),  (3,-1),  'RIGHT'),
+        ('TOPPADDING',    (0,0),  (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0),  (-1,-1), 6),
+        ('SPAN',          (0,-1), (1,-1)),
+        ('LINEABOVE',     (0,-1), (-1,-1), 1, colors.HexColor('#DEE2E6')),
+        ('BOX',           (2,-1), (3,-1),  0.5, colors.HexColor('#DEE2E6')),
+    ]))
+    story.append(t_mov)
+
     doc.build(story)
-    
-    fecha_str = salida.fecha.strftime("%Y-%m-%d")
-    filename = f"Salida_#{salida.id}_{fecha_str}.pdf"
-
     buffer.seek(0)
-    return send_file(
-        buffer,
-        as_attachment=False,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
+    filename = f"Salida-{salida.id}_{salida.fecha.strftime('%Y-%m-%d')}.pdf"
+    return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
     
 # --- RUTAS DE ÓRDENES DE COMPRA (OC) ---
 
@@ -3837,89 +3882,146 @@ def recibir_proyecto_oc(id):
 @check_permission('perm_create_oc_proyecto')
 def generar_proyecto_oc_pdf(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
-    
+    org = Organizacion.query.get(proyecto_oc.organizacion_id)
+
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=inch, leftMargin=inch,
-                            topMargin=inch, bottomMargin=inch)
+                            topMargin=0.5*inch, bottomMargin=inch)
     story = []
     styles = getSampleStyleSheet()
 
-    style_body = ParagraphStyle(name='Body', parent=styles['BodyText'], fontName='Helvetica', fontSize=10)
-    style_right = ParagraphStyle(name='BodyRight', parent=style_body, alignment=TA_RIGHT)
-    style_left = ParagraphStyle(name='BodyLeft', parent=style_body, alignment=TA_LEFT)
-    style_header = ParagraphStyle(name='Header', parent=style_body, fontName='Helvetica-Bold', alignment=TA_CENTER, textColor=colors.black)
-    style_total_label = ParagraphStyle(name='TotalLabel', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
-    style_total_value = ParagraphStyle(name='TotalValue', parent=style_body, fontName='Helvetica-Bold', alignment=TA_RIGHT)
+    fuente = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
+    color_org = colors.HexColor(org.color_primario) if org.color_primario else colors.HexColor('#4F46E5')
 
-    story.append(Paragraph(f"OC DE PROYECTO #{proyecto_oc.id}", styles['h1']))
-    story.append(Paragraph(f"<b>Proyecto:</b> {proyecto_oc.nombre_proyecto}", styles['h3']))
-    story.append(Spacer(1, 0.25 * inch))
+    s_brand   = ParagraphStyle('POBrand',  fontName=f'{fuente}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
+    s_sub     = ParagraphStyle('POSub',    fontName=fuente, fontSize=10, leading=12, textColor=colors.gray)
+    s_normal  = ParagraphStyle('PONorm',   fontName=fuente, fontSize=10, leading=12)
+    s_bold    = ParagraphStyle('POBold',   fontName=f'{fuente}-Bold', fontSize=10, leading=12)
+    s_th      = ParagraphStyle('POTH',     fontName=f'{fuente}-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)
+    s_cell    = ParagraphStyle('POCell',   fontName=fuente, fontSize=9, leading=11)
+    s_cellr   = ParagraphStyle('POCellR',  fontName=fuente, fontSize=9, leading=11, alignment=TA_RIGHT)
+    s_totlbl  = ParagraphStyle('POTotL',   fontName=f'{fuente}-Bold', fontSize=10, alignment=TA_RIGHT)
+    s_totval  = ParagraphStyle('POTotV',   fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=color_org)
 
-    info_header = f"""
-        <b>Creada por:</b> {proyecto_oc.creador.username}<br/>
-        <b>Fecha Creación:</b> {proyecto_oc.fecha_creacion.strftime('%Y-%m-%d')}<br/>
-        <b>Estado:</b> {proyecto_oc.estado.capitalize()}
-    """
-    story.append(Paragraph(info_header, styles['BodyText']))
-    story.append(Spacer(1, 0.5 * inch))
+    # ── 1. ENCABEZADO (logo + nombre org) ──────────────────────────────────
+    logo_el = []
+    if org.logo_url:
+        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
+        if os.path.exists(logo_path):
+            img = ReportLabImage(logo_path)
+            max_h = 1.0 * inch
+            img.drawHeight = max_h
+            img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
+            logo_el.append(img)
 
-    data = [[
-        Paragraph('Tipo', style_header), 
-        Paragraph('Descripción', style_header), 
-        Paragraph('Proveedor Sug.', style_header),
-        Paragraph('Cant.', style_header),
-        Paragraph('Costo Unit.', style_header),
-        Paragraph('Subtotal', style_header)
-    ]]
-    
-    for detalle in proyecto_oc.detalles:
-        tipo = Paragraph("Catálogo" if detalle.producto_id else "Nuevo", style_left)
-        
-        # CORRECCIÓN BUG DEL PDF: Priorizar el nombre real del producto, sino el tipado a mano
-        desc_text = detalle.producto.nombre if detalle.producto_id and detalle.producto else detalle.descripcion_nuevo
-        descripcion = Paragraph(desc_text or 'Sin descripción', style_left)
-        
-        proveedor = Paragraph(detalle.proveedor_sugerido or 'N/A', style_left)
-        cantidad = Paragraph(str(detalle.cantidad), style_right)
-        costo_unit = Paragraph(f"${detalle.costo_unitario:.2f}", style_right)
-        subtotal = Paragraph(f"${detalle.subtotal:.2f}", style_right)
-        data.append([tipo, descripcion, proveedor, cantidad, costo_unit, subtotal])
+    texto_org = org.header_titulo if org.header_titulo else org.nombre
+    text_el = [Paragraph(texto_org, s_brand)]
+    if org.header_subtitulo:
+        text_el.append(Paragraph(org.header_subtitulo, s_sub))
 
-    data.append([
-        '', '', '', '', 
-        Paragraph('TOTAL (Est.):', style_total_label), 
-        Paragraph(f"${proyecto_oc.costo_total:.2f}", style_total_value)
-    ])
-
-    style = TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#E9ECEF")),
+    if logo_el:
+        t_hdr = Table([[logo_el, text_el]], colWidths=[1.5*inch, 4.5*inch])
+    else:
+        t_hdr = Table([[text_el]], colWidths=[6*inch])
+    t_hdr.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 8),
-        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor("#F8F9FA")]), 
-        ('GRID', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
-        ('BOX', (0,0), (-1,-2), 1, colors.HexColor("#DEE2E6")),
-        ('BACKGROUND', (0,-1), (5,-1), colors.white),
-        ('GRID', (4,-1), (5,-1), 1, colors.HexColor("#DEE2E6")),
-        ('SPAN', (0,-1), (3,-1)),
-    ])
-    
-    tabla_oc = Table(data, colWidths=[0.8*inch, 2.2*inch, 1.5*inch, 0.5*inch, 0.75*inch, 0.75*inch])
-    tabla_oc.setStyle(style)
-    story.append(tabla_oc)
-    
-    doc.build(story)
-    
-    fecha_str = proyecto_oc.fecha_creacion.strftime("%Y-%m-%d")
-    filename = f"ProyectoOC_#{proyecto_oc.id}_{fecha_str}.pdf"
+        ('LEFTPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+    ]))
+    story.append(t_hdr)
 
+    # Barra de color
+    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2],
+                       style=TableStyle([('BACKGROUND', (0,0), (-1,-1), color_org)])))
+    story.append(Spacer(1, 0.2*inch))
+
+    # ── 2. BLOQUE INFO (proyecto + estado) ─────────────────────────────────
+    estado_color = {
+        'borrador': '#D97706', 'enviada': '#0891B2',
+        'recibida': '#059669', 'cancelada': '#64748B',
+    }.get(proyecto_oc.estado, '#64748B')
+
+    info_proyecto = [
+        Paragraph('<b>PROYECTO:</b>', s_normal),
+        Paragraph(proyecto_oc.nombre_proyecto, s_bold),
+        Paragraph(f'Creado por: {proyecto_oc.creador.username}', s_normal),
+        Paragraph(f'Fecha: {proyecto_oc.fecha_creacion.strftime("%d/%m/%Y")}', s_normal),
+    ]
+    if proyecto_oc.fecha_envio:
+        info_proyecto.append(Paragraph(f'Enviado: {proyecto_oc.fecha_envio.strftime("%d/%m/%Y")}', s_normal))
+    if proyecto_oc.fecha_recepcion:
+        info_proyecto.append(Paragraph(f'Recibido: {proyecto_oc.fecha_recepcion.strftime("%d/%m/%Y")}', s_normal))
+    if proyecto_oc.recibido_por:
+        info_proyecto.append(Paragraph(f'Recibido por: {proyecto_oc.recibido_por.username}', s_normal))
+
+    info_oc = [
+        Paragraph(f'<b>OC-PROY-{proyecto_oc.id}</b>', s_brand),
+        Paragraph(f'<font color="{estado_color}"><b>{proyecto_oc.estado.upper()}</b></font>', s_bold),
+    ]
+    if proyecto_oc.almacen:
+        info_oc.append(Paragraph(f'Almacén: {proyecto_oc.almacen.nombre}', s_normal))
+
+    t_info = Table([[info_proyecto, info_oc]], colWidths=[3.5*inch, 2.7*inch])
+    t_info.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 0)]))
+    story.append(t_info)
+    story.append(Spacer(1, 0.25*inch))
+
+    # ── 3. TABLA DE ARTÍCULOS ───────────────────────────────────────────────
+    headers = [
+        Paragraph('Descripción / SKU', s_th),
+        Paragraph('Proveedor Sug.', s_th),
+        Paragraph('Cant.', s_th),
+        Paragraph('Costo Unit.', s_th),
+        Paragraph('Subtotal', s_th),
+    ]
+    data = [headers]
+    total = 0
+
+    for d in proyecto_oc.detalles:
+        if d.producto_id and d.producto:
+            desc_html = f'<b>{d.producto.nombre}</b><br/><font size="8" color="gray">SKU: {d.producto.codigo}</font>'
+        else:
+            desc_html = f'<b>{d.descripcion_nuevo or "Sin descripción"}</b><br/><font size="8" color="gray">Artículo externo</font>'
+        if d.enlace_proveedor:
+            short = (d.enlace_proveedor[:45] + '...') if len(d.enlace_proveedor) > 48 else d.enlace_proveedor
+            desc_html += f'<br/><font size="7" color="blue">{short}</font>'
+        if d.comentarios_detalle:
+            desc_html += f'<br/><font size="7" color="gray">{d.comentarios_detalle}</font>'
+
+        sub = d.cantidad * d.costo_unitario
+        total += sub
+        data.append([
+            Paragraph(desc_html, s_cell),
+            Paragraph(d.proveedor_sugerido or '—', s_cell),
+            Paragraph(str(d.cantidad), s_cellr),
+            Paragraph(f'${d.costo_unitario:,.2f}', s_cellr),
+            Paragraph(f'${sub:,.2f}', s_cellr),
+        ])
+
+    data.append(['', '', '', Paragraph('TOTAL ESTIMADO:', s_totlbl), Paragraph(f'${total:,.2f}', s_totval)])
+
+    col_w = [2.6*inch, 1.4*inch, 0.5*inch, 0.9*inch, 0.9*inch]
+    t_art = Table(data, colWidths=col_w, repeatRows=1)
+    t_art.setStyle(TableStyle([
+        ('BACKGROUND',   (0,0),  (-1,0),  color_org),
+        ('TEXTCOLOR',    (0,0),  (-1,0),  colors.white),
+        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor('#F8F9FA')]),
+        ('GRID',         (0,0),  (-1,-2), 0.5, colors.HexColor('#DEE2E6')),
+        ('VALIGN',       (0,0),  (-1,-1), 'MIDDLE'),
+        ('ALIGN',        (2,0),  (-1,-1), 'RIGHT'),
+        ('TOPPADDING',   (0,0),  (-1,-1), 6),
+        ('BOTTOMPADDING',(0,0),  (-1,-1), 6),
+        ('SPAN',         (0,-1), (2,-1)),
+        ('LINEABOVE',    (0,-1), (-1,-1), 1, colors.HexColor('#DEE2E6')),
+        ('BOX',          (3,-1), (4,-1),  0.5, colors.HexColor('#DEE2E6')),
+    ]))
+    story.append(t_art)
+
+    doc.build(story)
     buffer.seek(0)
-    return send_file(
-        buffer,
-        as_attachment=False,
-        download_name=filename,
-        mimetype='application/pdf'
-    )
+    filename = f"OC-Proyecto-{proyecto_oc.id}_{proyecto_oc.fecha_creacion.strftime('%Y-%m-%d')}.pdf"
+    return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
     
 @app.route('/proyecto-oc/<int:id>/cancelar', methods=['POST'])
 @login_required
@@ -3942,6 +4044,158 @@ def cancelar_proyecto_oc(id):
         flash(f'Error al cancelar la orden: {e}', 'danger')
 
     return redirect(url_for('lista_proyectos_oc'))
+
+
+@app.route('/proyecto-oc/exportar.xlsx')
+@login_required
+@check_org_permission
+@check_permission('perm_create_oc_proyecto')
+def exportar_proyectos_oc_excel():
+    org_id = current_user.organizacion_id
+    estado_f = request.args.get('estado')
+    mes_f    = request.args.get('mes', type=int)
+    ano_f    = request.args.get('ano', type=int)
+
+    query = ProyectoOC.query.filter_by(organizacion_id=org_id)
+    if estado_f:
+        query = query.filter(ProyectoOC.estado == estado_f)
+    if mes_f:
+        query = query.filter(extract('month', ProyectoOC.fecha_creacion) == mes_f)
+    if ano_f:
+        query = query.filter(extract('year', ProyectoOC.fecha_creacion) == ano_f)
+    proyectos = query.order_by(ProyectoOC.fecha_creacion.desc()).all()
+
+    wb = openpyxl.Workbook()
+
+    # ── Hoja 1: Resumen de OC ───────────────────────────────────────────────
+    ws = wb.active
+    ws.title = 'OC de Proyectos'
+
+    COLOR_HDR  = 'FF4F46E5'
+    COLOR_ALT  = 'FFF0F4FF'
+    COLOR_TOT  = 'FFDBEAFE'
+
+    h_font = Font(name='Calibri', size=11, bold=True, color='FFFFFFFF')
+    b_font = Font(name='Calibri', size=10)
+    t_font = Font(name='Calibri', size=11, bold=True)
+
+    h_fill  = PatternFill('solid', fgColor=COLOR_HDR)
+    alt_fill= PatternFill('solid', fgColor=COLOR_ALT)
+    tot_fill= PatternFill('solid', fgColor=COLOR_TOT)
+
+    thin = Side(style='thin', color='FFBFDBFE')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    hdrs = ['ID', 'Proyecto', 'Estado', 'Creado Por', 'Fecha Creación',
+            'Fecha Envío', 'Fecha Recepción', 'Almacén Destino',
+            'Recibido Por', 'Artículos', 'Total Estimado (MXN)']
+    ws.append(hdrs)
+    for col, h in enumerate(hdrs, 1):
+        cell = ws.cell(1, col)
+        cell.font   = h_font
+        cell.fill   = h_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = border
+
+    estado_labels = {'borrador': 'Borrador', 'enviada': 'Enviada',
+                     'recibida': 'Recibida', 'cancelada': 'Cancelada'}
+
+    for i, poc in enumerate(proyectos, 2):
+        fill = alt_fill if i % 2 == 0 else PatternFill()
+        row = [
+            poc.id,
+            poc.nombre_proyecto,
+            estado_labels.get(poc.estado, poc.estado),
+            poc.creador.username,
+            poc.fecha_creacion.strftime('%d/%m/%Y'),
+            poc.fecha_envio.strftime('%d/%m/%Y') if poc.fecha_envio else '—',
+            poc.fecha_recepcion.strftime('%d/%m/%Y') if poc.fecha_recepcion else '—',
+            poc.almacen.nombre if poc.almacen else '—',
+            poc.recibido_por.username if poc.recibido_por else '—',
+            len(poc.detalles),
+            poc.costo_total,
+        ]
+        ws.append(row)
+        for col in range(1, len(row) + 1):
+            cell = ws.cell(i, col)
+            cell.font   = b_font
+            cell.fill   = fill
+            cell.border = border
+            cell.alignment = Alignment(vertical='center')
+            if col == 11:
+                cell.number_format = '"$"#,##0.00'
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+            elif col == 1:
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+
+    # Fila de total
+    last = len(proyectos) + 2
+    ws.cell(last, 10, 'TOTAL:').font = t_font
+    ws.cell(last, 10).alignment = Alignment(horizontal='right')
+    total_val = ws.cell(last, 11, sum(p.costo_total for p in proyectos))
+    total_val.font = t_font
+    total_val.number_format = '"$"#,##0.00'
+    total_val.alignment = Alignment(horizontal='right')
+    for col in range(1, 12):
+        ws.cell(last, col).fill = tot_fill
+
+    col_widths = [6, 30, 12, 16, 16, 16, 18, 22, 16, 10, 22]
+    for col, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(col)].width = w
+    ws.row_dimensions[1].height = 30
+
+    # ── Hoja 2: Detalle de artículos ───────────────────────────────────────
+    ws2 = wb.create_sheet('Artículos')
+    hdrs2 = ['OC ID', 'Proyecto', 'Estado OC', 'Tipo', 'Artículo / Descripción',
+             'SKU', 'Proveedor Sug.', 'Cantidad', 'Costo Unit.', 'Subtotal']
+    ws2.append(hdrs2)
+    for col, h in enumerate(hdrs2, 1):
+        cell = ws2.cell(1, col)
+        cell.font = h_font
+        cell.fill = h_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = border
+
+    row_idx = 2
+    for poc in proyectos:
+        for d in poc.detalles:
+            if d.producto_id and d.producto:
+                tipo  = 'Catálogo'
+                nombre = d.producto.nombre
+                sku   = d.producto.codigo
+            else:
+                tipo  = 'Externo'
+                nombre = d.descripcion_nuevo or 'Sin descripción'
+                sku   = '—'
+            sub = d.cantidad * d.costo_unitario
+            row2 = [poc.id, poc.nombre_proyecto, estado_labels.get(poc.estado, poc.estado),
+                    tipo, nombre, sku, d.proveedor_sugerido or '—',
+                    d.cantidad, d.costo_unitario, sub]
+            ws2.append(row2)
+            fill2 = alt_fill if row_idx % 2 == 0 else PatternFill()
+            for col in range(1, len(row2) + 1):
+                cell = ws2.cell(row_idx, col)
+                cell.font   = b_font
+                cell.fill   = fill2
+                cell.border = border
+                cell.alignment = Alignment(vertical='center')
+                if col in (9, 10):
+                    cell.number_format = '"$"#,##0.00'
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+            row_idx += 1
+
+    col_widths2 = [6, 28, 12, 10, 30, 14, 20, 10, 14, 14]
+    for col, w in enumerate(col_widths2, 1):
+        ws2.column_dimensions[get_column_letter(col)].width = w
+    ws2.row_dimensions[1].height = 30
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    fecha_str = datetime.now().strftime('%Y-%m-%d')
+    return send_file(buf, as_attachment=True,
+                     download_name=f'OC-Proyectos_{fecha_str}.xlsx',
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 
 # --- RUTAS DE REPORTES ---
