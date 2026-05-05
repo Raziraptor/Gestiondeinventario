@@ -1,13 +1,17 @@
 {
-  "name": "Gestión de Inventario",
+  "name": "Gestor de Inventario",
   "short_name": "Inventario",
-  "description": "Sistema interno de control de inventario",
+  "description": "Sistema interno de control de inventario, órdenes de compra y gestión de almacenes.",
+  "lang": "es",
+  "dir": "ltr",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
   "background_color": "#0f1117",
   "theme_color": "#4f46e5",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/static/icons/icon-192.png",
@@ -16,12 +20,54 @@
       "purpose": "any"
     },
     {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/static/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "screenshots": [],
-  "categories": ["business", "productivity"]
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver resumen y alertas de inventario",
+      "url": "/dashboard",
+      "icons": [{ "src": "/static/icons/shortcut-dashboard.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Inventario",
+      "short_name": "Inventario",
+      "description": "Ver stock por almacén",
+      "url": "/inventario",
+      "icons": [{ "src": "/static/icons/shortcut-inventario.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Nueva Salida",
+      "short_name": "Salida",
+      "description": "Registrar una salida de materiales",
+      "url": "/salida/nueva",
+      "icons": [{ "src": "/static/icons/shortcut-salida.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Nueva Orden de Compra",
+      "short_name": "Nueva OC",
+      "description": "Crear una orden de compra",
+      "url": "/orden/nueva/manual",
+      "icons": [{ "src": "/static/icons/shortcut-oc.svg", "sizes": "96x96" }]
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": []
 }

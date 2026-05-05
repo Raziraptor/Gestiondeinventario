@@ -95,6 +95,10 @@ app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+# TWA (Play Store): completar con package_name y sha256 tras correr bubblewrap
+# Ver instrucciones en twa/README.md
+app.config['ASSETLINKS'] = []
+
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 mail = Mail(app)
@@ -1136,6 +1140,17 @@ def generar_etiqueta_personalizada(id):
 @app.route('/offline')
 def offline_page():
     return render_template('offline.html')
+
+
+@app.route('/.well-known/assetlinks.json')
+def assetlinks():
+    """Vincula el dominio web con la app Android (TWA / Play Store)."""
+    import json as _json
+    data = current_app.config.get('ASSETLINKS', [])
+    return current_app.response_class(
+        _json.dumps(data, indent=2),
+        mimetype='application/json'
+    )
 
 
 @app.route('/')

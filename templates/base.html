@@ -8,12 +8,37 @@
 
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+    <!-- PWA: Chrome / Android -->
     <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Inventario">
+
+    <!-- PWA: Apple / iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Inventario">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="apple-touch-icon" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="apple-touch-icon" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}">
+
+    <!-- Splash screens iOS (portrait) -->
+    <link rel="apple-touch-startup-image"
+          media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)"
+          href="{{ url_for('static', filename='icons/icon-512.png') }}">
+    <link rel="apple-touch-startup-image"
+          media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)"
+          href="{{ url_for('static', filename='icons/icon-512.png') }}">
+    <link rel="apple-touch-startup-image"
+          media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
+          href="{{ url_for('static', filename='icons/icon-512.png') }}">
+    <link rel="apple-touch-startup-image"
+          media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+          href="{{ url_for('static', filename='icons/icon-512.png') }}">
+
+    <!-- Windows / Microsoft -->
+    <meta name="msapplication-TileColor" content="#4f46e5">
+    <meta name="msapplication-TileImage" content="{{ url_for('static', filename='icons/icon-192.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1253,6 +1278,70 @@
         navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
             .catch(() => {});
     }
+    </script>
+
+    <!-- Banner de instalación PWA (Android/Desktop) -->
+    <div id="pwaInstallBanner" style="
+        display:none; position:fixed; bottom:1rem; left:50%; transform:translateX(-50%);
+        z-index:9998; width:min(360px, calc(100vw - 2rem));
+        background:#1e293b; color:#f1f5f9;
+        border-radius:1rem; padding:1rem 1.25rem;
+        font-size:.875rem; box-shadow:0 8px 32px rgba(0,0,0,.4);
+        border:1px solid rgba(255,255,255,.08);
+    ">
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">
+            <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:.5rem;">
+            <div>
+                <div style="font-weight:700;">Instalar Gestor de Inventario</div>
+                <div style="color:#94a3b8;font-size:.78rem;">Acceso rápido desde tu pantalla de inicio</div>
+            </div>
+            <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwaDismissed','1')"
+                    style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:.25rem;">✕</button>
+        </div>
+        <div style="display:flex;gap:.5rem;">
+            <button id="pwaInstallBtn" style="
+                flex:1;background:#4f46e5;color:#fff;border:none;
+                border-radius:.5rem;padding:.6rem;font-weight:600;cursor:pointer;font-size:.875rem;">
+                Instalar app
+            </button>
+            <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwaDismissed','1')"
+                    style="background:rgba(255,255,255,.08);color:#94a3b8;border:none;border-radius:.5rem;padding:.6rem .9rem;cursor:pointer;font-size:.875rem;">
+                Ahora no
+            </button>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        if (localStorage.getItem('pwaDismissed')) return;
+        // Detectar si ya está instalada
+        if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+        let deferredPrompt = null;
+        const banner = document.getElementById('pwaInstallBanner');
+        const btn    = document.getElementById('pwaInstallBtn');
+
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Mostrar solo después de 5 s para no interrumpir al entrar
+            setTimeout(() => { banner.style.display = 'block'; }, 5000);
+        });
+
+        btn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            banner.style.display = 'none';
+            if (outcome === 'accepted') localStorage.setItem('pwaDismissed', '1');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            banner.style.display = 'none';
+            localStorage.setItem('pwaDismissed', '1');
+        });
+    })();
     </script>
 
     <!-- Banner de conectividad -->
