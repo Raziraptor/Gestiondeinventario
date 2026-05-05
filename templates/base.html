@@ -1255,6 +1255,56 @@
     }
     </script>
 
+    <!-- Banner de conectividad -->
+    <div id="offlineBanner" style="
+        display:none; position:fixed; bottom:1rem; left:50%; transform:translateX(-50%);
+        z-index:9999; min-width:280px; max-width:90vw;
+        background:#1e293b; color:#f1f5f9;
+        border-radius:9999px; padding:.6rem 1.25rem;
+        font-size:.85rem; font-weight:600;
+        box-shadow:0 4px 24px rgba(0,0,0,.35);
+        align-items:center; gap:.6rem;
+        transition:opacity .3s;
+    ">
+        <span id="offlineBannerDot" style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block;"></span>
+        <span id="offlineBannerText">Sin conexión</span>
+    </div>
+
+    <script>
+    (function () {
+        const banner   = document.getElementById('offlineBanner');
+        const dot      = document.getElementById('offlineBannerDot');
+        const txt      = document.getElementById('offlineBannerText');
+        let hideTimer  = null;
+
+        function showOffline() {
+            clearTimeout(hideTimer);
+            dot.style.background  = '#ef4444';
+            txt.textContent       = 'Sin conexión a internet';
+            banner.style.display  = 'flex';
+            banner.style.opacity  = '1';
+        }
+
+        function showOnline() {
+            clearTimeout(hideTimer);
+            dot.style.background  = '#10b981';
+            txt.textContent       = 'Conexión restaurada';
+            banner.style.display  = 'flex';
+            banner.style.opacity  = '1';
+            hideTimer = setTimeout(() => {
+                banner.style.opacity = '0';
+                setTimeout(() => { banner.style.display = 'none'; }, 300);
+            }, 3000);
+        }
+
+        window.addEventListener('offline', showOffline);
+        window.addEventListener('online',  showOnline);
+
+        // Mostrar si arranca sin conexión
+        if (!navigator.onLine) showOffline();
+    })();
+    </script>
+
     {% if current_user.is_authenticated and vapid_public_key %}
     <script>
     (function() {

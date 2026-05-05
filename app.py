@@ -1133,6 +1133,11 @@ def generar_etiqueta_personalizada(id):
 
 # --- Rutas Principales (Dashboard) ---
 
+@app.route('/offline')
+def offline_page():
+    return render_template('offline.html')
+
+
 @app.route('/')
 @login_required
 def index():
