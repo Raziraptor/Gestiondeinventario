@@ -10,6 +10,7 @@ import json
 import secrets
 from functools import wraps
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from collections import defaultdict
 from threading import Thread
 
@@ -75,6 +76,12 @@ import requests
 # ==============================================================================
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+
+_TZ_MX = ZoneInfo('America/Mexico_City')
+
+def now_mx() -> datetime:
+    """Hora actual en zona horaria de México (naive, lista para guardar en DB)."""
+    return datetime.now(_TZ_MX).replace(tzinfo=None)
 
 app = Flask(__name__)
 csrf = CSRFProtect(app)
@@ -313,7 +320,7 @@ class Stock(db.Model):
 # --- MODELO 'OrdenCompra' MODIFICADO ---
 class OrdenCompra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    fecha_creacion = db.Column(db.DateTime, nullable=False, default=now_mx)
     fecha_recepcion = db.Column(db.DateTime, nullable=True)
     estado = db.Column(db.String(20), nullable=False, default='borrador')
     
@@ -354,7 +361,7 @@ class Gasto(db.Model):
     descripcion = db.Column(db.String(255), nullable=False)
     monto = db.Column(db.Float, nullable=False, default=0.0)
     categoria = db.Column(db.String(50), nullable=True)
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    fecha = db.Column(db.DateTime, nullable=False, default=now_mx)
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
     orden_compra = db.relationship('OrdenCompra', backref='gastos_asociados', lazy=True)
@@ -366,7 +373,7 @@ class Gasto(db.Model):
     
 class Salida(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.Date, nullable=False, default=datetime.now().date)
+    fecha = db.Column(db.Date, nullable=False, default=now_mx().date)
     estado = db.Column(db.String(20), nullable=False, default='abierta')
     
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -386,7 +393,7 @@ class Movimiento(db.Model):
     
     cantidad = db.Column(db.Integer, nullable=False) 
     tipo = db.Column(db.String(20), nullable=False) 
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    fecha = db.Column(db.DateTime, nullable=False, default=now_mx)
     
     motivo = db.Column(db.String(255), nullable=False) 
     
@@ -405,7 +412,7 @@ class Movimiento(db.Model):
 class AuditLog(db.Model):
     __tablename__ = 'audit_log'
     id = db.Column(db.Integer, primary_key=True)
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.now, index=True)
+    fecha = db.Column(db.DateTime, nullable=False, default=now_mx, index=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     usuario = db.relationship('User', foreign_keys=[usuario_id])
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False, index=True)
@@ -425,7 +432,7 @@ class PushSubscription(db.Model):
     organizacion_id   = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
     endpoint          = db.Column(db.Text, nullable=False, unique=True)
     subscription_json = db.Column(db.Text, nullable=False)
-    creada_en         = db.Column(db.DateTime, default=datetime.now)
+    creada_en         = db.Column(db.DateTime, default=now_mx)
     user              = db.relationship('User', backref='push_subscriptions')
 
 # --- MODELO 'ProyectoOC' MODIFICADO ---
@@ -433,7 +440,7 @@ class PushSubscription(db.Model):
 class ProyectoOC(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre_proyecto = db.Column(db.String(255), nullable=False)
-    fecha_creacion  = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    fecha_creacion  = db.Column(db.DateTime, nullable=False, default=now_mx)
     estado          = db.Column(db.String(20), nullable=False, default='borrador')
 
     creador_id      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -917,7 +924,7 @@ def check_and_alert_stock_bajo(org_id, almacen_id):
         if len(items_bajo) > 10:
             lineas.append(f"\n...y {len(items_bajo) - 10} productos más.")
 
-        lineas.append(f"\n_{datetime.now().strftime('%d/%m/%Y %H:%M')}_")
+        lineas.append(f"\n_{now_mx().strftime('%d/%m/%Y %H:%M')}_")
         _send_whatsapp_message(org.whatsapp_notify, "\n".join(lineas))
 
         # Push notification (independiente del WhatsApp)
@@ -1211,9 +1218,10 @@ def index():
                 key = (item_stock.almacen_id, item_stock.almacen.nombre, 0, "Proveedor no asignado")
                 alertas_agrupadas[key].append(item_stock)
 
-    return render_template('index.html', 
+    return render_template('index.html',
                            alertas_agrupadas=alertas_agrupadas,
-                           pending_map=pending_map)
+                           pending_map=pending_map,
+                           now=now_mx())
 
 @app.route('/dashboard')
 @login_required
@@ -1281,7 +1289,7 @@ def dashboard():
     # --- KPIs de Rotación (por almacén seleccionado) ---
     kpis_rotacion = {}
     if almacen_seleccionado:
-        ahora = datetime.now()
+        ahora = now_mx()
         hace_30d = ahora - timedelta(days=30)
         hace_60d = ahora - timedelta(days=60)
 
@@ -1486,7 +1494,7 @@ def api_ajuste_rapido():
         producto_id=stock.producto_id,
         cantidad=delta,
         tipo=tipo_mov,
-        fecha=datetime.now(),
+        fecha=now_mx(),
         motivo=f'Ajuste Rápido: {motivo}',
         almacen_id=stock.almacen_id,
         organizacion_id=org_id
@@ -1793,7 +1801,7 @@ def nuevo_producto():
                         producto_id=nuevo_prod.id,
                         cantidad=cantidad_inicial,
                         tipo='entrada-inicial',
-                        fecha=datetime.now(),
+                        fecha=now_mx(),
                         motivo='Stock Inicial (Creación)',
                         almacen_id=almacen_inicial_id,
                         organizacion_id=org_id
@@ -1936,7 +1944,7 @@ def generar_etiqueta(id):
         c.save()
         buffer.seek(0)
         nombre_base = secure_filename(producto.nombre) 
-        fecha_str = datetime.now().strftime("%Y-%m-%d")
+        fecha_str = now_mx().strftime("%Y-%m-%d")
         nombre_archivo = f"{nombre_base}_{fecha_str}.pdf"
         return send_file(
             buffer,
@@ -2252,7 +2260,7 @@ def gestionar_inventario_almacen(id):
                         producto_id=producto_id,
                         cantidad=cantidad,
                         tipo='entrada-inicial',
-                        fecha=datetime.now(),
+                        fecha=now_mx(),
                         motivo='Stock Inicial (Alta Manual en Almacén)',
                         almacen_id=id,
                         organizacion_id=org_id
@@ -2401,7 +2409,7 @@ def historial_salidas():
     """ Muestra el historial de Hojas de Salida Diarias (Multiusuario). """
     mes = request.args.get('mes', type=int)
     ano = request.args.get('ano', type=int)
-    ahora = datetime.now()
+    ahora = now_mx()
     if not mes: mes = ahora.month
     if not ano: ano = ahora.year
     meses_lista = [
@@ -2552,7 +2560,7 @@ def registrar_salida():
                                destino_ruta='registrar_salida') # Ruta a la que volver
 
     # --- LÓGICA DE BUSCAR-O-CREAR LA HOJA DIARIA ---
-    today = datetime.now().date()
+    today = now_mx().date()
     salida_del_dia = Salida.query.filter_by(
         fecha=today, 
         organizacion_id=org_id,
@@ -2639,7 +2647,7 @@ def registrar_salida():
                     producto_id=stock_item.producto_id,
                     cantidad= -cantidad_salida, # Negativo
                     tipo='salida',
-                    fecha=datetime.now(), # <-- Hora exacta
+                    fecha=now_mx(), # <-- Hora exacta
                     motivo=motivo_item, # <-- Motivo por item
                     salida=salida_del_dia, # <-- Vinculamos a la hoja diaria
                     almacen_id=almacen_seleccionado.id, # <-- ESTAMPAR ID
@@ -2711,7 +2719,7 @@ def eliminar_movimiento_salida(id):
             producto_id=movimiento.producto_id,
             cantidad=cantidad_a_devolver,
             tipo='ajuste-entrada',
-            fecha=datetime.now(),
+            fecha=now_mx(),
             motivo=f'Corrección/Eliminación de item (Salida #{salida_id_redirect})',
             almacen_id=movimiento.almacen_id,
             organizacion_id=movimiento.organizacion_id
@@ -2866,7 +2874,7 @@ def lista_ordenes():
     ano = request.args.get('ano', type=int)
     prov_id = request.args.get('proveedor_id', type=int)
     
-    ahora = datetime.now()
+    ahora = now_mx()
     if not mes: mes = ahora.month
     if not ano: ano = ahora.year
 
@@ -3026,7 +3034,7 @@ def recibir_orden(id):
                 producto_id=producto.id,
                 cantidad=cantidad,
                 tipo='entrada',
-                fecha=datetime.now(),
+                fecha=now_mx(),
                 motivo=f'Recepción de OC #{orden.id}',
                 orden_compra_id=orden.id,
                 organizacion_id=org_id,
@@ -3041,7 +3049,7 @@ def recibir_orden(id):
         
         # 3. Finalizar Orden
         orden.estado = 'recibida'
-        orden.fecha_recepcion = datetime.now()
+        orden.fecha_recepcion = now_mx()
         db.session.add(orden)
 
         log_actividad('recibir_oc', 'orden_compra', f'OC #{orden.id} recibida — {len(orden.detalles)} producto(s) ingresados al almacén {orden.almacen.nombre}', entidad_id=orden.id)
@@ -3803,7 +3811,7 @@ def enviar_proyecto_oc(id):
 
     try:
         proyecto_oc.estado      = 'enviada'
-        proyecto_oc.fecha_envio = datetime.now()
+        proyecto_oc.fecha_envio = now_mx()
         log_actividad('enviar', 'proyecto_oc', f'OC de Proyecto #{proyecto_oc.id} "{proyecto_oc.nombre_proyecto}" marcada como enviada.', entidad_id=proyecto_oc.id)
         db.session.commit()
         flash(f'OC #{proyecto_oc.id} marcada como enviada al proveedor.', 'success')
@@ -3869,7 +3877,7 @@ def recibir_proyecto_oc(id):
                         producto_id=detalle.producto_id,
                         cantidad=detalle.cantidad,
                         tipo='entrada',
-                        fecha=datetime.now(),
+                        fecha=now_mx(),
                         motivo=f'Recepción OC Proyecto #{proyecto_oc.id} — {proyecto_oc.nombre_proyecto}',
                         almacen_id=almacen_id_dest,
                         organizacion_id=org_id
@@ -3877,7 +3885,7 @@ def recibir_proyecto_oc(id):
                     items_ingresados += 1
 
             proyecto_oc.estado          = 'recibida'
-            proyecto_oc.fecha_recepcion = datetime.now()
+            proyecto_oc.fecha_recepcion = now_mx()
             proyecto_oc.almacen_id      = almacen_id_dest
             proyecto_oc.recibido_por_id = current_user.id
 
@@ -4212,7 +4220,7 @@ def exportar_proyectos_oc_excel():
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    fecha_str = datetime.now().strftime('%Y-%m-%d')
+    fecha_str = now_mx().strftime('%Y-%m-%d')
     return send_file(buf, as_attachment=True,
                      download_name=f'OC-Proyectos_{fecha_str}.xlsx',
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -4227,7 +4235,7 @@ def exportar_proyectos_oc_excel():
 def reportes():
     org_id = current_user.organizacion_id
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).order_by(Almacen.nombre).all()
-    return render_template('reportes.html', titulo='Reportes', almacenes=almacenes, now=datetime.now())
+    return render_template('reportes.html', titulo='Reportes', almacenes=almacenes, now=now_mx())
 
 
 @app.route('/reportes/inventario.xlsx')
@@ -4263,7 +4271,7 @@ def exportar_inventario_excel():
         wb.add_named_style(mxn)
 
     ws.merge_cells('A1:J1')
-    ws['A1'].value = f"Inventario — {nombre_almacen} — {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+    ws['A1'].value = f"Inventario — {nombre_almacen} — {now_mx().strftime('%d/%m/%Y %H:%M')}"
     ws['A1'].font  = Font(name='Arial', size=13, bold=True)
     ws['A1'].alignment = Alignment(horizontal='center')
     ws.row_dimensions[1].height = 26
@@ -4320,7 +4328,7 @@ def exportar_inventario_excel():
     for i, w in enumerate([15, 32, 18, 22, 9, 7, 7, 14, 18, 18], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
-    filename = f"Inventario_{nombre_almacen.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    filename = f"Inventario_{nombre_almacen.replace(' ', '_')}_{now_mx().strftime('%Y%m%d')}.xlsx"
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -4339,7 +4347,7 @@ def exportar_movimientos_excel():
     desde_str  = request.args.get('desde', '')
     hasta_str  = request.args.get('hasta', '')
     tipo_f     = request.args.get('tipo', '')
-    ahora      = datetime.now()
+    ahora      = now_mx()
 
     try:
         fecha_desde = datetime.strptime(desde_str, '%Y-%m-%d') if desde_str else ahora.replace(day=1, hour=0, minute=0, second=0)
@@ -4415,7 +4423,7 @@ def exportar_movimientos_excel():
     for i, w in enumerate([12, 8, 16, 32, 15, 10, 40, 22], 1):
         ws.column_dimensions[get_column_letter(i)].width = w
 
-    filename = f"Movimientos_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    filename = f"Movimientos_{now_mx().strftime('%Y%m%d')}.xlsx"
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -4474,7 +4482,7 @@ def exportar_valorizacion_pdf():
     # Encabezado
     story.append(Paragraph("Reporte de Valorización de Inventario", s_title))
     story.append(Paragraph(f"{org.nombre}  ·  {nombre_almacen}", s_sub))
-    story.append(Paragraph(f"Generado el {datetime.now().strftime('%d de %B de %Y a las %H:%M')}", s_sub))
+    story.append(Paragraph(f"Generado el {now_mx().strftime('%d de %B de %Y a las %H:%M')}", s_sub))
     story.append(Spacer(1, 0.2*inch))
 
     # Resumen
@@ -4540,7 +4548,7 @@ def exportar_valorizacion_pdf():
 
     doc.build(story)
     buf.seek(0)
-    fname = f"Valorizacion_{nombre_almacen.replace(' ','_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    fname = f"Valorizacion_{nombre_almacen.replace(' ','_')}_{now_mx().strftime('%Y%m%d')}.pdf"
     return send_file(buf, download_name=fname, mimetype='application/pdf', as_attachment=True)
 
 
@@ -4581,7 +4589,7 @@ def historial_actividad():
 def lista_gastos():
     mes = request.args.get('mes', type=int)
     ano = request.args.get('ano', type=int)
-    ahora = datetime.now()
+    ahora = now_mx()
     if not mes: mes = ahora.month
     if not ano: ano = ahora.year
     meses_lista = [
@@ -4658,7 +4666,7 @@ def nuevo_gasto():
     return render_template('gasto_form.html', 
                            titulo="Registrar Nuevo Gasto", 
                            ordenes=ordenes,
-                           now=datetime.now())
+                           now=now_mx())
 
 @app.route('/gasto/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -4708,7 +4716,7 @@ def editar_gasto(id):
 def exportar_gastos_excel():
     mes = request.args.get('mes', type=int)
     ano = request.args.get('ano', type=int)
-    ahora = datetime.now()
+    ahora = now_mx()
     if not mes: mes = ahora.month
     if not ano: ano = ahora.year
     
@@ -5467,7 +5475,7 @@ def _sync_salida(payload, org_id):
         para_ejecutar.append((stock_item, cantidad, motivo))
 
     # ── Fase de ejecución ────────────────────────────────────────────────
-    today = datetime.now().date()
+    today = now_mx().date()
     salida_del_dia = Salida.query.filter_by(
         fecha=today, organizacion_id=org_id, almacen_id=almacen_id
     ).first()
@@ -5488,7 +5496,7 @@ def _sync_salida(payload, org_id):
             producto_id    = stock_item.producto_id,
             cantidad       = -cantidad,
             tipo           = 'salida',
-            fecha          = datetime.now(),
+            fecha          = now_mx(),
             motivo         = f'[Offline] {motivo}',
             salida         = salida_del_dia,
             almacen_id     = almacen_id,
@@ -5603,7 +5611,7 @@ def nueva_transferencia():
                 )
                 db.session.add(stock_destino)
 
-            now = datetime.now()
+            now = now_mx()
             db.session.add(Movimiento(
                 producto_id=producto_id, cantidad=-cantidad,
                 tipo='transferencia-salida', fecha=now,
@@ -5695,7 +5703,7 @@ def nuevo_ajuste():
                 producto_id=producto_id,
                 cantidad=diferencia,
                 tipo=tipo_mov,
-                fecha=datetime.now(),
+                fecha=now_mx(),
                 motivo=f'Ajuste Físico: {motivo}',
                 almacen_id=almacen_id,
                 organizacion_id=org_id
@@ -5729,7 +5737,7 @@ def nuevo_ajuste():
 def api_chart_movimientos_mes():
     """Retorna entradas y salidas de los últimos 6 meses para la gráfica de barras."""
     org_id = current_user.organizacion_id
-    hoy = datetime.now()
+    hoy = now_mx()
 
     labels, entradas, salidas = [], [], []
 
@@ -5791,7 +5799,7 @@ def api_chart_estado_stock():
 def api_chart_top_productos():
     """Retorna los 8 productos con más salidas en los últimos 30 días."""
     org_id = current_user.organizacion_id
-    desde = datetime.now().replace(day=1)
+    desde = now_mx().replace(day=1)
 
     resultados = db.session.query(
         Producto.nombre,
