@@ -1295,21 +1295,49 @@
             .then(reg => {
                 // Escuchar resultados de sync desde el SW
                 navigator.serviceWorker.addEventListener('message', e => {
-                    if (e.data && e.data.type === 'SYNC_RESULT') {
-                        if (window.OfflineQueue) {
-                            window.OfflineQueue.updateBadge();
-                            if (e.data.okCount > 0)
-                                window.OfflineQueue.sync && null; // badge ya actualizado por SW
-                        }
+                    if (e.data && e.data.type === 'SYNC_RESULT' && window.OfflineQueue) {
+                        window.OfflineQueue.updateBadge();
                     }
                 });
+
+                // Calentar caché con páginas clave (fire & forget, solo con red)
+                if (navigator.onLine) {
+                    reg.active && _warmCache();
+                    reg.addEventListener('updatefound', () => {
+                        reg.installing.addEventListener('statechange', e => {
+                            if (e.target.state === 'activated') _warmCache();
+                        });
+                    });
+                }
             })
             .catch(() => {});
     }
+
+    function _warmCache() {
+        const CACHE_NAME = 'inventario-v5';
+        const paginas = [
+            '/dashboard',
+            '/gasto/nuevo',
+            '/inventario',
+            '/reportes',
+        ];
+        caches.open(CACHE_NAME).then(cache => {
+            paginas.forEach(url => {
+                // Solo cachear si no está ya en caché
+                cache.match(url).then(hit => {
+                    if (!hit) {
+                        fetch(url, { credentials: 'same-origin' })
+                            .then(r => { if (r.ok) cache.put(url, r); })
+                            .catch(() => {});
+                    }
+                });
+            });
+        });
+    }
+
     // Actualizar badge al cargar la página
     if (window.OfflineQueue) {
         window.OfflineQueue.updateBadge();
-        // Si hay pendientes y hay red, sincronizar
         if (navigator.onLine) window.OfflineQueue.sync();
     }
     </script>

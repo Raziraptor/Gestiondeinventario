@@ -104,9 +104,57 @@
         Reintentar conexión
     </button>
 
+    <div id="cachedPages"></div>
+
     <footer>Gestor de Inventario · modo sin conexión</footer>
 
     <script>
+        // Mostrar páginas disponibles en caché
+        (async function() {
+            const cached = document.getElementById('cachedPages');
+            const CACHE_NAME = 'inventario-v5';
+            const PAGINAS = [
+                { url: '/dashboard',  label: 'Dashboard' },
+                { url: '/gasto/nuevo', label: 'Nuevo Gasto' },
+                { url: '/inventario',  label: 'Inventario' },
+                { url: '/reportes',    label: 'Reportes' },
+            ];
+            try {
+                const cache = await caches.open(CACHE_NAME);
+                const disponibles = [];
+                for (const p of PAGINAS) {
+                    const hit = await cache.match(p.url);
+                    if (hit) disponibles.push(p);
+                }
+                // También buscar formularios de salida cacheados
+                const allKeys = await cache.keys();
+                for (const req of allKeys) {
+                    const url = new URL(req.url);
+                    if (url.pathname === '/salida' && url.searchParams.get('almacen_id')) {
+                        disponibles.push({ url: req.url, label: `Registrar Salida` });
+                        break;
+                    }
+                }
+                if (disponibles.length > 0) {
+                    cached.innerHTML = `
+                        <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);width:100%;max-width:380px;">
+                            <p style="color:var(--muted);font-size:.8rem;margin-bottom:.75rem;">
+                                Páginas disponibles sin conexión:
+                            </p>
+                            <div style="display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;">
+                                ${disponibles.map(p => `
+                                    <a href="${p.url}" style="
+                                        background:var(--surface);border:1px solid var(--border);
+                                        color:var(--text);border-radius:.5rem;padding:.4rem .9rem;
+                                        font-size:.82rem;font-weight:600;text-decoration:none;">
+                                        ${p.label}
+                                    </a>`).join('')}
+                            </div>
+                        </div>`;
+                }
+            } catch {}
+        })();
+
         function intentarReconectar() {
             const btn = document.querySelector('.btn');
             btn.textContent = 'Verificando…';
@@ -125,10 +173,7 @@
                 });
         }
 
-        // Auto-reintento cuando la conexión se restaura
-        window.addEventListener('online', () => {
-            window.location.href = '/dashboard';
-        });
+        window.addEventListener('online', () => { window.location.href = '/dashboard'; });
     </script>
 </body>
 </html>
