@@ -2,6 +2,7 @@
 Migración: añadir columnas de configuración de marca a la tabla organizacion.
 Ejecutar en el servidor: python migrate_brand_config.py
 """
+import os
 import subprocess
 import sys
 
@@ -24,9 +25,8 @@ if not DATABASE_URL:
     print("ERROR: No se encontró DATABASE_URL en el servicio inventario.")
     sys.exit(1)
 
-if 'sqlite' in DATABASE_URL:
-    print("ADVERTENCIA: Usando SQLite. Las columnas pueden que no apliquen IF NOT EXISTS.")
-
+# Inyectar ANTES de importar la app para que no caiga a SQLite
+os.environ['DATABASE_URL'] = DATABASE_URL
 print(f"Usando DB: {DATABASE_URL[:40]}...")
 
 from app import app, db
