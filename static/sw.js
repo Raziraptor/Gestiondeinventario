@@ -1,4 +1,4 @@
-const CACHE = 'inventario-v4';
+const CACHE = 'inventario-v5';
 
 const PRECACHE = [
   '/offline',
@@ -73,31 +73,25 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // ── Stale-while-revalidate para rutas de la app ──
+  // ── Network-first para navegación: red siempre que esté disponible ──
   if (request.mode === 'navigate') {
     e.respondWith(
-      caches.open(CACHE).then(async cache => {
-        const cached = await cache.match(request);
-
-        const networkFetch = fetch(request).then(resp => {
-          if (resp.ok) cache.put(request, resp.clone());
+      fetch(request)
+        .then(resp => {
+          // Cachear respuestas exitosas para uso offline futuro
+          if (resp.ok) {
+            const clone = resp.clone();
+            caches.open(CACHE).then(c => c.put(request, clone));
+          }
           return resp;
-        }).catch(() => null);
-
-        // Si hay caché, devuélvelo inmediatamente y refresca en background
-        if (cached) {
-          // Actualizar en background sin bloquear
-          networkFetch.catch(() => {});
-          return cached;
-        }
-
-        // Sin caché: esperar la red; si falla, servir /offline
-        const resp = await networkFetch;
-        if (resp) return resp;
-
-        const offlinePage = await cache.match('/offline');
-        return offlinePage || new Response('Sin conexión', { status: 503 });
-      })
+        })
+        .catch(async () => {
+          // Red no disponible: intentar caché, luego página offline
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          const offlinePage = await caches.match('/offline');
+          return offlinePage || new Response('Sin conexión', { status: 503 });
+        })
     );
     return;
   }
