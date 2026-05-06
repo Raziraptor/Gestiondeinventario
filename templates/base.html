@@ -880,6 +880,19 @@
                         </button>
                     </li>
 
+                    <!-- Badge de operaciones offline pendientes -->
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item" id="offlinePendingWrap" style="display:none;">
+                        <span class="nav-link px-2 position-relative" title="Operaciones pendientes de sincronizar"
+                              style="cursor:default;">
+                            <i class="bi bi-cloud-arrow-up text-warning"></i>
+                            <span id="offlinePendingBadge"
+                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+                                  style="font-size:.6rem;min-width:16px;">0</span>
+                        </span>
+                    </li>
+                    {% endif %}
+
                     <!-- Botón Web Push Notifications -->
                     {% if current_user.is_authenticated and vapid_public_key %}
                     <li class="nav-item" id="pushNavItem" style="display:none;">
@@ -1273,10 +1286,31 @@
         function hide() { dropdown.style.display = 'none'; }
     })();
     </script>
+    {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='js/offline-queue.js') }}"></script>
+    {% endif %}
     <script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+            .then(reg => {
+                // Escuchar resultados de sync desde el SW
+                navigator.serviceWorker.addEventListener('message', e => {
+                    if (e.data && e.data.type === 'SYNC_RESULT') {
+                        if (window.OfflineQueue) {
+                            window.OfflineQueue.updateBadge();
+                            if (e.data.okCount > 0)
+                                window.OfflineQueue.sync && null; // badge ya actualizado por SW
+                        }
+                    }
+                });
+            })
             .catch(() => {});
+    }
+    // Actualizar badge al cargar la página
+    if (window.OfflineQueue) {
+        window.OfflineQueue.updateBadge();
+        // Si hay pendientes y hay red, sincronizar
+        if (navigator.onLine) window.OfflineQueue.sync();
     }
     </script>
 
@@ -1770,5 +1804,7 @@
     });
     </script>
     {% endif %}
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

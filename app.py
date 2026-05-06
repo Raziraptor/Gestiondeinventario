@@ -5346,6 +5346,166 @@ def update_user_permissions(user_id):
     return redirect(url_for('admin_panel'))
 
 
+# ==============================================================================
+# SYNC OFFLINE — procesa la cola de operaciones realizadas sin conexión
+# ==============================================================================
+
+@app.route('/api/sync', methods=['POST'])
+@login_required
+@check_org_permission
+def api_sync():
+    """
+    Recibe una lista de operaciones offline y las ejecuta en orden.
+    Responde con el resultado de cada una (ok / error).
+    Estrategia estricta: valida stock antes de ejecutar.
+    """
+    data = request.get_json(silent=True) or {}
+    operations = data.get('operations', [])
+    if not isinstance(operations, list):
+        return jsonify(ok=False, error='Payload inválido'), 400
+
+    org_id   = current_user.organizacion_id
+    results  = []
+
+    for op in operations:
+        op_id   = op.get('id')
+        op_type = op.get('type')
+        payload = op.get('payload', {})
+
+        try:
+            if op_type == 'gasto':
+                result = _sync_gasto(payload, org_id)
+            elif op_type == 'salida':
+                result = _sync_salida(payload, org_id)
+            else:
+                result = {'ok': False, 'error': f'Tipo desconocido: {op_type}'}
+        except Exception as e:
+            db.session.rollback()
+            result = {'ok': False, 'error': str(e)}
+
+        result['id'] = op_id
+        results.append(result)
+
+    return jsonify(ok=True, results=results)
+
+
+def _sync_gasto(payload, org_id):
+    from datetime import datetime as _dt
+    fecha_str   = payload.get('fecha')
+    descripcion = payload.get('descripcion', '').strip()
+    monto_str   = payload.get('monto')
+    categoria   = payload.get('categoria', '').strip()
+    oc_id       = payload.get('orden_compra_id') or None
+
+    if not fecha_str or not descripcion or not monto_str or not categoria:
+        return {'ok': False, 'error': 'Gasto: faltan campos obligatorios'}
+
+    try:
+        fecha = _dt.strptime(fecha_str, '%Y-%m-%d')
+        monto = float(monto_str)
+    except (ValueError, TypeError):
+        return {'ok': False, 'error': 'Gasto: fecha o monto inválidos'}
+
+    gasto = Gasto(
+        fecha           = fecha,
+        descripcion     = descripcion,
+        monto           = monto,
+        categoria       = categoria,
+        orden_compra_id = int(oc_id) if oc_id else None,
+        organizacion_id = org_id,
+        creador_id      = current_user.id,
+    )
+    db.session.add(gasto)
+    db.session.commit()
+    log_actividad('crear', 'gasto', f'Gasto offline sincronizado: {descripcion} ${monto:.2f}', entidad_id=gasto.id)
+    return {'ok': True}
+
+
+def _sync_salida(payload, org_id):
+    almacen_id = payload.get('almacen_id')
+    items      = payload.get('items', [])
+
+    if not almacen_id or not items:
+        return {'ok': False, 'error': 'Salida: faltan almacén o items'}
+
+    almacen = Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first()
+    if not almacen:
+        return {'ok': False, 'error': 'Salida: almacén no válido'}
+
+    # ── Fase de validación ───────────────────────────────────────────────
+    para_ejecutar = []
+    for item in items:
+        prod_id  = item.get('producto_id')
+        cantidad = item.get('cantidad')
+        motivo   = item.get('motivo', 'Offline')
+
+        if not prod_id or not cantidad:
+            return {'ok': False, 'error': 'Salida: item con datos incompletos'}
+
+        try:
+            cantidad = int(cantidad)
+        except (ValueError, TypeError):
+            return {'ok': False, 'error': f'Salida: cantidad inválida para producto {prod_id}'}
+
+        if cantidad <= 0:
+            return {'ok': False, 'error': 'Salida: cantidades deben ser positivas'}
+
+        stock_item = Stock.query.filter_by(
+            producto_id=prod_id, almacen_id=almacen_id
+        ).first()
+
+        if not stock_item:
+            return {'ok': False, 'error': f'Salida: producto {prod_id} sin stock en este almacén'}
+
+        if stock_item.cantidad < cantidad:
+            return {
+                'ok':    False,
+                'error': f'Stock insuficiente para "{stock_item.producto.nombre}": '
+                         f'disponible {stock_item.cantidad}, solicitado {cantidad}',
+            }
+
+        para_ejecutar.append((stock_item, cantidad, motivo))
+
+    # ── Fase de ejecución ────────────────────────────────────────────────
+    today = datetime.now().date()
+    salida_del_dia = Salida.query.filter_by(
+        fecha=today, organizacion_id=org_id, almacen_id=almacen_id
+    ).first()
+    if not salida_del_dia:
+        salida_del_dia = Salida(
+            fecha=today,
+            creador_id=current_user.id,
+            organizacion_id=org_id,
+            almacen_id=almacen_id,
+        )
+        db.session.add(salida_del_dia)
+        db.session.flush()
+
+    for stock_item, cantidad, motivo in para_ejecutar:
+        stock_item.cantidad -= cantidad
+        db.session.add(stock_item)
+        db.session.add(Movimiento(
+            producto_id    = stock_item.producto_id,
+            cantidad       = -cantidad,
+            tipo           = 'salida',
+            fecha          = datetime.now(),
+            motivo         = f'[Offline] {motivo}',
+            salida         = salida_del_dia,
+            almacen_id     = almacen_id,
+            organizacion_id= org_id,
+        ))
+
+    db.session.commit()
+    total_uds = sum(v[1] for v in para_ejecutar)
+    log_actividad(
+        'salida', 'salida',
+        f'Salida offline sincronizada: {len(para_ejecutar)} producto(s), {total_uds} uds — {almacen.nombre}',
+        entidad_id=salida_del_dia.id,
+    )
+    check_and_alert_stock_bajo(org_id, almacen_id)
+    return {'ok': True}
+
+
 @app.route('/api/permisos/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required

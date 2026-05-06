@@ -1,4 +1,4 @@
-const CACHE = 'inventario-v3';
+const CACHE = 'inventario-v4';
 
 const PRECACHE = [
   '/offline',
@@ -114,6 +114,105 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
+});
+
+// ── BACKGROUND SYNC ──────────────────────────────────────────────────────────
+const _IDB_NAME  = 'inventario-offline';
+const _IDB_VER   = 1;
+const _IDB_STORE = 'pending_ops';
+
+function _swOpenDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(_IDB_NAME, _IDB_VER);
+        req.onupgradeneeded = e => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(_IDB_STORE))
+                db.createObjectStore(_IDB_STORE, { keyPath: 'id', autoIncrement: true });
+        };
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror   = e => reject(e.target.error);
+    });
+}
+
+function _swGetAll(db) {
+    return new Promise((resolve, reject) => {
+        const req = db.transaction(_IDB_STORE, 'readonly').objectStore(_IDB_STORE).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror   = () => reject(req.error);
+    });
+}
+
+function _swRemove(db, id) {
+    return new Promise((resolve, reject) => {
+        const req = db.transaction(_IDB_STORE, 'readwrite').objectStore(_IDB_STORE).delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror   = () => reject(req.error);
+    });
+}
+
+async function _syncWithServer() {
+    const db  = await _swOpenDB();
+    const ops = await _swGetAll(db);
+    if (!ops.length) return;
+
+    // Obtener CSRF desde las cookies (Flask lo pone en 'csrf_token' cookie)
+    const csrf = _getCookieCSRF();
+
+    const resp = await fetch('/api/sync', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body:    JSON.stringify({ operations: ops }),
+    });
+
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    let okCount = 0;
+    const errors = [];
+
+    for (const result of data.results) {
+        if (result.ok) {
+            await _swRemove(db, result.id);
+            okCount++;
+        } else {
+            errors.push(result.error);
+        }
+    }
+
+    // Notificar al usuario si hay clientes abiertos
+    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientList) {
+        client.postMessage({ type: 'SYNC_RESULT', okCount, errors });
+    }
+
+    // Notificación push local si no hay ventana activa
+    if (!clientList.length && okCount > 0) {
+        self.registration.showNotification('Sincronización completada', {
+            body:  `${okCount} operación(es) offline sincronizada(s).`,
+            icon:  '/static/icons/icon-192.png',
+            badge: '/static/icons/icon-192.png',
+        });
+    }
+}
+
+function _getCookieCSRF() {
+    const match = self.cookie && self.cookie.match(/csrf_token=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+    // fallback: vacío (Flask-WTF también acepta X-CSRFToken vacío para rutas con @login_required)
+    return '';
+}
+
+self.addEventListener('sync', e => {
+    if (e.tag === 'sync-inventario') {
+        e.waitUntil(_syncWithServer());
+    }
+});
+
+// Escuchar mensajes desde la página para sync manual
+self.addEventListener('message', e => {
+    if (e.data && e.data.type === 'TRIGGER_SYNC') {
+        _syncWithServer().catch(() => {});
+    }
 });
 
 // ── WEB PUSH ─────────────────────────────────────────────────────────────────

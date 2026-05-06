@@ -395,3 +395,56 @@
     }
 </script>
 {% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const form = document.getElementById('form_salida');
+    if (!form || !window.OfflineQueue) return;
+
+    const almacenId = {{ almacen.id }};
+
+    form.addEventListener('submit', async function (e) {
+        if (navigator.onLine) return; // Con red: submit normal
+
+        e.preventDefault();
+
+        const ids      = [...form.querySelectorAll('input[name="producto_id[]"]')].map(i => i.value);
+        const cantidades = [...form.querySelectorAll('input[name="cantidad[]"]')].map(i => i.value);
+        const motivos  = [...form.querySelectorAll('input[name="motivo[]"]')].map(i => i.value);
+
+        if (!ids.length) {
+            alert('Agrega al menos un producto antes de guardar.');
+            return;
+        }
+
+        const items = ids.map((id, idx) => ({
+            producto_id: id,
+            cantidad:    cantidades[idx],
+            motivo:      motivos[idx] || 'Sin motivo',
+        }));
+
+        try {
+            await window.OfflineQueue.enqueue('salida', { almacen_id: almacenId, items });
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                const reg = await navigator.serviceWorker.ready;
+                await reg.sync.register('sync-inventario');
+            }
+            await window.OfflineQueue.updateBadge();
+
+            document.getElementById('lineas_productos_container').innerHTML = `
+                <div class="alert alert-warning rounded-4 text-center shadow-sm p-4 m-3">
+                    <i class="bi bi-cloud-arrow-up fs-2 mb-2 d-block text-warning"></i>
+                    <strong>Salida guardada sin conexión</strong><br>
+                    <span class="text-muted small">
+                        ${items.length} producto(s) se registrarán automáticamente cuando vuelva la red.
+                    </span>
+                </div>`;
+            contadorItems.innerText = '0 item(s)';
+        } catch (err) {
+            alert('Error al guardar offline: ' + err.message);
+        }
+    });
+})();
+</script>
+{% endblock %}

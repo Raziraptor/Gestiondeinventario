@@ -124,3 +124,47 @@
 </div>
 
 {% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const form = document.querySelector('form[method="POST"]');
+    if (!form || !window.OfflineQueue) return;
+
+    {% if not gasto %}
+    form.addEventListener('submit', async function (e) {
+        if (navigator.onLine) return;
+
+        e.preventDefault();
+
+        const payload = {
+            fecha:           document.getElementById('fecha').value,
+            descripcion:     document.getElementById('descripcion').value,
+            monto:           document.getElementById('monto').value,
+            categoria:       document.getElementById('categoria').value,
+            orden_compra_id: document.getElementById('orden_compra_id').value || null,
+        };
+
+        try {
+            await window.OfflineQueue.enqueue('gasto', payload);
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                const reg = await navigator.serviceWorker.ready;
+                await reg.sync.register('sync-inventario');
+            }
+            await window.OfflineQueue.updateBadge();
+            const alerta = document.createElement('div');
+            alerta.className = 'alert alert-warning alert-dismissible fade show shadow-sm rounded-4 mt-3';
+            alerta.innerHTML = `<i class="bi bi-cloud-arrow-up me-2"></i><strong>Sin conexión.</strong>
+                Gasto guardado localmente. Se sincronizará cuando vuelva la red.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+            form.closest('.card-body').prepend(alerta);
+            form.reset();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) {
+            alert('Error al guardar offline: ' + err.message);
+        }
+    });
+    {% endif %}
+})();
+</script>
+{% endblock %}
