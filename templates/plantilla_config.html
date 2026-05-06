@@ -1,136 +1,492 @@
 {% extends 'base.html' %}
-
-{% block title %}{{ titulo }}{% endblock %}
+{% block title %}Personalizar Marca{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-palette"></i> Personalización de Marca (OC)</h2>
+<div class="container-fluid px-3 px-md-4 py-4" style="max-width:1100px;">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--primary),#7c3aed);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <i class="bi bi-palette-fill text-white fs-5"></i>
     </div>
-    <p class="text-muted">Personaliza la apariencia de tus documentos exportables (como Órdenes de Compra).</p>
-    <hr>
-    
-    <div class="row">
-        <!-- COLUMNA IZQUIERDA: FORMULARIO -->
-        <div class="col-md-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <form action="{{ url_for('configurar_plantilla') }}" method="POST" enctype="multipart/form-data" id="formConfiguracion">
-                        
-                        <!-- TOKEN CSRF DE SEGURIDAD -->
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <h1 class="h4 fw-bold mb-0">Personalizar Marca</h1>
+      <p class="text-muted small mb-0">Identidad visual aplicada a todos los documentos PDF</p>
+    </div>
+  </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold text-dark">Nombre de la Organización</label>
-                            <input type="text" name="nombre" class="form-control border-primary" value="{{ org.nombre }}" required>
-                        </div>
+  <div class="row g-4">
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Título del Encabezado (PDF)</label>
-                                <input type="text" name="header_titulo" class="form-control" value="{{ org.header_titulo or '' }}" placeholder="Ej: Mi Empresa S.A.">
-                                <div class="form-text small">Si se deja en blanco, se usará el nombre de la organización.</div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Subtítulo del Encabezado</label>
-                                <input type="text" name="header_subtitulo" class="form-control" value="{{ org.header_subtitulo or '' }}" placeholder="Ej: NIT: 12345678-9 / Tel: 555-0000">
-                            </div>
-                        </div>
+    <!-- ═══ COLUMNA IZQUIERDA: FORMULARIO ═══════════════════════════════════ -->
+    <div class="col-lg-7">
+      <form action="{{ url_for('configurar_plantilla') }}" method="POST"
+            enctype="multipart/form-data" id="formMarca">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="checkbox" name="eliminar_logo" id="chkEliminarLogo" class="d-none" value="1">
 
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Color Primario</label>
-                                <div class="d-flex align-items-center">
-                                    <input type="color" name="color_primario" class="form-control form-control-color" value="{{ org.color_primario or '#000000' }}" title="Elige un color corporativo">
-                                    <span class="ms-2 small text-muted">Aplica a tablas y separadores.</span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Tipo de Letra</label>
-                                <select name="tipo_letra" class="form-select">
-                                    <option value="Helvetica" {% if org.tipo_letra == 'Helvetica' %}selected{% endif %}>Helvetica (Moderna)</option>
-                                    <option value="Times-Roman" {% if org.tipo_letra == 'Times-Roman' %}selected{% endif %}>Times New Roman (Formal)</option>
-                                    <option value="Courier" {% if org.tipo_letra == 'Courier' %}selected{% endif %}>Courier (Máquina de escribir)</option>
-                                </select>
-                            </div>
-                        </div>
+        <!-- TABS -->
+        <ul class="nav nav-pills mb-3 gap-1" id="marcaTabs" role="tablist">
+          <li class="nav-item"><button class="nav-link active px-3 py-2" data-bs-toggle="pill" data-bs-target="#tab-identidad" type="button"><i class="bi bi-building me-1"></i>Identidad</button></li>
+          <li class="nav-item"><button class="nav-link px-3 py-2" data-bs-toggle="pill" data-bs-target="#tab-diseno" type="button"><i class="bi bi-droplet-half me-1"></i>Diseño</button></li>
+          <li class="nav-item"><button class="nav-link px-3 py-2" data-bs-toggle="pill" data-bs-target="#tab-docs" type="button"><i class="bi bi-file-earmark-pdf me-1"></i>Documentos</button></li>
+          <li class="nav-item"><button class="nav-link px-3 py-2" data-bs-toggle="pill" data-bs-target="#tab-notif" type="button"><i class="bi bi-whatsapp me-1"></i>Notificaciones</button></li>
+        </ul>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Subir Nuevo Logo</label>
-                            <input type="file" name="logo" class="form-control" accept="image/png, image/jpeg, image/jpg">
-                            <div class="form-text">Recomendado: Formato PNG o JPG. Se escalará automáticamente en el PDF.</div>
-                        </div>
+        <div class="tab-content">
 
-                        <!-- Checkbox oculto para eliminar el logo -->
-                        <input type="checkbox" name="eliminar_logo" id="check_eliminar_logo" class="d-none" value="1">
+          <!-- ── TAB 1: IDENTIDAD ─────────────────────────────────────────── -->
+          <div class="tab-pane fade show active" id="tab-identidad">
+            <div class="card border-0 shadow-sm rounded-3">
+              <div class="card-body p-4">
 
-                        <!-- NOTIFICACIONES WHATSAPP -->
-                        <hr class="my-4">
-                        <h5 class="fw-bold mb-1"><i class="bi bi-whatsapp text-success me-2"></i>Notificaciones WhatsApp</h5>
-                        <p class="text-muted small mb-3">Recibirás un mensaje automático cuando algún producto caiga por debajo del stock mínimo.</p>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-uppercase text-muted" style="letter-spacing:.5px;">Número de WhatsApp</label>
-                            <div class="input-group shadow-sm">
-                                <span class="input-group-text"><i class="bi bi-whatsapp text-success"></i></span>
-                                <input type="tel" name="whatsapp_notify" class="form-control"
-                                       placeholder="+529991234567"
-                                       value="{{ org.whatsapp_notify or '' }}">
-                            </div>
-                            <div class="form-text">Incluye el código de país. Ej: <strong>+529991234567</strong>. Deja vacío para desactivar.</div>
-                        </div>
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end border-top pt-3">
-                            <button type="submit" class="btn btn-primary px-4 fw-bold">
-                                <i class="bi bi-save"></i> Guardar Cambios
-                            </button>
-                        </div>
-                    </form>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Nombre de la Organización</label>
+                  <input type="text" name="nombre" class="form-control" value="{{ org.nombre }}" required oninput="actualizarPreview()">
                 </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Título en documentos PDF</label>
+                    <input type="text" name="header_titulo" class="form-control"
+                           value="{{ org.header_titulo or '' }}"
+                           placeholder="Nombre que aparece en el PDF"
+                           oninput="actualizarPreview()">
+                    <div class="form-text">Si vacío, se usa el nombre de la org.</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Subtítulo / Eslogan</label>
+                    <input type="text" name="header_subtitulo" class="form-control"
+                           value="{{ org.header_subtitulo or '' }}"
+                           placeholder="Ej: Tu proveedor de confianza"
+                           oninput="actualizarPreview()">
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">RFC / Clave Fiscal</label>
+                    <input type="text" name="rfc" class="form-control"
+                           value="{{ org.rfc or '' }}"
+                           placeholder="XAXX010101000"
+                           oninput="actualizarPreview()">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Correo de la empresa</label>
+                    <input type="email" name="correo_empresa" class="form-control"
+                           value="{{ org.correo_empresa or '' }}"
+                           placeholder="contacto@empresa.com"
+                           oninput="actualizarPreview()">
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Teléfono</label>
+                    <input type="text" name="telefono" class="form-control"
+                           value="{{ org.telefono or '' }}"
+                           placeholder="+52 999 123 4567"
+                           oninput="actualizarPreview()">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Dirección</label>
+                    <input type="text" name="direccion" class="form-control"
+                           value="{{ org.direccion or '' }}"
+                           placeholder="Calle, Colonia, Ciudad"
+                           oninput="actualizarPreview()">
+                  </div>
+                </div>
+
+              </div>
             </div>
+          </div>
+
+          <!-- ── TAB 2: DISEÑO ────────────────────────────────────────────── -->
+          <div class="tab-pane fade" id="tab-diseno">
+            <div class="card border-0 shadow-sm rounded-3">
+              <div class="card-body p-4">
+
+                <!-- Logo -->
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Logo de la empresa</label>
+                  <div id="dropZone" class="drop-zone rounded-3 border-2 border-dashed d-flex flex-column align-items-center justify-content-center text-center p-4 position-relative"
+                       style="min-height:140px;border-color:#cbd5e1;cursor:pointer;transition:border-color .2s,background .2s;">
+                    <div id="dropContent">
+                      {% if org.logo_url %}
+                        <img id="logoPreviewImg"
+                             src="{{ url_for('static', filename='uploads/' + org.logo_url) }}"
+                             alt="Logo" class="mb-2"
+                             style="max-height:80px;max-width:220px;object-fit:contain;">
+                        <div class="text-muted small">Arrastra una imagen nueva para reemplazar</div>
+                      {% else %}
+                        <i class="bi bi-cloud-upload fs-2 text-muted mb-2 d-block"></i>
+                        <div class="fw-semibold text-muted">Arrastra tu logo aquí</div>
+                        <div class="text-muted small">o haz clic para seleccionar · PNG, JPG</div>
+                      {% endif %}
+                    </div>
+                    <input type="file" name="logo" id="inputLogo" accept="image/png,image/jpeg,image/jpg"
+                           class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor:pointer;">
+                  </div>
+
+                  {% if org.logo_url %}
+                  <button type="button" class="btn btn-outline-danger btn-sm mt-2"
+                          onclick="confirmarEliminarLogo()">
+                    <i class="bi bi-trash me-1"></i>Eliminar logo actual
+                  </button>
+                  {% endif %}
+                </div>
+
+                <!-- Paletas de color -->
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Esquema de colores</label>
+                  <div class="d-flex flex-wrap gap-2 mb-3" id="paletas">
+                    {% set paletas = [
+                      ('#4F46E5','#EEF2FF','Índigo Moderno'),
+                      ('#1D4ED8','#EFF6FF','Azul Corporativo'),
+                      ('#0891B2','#ECFEFF','Azul Cielo'),
+                      ('#059669','#ECFDF5','Verde Confianza'),
+                      ('#7C3AED','#F5F3FF','Violeta Premium'),
+                      ('#DC2626','#FEF2F2','Rojo Institucional'),
+                      ('#D97706','#FFFBEB','Ámbar Cálido'),
+                      ('#334155','#F8FAFC','Pizarra Neutral'),
+                    ] %}
+                    {% for pri, sec, label in paletas %}
+                    <button type="button" class="palette-btn btn btn-sm px-3 py-2 rounded-pill border"
+                            style="background:{{ pri }};color:#fff;border-color:{{ pri }}!important;"
+                            data-pri="{{ pri }}" data-sec="{{ sec }}"
+                            title="{{ label }}">
+                      {{ label }}
+                    </button>
+                    {% endfor %}
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-6">
+                      <label class="form-label small text-muted">Color primario (encabezados)</label>
+                      <div class="d-flex align-items-center gap-2">
+                        <input type="color" name="color_primario" id="inputColorPri" class="form-control form-control-color"
+                               value="{{ org.color_primario or '#333333' }}" oninput="actualizarPreview()">
+                        <code id="hexPri" class="small">{{ org.color_primario or '#333333' }}</code>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <label class="form-label small text-muted">Color secundario (filas alternas)</label>
+                      <div class="d-flex align-items-center gap-2">
+                        <input type="color" name="color_secundario" id="inputColorSec" class="form-control form-control-color"
+                               value="{{ org.color_secundario or '#f1f5f9' }}" oninput="actualizarPreview()">
+                        <code id="hexSec" class="small">{{ org.color_secundario or '#f1f5f9' }}</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Fuente -->
+                <div class="mb-0">
+                  <label class="form-label fw-semibold">Tipografía</label>
+                  <div class="d-flex gap-2 flex-wrap">
+                    {% for val, label, sample in [
+                      ('Helvetica','Helvetica','AaBbCc'),
+                      ('Times-Roman','Times New Roman','AaBbCc'),
+                      ('Courier','Courier','AaBbCc'),
+                    ] %}
+                    <label class="font-card d-flex flex-column align-items-center border rounded-3 p-3 gap-1"
+                           style="cursor:pointer;min-width:120px;transition:border-color .2s;">
+                      <input type="radio" name="tipo_letra" value="{{ val }}" class="d-none font-radio"
+                             {% if org.tipo_letra == val or (not org.tipo_letra and val == 'Helvetica') %}checked{% endif %}
+                             onchange="actualizarPreview()">
+                      <span style="font-family:{{ 'serif' if 'Times' in val else ('monospace' if 'Courier' in val else 'sans-serif') }};font-size:1.4rem;">{{ sample }}</span>
+                      <span class="small text-muted">{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TAB 3: DOCUMENTOS ────────────────────────────────────────── -->
+          <div class="tab-pane fade" id="tab-docs">
+            <div class="card border-0 shadow-sm rounded-3">
+              <div class="card-body p-4">
+
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Pie de página personalizado</label>
+                  <textarea name="footer_texto" class="form-control" rows="3"
+                            placeholder="Ej: Gracias por su preferencia · Condiciones: 30 días neto · Precios sujetos a cambio sin previo aviso"
+                            oninput="actualizarPreview()">{{ org.footer_texto or '' }}</textarea>
+                  <div class="form-text">Aparece al final de todos los PDFs (OC, Salidas, Proyectos, Valorización).</div>
+                </div>
+
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="pdf_mostrar_qr" id="chkQR"
+                           value="1" {% if org.pdf_mostrar_qr %}checked{% endif %}>
+                    <label class="form-check-label fw-semibold" for="chkQR">
+                      <i class="bi bi-qr-code me-1"></i>Mostrar código QR en documentos
+                    </label>
+                  </div>
+                  <div class="form-text ms-4">Añade un QR con el enlace directo al documento al pie de cada PDF.</div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="p-3 rounded-3" style="background:var(--surface-raised,#f8fafc);border:1px solid var(--border,#e2e8f0);">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-info-circle text-primary"></i>
+                    <span class="fw-semibold small">¿Qué datos aparecen en los PDFs?</span>
+                  </div>
+                  <ul class="small text-muted mb-0 ps-3">
+                    <li>Encabezado: logo + título + subtítulo + RFC + correo + teléfono + dirección</li>
+                    <li>Barra de color con el color primario</li>
+                    <li>Filas alternas de tabla con el color secundario</li>
+                    <li>Pie de página: texto personalizado + fecha de generación</li>
+                    <li>QR opcional al final (si se activa)</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TAB 4: NOTIFICACIONES ────────────────────────────────────── -->
+          <div class="tab-pane fade" id="tab-notif">
+            <div class="card border-0 shadow-sm rounded-3">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <i class="bi bi-whatsapp text-success fs-4"></i>
+                  <div>
+                    <div class="fw-semibold">Notificaciones WhatsApp</div>
+                    <div class="text-muted small">Recibirás un mensaje cuando un producto caiga bajo el stock mínimo.</div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold small text-uppercase text-muted" style="letter-spacing:.5px;">Número de WhatsApp</label>
+                  <div class="input-group shadow-sm" style="max-width:340px;">
+                    <span class="input-group-text"><i class="bi bi-whatsapp text-success"></i></span>
+                    <input type="tel" name="whatsapp_notify" class="form-control"
+                           placeholder="+529991234567"
+                           value="{{ org.whatsapp_notify or '' }}">
+                  </div>
+                  <div class="form-text">Incluye el código de país. Deja vacío para desactivar.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /tab-content -->
+
+        <!-- Guardar -->
+        <div class="d-flex justify-content-end mt-4">
+          <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm rounded-pill">
+            <i class="bi bi-check-lg me-2"></i>Guardar cambios
+          </button>
         </div>
 
-        <!-- COLUMNA DERECHA: LOGO ACTUAL -->
-        <div class="col-md-4">
-            <div class="card shadow-sm border-secondary">
-                <div class="card-header bg-secondary text-white fw-bold">
-                    Logo Actual
-                </div>
-                <div class="card-body text-center bg-light">
-                    {% if org.logo_url %}
-                        <!-- Visualización del Logo -->
-                        <div class="bg-white p-2 border rounded mb-3 shadow-sm d-inline-block">
-                            <img src="{{ url_for('static', filename='uploads/' + org.logo_url) }}" alt="Logo de la Empresa" class="img-fluid" style="max-height: 150px; object-fit: contain;">
-                        </div>
-                        
-                        <!-- Botón para Eliminar Logo -->
-                        <button type="button" class="btn btn-outline-danger btn-sm w-100 fw-bold shadow-sm" onclick="confirmarEliminarLogo()">
-                            <i class="bi bi-trash"></i> Eliminar Logo Actual
-                        </button>
-                    {% else %}
-                        <!-- Estado vacío -->
-                        <div class="text-muted py-5 border rounded bg-white shadow-sm">
-                            <i class="bi bi-image fs-1 d-block mb-2 opacity-25"></i>
-                            <span class="small fw-semibold">Sin logo asignado</span>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
+      </form>
+    </div><!-- /col formulario -->
+
+    <!-- ═══ COLUMNA DERECHA: PREVIEW EN VIVO ════════════════════════════════ -->
+    <div class="col-lg-5">
+      <div class="position-sticky" style="top:80px;">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="fw-semibold small text-muted text-uppercase" style="letter-spacing:.5px;">
+            <i class="bi bi-eye me-1"></i>Vista previa del encabezado PDF
+          </span>
+          <span class="badge bg-secondary-subtle text-secondary rounded-pill small">Actualización en vivo</span>
         </div>
-    </div>
+
+        <!-- Tarjeta preview -->
+        <div id="pdfPreview" class="rounded-3 shadow-sm overflow-hidden border"
+             style="background:#fff;font-family:sans-serif;">
+
+          <!-- Header area -->
+          <div class="d-flex align-items-center gap-3 p-3" id="prevHeaderArea">
+            <div id="prevLogoWrap" class="d-none flex-shrink-0">
+              <img id="prevLogo" src="" alt="logo"
+                   style="max-height:56px;max-width:90px;object-fit:contain;display:block;">
+            </div>
+            <div class="flex-grow-1 min-w-0">
+              <div id="prevNombre" class="fw-bold text-truncate" style="font-size:1.15rem;line-height:1.2;">—</div>
+              <div id="prevSubtitulo" class="text-muted small text-truncate" style="display:none;"></div>
+              <div id="prevMeta" class="small text-truncate" style="color:#64748b;display:none;font-size:.78rem;"></div>
+            </div>
+          </div>
+
+          <!-- Color bar -->
+          <div id="prevBar" style="height:4px;background:#333333;"></div>
+
+          <!-- Simulated table -->
+          <div class="p-3">
+            <div id="prevTableHead" class="d-flex rounded-2 mb-1 px-2 py-1"
+                 style="background:#333333;gap:6px;">
+              {% for col in ['Producto', 'Cant.', 'Precio', 'Total'] %}
+              <div class="text-white small fw-bold flex-fill text-center" style="font-size:.7rem;">{{ col }}</div>
+              {% endfor %}
+            </div>
+            {% for i in range(4) %}
+            <div class="d-flex px-2 py-1 rounded-1 mb-1 preview-row" style="gap:6px;">
+              {% for j in range(4) %}
+              <div class="flex-fill rounded" style="height:10px;background:#e2e8f0;"></div>
+              {% endfor %}
+            </div>
+            {% endfor %}
+
+            <!-- Footer preview -->
+            <div class="mt-3 pt-2" style="border-top:1px solid #e2e8f0;">
+              <div id="prevFooter" class="text-center small text-muted" style="font-size:.72rem;display:none;"></div>
+              <div class="text-center" style="font-size:.72rem;color:#94a3b8;">
+                Generado el {{ now.strftime('%d/%m/%Y') if now else '—' }} · <span id="prevOrgFooter">—</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /pdfPreview -->
+
+        <!-- Color primario / secundario muestras -->
+        <div class="d-flex gap-2 mt-3">
+          <div class="flex-fill rounded-2 p-2 text-center small" id="swatchPri"
+               style="background:#333333;color:#fff;font-size:.75rem;">Color primario</div>
+          <div class="flex-fill rounded-2 p-2 text-center small border" id="swatchSec"
+               style="background:#f1f5f9;font-size:.75rem;">Color secundario</div>
+        </div>
+
+      </div>
+    </div><!-- /col preview -->
+
+  </div><!-- /row -->
 </div>
 
+<style>
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--primary, #4f46e5) !important;
+  background: rgba(79,70,229,.04);
+}
+.font-card { transition: border-color .15s, box-shadow .15s; }
+.font-card:has(.font-radio:checked) {
+  border-color: var(--primary, #4f46e5) !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+}
+.palette-btn { transition: transform .1s, box-shadow .1s; }
+.palette-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.18); }
+.palette-btn.active { outline: 3px solid #fff; box-shadow: 0 0 0 5px currentColor; }
+</style>
+
+{% block scripts %}
 <script>
-    function confirmarEliminarLogo() {
-        confirmAction({
-            title: '¿Eliminar el logo?',
-            body: 'El logo de la empresa será eliminado. El cambio se guardará inmediatamente.',
-            btnClass: 'btn-danger',
-            btnText: 'Eliminar logo',
-            onConfirm: function() {
-                document.getElementById('check_eliminar_logo').checked = true;
-                document.getElementById('formConfiguracion').submit();
-            }
-        });
+const LOGO_URL = {{ ('"' ~ url_for('static', filename='uploads/' ~ org.logo_url) ~ '"') | safe if org.logo_url else 'null' }};
+
+// ── DRAG & DROP ──────────────────────────────────────────────────────────────
+const dropZone  = document.getElementById('dropZone');
+const inputLogo = document.getElementById('inputLogo');
+const prevLogoWrap = document.getElementById('prevLogoWrap');
+const prevLogo  = document.getElementById('prevLogo');
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) mostrarLogoPreview(file);
+});
+inputLogo.addEventListener('change', () => {
+  if (inputLogo.files[0]) mostrarLogoPreview(inputLogo.files[0]);
+});
+
+function mostrarLogoPreview(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('dropContent').innerHTML =
+      `<img src="${e.target.result}" class="mb-2" style="max-height:80px;max-width:220px;object-fit:contain;"><div class="text-muted small">${file.name}</div>`;
+    prevLogo.src = e.target.result;
+    prevLogoWrap.classList.remove('d-none');
+  };
+  reader.readAsDataURL(file);
+}
+
+// Mostrar logo actual en preview
+if (LOGO_URL) {
+  prevLogo.src = LOGO_URL;
+  prevLogoWrap.classList.remove('d-none');
+}
+
+// ── PALETAS DE COLOR ─────────────────────────────────────────────────────────
+document.querySelectorAll('.palette-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const pri = btn.dataset.pri;
+    const sec = btn.dataset.sec;
+    document.getElementById('inputColorPri').value = pri;
+    document.getElementById('inputColorSec').value = sec;
+    actualizarPreview();
+  });
+});
+
+// ── PREVIEW EN VIVO ──────────────────────────────────────────────────────────
+function actualizarPreview() {
+  const nombre    = document.querySelector('[name=nombre]').value.trim();
+  const titulo    = document.querySelector('[name=header_titulo]').value.trim();
+  const subtitulo = document.querySelector('[name=header_subtitulo]').value.trim();
+  const rfc       = document.querySelector('[name=rfc]').value.trim();
+  const correo    = document.querySelector('[name=correo_empresa]').value.trim();
+  const tel       = document.querySelector('[name=telefono]').value.trim();
+  const dir       = document.querySelector('[name=direccion]').value.trim();
+  const footer    = document.querySelector('[name=footer_texto]').value.trim();
+  const colPri    = document.getElementById('inputColorPri').value;
+  const colSec    = document.getElementById('inputColorSec').value;
+
+  // Nombre principal
+  document.getElementById('prevNombre').textContent = titulo || nombre || '—';
+
+  // Subtítulo
+  const elSub = document.getElementById('prevSubtitulo');
+  if (subtitulo) { elSub.textContent = subtitulo; elSub.style.display = ''; }
+  else             { elSub.style.display = 'none'; }
+
+  // Meta line (RFC · correo · tel · dirección)
+  const elMeta = document.getElementById('prevMeta');
+  const metaParts = [rfc && `RFC: ${rfc}`, correo, tel, dir].filter(Boolean);
+  if (metaParts.length) { elMeta.textContent = metaParts.join(' · '); elMeta.style.display = ''; }
+  else                  { elMeta.style.display = 'none'; }
+
+  // Colores
+  document.getElementById('prevBar').style.background         = colPri;
+  document.getElementById('prevTableHead').style.background   = colPri;
+  document.getElementById('swatchPri').style.background       = colPri;
+  document.getElementById('swatchSec').style.background       = colSec;
+  document.getElementById('hexPri').textContent = colPri;
+  document.getElementById('hexSec').textContent = colSec;
+
+  // Filas alternas
+  document.querySelectorAll('.preview-row').forEach((row, i) => {
+    row.style.background = i % 2 === 0 ? '#fff' : colSec;
+  });
+
+  // Footer
+  const elFoot = document.getElementById('prevFooter');
+  if (footer) { elFoot.textContent = footer; elFoot.style.display = ''; }
+  else         { elFoot.style.display = 'none'; }
+
+  // Org en footer
+  document.getElementById('prevOrgFooter').textContent = nombre || '—';
+}
+
+// Init
+actualizarPreview();
+
+// ── ELIMINAR LOGO ────────────────────────────────────────────────────────────
+function confirmarEliminarLogo() {
+  confirmAction({
+    title: '¿Eliminar el logo?',
+    body: 'El logo de la empresa será eliminado de todos los documentos PDF.',
+    btnClass: 'btn-danger',
+    btnText: 'Eliminar logo',
+    onConfirm: function() {
+      document.getElementById('chkEliminarLogo').checked = true;
+      document.getElementById('formMarca').submit();
     }
+  });
+}
 </script>
+{% endblock %}
 {% endblock %}

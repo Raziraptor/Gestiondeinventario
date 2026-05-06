@@ -176,15 +176,20 @@ class Organizacion(db.Model):
     nombre = db.Column(db.String(120), unique=True, nullable=False)
     codigo_invitacion = db.Column(db.String(10), unique=True, nullable=True)
     
-    # --- CAMPOS DE PERSONALIZACIÓN (NUEVO) ---
-    logo_url = db.Column(db.String(255), nullable=True) # Logo de la empresa
-    header_titulo = db.Column(db.String(150), nullable=True)     # Texto Grande
-    header_subtitulo = db.Column(db.String(200), nullable=True)  # Texto Pequeño
-    color_primario = db.Column(db.String(7), default='#333333') # Color hex para encabezados
-    tipo_letra = db.Column(db.String(50), default='Helvetica') # Fuente del PDF
-    direccion = db.Column(db.Text, nullable=True)
-    telefono = db.Column(db.String(20), nullable=True)
-    whatsapp_notify = db.Column(db.String(25), nullable=True, default=None)
+    # --- CAMPOS DE PERSONALIZACIÓN ---
+    logo_url          = db.Column(db.String(255), nullable=True)
+    header_titulo     = db.Column(db.String(150), nullable=True)
+    header_subtitulo  = db.Column(db.String(200), nullable=True)
+    color_primario    = db.Column(db.String(7),  default='#333333')
+    color_secundario  = db.Column(db.String(7),  default='#f1f5f9')
+    tipo_letra        = db.Column(db.String(50), default='Helvetica')
+    direccion         = db.Column(db.Text,       nullable=True)
+    telefono          = db.Column(db.String(20), nullable=True)
+    rfc               = db.Column(db.String(20), nullable=True)
+    correo_empresa    = db.Column(db.String(120),nullable=True)
+    footer_texto      = db.Column(db.Text,       nullable=True)
+    pdf_mostrar_qr    = db.Column(db.Boolean,    default=False)
+    whatsapp_notify   = db.Column(db.String(25), nullable=True, default=None)
     usuarios = db.relationship('User', backref='organizacion', lazy=True)
     productos = db.relationship('Producto', backref='organizacion', lazy=True)
     categorias = db.relationship('Categoria', backref='organizacion', lazy=True)
@@ -2745,6 +2750,104 @@ def eliminar_movimiento_salida(id):
     # así que redirigimos al historial
     return redirect(url_for('historial_salidas'))
 
+# ── HELPERS DE PDF (compartidos por todos los generadores) ──────────────────
+
+def _pdf_estilos(org):
+    """Devuelve (fuente, color_primario, color_secundario) listos para ReportLab."""
+    fuente = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
+    c_pri = colors.HexColor(org.color_primario)  if org.color_primario  else colors.HexColor('#333333')
+    c_sec = colors.HexColor(org.color_secundario) if org.color_secundario else colors.HexColor('#f1f5f9')
+    return fuente, c_pri, c_sec
+
+def _pdf_header(story, org, styles):
+    """Añade encabezado de marca (logo + nombre + RFC + correo) y barra de color."""
+    fuente, c_pri, _ = _pdf_estilos(org)
+
+    s_brand = ParagraphStyle('_Brand', fontName=f'{fuente}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
+    s_sub   = ParagraphStyle('_Sub',   fontName=fuente, fontSize=10, leading=12, textColor=colors.gray)
+    s_meta  = ParagraphStyle('_Meta',  fontName=fuente, fontSize=8,  leading=10, textColor=colors.HexColor('#64748b'))
+
+    logo_el = []
+    if org.logo_url:
+        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
+        if os.path.exists(logo_path):
+            img = ReportLabImage(logo_path)
+            max_h = 1.0 * inch
+            img.drawHeight = max_h
+            img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
+            logo_el.append(img)
+
+    text_el = [Paragraph(org.header_titulo or org.nombre, s_brand)]
+    if org.header_subtitulo:
+        text_el.append(Paragraph(org.header_subtitulo, s_sub))
+
+    meta_parts = []
+    if org.rfc:             meta_parts.append(f'RFC: {org.rfc}')
+    if org.correo_empresa:  meta_parts.append(org.correo_empresa)
+    if org.telefono:        meta_parts.append(org.telefono)
+    if org.direccion:       meta_parts.append(org.direccion)
+    if meta_parts:
+        text_el.append(Paragraph(' · '.join(meta_parts), s_meta))
+
+    if logo_el:
+        t_hdr = Table([[logo_el, text_el]], colWidths=[1.5*inch, 4.7*inch])
+    else:
+        t_hdr = Table([[text_el]], colWidths=[6.2*inch])
+    t_hdr.setStyle(TableStyle([
+        ('VALIGN',        (0,0), (-1,-1), 'MIDDLE'),
+        ('LEFTPADDING',   (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(t_hdr)
+    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2],
+                       style=TableStyle([('BACKGROUND', (0,0), (-1,-1), c_pri)])))
+    story.append(Spacer(1, 0.2*inch))
+
+def _pdf_footer(story, org, doc_url=None):
+    """Añade bloque de pie de página (footer_texto + fecha generación + QR opcional)."""
+    fuente, c_pri, _ = _pdf_estilos(org)
+    s_footer = ParagraphStyle('_Foot', fontName=fuente, fontSize=8, textColor=colors.HexColor('#64748b'), alignment=TA_CENTER)
+
+    story.append(Spacer(1, 0.3*inch))
+    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[1],
+                       style=TableStyle([('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#e2e8f0'))])))
+    story.append(Spacer(1, 0.1*inch))
+
+    pie_parts = []
+    if org.footer_texto:
+        pie_parts.append(org.footer_texto)
+    pie_parts.append(f"Generado el {now_mx().strftime('%d/%m/%Y a las %H:%M')} · {org.nombre}")
+    story.append(Paragraph('<br/>'.join(pie_parts), s_footer))
+
+    if org.pdf_mostrar_qr and doc_url:
+        try:
+            qr = qrcode.QRCode(version=1, box_size=4, border=2)
+            qr.add_data(doc_url)
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color='black', back_color='white')
+            qr_buf = io.BytesIO()
+            qr_img.save(qr_buf, format='PNG')
+            qr_buf.seek(0)
+            rl_qr = ReportLabImage(qr_buf)
+            rl_qr.drawWidth  = 0.7 * inch
+            rl_qr.drawHeight = 0.7 * inch
+            story.append(Spacer(1, 0.1*inch))
+            t_qr = Table([[rl_qr]], colWidths=[6.2*inch])
+            t_qr.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER')]))
+            story.append(t_qr)
+        except Exception:
+            pass
+
+def _pdf_row_styles(data_len, c_sec):
+    """Devuelve estilos de filas alternas usando color_secundario."""
+    styles = []
+    for i in range(1, data_len):
+        bg = c_sec if i % 2 == 0 else colors.white
+        styles.append(('BACKGROUND', (0, i), (-1, i), bg))
+    return styles
+
+# ─────────────────────────────────────────────────────────────────────────────
+
 @app.route('/salida/<int:id>/pdf')
 @login_required
 @check_permission('perm_do_salidas')
@@ -2758,52 +2861,18 @@ def generar_salida_pdf(id):
                             topMargin=0.5*inch, bottomMargin=inch)
     story = []
     styles = getSampleStyleSheet()
+    fuente, c_pri, c_sec = _pdf_estilos(org)
 
-    fuente = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
-    color_org = colors.HexColor(org.color_primario) if org.color_primario else colors.HexColor('#4F46E5')
-
-    s_brand  = ParagraphStyle('SBrand', fontName=f'{fuente}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
-    s_sub    = ParagraphStyle('SSub',   fontName=fuente, fontSize=10, leading=12, textColor=colors.gray)
     s_normal = ParagraphStyle('SNorm',  fontName=fuente, fontSize=10, leading=12)
     s_bold   = ParagraphStyle('SBold',  fontName=f'{fuente}-Bold', fontSize=10, leading=12)
+    s_brand  = ParagraphStyle('SBrand', fontName=f'{fuente}-Bold', fontSize=18, leading=20, textColor=colors.black)
     s_th     = ParagraphStyle('STH',    fontName=f'{fuente}-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)
     s_cell   = ParagraphStyle('SCell',  fontName=fuente, fontSize=9, leading=11)
     s_cellr  = ParagraphStyle('SCellR', fontName=fuente, fontSize=9, leading=11, alignment=TA_RIGHT)
 
-    # ── 1. ENCABEZADO ──────────────────────────────────────────────────────
-    logo_el = []
-    if org.logo_url:
-        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
-        if os.path.exists(logo_path):
-            img = ReportLabImage(logo_path)
-            max_h = 1.0 * inch
-            img.drawHeight = max_h
-            img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
-            logo_el.append(img)
+    _pdf_header(story, org, styles)
 
-    texto_org = org.header_titulo if org.header_titulo else org.nombre
-    text_el = [Paragraph(texto_org, s_brand)]
-    if org.header_subtitulo:
-        text_el.append(Paragraph(org.header_subtitulo, s_sub))
-
-    if logo_el:
-        t_hdr = Table([[logo_el, text_el]], colWidths=[1.5*inch, 4.5*inch])
-    else:
-        t_hdr = Table([[text_el]], colWidths=[6*inch])
-    t_hdr.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-    ]))
-    story.append(t_hdr)
-
-    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2],
-                       style=TableStyle([('BACKGROUND', (0,0), (-1,-1), color_org)])))
-    story.append(Spacer(1, 0.2*inch))
-
-    # ── 2. INFO SALIDA ─────────────────────────────────────────────────────
     estado_color = '#DC2626' if salida.estado == 'cancelada' else '#059669'
-
     info_izq = [
         Paragraph('<b>ALMACÉN:</b>', s_normal),
         Paragraph(salida.almacen.nombre, s_bold),
@@ -2814,18 +2883,14 @@ def generar_salida_pdf(id):
         Paragraph(f'<b>SALIDA #{salida.id}</b>', s_brand),
         Paragraph(f'<font color="{estado_color}"><b>{salida.estado.upper()}</b></font>', s_bold),
     ]
-
     t_info = Table([[info_izq, info_der]], colWidths=[3.5*inch, 2.7*inch])
     t_info.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 0)]))
     story.append(t_info)
     story.append(Spacer(1, 0.25*inch))
 
-    # ── 3. TABLA DE MOVIMIENTOS ────────────────────────────────────────────
     data = [[
-        Paragraph('Producto', s_th),
-        Paragraph('SKU', s_th),
-        Paragraph('Motivo', s_th),
-        Paragraph('Cantidad', s_th),
+        Paragraph('Producto', s_th), Paragraph('SKU', s_th),
+        Paragraph('Motivo', s_th),   Paragraph('Cantidad', s_th),
     ]]
     total_items = 0
     for mov in salida.movimientos.order_by(Movimiento.fecha.asc()).all():
@@ -2837,16 +2902,14 @@ def generar_salida_pdf(id):
             Paragraph(mov.motivo or '—', s_cell),
             Paragraph(str(cant), s_cellr),
         ])
-
     data.append(['', '', Paragraph('TOTAL UNIDADES:', ParagraphStyle('STotL', fontName=f'{fuente}-Bold', fontSize=10, alignment=TA_RIGHT)),
-                 Paragraph(str(total_items), ParagraphStyle('STotV', fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=color_org))])
+                 Paragraph(str(total_items), ParagraphStyle('STotV', fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=c_pri))])
 
-    col_w = [2.8*inch, 1.2*inch, 1.4*inch, 0.8*inch]
-    t_mov = Table(data, colWidths=col_w, repeatRows=1)
+    t_mov = Table(data, colWidths=[2.8*inch, 1.2*inch, 1.4*inch, 0.8*inch], repeatRows=1)
+    row_bgs = _pdf_row_styles(len(data) - 1, c_sec)
     t_mov.setStyle(TableStyle([
-        ('BACKGROUND',    (0,0),  (-1,0),  color_org),
+        ('BACKGROUND',    (0,0),  (-1,0),  c_pri),
         ('TEXTCOLOR',     (0,0),  (-1,0),  colors.white),
-        ('ROWBACKGROUNDS',(0,1),  (-1,-2), [colors.white, colors.HexColor('#F8F9FA')]),
         ('GRID',          (0,0),  (-1,-2), 0.5, colors.HexColor('#DEE2E6')),
         ('VALIGN',        (0,0),  (-1,-1), 'MIDDLE'),
         ('ALIGN',         (3,0),  (3,-1),  'RIGHT'),
@@ -2855,9 +2918,10 @@ def generar_salida_pdf(id):
         ('SPAN',          (0,-1), (1,-1)),
         ('LINEABOVE',     (0,-1), (-1,-1), 1, colors.HexColor('#DEE2E6')),
         ('BOX',           (2,-1), (3,-1),  0.5, colors.HexColor('#DEE2E6')),
-    ]))
+    ] + row_bgs))
     story.append(t_mov)
 
+    _pdf_footer(story, org)
     doc.build(story)
     buffer.seek(0)
     filename = f"Salida-{salida.id}_{salida.fecha.strftime('%Y-%m-%d')}.pdf"
@@ -3094,185 +3158,94 @@ def enviar_orden(id):
 @login_required
 @check_permission('perm_create_oc_standard')
 def generar_oc_pdf(id):
-    """ Genera un PDF profesional de la Orden de Compra incluyendo enlaces de proveedor. """
-    orden = OrdenCompra.query.filter_by(
-        id=id, 
-        organizacion_id=current_user.organizacion_id
-    ).first_or_404()
+    orden = OrdenCompra.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
     org = orden.organizacion
     proveedor = orden.proveedor
-    
-    # --- CONFIGURACIÓN DE PÁGINA ---
+
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, 
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=inch, leftMargin=inch,
                             topMargin=0.5*inch, bottomMargin=inch)
     story = []
     styles = getSampleStyleSheet()
-    
-    # --- ESTILOS ---
-    fuente_base = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
-    color_primario = colors.HexColor(org.color_primario) if org.color_primario else colors.darkblue
-    
-    # Estilos de Texto
-    style_brand_title = ParagraphStyle(name='BrandTitle', parent=styles['Heading1'], fontName=f'{fuente_base}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
-    style_brand_sub = ParagraphStyle(name='BrandSub', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12, textColor=colors.gray)
-    style_normal = ParagraphStyle(name='MiNormal', parent=styles['Normal'], fontName=fuente_base, fontSize=10, leading=12)
-    style_bold = ParagraphStyle(name='MiBold', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, leading=12)
-    style_th = ParagraphStyle(name='MiTH', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
-    
-    # Estilos para Total
-    style_total_label = ParagraphStyle(name='TotalLabel', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
-    style_total_value = ParagraphStyle(name='TotalValue', parent=styles['Normal'], fontName=f'{fuente_base}-Bold', fontSize=11, alignment=TA_RIGHT)
+    fuente, c_pri, c_sec = _pdf_estilos(org)
 
-    # ==========================================
-    # 1. ENCABEZADO PERSONALIZADO (Logo + Texto)
-    # ==========================================
-    logo_element = []
-    if org.logo_url:
-        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
-        if os.path.exists(logo_path):
-            img = ReportLabImage(logo_path)
-            max_h = 1.0 * inch
-            aspect = img.imageWidth / float(img.imageHeight)
-            img.drawHeight = max_h
-            img.drawWidth = max_h * aspect
-            logo_element.append(img)
-    
-    text_elements = []
-    texto_p = org.header_titulo if org.header_titulo else org.nombre
-    text_elements.append(Paragraph(texto_p, style_brand_title))
-    if org.header_subtitulo:
-        text_elements.append(Paragraph(org.header_subtitulo, style_brand_sub))
+    s_normal = ParagraphStyle('OCNorm',  fontName=fuente, fontSize=10, leading=12)
+    s_bold   = ParagraphStyle('OCBold',  fontName=f'{fuente}-Bold', fontSize=10, leading=12)
+    s_brand  = ParagraphStyle('OCBrand', fontName=f'{fuente}-Bold', fontSize=18, leading=20, textColor=colors.black)
+    s_th     = ParagraphStyle('OCTH',    fontName=f'{fuente}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
+    s_totlbl = ParagraphStyle('OCTotL',  fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT)
+    s_totval = ParagraphStyle('OCTotV',  fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT)
 
-    if logo_element:
-        data_header = [[logo_element, text_elements]]
-        col_widths = [1.5*inch, 4.5*inch]
-    else:
-        data_header = [[text_elements]]
-        col_widths = [6*inch]
+    _pdf_header(story, org, styles)
 
-    t_header = Table(data_header, colWidths=col_widths)
-    t_header.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-    ]))
-    story.append(t_header)
-    
-    # Barra separadora de color
-    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2], style=TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), color_primario)
-    ])))
-    story.append(Spacer(1, 0.2*inch))
-
-    # ==========================================
-    # 2. INFORMACIÓN (PROVEEDOR Y ORDEN)
-    # ==========================================
-    p_email = getattr(proveedor, 'email', getattr(proveedor, 'correo', getattr(proveedor, 'contacto_email', '-')))
-    p_tel = getattr(proveedor, 'telefono', getattr(proveedor, 'celular', '-'))
-    p_contacto = getattr(proveedor, 'contacto', getattr(proveedor, 'nombre_contacto', '-'))
+    p_email    = getattr(proveedor, 'contacto_email', getattr(proveedor, 'correo', '-'))
+    p_tel      = getattr(proveedor, 'contacto_telefono', getattr(proveedor, 'telefono', '-'))
+    p_contacto = getattr(proveedor, 'nombre_contacto', getattr(proveedor, 'contacto', '-'))
 
     info_proveedor = [
-        Paragraph("<b>PROVEEDOR:</b>", style_normal),
-        Paragraph(f"{proveedor.nombre}", style_bold),
-        Paragraph(f"Contacto: {p_contacto}", style_normal),
-        Paragraph(f"Email: {p_email}", style_normal),
-        Paragraph(f"Tel: {p_tel}", style_normal),
+        Paragraph("<b>PROVEEDOR:</b>", s_normal),
+        Paragraph(proveedor.nombre, s_bold),
+        Paragraph(f"Contacto: {p_contacto}", s_normal),
+        Paragraph(f"Email: {p_email}", s_normal),
+        Paragraph(f"Tel: {p_tel}", s_normal),
     ]
-
     info_orden = [
-        Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", style_brand_title),
-        Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%d/%m/%Y')}", style_normal),
-        Paragraph(f"<b>Estado:</b> {orden.estado}", style_normal),
-        Paragraph(f"<b>Almacén:</b> {orden.almacen.nombre if orden.almacen else 'General'}", style_normal),
+        Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", s_brand),
+        Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%d/%m/%Y')}", s_normal),
+        Paragraph(f"<b>Estado:</b> {orden.estado.upper()}", s_normal),
+        Paragraph(f"<b>Almacén:</b> {orden.almacen.nombre if orden.almacen else 'General'}", s_normal),
     ]
-
     t_info = Table([[info_proveedor, info_orden]], colWidths=[3.5*inch, 2.7*inch])
-    t_info.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-    ]))
+    t_info.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 0)]))
     story.append(t_info)
     story.append(Spacer(1, 0.2*inch))
 
-    # ==========================================
-    # 3. TABLA DE PRODUCTOS (CON ENLACES)
-    # ==========================================
-    headers = [
-        Paragraph("Producto / SKU", style_th),
-        Paragraph("Cajas", style_th),
-        Paragraph("Unidades", style_th),
-        Paragraph("Costo U.", style_th),
-        Paragraph("Subtotal", style_th)
-    ]
-    
-    data_table = [headers]
+    data_table = [[
+        Paragraph("Producto / SKU", s_th), Paragraph("Cajas", s_th),
+        Paragraph("Unidades", s_th),       Paragraph("Costo U.", s_th),
+        Paragraph("Subtotal", s_th),
+    ]]
     total_general = 0
-    
     for detalle in orden.detalles:
         subtotal = detalle.cantidad_solicitada * detalle.costo_unitario_estimado
         total_general += subtotal
-        
         factor_empaque = getattr(detalle.producto, 'unidades_por_caja', 1) or 1
         cajas = getattr(detalle, 'cajas', 0)
-        cajas_str = f"{cajas:g}" if cajas else "0"
-        
-        # --- LÓGICA DE ENLACE ---
-        # Priorizamos el enlace guardado en el detalle de la orden, si no existe, usamos el del catálogo
-        enlace_url = getattr(detalle, 'enlace_proveedor', None)
-        if not enlace_url:
-            enlace_url = getattr(detalle.producto, 'enlace_proveedor', None)
-
-        # Construimos la descripción
+        enlace_url = getattr(detalle, 'enlace_proveedor', None) or getattr(detalle.producto, 'enlace_proveedor', None)
         desc = f"<b>{detalle.producto.nombre}</b><br/>SKU: {detalle.producto.codigo}<br/><font color='gray' size='8'>Empaque: {factor_empaque} ud(s)</font>"
-        
-        # Si existe enlace, lo añadimos en pequeño y azul
         if enlace_url:
-            # ReportLab interpreta etiquetas font básicas. Acortamos la URL visual si es muy larga.
             display_url = (enlace_url[:50] + '...') if len(enlace_url) > 53 else enlace_url
             desc += f"<br/><font color='blue' size='7'>{display_url}</font>"
-        
-        row = [
-            Paragraph(desc, style_normal),
-            Paragraph(cajas_str, style_normal),
-            Paragraph(str(int(detalle.cantidad_solicitada)), style_normal),
-            Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", style_normal),
-            Paragraph(f"${subtotal:,.2f}", style_normal)
-        ]
-        data_table.append(row)
+        data_table.append([
+            Paragraph(desc, s_normal),
+            Paragraph(f"{cajas:g}" if cajas else "0", s_normal),
+            Paragraph(str(int(detalle.cantidad_solicitada)), s_normal),
+            Paragraph(f"${detalle.costo_unitario_estimado:,.2f}", s_normal),
+            Paragraph(f"${subtotal:,.2f}", s_normal),
+        ])
+    data_table.append(['', '', '', Paragraph("TOTAL:", s_totlbl), Paragraph(f"${total_general:,.2f}", s_totval)])
 
-    # FILA DE TOTAL
-    row_total = [
-        '', '', '', 
-        Paragraph("TOTAL:", style_total_label), 
-        Paragraph(f"${total_general:,.2f}", style_total_value)
-    ]
-    data_table.append(row_total)
-
-    col_widths_prod = [2.4*inch, 0.8*inch, 0.8*inch, 1.0*inch, 1.2*inch]
-    t_productos = Table(data_table, colWidths=col_widths_prod, repeatRows=1)
-    
-    estilos = [
-        ('BACKGROUND', (0,0), (-1,0), color_primario),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('ALIGN', (0,0), (-1,0), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('GRID', (0,0), (-1,-2), 0.5, colors.black), 
-        ('ALIGN', (1,1), (2,-2), 'CENTER'),
-        ('ALIGN', (3,1), (-1,-1), 'RIGHT'),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        ('SPAN', (0,-1), (2,-1)),
-        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black),
-        ('BACKGROUND', (3,-1), (-1,-1), colors.whitesmoke),
-        ('BOX', (3,-1), (4,-1), 0.5, colors.black),
-    ]
-    
-    t_productos.setStyle(TableStyle(estilos))
+    t_productos = Table(data_table, colWidths=[2.4*inch, 0.8*inch, 0.8*inch, 1.0*inch, 1.2*inch], repeatRows=1)
+    row_bgs = _pdf_row_styles(len(data_table) - 1, c_sec)
+    t_productos.setStyle(TableStyle([
+        ('BACKGROUND',    (0,0),  (-1,0),  c_pri),
+        ('TEXTCOLOR',     (0,0),  (-1,0),  colors.white),
+        ('ALIGN',         (0,0),  (-1,0),  'CENTER'),
+        ('VALIGN',        (0,0),  (-1,-1), 'MIDDLE'),
+        ('GRID',          (0,0),  (-1,-2), 0.5, colors.HexColor('#DEE2E6')),
+        ('ALIGN',         (1,1),  (2,-2),  'CENTER'),
+        ('ALIGN',         (3,1),  (-1,-1), 'RIGHT'),
+        ('TOPPADDING',    (0,0),  (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0),  (-1,-1), 6),
+        ('SPAN',          (0,-1), (2,-1)),
+        ('LINEABOVE',     (0,-1), (-1,-1), 1, colors.HexColor('#DEE2E6')),
+        ('BACKGROUND',    (3,-1), (-1,-1), colors.whitesmoke),
+        ('BOX',           (3,-1), (4,-1),  0.5, colors.HexColor('#DEE2E6')),
+    ] + row_bgs))
     story.append(t_productos)
 
-    # --- GENERAR Y ENVIAR ---
+    _pdf_footer(story, org)
     doc.build(story)
     buffer.seek(0)
     filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
@@ -3918,58 +3891,20 @@ def generar_proyecto_oc_pdf(id):
                             topMargin=0.5*inch, bottomMargin=inch)
     story = []
     styles = getSampleStyleSheet()
+    fuente, c_pri, c_sec = _pdf_estilos(org)
 
-    fuente = org.tipo_letra if org.tipo_letra in ['Helvetica', 'Times-Roman', 'Courier'] else 'Helvetica'
-    color_org = colors.HexColor(org.color_primario) if org.color_primario else colors.HexColor('#4F46E5')
+    s_normal = ParagraphStyle('PONorm',  fontName=fuente, fontSize=10, leading=12)
+    s_bold   = ParagraphStyle('POBold',  fontName=f'{fuente}-Bold', fontSize=10, leading=12)
+    s_brand  = ParagraphStyle('POBrand', fontName=f'{fuente}-Bold', fontSize=18, leading=20, textColor=colors.black)
+    s_th     = ParagraphStyle('POTH',    fontName=f'{fuente}-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)
+    s_cell   = ParagraphStyle('POCell',  fontName=fuente, fontSize=9, leading=11)
+    s_cellr  = ParagraphStyle('POCellR', fontName=fuente, fontSize=9, leading=11, alignment=TA_RIGHT)
+    s_totlbl = ParagraphStyle('POTotL',  fontName=f'{fuente}-Bold', fontSize=10, alignment=TA_RIGHT)
+    s_totval = ParagraphStyle('POTotV',  fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=c_pri)
 
-    s_brand   = ParagraphStyle('POBrand',  fontName=f'{fuente}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
-    s_sub     = ParagraphStyle('POSub',    fontName=fuente, fontSize=10, leading=12, textColor=colors.gray)
-    s_normal  = ParagraphStyle('PONorm',   fontName=fuente, fontSize=10, leading=12)
-    s_bold    = ParagraphStyle('POBold',   fontName=f'{fuente}-Bold', fontSize=10, leading=12)
-    s_th      = ParagraphStyle('POTH',     fontName=f'{fuente}-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)
-    s_cell    = ParagraphStyle('POCell',   fontName=fuente, fontSize=9, leading=11)
-    s_cellr   = ParagraphStyle('POCellR',  fontName=fuente, fontSize=9, leading=11, alignment=TA_RIGHT)
-    s_totlbl  = ParagraphStyle('POTotL',   fontName=f'{fuente}-Bold', fontSize=10, alignment=TA_RIGHT)
-    s_totval  = ParagraphStyle('POTotV',   fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=color_org)
+    _pdf_header(story, org, styles)
 
-    # ── 1. ENCABEZADO (logo + nombre org) ──────────────────────────────────
-    logo_el = []
-    if org.logo_url:
-        logo_path = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
-        if os.path.exists(logo_path):
-            img = ReportLabImage(logo_path)
-            max_h = 1.0 * inch
-            img.drawHeight = max_h
-            img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
-            logo_el.append(img)
-
-    texto_org = org.header_titulo if org.header_titulo else org.nombre
-    text_el = [Paragraph(texto_org, s_brand)]
-    if org.header_subtitulo:
-        text_el.append(Paragraph(org.header_subtitulo, s_sub))
-
-    if logo_el:
-        t_hdr = Table([[logo_el, text_el]], colWidths=[1.5*inch, 4.5*inch])
-    else:
-        t_hdr = Table([[text_el]], colWidths=[6*inch])
-    t_hdr.setStyle(TableStyle([
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('LEFTPADDING', (0,0), (-1,-1), 0),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
-    ]))
-    story.append(t_hdr)
-
-    # Barra de color
-    story.append(Table([['']], colWidths=[6.2*inch], rowHeights=[2],
-                       style=TableStyle([('BACKGROUND', (0,0), (-1,-1), color_org)])))
-    story.append(Spacer(1, 0.2*inch))
-
-    # ── 2. BLOQUE INFO (proyecto + estado) ─────────────────────────────────
-    estado_color = {
-        'borrador': '#D97706', 'enviada': '#0891B2',
-        'recibida': '#059669', 'cancelada': '#64748B',
-    }.get(proyecto_oc.estado, '#64748B')
-
+    estado_color = {'borrador':'#D97706','enviada':'#0891B2','recibida':'#059669','cancelada':'#64748B'}.get(proyecto_oc.estado, '#64748B')
     info_proyecto = [
         Paragraph('<b>PROYECTO:</b>', s_normal),
         Paragraph(proyecto_oc.nombre_proyecto, s_bold),
@@ -3995,17 +3930,11 @@ def generar_proyecto_oc_pdf(id):
     story.append(t_info)
     story.append(Spacer(1, 0.25*inch))
 
-    # ── 3. TABLA DE ARTÍCULOS ───────────────────────────────────────────────
-    headers = [
-        Paragraph('Descripción / SKU', s_th),
-        Paragraph('Proveedor Sug.', s_th),
-        Paragraph('Cant.', s_th),
-        Paragraph('Costo Unit.', s_th),
-        Paragraph('Subtotal', s_th),
-    ]
-    data = [headers]
+    data = [[
+        Paragraph('Descripción / SKU', s_th), Paragraph('Proveedor Sug.', s_th),
+        Paragraph('Cant.', s_th), Paragraph('Costo Unit.', s_th), Paragraph('Subtotal', s_th),
+    ]]
     total = 0
-
     for d in proyecto_oc.detalles:
         if d.producto_id and d.producto:
             desc_html = f'<b>{d.producto.nombre}</b><br/><font size="8" color="gray">SKU: {d.producto.codigo}</font>'
@@ -4016,36 +3945,32 @@ def generar_proyecto_oc_pdf(id):
             desc_html += f'<br/><font size="7" color="blue">{short}</font>'
         if d.comentarios_detalle:
             desc_html += f'<br/><font size="7" color="gray">{d.comentarios_detalle}</font>'
-
         sub = d.cantidad * d.costo_unitario
         total += sub
         data.append([
-            Paragraph(desc_html, s_cell),
-            Paragraph(d.proveedor_sugerido or '—', s_cell),
-            Paragraph(str(d.cantidad), s_cellr),
-            Paragraph(f'${d.costo_unitario:,.2f}', s_cellr),
+            Paragraph(desc_html, s_cell), Paragraph(d.proveedor_sugerido or '—', s_cell),
+            Paragraph(str(d.cantidad), s_cellr), Paragraph(f'${d.costo_unitario:,.2f}', s_cellr),
             Paragraph(f'${sub:,.2f}', s_cellr),
         ])
-
     data.append(['', '', '', Paragraph('TOTAL ESTIMADO:', s_totlbl), Paragraph(f'${total:,.2f}', s_totval)])
 
-    col_w = [2.6*inch, 1.4*inch, 0.5*inch, 0.9*inch, 0.9*inch]
-    t_art = Table(data, colWidths=col_w, repeatRows=1)
+    t_art = Table(data, colWidths=[2.6*inch, 1.4*inch, 0.5*inch, 0.9*inch, 0.9*inch], repeatRows=1)
+    row_bgs = _pdf_row_styles(len(data) - 1, c_sec)
     t_art.setStyle(TableStyle([
-        ('BACKGROUND',   (0,0),  (-1,0),  color_org),
-        ('TEXTCOLOR',    (0,0),  (-1,0),  colors.white),
-        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor('#F8F9FA')]),
-        ('GRID',         (0,0),  (-1,-2), 0.5, colors.HexColor('#DEE2E6')),
-        ('VALIGN',       (0,0),  (-1,-1), 'MIDDLE'),
-        ('ALIGN',        (2,0),  (-1,-1), 'RIGHT'),
-        ('TOPPADDING',   (0,0),  (-1,-1), 6),
-        ('BOTTOMPADDING',(0,0),  (-1,-1), 6),
-        ('SPAN',         (0,-1), (2,-1)),
-        ('LINEABOVE',    (0,-1), (-1,-1), 1, colors.HexColor('#DEE2E6')),
-        ('BOX',          (3,-1), (4,-1),  0.5, colors.HexColor('#DEE2E6')),
-    ]))
+        ('BACKGROUND',    (0,0),  (-1,0),  c_pri),
+        ('TEXTCOLOR',     (0,0),  (-1,0),  colors.white),
+        ('GRID',          (0,0),  (-1,-2), 0.5, colors.HexColor('#DEE2E6')),
+        ('VALIGN',        (0,0),  (-1,-1), 'MIDDLE'),
+        ('ALIGN',         (2,0),  (-1,-1), 'RIGHT'),
+        ('TOPPADDING',    (0,0),  (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0),  (-1,-1), 6),
+        ('SPAN',          (0,-1), (2,-1)),
+        ('LINEABOVE',     (0,-1), (-1,-1), 1, colors.HexColor('#DEE2E6')),
+        ('BOX',           (3,-1), (4,-1),  0.5, colors.HexColor('#DEE2E6')),
+    ] + row_bgs))
     story.append(t_art)
 
+    _pdf_footer(story, org)
     doc.build(story)
     buffer.seek(0)
     filename = f"OC-Proyecto-{proyecto_oc.id}_{proyecto_oc.fecha_creacion.strftime('%Y-%m-%d')}.pdf"
@@ -4465,24 +4390,21 @@ def exportar_valorizacion_pdf():
     story  = []
     styles = getSampleStyleSheet()
 
-    primary    = colors.HexColor('#4F46E5')
+    fuente, primary, c_sec = _pdf_estilos(org)
     light_gray = colors.HexColor('#F8F9FA')
     mid_gray   = colors.HexColor('#DEE2E6')
-    green_c    = colors.HexColor('#059669')
-    red_c      = colors.HexColor('#DC2626')
 
-    s_title  = ParagraphStyle('RPTitle',  fontName='Helvetica-Bold', fontSize=18, textColor=primary, spaceAfter=4)
-    s_sub    = ParagraphStyle('RPSub',    fontName='Helvetica',      fontSize=10, textColor=colors.HexColor('#6B7280'), spaceAfter=2)
-    s_cell   = ParagraphStyle('RPCell',   fontName='Helvetica',      fontSize=8,  leading=10)
-    s_cellb  = ParagraphStyle('RPCellB',  fontName='Helvetica-Bold', fontSize=8,  leading=10)
-    s_cellr  = ParagraphStyle('RPCellR',  fontName='Helvetica',      fontSize=8,  leading=10, alignment=TA_RIGHT)
-    s_cellbr = ParagraphStyle('RPCellBR', fontName='Helvetica-Bold', fontSize=8,  leading=10, alignment=TA_RIGHT)
-    s_big    = ParagraphStyle('RPBig',    fontName='Helvetica-Bold', fontSize=14, textColor=primary)
+    s_title  = ParagraphStyle('RPTitle',  fontName=f'{fuente}-Bold', fontSize=18, textColor=primary, spaceAfter=4)
+    s_sub    = ParagraphStyle('RPSub',    fontName=fuente,           fontSize=10, textColor=colors.HexColor('#6B7280'), spaceAfter=2)
+    s_cell   = ParagraphStyle('RPCell',   fontName=fuente,           fontSize=8,  leading=10)
+    s_cellb  = ParagraphStyle('RPCellB',  fontName=f'{fuente}-Bold', fontSize=8,  leading=10)
+    s_cellr  = ParagraphStyle('RPCellR',  fontName=fuente,           fontSize=8,  leading=10, alignment=TA_RIGHT)
+    s_cellbr = ParagraphStyle('RPCellBR', fontName=f'{fuente}-Bold', fontSize=8,  leading=10, alignment=TA_RIGHT)
+    s_big    = ParagraphStyle('RPBig',    fontName=f'{fuente}-Bold', fontSize=14, textColor=primary)
 
-    # Encabezado
+    _pdf_header(story, org, styles)
     story.append(Paragraph("Reporte de Valorización de Inventario", s_title))
-    story.append(Paragraph(f"{org.nombre}  ·  {nombre_almacen}", s_sub))
-    story.append(Paragraph(f"Generado el {now_mx().strftime('%d de %B de %Y a las %H:%M')}", s_sub))
+    story.append(Paragraph(f"Almacén: {nombre_almacen}", s_sub))
     story.append(Spacer(1, 0.2*inch))
 
     # Resumen
@@ -4533,19 +4455,20 @@ def exportar_valorizacion_pdf():
     ])
 
     t_main = Table(data, colWidths=col_w, repeatRows=1)
+    row_bgs = _pdf_row_styles(len(data) - 1, c_sec)
     t_main.setStyle(TableStyle([
         ('BACKGROUND',   (0,0),  (-1,0),  primary),
         ('TEXTCOLOR',    (0,0),  (-1,0),  colors.white),
-        ('ROWBACKGROUNDS',(0,1), (-1,-2), [colors.white, light_gray]),
         ('BACKGROUND',   (0,-1), (-1,-1), colors.HexColor('#EEEDFC')),
-        ('FONTNAME',     (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('FONTNAME',     (0,-1), (-1,-1), f'{fuente}-Bold'),
         ('GRID',         (0,0),  (-1,-1), 0.5, mid_gray),
         ('BOX',          (0,0),  (-1,-1), 1,   mid_gray),
         ('PADDING',      (0,0),  (-1,-1), 5),
         ('VALIGN',       (0,0),  (-1,-1), 'MIDDLE'),
-    ]))
+    ] + row_bgs))
     story.append(t_main)
 
+    _pdf_footer(story, org)
     doc.build(story)
     buf.seek(0)
     fname = f"Valorizacion_{nombre_almacen.replace(' ','_')}_{now_mx().strftime('%Y%m%d')}.pdf"
@@ -5030,32 +4953,44 @@ def configurar_plantilla():
     
     if request.method == 'POST':
         try:
-            # 1. Guardar Logo (Código existente)
+            # Logo
             if 'logo' in request.files:
                 file = request.files['logo']
                 if file.filename != '' and allowed_file(file.filename):
                     filename = secure_filename(f"logo_org_{organizacion.id}_{file.filename}")
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     organizacion.logo_url = filename
+            if request.form.get('eliminar_logo') == '1':
+                organizacion.logo_url = None
 
-            # 2. NUEVO: Guardar Textos Personalizados
-            organizacion.header_titulo = request.form.get('header_titulo')
-            organizacion.header_subtitulo = request.form.get('header_subtitulo')
-            
-            # 3. Guardar otros datos (Color, Fuente, etc.)
-            organizacion.color_primario = request.form.get('color_primario', '#333333')
-            organizacion.tipo_letra = request.form.get('tipo_letra', 'Helvetica')
-            organizacion.direccion = request.form.get('direccion')
-            organizacion.telefono = request.form.get('telefono')
+            # Identidad
+            organizacion.nombre          = request.form.get('nombre', organizacion.nombre).strip()
+            organizacion.header_titulo   = request.form.get('header_titulo',  '').strip() or None
+            organizacion.header_subtitulo= request.form.get('header_subtitulo','').strip() or None
+            organizacion.rfc             = request.form.get('rfc',    '').strip() or None
+            organizacion.correo_empresa  = request.form.get('correo_empresa','').strip() or None
+            organizacion.direccion       = request.form.get('direccion','').strip() or None
+            organizacion.telefono        = request.form.get('telefono','').strip() or None
+
+            # Diseño
+            organizacion.color_primario  = request.form.get('color_primario',  '#333333')
+            organizacion.color_secundario= request.form.get('color_secundario','#f1f5f9')
+            organizacion.tipo_letra      = request.form.get('tipo_letra', 'Helvetica')
+
+            # Documentos PDF
+            organizacion.footer_texto    = request.form.get('footer_texto','').strip() or None
+            organizacion.pdf_mostrar_qr  = request.form.get('pdf_mostrar_qr') == '1'
+
+            # Notificaciones
             organizacion.whatsapp_notify = request.form.get('whatsapp_notify', '').strip() or None
 
             db.session.commit()
-            flash('Diseño de marca actualizado correctamente.', 'success')
-            
+            flash('Configuración de marca actualizada.', 'success')
+
         except Exception as e:
             db.session.rollback()
             flash(f'Error al guardar: {e}', 'danger')
-            
+
         return redirect(url_for('configurar_plantilla'))
         
     return render_template('plantilla_config.html', org=organizacion)
