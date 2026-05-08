@@ -1,14 +1,4 @@
-const CACHE = 'inventario-v7';
-
-// Solo recursos propios del servidor — CDN externas se cachean on-demand
-// por el fetch handler (cache-first para isStatic). Incluirlas aquí
-// hace que el install se quede colgado si CSP bloquea los fetches.
-const PRECACHE = [
-  '/offline',
-  '/static/manifest.json',
-  '/static/icons/icon-192.png',
-  '/static/icons/icon-512.png',
-];
+const CACHE = 'inventario-v8';
 
 // Rutas de la app que se cachean en background (stale-while-revalidate)
 const APP_ROUTES = [
@@ -21,21 +11,10 @@ const APP_ROUTES = [
   '/reportes',
 ];
 
-// Instalar: pre-cachear recursos críticos de forma tolerante a fallos
+// Instalar: sin precache para evitar cualquier cuelgue. El fetch handler
+// cachea recursos on-demand en la primera visita.
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c =>
-      // Promise.allSettled: si un recurso falla (icono faltante, CDN lento)
-      // el SW igual instala — no bloquea toda la activación.
-      Promise.allSettled(
-        PRECACHE.map(url =>
-          c.add(url).catch(err =>
-            console.warn('[SW] precache skip:', url, err.message)
-          )
-        )
-      )
-    ).then(() => self.skipWaiting())
-  );
+  e.waitUntil(self.skipWaiting());
 });
 
 // Activar: limpiar cachés viejos
