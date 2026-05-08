@@ -6201,6 +6201,13 @@ def nuevo_pago_servicio(id):
                 comp.save(os.path.join(carpeta, nombre))
                 p.comprobante_url = nombre
         db.session.commit()
+        if p.estado == 'pagado':
+            enviar_push_notificacion(
+                org_id=s.organizacion_id,
+                titulo=f'✅ Pago registrado — {s.nombre}',
+                cuerpo=f'${p.monto:,.2f} MXN · {p.fecha_pago.strftime("%d/%m/%Y")}',
+                url=f'/servicios/{s.id}'
+            )
         flash('Pago registrado.', 'success')
         return redirect(url_for('detalle_servicio', id=s.id))
     hoy = now_mx().date()
@@ -6225,6 +6232,12 @@ def marcar_pago_pagado(id):
     p.estado = 'pagado'
     _registrar_gasto_servicio(p)
     db.session.commit()
+    enviar_push_notificacion(
+        org_id=p.servicio.organizacion_id,
+        titulo=f'✅ Pago registrado — {p.servicio.nombre}',
+        cuerpo=f'${p.monto:,.2f} MXN · {p.fecha_pago.strftime("%d/%m/%Y")}',
+        url=f'/servicios/{p.servicio_id}'
+    )
     flash('Pago marcado como pagado. Gasto registrado automáticamente. ✓', 'success')
     return redirect(url_for('detalle_servicio', id=p.servicio_id))
 

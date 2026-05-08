@@ -1481,42 +1481,52 @@
             return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
         }
 
-        async function getSubscription() {
-            const reg = await navigator.serviceWorker.ready;
-            return reg.pushManager.getSubscription();
+        // Wrapper con timeout para evitar que navigator.serviceWorker.ready cuelgue
+        function swReady(ms = 8000) {
+            return Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise((_, rej) =>
+                    setTimeout(() => rej(new Error('SW_TIMEOUT')), ms))
+            ]);
         }
 
         async function actualizarBoton() {
-            const sub = await getSubscription();
-            if (sub) {
-                pushIcon.className = 'bi bi-bell-fill';
-                pushBtn.title = 'Desactivar notificaciones push';
-                pushBtn.style.color = 'var(--primary)';
-            } else {
-                pushIcon.className = 'bi bi-bell-slash';
-                pushBtn.title = 'Activar notificaciones push';
-                pushBtn.style.color = '';
-            }
+            try {
+                const reg = await swReady(5000);
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    pushIcon.className   = 'bi bi-bell-fill';
+                    pushBtn.title        = 'Desactivar notificaciones push';
+                    pushBtn.style.color  = 'var(--primary)';
+                } else {
+                    pushIcon.className   = 'bi bi-bell-slash';
+                    pushBtn.title        = 'Activar notificaciones push';
+                    pushBtn.style.color  = '';
+                }
+            } catch(e) { /* SW aún no listo — no cambiar el ícono */ }
         }
 
-        async function suscribir() {
-            const reg = await navigator.serviceWorker.ready;
+        async function suscribir(reg) {
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
             });
-            await fetch('/api/push/subscribe', {
+            const resp = await fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json',
                            'X-CSRFToken': '{{ csrf_token() }}' },
                 body: JSON.stringify(sub.toJSON())
             });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.error || `HTTP ${resp.status}`);
+            }
             showToast('Notificaciones activadas ✓', 'success');
             actualizarBoton();
         }
 
-        async function desuscribir() {
-            const sub = await getSubscription();
+        async function desuscribir(reg) {
+            const sub = await reg.pushManager.getSubscription();
             if (sub) {
                 await sub.unsubscribe();
                 await fetch('/api/push/unsubscribe', {
@@ -1531,23 +1541,37 @@
         }
 
         pushBtn.addEventListener('click', async function() {
-            const sub = await getSubscription();
-            if (sub) {
-                await desuscribir();
-            } else {
-                if (Notification.permission === 'denied') {
-                    showToast('Notificaciones bloqueadas en el navegador. Habilítalas en la configuración del sitio.', 'warning', 5000);
-                    return;
+            pushBtn.disabled = true;
+            try {
+                const reg = await swReady(6000);
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    await desuscribir(reg);
+                } else {
+                    if (Notification.permission === 'denied') {
+                        showToast('Notificaciones bloqueadas en el navegador. Habilítalas en la configuración del sitio.', 'warning', 6000);
+                        return;
+                    }
+                    const perm = await Notification.requestPermission();
+                    if (perm === 'granted') {
+                        await suscribir(reg);
+                    } else {
+                        showToast('Permiso de notificaciones denegado.', 'secondary');
+                    }
                 }
-                const perm = await Notification.requestPermission();
-                if (perm === 'granted') {
-                    try { await suscribir(); }
-                    catch(e) { showToast('No se pudieron activar las notificaciones.', 'danger'); }
+            } catch(e) {
+                console.error('[Push]', e);
+                if (e.message === 'SW_TIMEOUT') {
+                    showToast('El service worker no responde. Recarga la página e intenta de nuevo.', 'warning', 6000);
+                } else {
+                    showToast('Error al gestionar notificaciones: ' + e.message, 'danger', 6000);
                 }
+            } finally {
+                pushBtn.disabled = false;
             }
         });
 
-        navigator.serviceWorker.ready.then(actualizarBoton);
+        navigator.serviceWorker.ready.then(actualizarBoton).catch(() => {});
     })();
     </script>
     {% endif %}
