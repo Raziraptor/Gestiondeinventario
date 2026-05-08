@@ -5913,8 +5913,9 @@ TIPOS_SERVICIO = {
 def _actualizar_estados_pagos(org_id):
     """Marca como 'vencido' los pagos pendientes con fecha_vencimiento ya pasada."""
     hoy = now_mx().date()
-    PagoServicio.query.join(Servicio).filter(
-        Servicio.organizacion_id == org_id,
+    serv_ids = db.session.query(Servicio.id).filter_by(organizacion_id=org_id).subquery()
+    PagoServicio.query.filter(
+        PagoServicio.servicio_id.in_(serv_ids),
         PagoServicio.estado == 'pendiente',
         PagoServicio.fecha_vencimiento < hoy
     ).update({'estado': 'vencido'}, synchronize_session=False)
