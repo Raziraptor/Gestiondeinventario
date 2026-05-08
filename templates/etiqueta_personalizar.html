@@ -2,21 +2,30 @@
 {% block title %}Diseño de Etiquetas{% endblock %}
 
 {% block content %}
-<div class="container py-4 pb-5" style="max-width:860px;">
+<div class="container-fluid mt-3 mb-5" style="max-width:940px;">
 
-  <div class="mb-4">
-    <a href="{{ url_for('configurar_plantilla') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
-      <i class="bi bi-arrow-left me-1"></i>Personalización
-    </a>
-    <div class="d-flex align-items-center gap-3">
-      <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-           style="width:52px;height:52px;background:rgba(79,70,229,.1);">
-        <i class="bi bi-tag-fill" style="color:var(--primary,#4f46e5);font-size:1.4rem;"></i>
-      </div>
-      <div>
-        <h1 class="h4 fw-bold mb-0">Diseño de Etiquetas</h1>
-        <div class="text-muted small">Tipografía, colores y estilo para todas las etiquetas generadas.</div>
-      </div>
+  {# ── BREADCRUMB ─────────────────────────────────────────────────────────── #}
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a>
+      </li>
+      <li class="breadcrumb-item">
+        <a href="{{ url_for('configurar_plantilla') }}">Personalizar Marca</a>
+      </li>
+      <li class="breadcrumb-item active">Diseño de Etiquetas</li>
+    </ol>
+  </nav>
+
+  {# ── ENCABEZADO ─────────────────────────────────────────────────────────── #}
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+         style="width:52px;height:52px;background:rgba(79,70,229,.1);">
+      <i class="bi bi-tag-fill" style="color:var(--primary,#4f46e5);font-size:1.4rem;"></i>
+    </div>
+    <div>
+      <h1 class="h4 fw-bold mb-0">Diseño de Etiquetas</h1>
+      <p class="text-muted small mb-0">Tipografía, colores y estilo para todas las etiquetas generadas.</p>
     </div>
   </div>
 
@@ -35,14 +44,14 @@
             </p>
             <div class="row g-2" id="fontGrid">
               {% set fonts = [
-                ('Inter',          'Inter, sans-serif',      'Aa',  'Moderna y limpia'),
-                ('Roboto',         'Roboto, sans-serif',     'Aa',  'Técnica y neutral'),
-                ('Montserrat',     'Montserrat, sans-serif', 'Aa',  'Bold e impactante'),
-                ('Poppins',        'Poppins, sans-serif',    'Aa',  'Redondeada y friendly'),
-                ('Oswald',         'Oswald, sans-serif',     'Aa',  'Condensada, ideal para espacios pequeños'),
-                ('CenturyGothic',  'CenturyGothic, Arial, sans-serif', 'Aa', 'Geométrica clásica'),
+                ('Inter',         'Inter, sans-serif',     'Moderno y limpia'),
+                ('Roboto',        'Roboto, sans-serif',    'Técnica y neutral'),
+                ('Montserrat',    'Montserrat, sans-serif','Bold e impactante'),
+                ('Poppins',       'Poppins, sans-serif',   'Redondeada'),
+                ('Oswald',        'Oswald, sans-serif',    'Condensada'),
+                ('CenturyGothic', 'CenturyGothic, Arial, sans-serif', 'Geométrica'),
               ] %}
-              {% for key, css, sample, desc in fonts %}
+              {% for key, css, desc in fonts %}
               <div class="col-6 col-sm-4">
                 <label class="d-block h-100" style="cursor:pointer;">
                   <input type="radio" name="fuente" value="{{ key }}" class="font-radio d-none"
@@ -50,9 +59,9 @@
                   <div class="font-card rounded-3 p-3 text-center h-100"
                        data-font="{{ css }}"
                        style="border:2px solid var(--border,#e2e8f0);background:var(--surface-raised,#f8fafc);transition:.15s;cursor:pointer;">
-                    <div class="fw-bold mb-1" style="font-size:1.6rem;font-family:{{ css }};">{{ sample }}</div>
-                    <div class="fw-semibold" style="font-size:.72rem;font-family:{{ css }};">{{ key }}</div>
-                    <div class="text-muted mt-1" style="font-size:.62rem;line-height:1.3;">{{ desc }}</div>
+                    <div class="fw-bold mb-1" style="font-size:1.7rem;font-family:{{ css }};">Aa</div>
+                    <div class="fw-semibold" style="font-size:.82rem;font-family:{{ css }};">{{ key }}</div>
+                    <div class="text-muted mt-1" style="font-size:.75rem;">{{ desc }}</div>
                   </div>
                 </label>
               </div>
@@ -67,9 +76,9 @@
             <p class="fw-semibold small text-muted text-uppercase mb-3" style="letter-spacing:.4px;">
               <i class="bi bi-palette me-1 text-primary"></i>Colores
             </p>
-            <div class="row g-3">
+            <div class="row g-3 mb-3">
               {% set color_fields = [
-                ('color_fondo', 'Fondo',       org.etiqueta_color_fondo or '#FFFFFF', 'bi-square-fill', 'El fondo de la etiqueta'),
+                ('color_fondo', 'Fondo',       org.etiqueta_color_fondo or '#FFFFFF', 'bi-square-fill', 'Fondo de la etiqueta'),
                 ('color_texto', 'Texto',        org.etiqueta_color_texto or '#1a1a1a', 'bi-fonts',       'Nombre del producto'),
                 ('color_sku',   'SKU / Código', org.etiqueta_color_sku   or '#1f4e79', 'bi-upc-scan',    'Código destacado'),
               ] %}
@@ -81,41 +90,39 @@
                 <div class="d-flex gap-2 align-items-center">
                   <input type="color" name="{{ name }}" id="{{ name }}" value="{{ val }}"
                          class="form-control form-control-color flex-shrink-0 rounded-3 border-0 shadow-sm"
-                         style="width:44px;height:38px;padding:2px;cursor:pointer;">
+                         style="width:46px;height:40px;padding:2px;cursor:pointer;">
                   <input type="text" id="{{ name }}_hex" value="{{ val }}"
                          maxlength="7" class="form-control form-control-sm font-monospace rounded-3"
-                         style="font-size:.78rem;" placeholder="#RRGGBB">
+                         placeholder="#RRGGBB">
                 </div>
-                <div class="form-text mt-1" style="font-size:.65rem;">{{ hint }}</div>
+                <div class="form-text mt-1" style="font-size:.75rem;">{{ hint }}</div>
               </div>
               {% endfor %}
             </div>
 
             {# Paletas rápidas #}
-            <div class="mt-3">
-              <div class="small text-muted fw-semibold mb-2">Combinaciones rápidas</div>
-              <div class="d-flex flex-wrap gap-2" id="palettePicker">
-                {% set palettes = [
-                  ('#FFFFFF','#1a1a1a','#1f4e79','Clásico'),
-                  ('#1e293b','#f1f5f9','#60a5fa','Dark'),
-                  ('#f0fdf4','#14532d','#15803d','Verde'),
-                  ('#fefce8','#713f12','#d97706','Ámbar'),
-                  ('#fdf2f8','#701a75','#a21caf','Morado'),
-                  ('#eff6ff','#1e3a5f','#2563eb','Azul'),
-                ] %}
-                {% for bg, tx, sk, name in palettes %}
-                <button type="button" class="btn btn-sm rounded-pill px-3 palette-btn"
-                        data-bg="{{ bg }}" data-tx="{{ tx }}" data-sk="{{ sk }}"
-                        style="background:{{ bg }};color:{{ tx }};border:2px solid {{ sk }};font-size:.7rem;font-weight:600;">
-                  {{ name }}
-                </button>
-                {% endfor %}
-              </div>
+            <div class="small fw-semibold text-muted mb-2">Combinaciones rápidas</div>
+            <div class="d-flex flex-wrap gap-2">
+              {% set palettes = [
+                ('#FFFFFF','#1a1a1a','#1f4e79','Clásico'),
+                ('#1e293b','#f1f5f9','#60a5fa','Dark'),
+                ('#f0fdf4','#14532d','#15803d','Verde'),
+                ('#fefce8','#713f12','#d97706','Ámbar'),
+                ('#fdf2f8','#701a75','#a21caf','Morado'),
+                ('#eff6ff','#1e3a5f','#2563eb','Azul'),
+              ] %}
+              {% for bg, tx, sk, name in palettes %}
+              <button type="button" class="btn btn-sm rounded-pill px-3 palette-btn"
+                      data-bg="{{ bg }}" data-tx="{{ tx }}" data-sk="{{ sk }}"
+                      style="background:{{ bg }};color:{{ tx }};border:2px solid {{ sk }};font-size:.8rem;font-weight:600;">
+                {{ name }}
+              </button>
+              {% endfor %}
             </div>
           </div>
         </div>
 
-        {# ── ESTILO ────────────────────────────────────────────────────────── #}
+        {# ── ESTILO DE LAYOUT ──────────────────────────────────────────────── #}
         <div class="card border-0 shadow-sm rounded-4 mb-3">
           <div class="card-body p-4">
             <p class="fw-semibold small text-muted text-uppercase mb-3" style="letter-spacing:.4px;">
@@ -123,11 +130,11 @@
             </p>
             <div class="row g-2">
               {% set estilos = [
-                ('moderno',     'bi-layout-text-sidebar-reverse', 'Moderno',     'Proporciones equilibradas, uso general'),
-                ('bold',        'bi-type-bold',                   'Bold',        'Tipografía más grande y prominente'),
-                ('minimalista', 'bi-dash-square',                 'Minimalista', 'Borde sutil, mucho espacio en blanco'),
-                ('dark',        'bi-moon-stars-fill',             'Dark',        'Oscuro, ideal para etiquetas premium'),
-                ('compacto',    'bi-text-wrap',                   'Compacto',    'Fuentes reducidas, más información'),
+                ('moderno',     'bi-layout-text-sidebar-reverse', 'Moderno',     'Uso general'),
+                ('bold',        'bi-type-bold',                   'Bold',        'SKU prominente'),
+                ('minimalista', 'bi-dash-square',                 'Minimalista', 'Borde sutil'),
+                ('dark',        'bi-moon-stars-fill',             'Dark',        'Fondo oscuro'),
+                ('compacto',    'bi-text-wrap',                   'Compacto',    'Más información'),
               ] %}
               {% for key, icon, label, desc in estilos %}
               <div class="col-6 col-sm-4">
@@ -137,9 +144,9 @@
                   <div class="estilo-card rounded-3 p-3 text-center h-100"
                        data-key="{{ key }}"
                        style="border:2px solid var(--border,#e2e8f0);background:var(--surface-raised,#f8fafc);transition:.15s;cursor:pointer;">
-                    <i class="bi {{ icon }} d-block mb-1" style="font-size:1.4rem;color:var(--primary,#4f46e5);"></i>
-                    <div class="fw-semibold" style="font-size:.78rem;">{{ label }}</div>
-                    <div class="text-muted mt-1" style="font-size:.62rem;line-height:1.3;">{{ desc }}</div>
+                    <i class="bi {{ icon }} d-block mb-2" style="font-size:1.5rem;color:var(--primary,#4f46e5);"></i>
+                    <div class="fw-semibold" style="font-size:.88rem;">{{ label }}</div>
+                    <div class="text-muted mt-1" style="font-size:.75rem;">{{ desc }}</div>
                   </div>
                 </label>
               </div>
@@ -157,7 +164,7 @@
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" name="mostrar_logo" id="switchLogo"
                      {{ 'checked' if org.etiqueta_mostrar_logo != False }}>
-              <label class="form-check-label small" for="switchLogo">
+              <label class="form-check-label" for="switchLogo">
                 Incluir imagen del producto en la etiqueta (si está disponible)
               </label>
             </div>
@@ -180,67 +187,40 @@
         <div class="card border-0 shadow-sm rounded-4">
           <div class="card-body p-4">
             <p class="fw-semibold small text-muted text-uppercase mb-3" style="letter-spacing:.4px;">
-              <i class="bi bi-eye me-1 text-primary"></i>Vista previa
+              <i class="bi bi-eye me-1 text-primary"></i>Vista previa en tiempo real
             </p>
 
-            {# Preview simulado de etiqueta 3"×1" #}
-            <div class="rounded-3 overflow-hidden mb-3"
-                 style="border:1px solid var(--border,#e2e8f0);background:#f8fafc;padding:12px;">
+            <div class="rounded-3 p-3 mb-3"
+                 style="background:var(--surface-raised,#f8fafc);border:1px solid var(--border,#e2e8f0);">
               <div id="labelPreview"
                    style="width:100%;aspect-ratio:3/1;border-radius:6px;overflow:hidden;
                           position:relative;display:flex;align-items:stretch;
-                          box-shadow:0 2px 8px rgba(0,0,0,.12);">
-                {# Contenido texto #}
+                          box-shadow:0 2px 12px rgba(0,0,0,.15);">
                 <div id="prevText"
-                     style="flex:1;padding:8px 10px;display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden;">
-                  <div id="prevNombre" class="text-truncate fw-semibold" style="font-size:.9rem;line-height:1.2;">
-                    Nombre del Producto Ejemplo
+                     style="flex:1;padding:10px 12px;display:flex;flex-direction:column;
+                            justify-content:center;gap:3px;overflow:hidden;">
+                  <div id="prevNombre" class="text-truncate fw-semibold"
+                       style="font-size:1rem;line-height:1.2;">
+                    Nombre del Producto
                   </div>
-                  <div id="prevCodigo" class="fw-bold font-monospace" style="font-size:1.05rem;">
+                  <div id="prevCodigo" class="fw-bold font-monospace"
+                       style="font-size:1.15rem;letter-spacing:.5px;">
                     SKU-001234
                   </div>
-                  <div id="prevUbic" style="font-size:.68rem;opacity:.75;">
+                  <div id="prevUbic" style="font-size:.75rem;opacity:.8;">
                     UBIC: A-01
                   </div>
                 </div>
-                {# QR simulado #}
-                <div id="prevQR"
-                     style="width:60px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:flex-end;padding:6px;">
-                  <div style="width:44px;height:44px;border-radius:3px;"
-                       class="qr-sim"></div>
+                <div style="width:64px;flex-shrink:0;display:flex;align-items:flex-end;
+                            justify-content:flex-end;padding:8px;">
+                  <div class="qr-sim" style="width:48px;height:48px;border-radius:3px;"></div>
                 </div>
               </div>
             </div>
 
-            <div id="prevBorder" style="display:none;" class="rounded-3 overflow-hidden mb-3"
-                 style="border:1px solid var(--border,#e2e8f0);background:#f8fafc;padding:12px;">
-            </div>
-
-            <div class="text-muted" style="font-size:.72rem;text-align:center;">
-              <i class="bi bi-info-circle me-1"></i>Preview aproximado · La etiqueta real se genera a 300 DPI
-            </div>
-
-            <hr style="border-color:var(--border,#e2e8f0);" class="my-3">
-
-            <div class="d-flex flex-column gap-2">
-              <div class="small text-muted fw-semibold">Fuentes activas</div>
-              <div id="fontStatus" class="d-flex flex-wrap gap-1">
-                {% set all_fonts = ['Inter','Roboto','Montserrat','Poppins','Oswald'] %}
-                {% for f in all_fonts %}
-                <span class="badge rounded-pill px-2"
-                      style="background:var(--hover-bg,#f1f5f9);color:#64748b;border:1px solid var(--border,#e2e8f0);font-size:.65rem;">
-                  {{ f }}
-                </span>
-                {% endfor %}
-                <span class="badge rounded-pill px-2"
-                      style="background:var(--hover-bg,#f1f5f9);color:#64748b;border:1px solid var(--border,#e2e8f0);font-size:.65rem;">
-                  CenturyGothic*
-                </span>
-              </div>
-              <div class="text-muted" style="font-size:.65rem;">
-                * Requiere TTF en <code>/static/fonts/</code> · Las otras se descargan con <code>instalar_fuentes_etiqueta.sh</code>
-              </div>
-            </div>
+            <p class="text-muted text-center mb-0" style="font-size:.8rem;">
+              <i class="bi bi-info-circle me-1"></i>Vista aproximada · La etiqueta real se genera a 300 DPI
+            </p>
           </div>
         </div>
       </div>
@@ -252,104 +232,84 @@
 <style>
 .font-card.selected, .estilo-card.selected {
   border-color: var(--primary, #4f46e5) !important;
-  background: color-mix(in srgb, var(--primary,#4f46e5) 8%, transparent) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary,#4f46e5) 15%, transparent);
+  background: rgba(79,70,229,.08) !important;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
 }
 .font-card:hover:not(.selected), .estilo-card:hover:not(.selected) {
   border-color: #94a3b8 !important;
 }
 .qr-sim {
-  background: repeating-linear-gradient(
-    0deg, #000 0px, #000 3px, transparent 3px, transparent 6px
-  ),
-  repeating-linear-gradient(
-    90deg, #000 0px, #000 3px, transparent 3px, transparent 6px
-  );
+  background:
+    repeating-linear-gradient(0deg,   #000 0,#000 3px, transparent 3px, transparent 6px),
+    repeating-linear-gradient(90deg,  #000 0,#000 3px, transparent 3px, transparent 6px);
   background-size: 6px 6px;
-  opacity: .85;
 }
 </style>
-
 {% endblock %}
 
 {% block scripts %}
-{# Google Fonts CDN para preview en tiempo real #}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
 <script>
-// ── Selector de fuentes ──────────────────────────────────────────────────────
-const fontRadios  = document.querySelectorAll('.font-radio');
-const fontCards   = document.querySelectorAll('.font-card');
-const estiloRadios = document.querySelectorAll('.estilo-radio');
-const estiloCards  = document.querySelectorAll('.estilo-card');
+// ── Fuentes ──────────────────────────────────────────────────────────────────
+document.querySelectorAll('.font-card').forEach(c => {
+  c.addEventListener('click', () => {
+    c.closest('label').querySelector('.font-radio').checked = true;
+    syncFontCards();
+  });
+});
+document.querySelectorAll('.font-radio').forEach(r => r.addEventListener('change', syncFontCards));
 
 function syncFontCards() {
-  fontCards.forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.font-card').forEach(c => c.classList.remove('selected'));
   const checked = document.querySelector('.font-radio:checked');
-  if (checked) {
-    const card = checked.closest('label').querySelector('.font-card');
-    if (card) card.classList.add('selected');
-    updatePreviewFont(card?.dataset.font || '');
-  }
+  if (!checked) return;
+  const card = checked.closest('label').querySelector('.font-card');
+  card?.classList.add('selected');
+  updatePreviewFont(card?.dataset.font || '');
 }
-fontCards.forEach(c => {
-  c.addEventListener('click', () => {
-    const r = c.closest('label').querySelector('.font-radio');
-    if (r) { r.checked = true; syncFontCards(); }
-  });
-});
-fontRadios.forEach(r => r.addEventListener('change', syncFontCards));
 
-// ── Selector de estilos ──────────────────────────────────────────────────────
+// ── Estilos ───────────────────────────────────────────────────────────────────
 const ESTILO_PALETTES = {
-  dark:    { fondo: '#1e293b', texto: '#f1f5f9', sku: '#60a5fa' },
+  dark: { fondo: '#1e293b', texto: '#f1f5f9', sku: '#60a5fa' },
 };
-function syncEstiloCards() {
-  estiloCards.forEach(c => c.classList.remove('selected'));
-  const checked = document.querySelector('.estilo-radio:checked');
-  if (checked) {
-    const card = checked.closest('label').querySelector('.estilo-card');
-    if (card) card.classList.add('selected');
-    const key = card?.dataset.key;
-    if (ESTILO_PALETTES[key]) applyPalette(ESTILO_PALETTES[key]);
-    updatePreviewEstilo(key || 'moderno');
-  }
-}
-estiloCards.forEach(c => {
+document.querySelectorAll('.estilo-card').forEach(c => {
   c.addEventListener('click', () => {
-    const r = c.closest('label').querySelector('.estilo-radio');
-    if (r) { r.checked = true; syncEstiloCards(); }
+    c.closest('label').querySelector('.estilo-radio').checked = true;
+    syncEstiloCards();
   });
 });
-estiloRadios.forEach(r => r.addEventListener('change', syncEstiloCards));
+document.querySelectorAll('.estilo-radio').forEach(r => r.addEventListener('change', syncEstiloCards));
 
-// ── Color pickers ────────────────────────────────────────────────────────────
+function syncEstiloCards() {
+  document.querySelectorAll('.estilo-card').forEach(c => c.classList.remove('selected'));
+  const checked = document.querySelector('.estilo-radio:checked');
+  if (!checked) return;
+  const card = checked.closest('label').querySelector('.estilo-card');
+  card?.classList.add('selected');
+  const key = card?.dataset.key;
+  if (ESTILO_PALETTES[key]) applyPalette(ESTILO_PALETTES[key]);
+  updatePreviewEstilo(key || 'moderno');
+}
+
+// ── Colores ───────────────────────────────────────────────────────────────────
 ['color_fondo','color_texto','color_sku'].forEach(id => {
   const picker = document.getElementById(id);
   const hex    = document.getElementById(id + '_hex');
-  if (!picker || !hex) return;
-
-  picker.addEventListener('input', () => {
-    hex.value = picker.value;
-    updatePreviewColors();
-  });
-  hex.addEventListener('input', () => {
-    if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) {
-      picker.value = hex.value;
-      updatePreviewColors();
-    }
+  picker?.addEventListener('input', () => { hex.value = picker.value; updatePreviewColors(); });
+  hex?.addEventListener('input', () => {
+    if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) { picker.value = hex.value; updatePreviewColors(); }
   });
 });
 
-// ── Paletas rápidas ──────────────────────────────────────────────────────────
 document.querySelectorAll('.palette-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    applyPalette({ fondo: btn.dataset.bg, texto: btn.dataset.tx, sku: btn.dataset.sk });
-  });
+  btn.addEventListener('click', () =>
+    applyPalette({ fondo: btn.dataset.bg, texto: btn.dataset.tx, sku: btn.dataset.sk }));
 });
+
 function applyPalette({ fondo, texto, sku }) {
   setColor('color_fondo', fondo);
   setColor('color_texto', texto);
-  setColor('color_sku', sku);
+  setColor('color_sku',   sku);
   updatePreviewColors();
 }
 function setColor(id, val) {
@@ -359,63 +319,51 @@ function setColor(id, val) {
   if (h) h.value = val;
 }
 
-// ── Preview en vivo ──────────────────────────────────────────────────────────
-const prevLabel  = document.getElementById('labelPreview');
-const prevText   = document.getElementById('prevText');
-const prevNombre = document.getElementById('prevNombre');
-const prevCodigo = document.getElementById('prevCodigo');
-const prevUbic   = document.getElementById('prevUbic');
-const prevQR     = document.getElementById('prevQR');
-const qrSim      = document.querySelector('.qr-sim');
+// ── Preview ───────────────────────────────────────────────────────────────────
+function updatePreviewFont(css) {
+  if (!css) return;
+  ['prevNombre','prevCodigo','prevUbic'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.fontFamily = css;
+  });
+}
 
 function updatePreviewColors() {
   const bg = document.getElementById('color_fondo')?.value || '#FFFFFF';
   const tx = document.getElementById('color_texto')?.value || '#1a1a1a';
   const sk = document.getElementById('color_sku')?.value   || '#1f4e79';
-
-  prevLabel.style.background  = bg;
-  prevNombre.style.color = tx;
-  prevCodigo.style.color = sk;
-  prevUbic.style.color   = tx;
-
-  const isDark = isColorDark(bg);
-  if (qrSim) {
-    qrSim.style.opacity = '0.85';
-    qrSim.style.filter  = isDark ? 'invert(1)' : 'none';
-    qrSim.style.background = isDark
-      ? 'repeating-linear-gradient(0deg,#fff 0,#fff 3px,transparent 3px,transparent 6px),repeating-linear-gradient(90deg,#fff 0,#fff 3px,transparent 3px,transparent 6px)'
-      : 'repeating-linear-gradient(0deg,#000 0,#000 3px,transparent 3px,transparent 6px),repeating-linear-gradient(90deg,#000 0,#000 3px,transparent 3px,transparent 6px)';
+  const prev = document.getElementById('labelPreview');
+  if (prev) prev.style.background = bg;
+  const n = document.getElementById('prevNombre');
+  const c = document.getElementById('prevCodigo');
+  const u = document.getElementById('prevUbic');
+  if (n) n.style.color = tx;
+  if (c) c.style.color = sk;
+  if (u) u.style.color = tx;
+  const qr = document.querySelector('.qr-sim');
+  if (qr) {
+    const dark = isColorDark(bg);
+    qr.style.filter = dark ? 'invert(1)' : 'none';
   }
-  if (prevLabel) prevLabel.style.border = isDark ? '1px solid rgba(255,255,255,.1)' : '1px solid rgba(0,0,0,.06)';
-}
-
-function updatePreviewFont(fontCss) {
-  if (!fontCss) return;
-  if (prevNombre) prevNombre.style.fontFamily = fontCss;
-  if (prevCodigo) prevCodigo.style.fontFamily = fontCss;
-  if (prevUbic)   prevUbic.style.fontFamily   = fontCss;
 }
 
 function updatePreviewEstilo(key) {
-  const sz = { bold: '1.1rem', compacto: '.75rem', moderno: '.9rem', minimalista: '.85rem', dark: '.9rem' };
-  if (prevNombre) prevNombre.style.fontSize = sz[key] || '.9rem';
-
-  // Borde para minimalista
-  if (prevLabel) {
-    prevLabel.style.outline = key === 'minimalista' ? '2px solid #cbd5e1' : 'none';
-    prevLabel.style.outlineOffset = '-3px';
-  }
+  const n = document.getElementById('prevNombre');
+  const c = document.getElementById('prevCodigo');
+  if (key === 'bold')     { if(n) n.style.fontSize = '1.15rem'; if(c) c.style.fontSize = '1.35rem'; }
+  else if (key === 'compacto') { if(n) n.style.fontSize = '.82rem'; if(c) c.style.fontSize = '.95rem'; }
+  else                    { if(n) n.style.fontSize = '1rem';    if(c) c.style.fontSize = '1.15rem'; }
+  const prev = document.getElementById('labelPreview');
+  if (prev) prev.style.outline = key === 'minimalista' ? '2px solid #cbd5e1' : 'none';
 }
 
 function isColorDark(hex) {
-  hex = hex.replace('#','');
-  const r = parseInt(hex.substr(0,2),16);
-  const g = parseInt(hex.substr(2,2),16);
-  const b = parseInt(hex.substr(4,2),16);
-  return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+  const h = hex.replace('#','');
+  const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+  return (r*299 + g*587 + b*114) / 1000 < 128;
 }
 
-// ── Inicializar ──────────────────────────────────────────────────────────────
+// Init
 syncFontCards();
 syncEstiloCards();
 updatePreviewColors();
