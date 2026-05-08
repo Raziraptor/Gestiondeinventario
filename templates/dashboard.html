@@ -199,11 +199,11 @@
                style="width:48px;height:48px;background:rgba(139,92,246,.12);">
             <i class="bi bi-award fs-4" style="color:#8b5cf6;"></i>
           </div>
-          <div class="min-w-0">
+          <div class="min-w-0" style="overflow:hidden;flex:1;">
             <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Mayor Valor</div>
             {% if items_por_valor %}
             {% set top = items_por_valor[0] %}
-            <div class="fw-semibold text-truncate" style="font-size:.83rem;">{{ top.producto.nombre }}</div>
+            <div class="fw-semibold text-truncate" style="font-size:.83rem;" title="{{ top.producto.nombre }}">{{ top.producto.nombre }}</div>
             <div class="text-muted" style="font-size:.7rem;">${{ "{:,.0f}".format((top.cantidad or 0)*(top.producto.precio_unitario or 0)) }}</div>
             {% else %}<div class="text-muted small">—</div>{% endif %}
           </div>
@@ -388,7 +388,7 @@
           <span id="alertasCount" class="badge bg-danger rounded-pill ms-1" style="font-size:.72rem;"></span>
         </span>
         <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAlertas()">
-          <i class="bi bi-chevron-up" id="alertasChevron"></i>
+          <i class="bi bi-chevron-down" id="alertasChevron"></i>
         </button>
       </div>
       <div id="alertasBody" class="card-body p-0">
@@ -613,6 +613,9 @@
     </div>
   </div>
 
+  {# Paginación de la tabla #}
+  <div id="paginacion" class="d-flex justify-content-center py-2 mb-2"></div>
+
   {# ── VALORIZACIÓN TOP 10 ──────────────────────────────────────────────── #}
   {% if items_stock and valor_almacen > 0 and current_user.rol in ['super_admin','admin'] %}
   <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -686,7 +689,7 @@
 
 {% block scripts %}
 <script>
-// ── FILTROS Y BÚSQUEDA ────────────────────────────────────────────────────
+// ── FILTROS, BÚSQUEDA Y PAGINACIÓN ───────────────────────────────────────
 const filas = document.querySelectorAll('.fila-producto');
 const inputBusqueda   = document.getElementById('filtro_busqueda');
 const selectCategoria = document.getElementById('filtro_categoria');
@@ -696,6 +699,9 @@ const listaSug        = document.getElementById('lista_sugerencias');
 const contador        = document.getElementById('contador_registros');
 const btnLimpiar      = document.getElementById('btnLimpiarBusqueda');
 
+const POR_PAGINA = 50;
+let paginaActual = 1;
+
 let datosBuscador = [];
 filas.forEach(f => {
   const nom = f.querySelector('td:nth-child(3) .fw-semibold');
@@ -704,25 +710,56 @@ filas.forEach(f => {
 });
 
 function aplicarFiltros() {
-  const txt  = inputBusqueda.value.toLowerCase().trim();
-  const catId = selectCategoria.value;
+  const txt    = inputBusqueda.value.toLowerCase().trim();
+  const catId  = selectCategoria.value;
   const provId = selectProveedor.value;
-  const est   = selectEstado.value;
-  let vis = 0;
+  const est    = selectEstado.value;
+  const filtradas = [];
   filas.forEach(f => {
     const ok = (!txt || f.dataset.nombre.includes(txt) || f.dataset.sku.includes(txt))
             && (catId === '0' || f.dataset.categoriaId === catId)
             && (provId === '0' || f.dataset.proveedorId === provId)
             && (!est || f.dataset.estado === est);
-    f.style.display = ok ? '' : 'none';
-    if (ok) vis++;
+    if (ok) filtradas.push(f);
+    else f.style.display = 'none';
   });
-  if (contador) contador.textContent = vis + ' Productos';
+  if (contador) contador.textContent = filtradas.length + ' Productos';
   if (btnLimpiar) btnLimpiar.style.display = txt ? '' : 'none';
+  const inicio = (paginaActual - 1) * POR_PAGINA;
+  const enPag  = new Set(filtradas.slice(inicio, inicio + POR_PAGINA));
+  filtradas.forEach(f => { f.style.display = enPag.has(f) ? '' : 'none'; });
+  renderPaginacion(filtradas.length);
+}
+
+function renderPaginacion(total) {
+  const c = document.getElementById('paginacion'); if (!c) return;
+  const totalPags = Math.ceil(total / POR_PAGINA);
+  if (totalPags <= 1) { c.innerHTML = ''; return; }
+  const p = paginaActual;
+  let html = '<nav><ul class="pagination pagination-sm mb-0 flex-wrap gap-1">';
+  html += `<li class="page-item${p===1?' disabled':''}"><button class="page-link rounded-pill px-3" ${p===1?'disabled':''} onclick="irPagina(${p-1})">&#8249;</button></li>`;
+  for (let i = 1; i <= totalPags; i++) {
+    if (i===1 || i===totalPags || (i>=p-2 && i<=p+2)) {
+      html += `<li class="page-item${i===p?' active':''}"><button class="page-link" onclick="irPagina(${i})">${i}</button></li>`;
+    } else if (i===p-3 || i===p+3) {
+      html += '<li class="page-item disabled"><span class="page-link">…</span></li>';
+    }
+  }
+  html += `<li class="page-item${p===totalPags?' disabled':''}"><button class="page-link rounded-pill px-3" ${p===totalPags?'disabled':''} onclick="irPagina(${p+1})">&#8250;</button></li>`;
+  html += `</ul></nav><span class="text-muted ms-3 small align-self-center">Página ${p} de ${totalPags} · ${total} productos</span>`;
+  c.innerHTML = `<div class="d-flex align-items-center gap-2 flex-wrap justify-content-center">${html}</div>`;
+}
+
+function irPagina(n) {
+  if (n < 1) return;
+  paginaActual = n;
+  aplicarFiltros();
+  document.getElementById('tabla_inventario')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function filtroRapido(estado) {
   selectEstado.value = estado;
+  paginaActual = 1;
   aplicarFiltros();
   document.querySelectorAll('.active-filter').forEach(b => {
     const match = b.dataset.filtroEstado === estado;
@@ -740,11 +777,13 @@ function filtroRapido(estado) {
 function limpiarBusqueda() {
   inputBusqueda.value = '';
   listaSug.style.display = 'none';
+  paginaActual = 1;
   aplicarFiltros();
 }
 
 if (inputBusqueda) {
   inputBusqueda.addEventListener('input', function() {
+    paginaActual = 1;
     aplicarFiltros();
     const txt = this.value.toLowerCase().trim();
     listaSug.innerHTML = '';
@@ -756,7 +795,7 @@ if (inputBusqueda) {
           const a = document.createElement('a');
           a.href = '#'; a.className = 'list-group-item list-group-item-action py-2';
           a.innerHTML = `<strong>${s.nombreReal}</strong> <small class='text-muted ms-2'>${s.skuReal}</small>`;
-          a.onclick = e => { e.preventDefault(); inputBusqueda.value = s.nombreReal; aplicarFiltros(); listaSug.style.display = 'none'; };
+          a.onclick = e => { e.preventDefault(); inputBusqueda.value = s.nombreReal; paginaActual = 1; aplicarFiltros(); listaSug.style.display = 'none'; };
           listaSug.appendChild(a);
         });
       } else listaSug.style.display = 'none';
@@ -764,9 +803,9 @@ if (inputBusqueda) {
   });
   document.addEventListener('click', e => { if (e.target !== inputBusqueda) listaSug.style.display = 'none'; });
 }
-if (selectCategoria) selectCategoria.addEventListener('change', aplicarFiltros);
-if (selectProveedor) selectProveedor.addEventListener('change', aplicarFiltros);
-if (selectEstado)    selectEstado.addEventListener('change', aplicarFiltros);
+if (selectCategoria) selectCategoria.addEventListener('change', () => { paginaActual = 1; aplicarFiltros(); });
+if (selectProveedor) selectProveedor.addEventListener('change', () => { paginaActual = 1; aplicarFiltros(); });
+if (selectEstado)    selectEstado.addEventListener('change',    () => { paginaActual = 1; aplicarFiltros(); });
 
 // ── ORDENAMIENTO ──────────────────────────────────────────────────────────
 let dirOrden = 'asc';
@@ -786,10 +825,12 @@ function ordenarTabla(n, tipo='str') {
   document.querySelectorAll('#tabla_inventario th i').forEach(i => i.className = 'bi bi-arrow-down-up ms-1 small opacity-50');
   const th = document.querySelectorAll('#tabla_inventario th')[n];
   if (th?.querySelector('i')) th.querySelector('i').className = `bi bi-arrow-${dirOrden==='asc'?'up':'down'} ms-1 small text-primary fw-bold`;
+  paginaActual = 1;
+  aplicarFiltros();
 }
 
 // ── PANEL DE ALERTAS ──────────────────────────────────────────────────────
-let alertasColapsadas = false;
+let alertasColapsadas = true;
 function toggleAlertas() {
   alertasColapsadas = !alertasColapsadas;
   document.getElementById('alertasBody').style.display = alertasColapsadas ? 'none' : '';
@@ -805,6 +846,10 @@ async function cargarAlertas() {
     const cnt    = document.getElementById('alertasCount');
     if (!data.count) { panel.style.display = 'none'; return; }
     panel.style.display = '';
+    // Iniciar siempre colapsado; el usuario lo abre manualmente
+    document.getElementById('alertasBody').style.display = 'none';
+    document.getElementById('alertasChevron').className = 'bi bi-chevron-down';
+    alertasColapsadas = true;
     cnt.textContent = data.count;
     lista.innerHTML = data.items.map(item => {
       const pct = item.minimo > 0 ? Math.round(item.cantidad / item.minimo * 100) : 0;
@@ -836,7 +881,7 @@ async function cargarAlertas() {
   } catch(e) {}
 }
 
-document.addEventListener('DOMContentLoaded', cargarAlertas);
+document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAlertas(); });
 </script>
 {% endblock %}
 
