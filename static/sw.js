@@ -1,14 +1,13 @@
-const CACHE = 'inventario-v6';
+const CACHE = 'inventario-v7';
 
+// Solo recursos propios del servidor — CDN externas se cachean on-demand
+// por el fetch handler (cache-first para isStatic). Incluirlas aquí
+// hace que el install se quede colgado si CSP bloquea los fetches.
 const PRECACHE = [
   '/offline',
   '/static/manifest.json',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
-  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
-  'https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap',
 ];
 
 // Rutas de la app que se cachean en background (stale-while-revalidate)
