@@ -1,4 +1,4 @@
-const CACHE = 'inventario-v5';
+const CACHE = 'inventario-v6';
 
 const PRECACHE = [
   '/offline',
@@ -22,12 +22,20 @@ const APP_ROUTES = [
   '/reportes',
 ];
 
-// Instalar: pre-cachear recursos críticos
+// Instalar: pre-cachear recursos críticos de forma tolerante a fallos
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE)
-      .then(c => c.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then(c =>
+      // Promise.allSettled: si un recurso falla (icono faltante, CDN lento)
+      // el SW igual instala — no bloquea toda la activación.
+      Promise.allSettled(
+        PRECACHE.map(url =>
+          c.add(url).catch(err =>
+            console.warn('[SW] precache skip:', url, err.message)
+          )
+        )
+      )
+    ).then(() => self.skipWaiting())
   );
 });
 
