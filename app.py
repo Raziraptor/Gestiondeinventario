@@ -6114,6 +6114,9 @@ def api_ocr_recibo():
         from PIL import Image
         import io as _io
 
+        # Ruta explícita para cuando gunicorn corre con PATH reducido
+        pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
         contenido = archivo.read()
 
         if ext == 'pdf':
