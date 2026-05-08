@@ -1,117 +1,204 @@
 {% extends 'base.html' %}
-
-{% block title %}Imprimir Etiqueta{% endblock %}
+{% block title %}Imprimir Etiqueta · {{ producto.nombre }}{% endblock %}
 
 {% block content %}
+<div class="container py-4 pb-5" style="max-width:620px;">
 
-<div class="container-fluid mt-3 mb-5">
+  {# ── ENCABEZADO ────────────────────────────────────────────────────────── #}
+  <div class="mb-4">
+    <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+    <h1 class="h4 fw-bold mb-1">
+      <i class="bi bi-upc-scan text-primary me-2"></i>Imprimir Etiqueta
+    </h1>
+    <p class="text-muted small mb-0">Genera etiquetas físicas con código QR para pegar en tu inventario.</p>
+  </div>
 
-    <!-- ENCABEZADO -->
-    <div class="text-center mb-5">
-        <h2 class="fw-bold fs-1"><i class="bi bi-upc-scan text-primary me-2"></i>Imprimir Etiqueta</h2>
-        <p class="text-muted fs-5">
-            Genera etiquetas físicas con códigos QR para pegar en tu inventario
-        </p>
-    </div>
-
-    <div class="row justify-content-center">
-        <div class="col-lg-7">
-            
-            <!-- TARJETA DEL FORMULARIO -->
-            <div class="card shadow-sm border-0 rounded-4">
-                
-                <!-- Cabecera de la Tarjeta con Detalles del Producto -->
-                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center px-4 px-md-5">
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 55px; height: 55px;">
-                        <i class="bi bi-box-seam fs-3"></i>
-                    </div>
-                    <div>
-                        <h4 class="mb-0 fw-bold text-body">{{ producto.nombre }}</h4>
-                        <span class="badge bg-light text-dark border border-secondary border-opacity-25 mt-1 font-monospace px-2 py-1 shadow-sm">
-                            <i class="bi bi-upc me-1"></i>SKU: {{ producto.codigo }}
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="card-body p-4 p-md-5">
-                    <form action="{{ url_for('generar_etiqueta_personalizada', id=producto.id) }}" method="POST" target="_blank">
-                        
-                        <!-- TOKEN CSRF DE SEGURIDAD -->
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                        <!-- SELECCIÓN DINÁMICA DE ALMACÉN Y UBICACIÓN -->
-                        <div class="mb-5">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-2">1. Almacén a imprimir (Ubicación)</label>
-                            <div class="input-group input-group-lg shadow-sm">
-                                <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-geo-alt text-danger"></i></span>
-                                <select class="form-select bg-light border-secondary border-opacity-25 fs-6" name="almacen_id" required>
-                                    <!-- Iteramos sobre todos los registros de stock de este producto -->
-                                    {% if producto.stocks %}
-                                        {% for stock in producto.stocks %}
-                                            <option value="{{ stock.almacen_id }}" {% if stock.almacen_id == almacen_seleccionado %}selected{% endif %}>
-                                                {{ stock.almacen.nombre }} - Ubicación: {{ stock.ubicacion or 'Sin asignar' }}
-                                            </option>
-                                        {% endfor %}
-                                    {% else %}
-                                        <option value="">-- Sin inventario registrado --</option>
-                                    {% endif %}
-                                </select>
-                            </div>
-                            <div class="form-text mt-2 small"><i class="bi bi-info-circle text-info me-1"></i>La etiqueta imprimirá la ubicación exacta del almacén que selecciones.</div>
-                        </div>
-
-                        <!-- SELECCIÓN DE TAMAÑO (TARJETAS INTERACTIVAS) -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-3">2. Selecciona el Tamaño</label>
-                            
-                            <div class="row g-3">
-                                <!-- Opción 1 -->
-                                <div class="col-sm-6">
-                                    <label class="w-100 m-0 position-relative">
-                                        <!-- Radio button oculto -->
-                                        <input class="form-check-input position-absolute" type="radio" name="tamano" id="size1" value="1x3" checked style="opacity: 0;">
-                                        <!-- Tarjeta visible -->
-                                        <div class="custom-radio-card text-center h-100">
-                                            <i class="bi bi-aspect-ratio fs-1 text-primary d-block mb-2"></i>
-                                            <h5 class="fw-bold mb-1 text-body">1" x 3"</h5>
-                                            <span class="text-muted small">Pequeña - Estándar</span>
-                                        </div>
-                                    </label>
-                                </div>
-                                
-                                <!-- Opción 2 -->
-                                <div class="col-sm-6">
-                                    <label class="w-100 m-0 position-relative">
-                                        <!-- Radio button oculto -->
-                                        <input class="form-check-input position-absolute" type="radio" name="tamano" id="size2" value="1.75x4" style="opacity: 0;">
-                                        <!-- Tarjeta visible -->
-                                        <div class="custom-radio-card text-center h-100">
-                                            <i class="bi bi-aspect-ratio fs-1 text-primary d-block mb-2" style="transform: scale(1.3);"></i>
-                                            <h5 class="fw-bold mb-1 text-body">1.75" x 4"</h5>
-                                            <span class="text-muted small">Grande - Detallada</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- SEPARADOR Y BOTONES -->
-                        <div class="col-12 mt-5">
-                            <hr class="border-secondary border-opacity-25 mb-4">
-                            <div class="d-grid gap-3 d-md-flex justify-content-md-end">
-                                <a href="javascript:history.back()" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2 shadow-sm">
-                                    Cancelar
-                                </a>
-                                <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
-                                    <i class="bi bi-printer me-2"></i> Generar Etiqueta
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
+  {# ── CARD PRODUCTO ─────────────────────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm rounded-4 mb-3"
+       style="border-left:4px solid var(--primary,#4f46e5)!important;">
+    <div class="card-body p-3 d-flex align-items-center gap-3">
+      {# Imagen o placeholder #}
+      {% if producto.imagen_url %}
+      <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}"
+           class="rounded-3 border shadow-sm flex-shrink-0"
+           style="width:56px;height:56px;object-fit:cover;">
+      {% else %}
+      <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+           style="width:56px;height:56px;background:rgba(79,70,229,.1);border:1px solid rgba(79,70,229,.2);">
+        <i class="bi bi-box-seam fs-4 text-primary"></i>
+      </div>
+      {% endif %}
+      <div class="min-w-0 flex-grow-1">
+        <div class="fw-bold text-body" style="font-size:.95rem;line-height:1.3;">{{ producto.nombre }}</div>
+        <div class="d-flex flex-wrap gap-2 mt-1 align-items-center">
+          <span class="badge rounded-pill border font-monospace px-2 py-1"
+                style="background:var(--hover-bg,#f1f5f9);color:#64748b;border-color:var(--border,#e2e8f0)!important;font-size:.72rem;">
+            <i class="bi bi-upc me-1"></i>{{ producto.codigo }}
+          </span>
+          {% if producto.categoria %}
+          <span class="badge rounded-pill px-2 py-1"
+                style="background:rgba(79,70,229,.08);color:var(--primary,#4f46e5);font-size:.72rem;">
+            {{ producto.categoria.nombre }}
+          </span>
+          {% endif %}
         </div>
+      </div>
     </div>
+  </div>
+
+  {# ── FORMULARIO ────────────────────────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <form action="{{ url_for('generar_etiqueta_personalizada', id=producto.id) }}" method="POST" target="_blank">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# ── PASO 1: ALMACÉN ─────────────────────────────────────────────── #}
+        <div class="mb-4">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="d-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0"
+                  style="width:22px;height:22px;background:var(--primary,#4f46e5);color:#fff;font-size:.7rem;">1</span>
+            <label class="fw-semibold small text-muted text-uppercase mb-0" style="letter-spacing:.4px;">
+              Almacén a imprimir (Ubicación)
+            </label>
+          </div>
+          <div class="input-group shadow-sm">
+            <span class="input-group-text"><i class="bi bi-geo-alt text-danger"></i></span>
+            <select class="form-select" name="almacen_id" required>
+              {% if producto.stocks %}
+                {% for stock in producto.stocks %}
+                <option value="{{ stock.almacen_id }}"
+                        {% if stock.almacen_id == almacen_seleccionado %}selected{% endif %}>
+                  {{ stock.almacen.nombre }} · Ubicación: {{ stock.ubicacion or 'Sin asignar' }}
+                </option>
+                {% endfor %}
+              {% else %}
+              <option value="">— Sin inventario registrado —</option>
+              {% endif %}
+            </select>
+          </div>
+          <div class="form-text mt-1" style="font-size:.75rem;">
+            <i class="bi bi-info-circle text-info me-1"></i>La etiqueta imprimirá la ubicación exacta del almacén seleccionado.
+          </div>
+        </div>
+
+        {# ── PASO 2: TAMAÑO ──────────────────────────────────────────────── #}
+        <div class="mb-4">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="d-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0"
+                  style="width:22px;height:22px;background:var(--primary,#4f46e5);color:#fff;font-size:.7rem;">2</span>
+            <label class="fw-semibold small text-muted text-uppercase mb-0" style="letter-spacing:.4px;">
+              Selecciona el Tamaño
+            </label>
+          </div>
+
+          <div class="row g-3">
+            {# Tarjeta 1x3 #}
+            <div class="col-6">
+              <label class="d-block w-100 m-0" style="cursor:pointer;">
+                <input type="radio" name="tamano" value="1x3" id="size1" class="size-radio d-none" checked>
+                <div class="size-card rounded-4 p-3 text-center h-100 selected" data-for="size1">
+                  {# Representación visual proporcional de 1x3 pulgadas #}
+                  <div class="label-preview mx-auto mb-3" style="width:38px;height:114px;"></div>
+                  <div class="fw-bold mb-1" style="font-size:.9rem;">1" × 3"</div>
+                  <div class="text-muted" style="font-size:.72rem;">Pequeña · Estándar</div>
+                  <div class="mt-2" style="font-size:.68rem;color:#94a3b8;">
+                    <i class="bi bi-check2 me-1"></i>Nombre · SKU · QR
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {# Tarjeta 1.75x4 #}
+            <div class="col-6">
+              <label class="d-block w-100 m-0" style="cursor:pointer;">
+                <input type="radio" name="tamano" value="1.75x4" id="size2" class="size-radio d-none">
+                <div class="size-card rounded-4 p-3 text-center h-100" data-for="size2">
+                  {# Representación visual proporcional de 1.75x4 #}
+                  <div class="label-preview mx-auto mb-3" style="width:66px;height:152px;"></div>
+                  <div class="fw-bold mb-1" style="font-size:.9rem;">1.75" × 4"</div>
+                  <div class="text-muted" style="font-size:.72rem;">Grande · Detallada</div>
+                  <div class="mt-2" style="font-size:.68rem;color:#94a3b8;">
+                    <i class="bi bi-check2 me-1"></i>Nombre · SKU · QR · Proveedor · Stock
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {# ── ACCIONES ────────────────────────────────────────────────────── #}
+        <div class="d-flex justify-content-end gap-2 pt-2 border-top" style="border-color:var(--border,#e2e8f0)!important;">
+          <a href="javascript:history.back()"
+             class="btn btn-outline-secondary rounded-pill fw-semibold px-4">
+            Cancelar
+          </a>
+          <button type="submit" class="btn btn-primary rounded-pill fw-semibold px-4 shadow-sm">
+            <i class="bi bi-printer me-2"></i>Generar Etiqueta
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
 </div>
+
+<style>
+.size-card {
+  border: 2px solid var(--border, #e2e8f0);
+  background: var(--surface-raised, #f8fafc);
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.size-card:hover {
+  border-color: rgba(79,70,229,.4);
+  background: rgba(79,70,229,.04);
+}
+.size-card.selected {
+  border-color: var(--primary, #4f46e5);
+  background: rgba(79,70,229,.06);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+}
+.size-card.selected .fw-bold { color: var(--primary, #4f46e5); }
+
+.label-preview {
+  border-radius: 4px;
+  border: 1.5px dashed var(--border, #cbd5e1);
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(79,70,229,.04) 4px,
+    rgba(79,70,229,.04) 8px
+  );
+  position: relative;
+}
+.size-card.selected .label-preview {
+  border-color: var(--primary, #4f46e5);
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(79,70,229,.08) 4px,
+    rgba(79,70,229,.08) 8px
+  );
+}
+</style>
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.size-radio').forEach(radio => {
+  radio.addEventListener('change', () => {
+    document.querySelectorAll('.size-card').forEach(c => c.classList.remove('selected'));
+    document.querySelector(`.size-card[data-for="${radio.id}"]`).classList.add('selected');
+  });
+});
+// Sync initial state
+document.querySelectorAll('.size-radio:checked').forEach(r => {
+  document.querySelector(`.size-card[data-for="${r.id}"]`)?.classList.add('selected');
+});
+</script>
+{% endblock %}
 
 {% endblock %}
