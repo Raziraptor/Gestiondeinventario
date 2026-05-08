@@ -1,93 +1,140 @@
 {% extends 'base.html' %}
-
-{% block title %}{{ titulo }}{% endblock %}
+{% block title %}Productos Sin Almacén{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-exclamation-triangle text-warning"></i> Productos Sin Almacén</h2>
-        <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Crear Nuevo
-        </a>
-    </div>
+<div class="container-fluid px-3 px-md-4 pb-5" style="max-width:900px;">
 
-    <div class="alert alert-info">
-        Estos productos existen en tu catálogo global pero <strong>no están asignados a ningún almacén físico</strong>. 
-        No aparecerán en el Dashboard ni se podrán mover hasta que los asignes a uno.
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-body table-responsive p-0">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Producto</th>
-                        <th>Categoría</th>
-                        <th>Proveedor</th>
-                        <th style="width: 40%;">Acción Rápida (Asignar a)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for prod in productos %}
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                {% if prod.imagen_url %}
-                                    <img src="{{ url_for('static', filename='uploads/' + prod.imagen_url) }}" 
-                                         class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
-                                {% else %}
-                                    <div class="bg-secondary rounded me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; color: white;">
-                                        <i class="bi bi-box"></i>
-                                    </div>
-                                {% endif %}
-                                <div>
-                                    <strong>{{ prod.nombre }}</strong><br>
-                                    <small class="text-muted">SKU: {{ prod.codigo }}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td>
-                            {% if prod.categoria %}
-                                <span class="badge bg-light text-dark border">{{ prod.categoria.nombre }}</span>
-                            {% else %}<span class="text-muted">-</span>{% endif %}
-                        </td>
-                        <td>
-                            {% if prod.proveedor %}
-                                {{ prod.proveedor.nombre }}
-                            {% else %}<span class="text-muted">-</span>{% endif %}
-                        </td>
-                        <td>
-                            <!-- FORMULARIO INDIVIDUAL POR FILA -->
-                            <form action="{{ url_for('asignar_producto_rapido') }}" method="POST" class="d-flex gap-2">
-                                <input type="hidden" name="producto_id" value="{{ prod.id }}">
-                                
-                                <select name="almacen_id" class="form-select form-select-sm" required>
-                                    <option value="">Seleccionar Almacén...</option>
-                                    {% for alm in almacenes %}
-                                        <option value="{{ alm.id }}">{{ alm.nombre }}</option>
-                                    {% endfor %}
-                                </select>
-                                
-                                <button type="submit" class="btn btn-sm btn-success text-nowrap">
-                                    <i class="bi bi-check-lg"></i> Asignar
-                                </button>
-                                
-                                <a href="{{ url_for('editar_producto', id=prod.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar info">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center py-5 text-muted">
-                            <i class="bi bi-check-circle-fill text-success fs-1 mb-3"></i><br>
-                            ¡Excelente! No tienes productos sin asignar.<br>
-                            Todo tu catálogo está correctamente distribuido en tus almacenes.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+  {# ── ENCABEZADO ─────────────────────────────────────────────────────────── #}
+  <div class="mb-4">
+    <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
+      <i class="bi bi-arrow-left me-1"></i>Inicio
+    </a>
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+           style="width:52px;height:52px;background:rgba(245,158,11,.12);">
+        <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:1.4rem;"></i>
+      </div>
+      <div>
+        <h1 class="h4 fw-bold mb-0">Productos Sin Almacén</h1>
+        <div class="text-muted small">
+          {{ productos|length }} producto{{ 's' if productos|length != 1 else '' }} sin asignar
         </div>
+      </div>
+      <div class="ms-auto">
+        <a href="{{ url_for('nuevo_producto') }}" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold shadow-sm">
+          <i class="bi bi-plus-lg me-1"></i>Nuevo producto
+        </a>
+      </div>
     </div>
+  </div>
+
+  {# ── AVISO INFORMATIVO ───────────────────────────────────────────────────── #}
+  {% if productos %}
+  <div class="rounded-4 px-4 py-3 mb-4 d-flex align-items-start gap-3"
+       style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);">
+    <i class="bi bi-info-circle-fill text-warning flex-shrink-0 mt-1"></i>
+    <div class="small text-body">
+      Estos productos existen en tu catálogo pero <strong>no están asignados a ningún almacén</strong>.
+      No aparecen en el Dashboard ni pueden moverse hasta que los asignes.
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── LISTADO ─────────────────────────────────────────────────────────────── #}
+  {% if productos %}
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead style="background:var(--surface-raised,#f8fafc);" class="text-secondary text-uppercase small">
+            <tr>
+              <th class="ps-4 border-0">Producto</th>
+              <th class="border-0">Categoría</th>
+              <th class="border-0">Proveedor</th>
+              <th class="pe-4 border-0" style="min-width:280px;">Asignar a almacén</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for prod in productos %}
+            <tr>
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-2">
+                  {% if prod.imagen_url %}
+                  <img src="{{ url_for('static', filename='uploads/' + prod.imagen_url) }}"
+                       class="rounded-2 flex-shrink-0" style="width:38px;height:38px;object-fit:cover;">
+                  {% else %}
+                  <div class="rounded-2 flex-shrink-0 d-flex align-items-center justify-content-center"
+                       style="width:38px;height:38px;background:var(--surface-raised,#f1f5f9);">
+                    <i class="bi bi-box text-muted" style="font-size:.9rem;"></i>
+                  </div>
+                  {% endif %}
+                  <div>
+                    <div class="fw-semibold" style="font-size:.88rem;">{{ prod.nombre }}</div>
+                    <div class="text-muted font-monospace" style="font-size:.7rem;">{{ prod.codigo }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if prod.categoria %}
+                <span class="badge rounded-pill px-2 py-1"
+                      style="background:var(--hover-bg,#f1f5f9);color:#64748b;border:1px solid var(--border,#e2e8f0);font-size:.7rem;">
+                  {{ prod.categoria.nombre }}
+                </span>
+                {% else %}<span class="text-muted small">—</span>{% endif %}
+              </td>
+              <td class="text-muted small">
+                {{ prod.proveedor.nombre if prod.proveedor else '—' }}
+              </td>
+              <td class="pe-4">
+                <form action="{{ url_for('asignar_producto_rapido') }}" method="POST"
+                      class="d-flex gap-2 align-items-center">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="producto_id" value="{{ prod.id }}">
+                  <select name="almacen_id" class="form-select form-select-sm rounded-3" required
+                          style="font-size:.82rem;">
+                    <option value="">Seleccionar almacén…</option>
+                    {% for alm in almacenes %}
+                    <option value="{{ alm.id }}">{{ alm.nombre }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit"
+                          class="btn btn-sm btn-success rounded-pill px-3 fw-semibold flex-shrink-0"
+                          style="font-size:.78rem;">
+                    <i class="bi bi-check2 me-1"></i>Asignar
+                  </button>
+                  <a href="{{ url_for('editar_producto', id=prod.id) }}"
+                     class="btn btn-sm btn-outline-secondary rounded-2 flex-shrink-0 p-1"
+                     style="width:30px;height:30px;" title="Editar producto">
+                    <i class="bi bi-pencil" style="font-size:.8rem;"></i>
+                  </a>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  {# ── ESTADO VACÍO ────────────────────────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body text-center py-5 px-4">
+      <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+           style="width:72px;height:72px;background:rgba(16,185,129,.1);">
+        <i class="bi bi-check-circle-fill text-success" style="font-size:2rem;"></i>
+      </div>
+      <h5 class="fw-bold mb-1">¡Todo asignado!</h5>
+      <p class="text-muted small mb-4">
+        No tienes productos sin almacén. Todo tu catálogo está correctamente distribuido.
+      </p>
+      <a href="{{ url_for('lista_almacenes') }}" class="btn btn-outline-primary rounded-pill px-4">
+        <i class="bi bi-boxes me-1"></i>Ver inventario
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
 {% endblock %}
