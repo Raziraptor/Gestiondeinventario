@@ -108,24 +108,39 @@ def _parse_cfe(texto: str):
     monto = None
     fecha = None
 
-    # Monto: "IMPORTE A PAGAR $1,234.56"  o  "TOTAL A PAGAR 1,234.56"
+    # Monto opción 1: "IMPORTE A PAGAR $1,234.56" / "TOTAL A PAGAR 1,234.56"
     m = re.search(
         r'(?:importe|total)\s+a\s+pagar\s*\$?\s*([\d,]+\.?\d{0,2})',
         texto, re.IGNORECASE)
     if m:
         monto = _limpiar_monto(m.group(1))
 
-    # Fecha: "FECHA LÍMITE DE PAGO 15/01/2025"
+    # Monto opción 2: "SS) 1,343.11" — OCR garbles "Total a pagar" en el resumen final
+    # Patrón: pocos chars basura + ) + espacio + monto con centavos al final de línea
+    if monto is None:
+        m = re.search(
+            r'^[A-Za-z\s]{0,8}\)\s*([\d,]+\.\d{2})\s*$',
+            texto, re.MULTILINE)
+        if m:
+            monto = _limpiar_monto(m.group(1))
+
+    # Monto opción 3: primer "$X,XXX" visible (monto prominente al inicio del recibo)
+    if monto is None:
+        m = re.search(r'\$\s*(\d[\d,]+\.?\d{0,2})', texto)
+        if m:
+            monto = _limpiar_monto(m.group(1))
+
+    # Fecha opción 1: "FECHA LÍMITE DE PAGO 15/01/2025"
     m = re.search(
-        r'fecha\s+l[ií]mite\s+de\s+pago\s+(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})',
+        r'(?:fecha\s+)?l[ií]mite\s+de\s+pago\s*:?\s*(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})',
         texto, re.IGNORECASE)
     if m:
         fecha = _fecha_numerica(m.group(1), m.group(2), m.group(3))
 
-    # Alternativa: "LÍMITE DE PAGO 15 ENERO 2025"
+    # Fecha opción 2: "LÍMITE DE PAGO:23 MAR 26" (formato real CFE — sin "fecha", con ":", año 2 dígitos)
     if not fecha:
         m = re.search(
-            r'l[ií]mite\s+de\s+pago\s+(\d{1,2})\s+([A-Za-záéíóúÁÉÍÓÚ]{3,12})\s+(\d{4})',
+            r'(?:fecha\s+)?l[ií]mite\s+de\s+pago\s*:?\s*(\d{1,2})\s+([A-Za-záéíóúÁÉÍÓÚ]{3,12})\s+(\d{2,4})',
             texto, re.IGNORECASE)
         if m:
             fecha = _fecha_texto(m.group(1), m.group(2), m.group(3))
