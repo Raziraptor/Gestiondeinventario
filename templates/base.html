@@ -829,6 +829,14 @@
                                     </a>
                                 </li>
                                 {% endif %}
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="{{ url_for('lista_servicios') }}">
+                                        <span><i class="bi bi-lightning-charge-fill me-2 text-warning"></i> Servicios</span>
+                                        {% if servicios_badge > 0 %}
+                                        <span class="badge rounded-pill bg-danger ms-2" style="font-size:.65rem;">{{ servicios_badge }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('reportes') }}">

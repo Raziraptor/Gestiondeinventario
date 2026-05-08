@@ -9,7 +9,7 @@ import csv
 import json
 import secrets
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 from collections import defaultdict
 from threading import Thread
@@ -150,6 +150,22 @@ def gen_vapid_command():
 @app.context_processor
 def inject_vapid_key():
     return {'vapid_public_key': os.environ.get('VAPID_PUBLIC_KEY', '')}
+
+@app.context_processor
+def inject_servicios_badge():
+    """Inyecta conteo de pagos de servicios urgentes/vencidos en todos los templates."""
+    if current_user.is_authenticated and current_user.organizacion_id:
+        try:
+            hoy = now_mx().date()
+            count = PagoServicio.query.join(Servicio).filter(
+                Servicio.organizacion_id == current_user.organizacion_id,
+                PagoServicio.estado.in_(['pendiente', 'vencido']),
+                PagoServicio.fecha_vencimiento <= hoy + timedelta(days=7)
+            ).count()
+            return {'servicios_badge': count}
+        except Exception:
+            return {'servicios_badge': 0}
+    return {'servicios_badge': 0}
 
 @app.cli.command("make-super-admin")
 @with_appcontext
@@ -487,6 +503,38 @@ class ProyectoOCDetalle(db.Model):
     @property
     def subtotal(self):
         return self.cantidad * self.costo_unitario
+
+class Servicio(db.Model):
+    __tablename__ = 'servicio'
+    id               = db.Column(db.Integer, primary_key=True)
+    nombre           = db.Column(db.String(100), nullable=False)
+    tipo             = db.Column(db.String(30),  default='otro')
+    proveedor_nombre = db.Column(db.String(80),  nullable=True)
+    numero_contrato  = db.Column(db.String(60),  nullable=True)
+    dia_vencimiento  = db.Column(db.Integer,     nullable=True)  # día del mes 1-31
+    dias_aviso       = db.Column(db.Integer,     default=5)
+    notas            = db.Column(db.Text,        nullable=True)
+    activo           = db.Column(db.Boolean,     default=True)
+    organizacion_id  = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    creado_en        = db.Column(db.DateTime,    default=now_mx)
+    pagos            = db.relationship('PagoServicio', backref='servicio', lazy=True,
+                                       order_by='PagoServicio.fecha_vencimiento.desc()',
+                                       cascade='all, delete-orphan')
+
+
+class PagoServicio(db.Model):
+    __tablename__ = 'pago_servicio'
+    id                = db.Column(db.Integer,    primary_key=True)
+    servicio_id       = db.Column(db.Integer,    db.ForeignKey('servicio.id'), nullable=False)
+    monto             = db.Column(db.Float,      nullable=False)
+    fecha_vencimiento = db.Column(db.Date,       nullable=False)
+    fecha_pago        = db.Column(db.Date,       nullable=True)
+    estado            = db.Column(db.String(20), default='pendiente')  # pendiente | pagado | vencido
+    notas             = db.Column(db.Text,       nullable=True)
+    comprobante_url   = db.Column(db.String(300),nullable=True)
+    registrado_por_id = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=True)
+    creado_en         = db.Column(db.DateTime,   default=now_mx)
+
 
 # ==============================================================================
 # 5. CARGADOR DE USUARIO (FLASK-LOGIN)
@@ -5847,6 +5895,187 @@ def not_found(e):
 @app.errorhandler(500)
 def server_error(e):
     return render_template('500.html'), 500
+
+# ==============================================================================
+# SERVICIOS — Control de pagos recurrentes (Agua, Luz, Gas, etc.)
+# ==============================================================================
+
+TIPOS_SERVICIO = {
+    'luz':      ('bi-lightning-charge-fill', '#f59e0b', 'Electricidad / Luz'),
+    'agua':     ('bi-droplet-fill',          '#3b82f6', 'Agua'),
+    'gas':      ('bi-fire',                  '#ef4444', 'Gas'),
+    'internet': ('bi-wifi',                  '#8b5cf6', 'Internet'),
+    'telefono': ('bi-telephone-fill',        '#10b981', 'Teléfono'),
+    'renta':    ('bi-building',              '#64748b', 'Renta'),
+    'otro':     ('bi-receipt',               '#94a3b8', 'Otro'),
+}
+
+def _actualizar_estados_pagos(org_id):
+    """Marca como 'vencido' los pagos pendientes con fecha_vencimiento ya pasada."""
+    hoy = now_mx().date()
+    PagoServicio.query.join(Servicio).filter(
+        Servicio.organizacion_id == org_id,
+        PagoServicio.estado == 'pendiente',
+        PagoServicio.fecha_vencimiento < hoy
+    ).update({'estado': 'vencido'}, synchronize_session=False)
+    db.session.commit()
+
+
+@app.route('/servicios')
+@login_required
+def lista_servicios():
+    _actualizar_estados_pagos(current_user.organizacion_id)
+    hoy = now_mx().date()
+    servicios = Servicio.query.filter_by(
+        organizacion_id=current_user.organizacion_id, activo=True
+    ).order_by(Servicio.nombre).all()
+
+    vencidos = PagoServicio.query.join(Servicio).filter(
+        Servicio.organizacion_id == current_user.organizacion_id,
+        PagoServicio.estado == 'vencido'
+    ).count()
+    proximos = PagoServicio.query.join(Servicio).filter(
+        Servicio.organizacion_id == current_user.organizacion_id,
+        PagoServicio.estado == 'pendiente',
+        PagoServicio.fecha_vencimiento <= hoy + timedelta(days=7)
+    ).count()
+    gasto_mes = db.session.query(db.func.sum(PagoServicio.monto)).join(Servicio).filter(
+        Servicio.organizacion_id == current_user.organizacion_id,
+        PagoServicio.estado == 'pagado',
+        db.func.extract('year',  PagoServicio.fecha_pago) == hoy.year,
+        db.func.extract('month', PagoServicio.fecha_pago) == hoy.month,
+    ).scalar() or 0
+
+    return render_template('servicios_lista.html',
+        servicios=servicios, tipos=TIPOS_SERVICIO,
+        vencidos=vencidos, proximos=proximos,
+        gasto_mes=gasto_mes, hoy=hoy)
+
+
+@app.route('/servicios/nuevo', methods=['GET', 'POST'])
+@login_required
+def nuevo_servicio():
+    if request.method == 'POST':
+        s = Servicio(
+            nombre           = request.form['nombre'].strip(),
+            tipo             = request.form.get('tipo', 'otro'),
+            proveedor_nombre = request.form.get('proveedor_nombre', '').strip() or None,
+            numero_contrato  = request.form.get('numero_contrato', '').strip() or None,
+            dia_vencimiento  = int(request.form['dia_vencimiento']) if request.form.get('dia_vencimiento') else None,
+            dias_aviso       = int(request.form.get('dias_aviso', 5)),
+            notas            = request.form.get('notas', '').strip() or None,
+            organizacion_id  = current_user.organizacion_id,
+        )
+        db.session.add(s)
+        db.session.commit()
+        flash(f'Servicio "{s.nombre}" registrado.', 'success')
+        return redirect(url_for('lista_servicios'))
+    return render_template('servicio_form.html', servicio=None, tipos=TIPOS_SERVICIO, accion='nuevo')
+
+
+@app.route('/servicios/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+def editar_servicio(id):
+    s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    if request.method == 'POST':
+        s.nombre           = request.form['nombre'].strip()
+        s.tipo             = request.form.get('tipo', 'otro')
+        s.proveedor_nombre = request.form.get('proveedor_nombre', '').strip() or None
+        s.numero_contrato  = request.form.get('numero_contrato', '').strip() or None
+        s.dia_vencimiento  = int(request.form['dia_vencimiento']) if request.form.get('dia_vencimiento') else None
+        s.dias_aviso       = int(request.form.get('dias_aviso', 5))
+        s.notas            = request.form.get('notas', '').strip() or None
+        db.session.commit()
+        flash('Servicio actualizado.', 'success')
+        return redirect(url_for('detalle_servicio', id=s.id))
+    return render_template('servicio_form.html', servicio=s, tipos=TIPOS_SERVICIO, accion='editar')
+
+
+@app.route('/servicios/<int:id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_servicio(id):
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('Sin permiso para eliminar servicios.', 'danger')
+        return redirect(url_for('lista_servicios'))
+    s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    nombre = s.nombre
+    db.session.delete(s)
+    db.session.commit()
+    flash(f'Servicio "{nombre}" eliminado.', 'success')
+    return redirect(url_for('lista_servicios'))
+
+
+@app.route('/servicios/<int:id>')
+@login_required
+def detalle_servicio(id):
+    _actualizar_estados_pagos(current_user.organizacion_id)
+    s    = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    hoy  = now_mx().date()
+    info = TIPOS_SERVICIO.get(s.tipo, TIPOS_SERVICIO['otro'])
+    pagados = [p for p in s.pagos if p.estado == 'pagado'][:6]
+    promedio = (sum(p.monto for p in pagados) / len(pagados)) if pagados else 0
+    return render_template('servicio_detalle.html',
+        servicio=s, info=info, hoy=hoy, promedio=promedio, tipos=TIPOS_SERVICIO)
+
+
+@app.route('/servicios/<int:id>/pago/nuevo', methods=['GET', 'POST'])
+@login_required
+def nuevo_pago_servicio(id):
+    import calendar
+    s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    if request.method == 'POST':
+        p = PagoServicio(
+            servicio_id       = s.id,
+            monto             = float(request.form['monto']),
+            fecha_vencimiento = datetime.strptime(request.form['fecha_vencimiento'], '%Y-%m-%d').date(),
+            notas             = request.form.get('notas', '').strip() or None,
+            registrado_por_id = current_user.id,
+        )
+        if request.form.get('fecha_pago'):
+            p.fecha_pago = datetime.strptime(request.form['fecha_pago'], '%Y-%m-%d').date()
+            p.estado = 'pagado'
+        db.session.add(p)
+        db.session.commit()
+        flash('Pago registrado.', 'success')
+        return redirect(url_for('detalle_servicio', id=s.id))
+    hoy = now_mx().date()
+    fecha_sugerida = ''
+    if s.dia_vencimiento:
+        mes  = hoy.month if hoy.day < s.dia_vencimiento else (hoy.month % 12 + 1)
+        anio = hoy.year  if mes >= hoy.month else hoy.year + 1
+        dia  = min(s.dia_vencimiento, calendar.monthrange(anio, mes)[1])
+        fecha_sugerida = f'{anio}-{mes:02d}-{dia:02d}'
+    return render_template('pago_servicio_form.html', servicio=s, fecha_sugerida=fecha_sugerida)
+
+
+@app.route('/servicios/pago/<int:id>/marcar-pagado', methods=['POST'])
+@login_required
+def marcar_pago_pagado(id):
+    p = PagoServicio.query.join(Servicio).filter(
+        PagoServicio.id == id,
+        Servicio.organizacion_id == current_user.organizacion_id
+    ).first_or_404()
+    fecha_str  = request.form.get('fecha_pago')
+    p.fecha_pago = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else now_mx().date()
+    p.estado = 'pagado'
+    db.session.commit()
+    flash('Pago marcado como pagado. ✓', 'success')
+    return redirect(url_for('detalle_servicio', id=p.servicio_id))
+
+
+@app.route('/servicios/pago/<int:id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_pago_servicio(id):
+    p = PagoServicio.query.join(Servicio).filter(
+        PagoServicio.id == id,
+        Servicio.organizacion_id == current_user.organizacion_id
+    ).first_or_404()
+    serv_id = p.servicio_id
+    db.session.delete(p)
+    db.session.commit()
+    flash('Registro de pago eliminado.', 'success')
+    return redirect(url_for('detalle_servicio', id=serv_id))
+
 
 @app.errorhandler(403)
 def forbidden(e):

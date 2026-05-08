@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% block title %}{{ servicio.nombre }} · Historial de Pagos{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 pb-5" style="max-width:900px;">
+  {% set icon, color, label = info %}
+
+  {# ── ENCABEZADO ─────────────────────────────────────────────────────────── #}
+  <div class="mb-4">
+    <a href="{{ url_for('lista_servicios') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
+      <i class="bi bi-arrow-left me-1"></i>Servicios
+    </a>
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+           style="width:52px;height:52px;background:{{ color }}1a;">
+        <i class="bi {{ icon }}" style="color:{{ color }};font-size:1.4rem;"></i>
+      </div>
+      <div>
+        <h1 class="h4 fw-bold mb-0">{{ servicio.nombre }}</h1>
+        <div class="text-muted small">
+          {{ label }}
+          {% if servicio.proveedor_nombre %} · {{ servicio.proveedor_nombre }}{% endif %}
+          {% if servicio.numero_contrato %} · <span class="font-monospace">{{ servicio.numero_contrato }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="ms-auto d-flex gap-2">
+        {% if current_user.rol in ['super_admin','admin'] %}
+        <a href="{{ url_for('editar_servicio', id=servicio.id) }}"
+           class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+          <i class="bi bi-pencil me-1"></i>Editar
+        </a>
+        {% endif %}
+        <a href="{{ url_for('nuevo_pago_servicio', id=servicio.id) }}"
+           class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold shadow-sm">
+          <i class="bi bi-plus-lg me-1"></i>Registrar pago
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {# ── KPIs ────────────────────────────────────────────────────────────────── #}
+  {% set pagados  = servicio.pagos | selectattr('estado','equalto','pagado')    | list %}
+  {% set vencidos = servicio.pagos | selectattr('estado','equalto','vencido')   | list %}
+  {% set pendientes = servicio.pagos | selectattr('estado','equalto','pendiente') | list %}
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-3 text-center">
+          <div class="fw-bold fs-3 text-success">{{ pagados|length }}</div>
+          <div class="text-muted small">Pagados</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-3 text-center">
+          <div class="fw-bold fs-3 text-warning">{{ pendientes|length }}</div>
+          <div class="text-muted small">Pendientes</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-3 text-center">
+          <div class="fw-bold fs-3 text-danger">{{ vencidos|length }}</div>
+          <div class="text-muted small">Vencidos</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm rounded-4"
+           style="background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(59,130,246,.07));">
+        <div class="card-body p-3 text-center">
+          <div class="fw-bold fs-4 text-success">${{ "{:,.0f}".format(promedio) }}</div>
+          <div class="text-muted small">Promedio/pago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── INFO DEL SERVICIO ───────────────────────────────────────────────────── #}
+  {% if servicio.dia_vencimiento or servicio.notas %}
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-3 d-flex flex-wrap gap-4">
+      {% if servicio.dia_vencimiento %}
+      <div>
+        <div class="text-muted small text-uppercase fw-semibold" style="font-size:.68rem;letter-spacing:.4px;">Vence</div>
+        <div class="fw-semibold">Día {{ servicio.dia_vencimiento }} de cada mes</div>
+      </div>
+      {% endif %}
+      {% if servicio.dias_aviso %}
+      <div>
+        <div class="text-muted small text-uppercase fw-semibold" style="font-size:.68rem;letter-spacing:.4px;">Aviso</div>
+        <div class="fw-semibold">{{ servicio.dias_aviso }} días antes</div>
+      </div>
+      {% endif %}
+      {% if servicio.notas %}
+      <div class="flex-grow-1">
+        <div class="text-muted small text-uppercase fw-semibold" style="font-size:.68rem;letter-spacing:.4px;">Notas</div>
+        <div class="text-body small">{{ servicio.notas }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── HISTORIAL DE PAGOS ──────────────────────────────────────────────────── #}
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+      <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
+        <i class="bi bi-clock-history text-primary me-1"></i>Historial de Pagos
+      </span>
+      <span class="badge rounded-pill px-3 py-1"
+            style="background:var(--hover-bg,#f1f5f9);color:#64748b;border:1px solid var(--border,#e2e8f0);font-size:.72rem;">
+        {{ servicio.pagos|length }} registros
+      </span>
+    </div>
+    <div class="card-body p-0">
+      {% if servicio.pagos %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead style="background:var(--surface-raised,#f8fafc);" class="text-secondary text-uppercase small">
+            <tr>
+              <th class="ps-4 border-0">Vencimiento</th>
+              <th class="border-0">Monto</th>
+              <th class="border-0">Estado</th>
+              <th class="border-0">Fecha de pago</th>
+              <th class="border-0">Notas</th>
+              <th class="pe-4 border-0 text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in servicio.pagos %}
+            {% set dias = (p.fecha_vencimiento - hoy).days %}
+            <tr>
+              <td class="ps-4">
+                <span class="fw-semibold" style="font-size:.88rem;">
+                  {{ p.fecha_vencimiento.strftime('%d %b %Y') }}
+                </span>
+                {% if p.estado == 'pendiente' and dias <= 7 and dias >= 0 %}
+                <div class="text-warning" style="font-size:.68rem;"><i class="bi bi-clock me-1"></i>En {{ dias }}d</div>
+                {% elif p.estado == 'pendiente' and dias < 0 %}
+                <div class="text-danger" style="font-size:.68rem;"><i class="bi bi-exclamation-triangle me-1"></i>{{ dias|abs }}d pasados</div>
+                {% endif %}
+              </td>
+              <td class="fw-bold" style="font-size:.95rem;">${{ "{:,.2f}".format(p.monto) }}</td>
+              <td>
+                {% if p.estado == 'pagado' %}
+                <span class="badge rounded-pill px-2 py-1" style="background:rgba(16,185,129,.12);color:#10b981;font-size:.7rem;">
+                  <i class="bi bi-check-circle-fill me-1"></i>Pagado
+                </span>
+                {% elif p.estado == 'vencido' %}
+                <span class="badge rounded-pill px-2 py-1" style="background:rgba(239,68,68,.12);color:#ef4444;font-size:.7rem;">
+                  <i class="bi bi-exclamation-triangle-fill me-1"></i>Vencido
+                </span>
+                {% else %}
+                <span class="badge rounded-pill px-2 py-1" style="background:rgba(245,158,11,.12);color:#f59e0b;font-size:.7rem;">
+                  <i class="bi bi-clock-fill me-1"></i>Pendiente
+                </span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">
+                {{ p.fecha_pago.strftime('%d %b %Y') if p.fecha_pago else '—' }}
+              </td>
+              <td class="text-muted small" style="max-width:160px;">
+                <span class="text-truncate d-block" style="max-width:140px;" title="{{ p.notas or '' }}">
+                  {{ p.notas or '—' }}
+                </span>
+              </td>
+              <td class="pe-4 text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  {% if p.estado != 'pagado' %}
+                  <button type="button" class="btn btn-sm btn-outline-success rounded-2 p-1"
+                          style="width:30px;height:30px;" title="Marcar pagado"
+                          data-bs-toggle="modal" data-bs-target="#modalPagar{{ p.id }}">
+                    <i class="bi bi-check2" style="font-size:.8rem;"></i>
+                  </button>
+                  {% endif %}
+                  {% if current_user.rol in ['super_admin','admin'] %}
+                  <form action="{{ url_for('eliminar_pago_servicio', id=p.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-2 p-1"
+                            style="width:30px;height:30px;" title="Eliminar"
+                            onclick="return confirm('¿Eliminar este registro?')">
+                      <i class="bi bi-trash" style="font-size:.8rem;"></i>
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+
+            {# Modal marcar pagado #}
+            {% if p.estado != 'pagado' %}
+            <div class="modal fade" id="modalPagar{{ p.id }}" tabindex="-1">
+              <div class="modal-dialog modal-sm modal-dialog-centered">
+                <div class="modal-content border-0 shadow rounded-4">
+                  <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold">Confirmar pago</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <form action="{{ url_for('marcar_pago_pagado', id=p.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body py-2">
+                      <div class="mb-3 text-muted small">Monto: <strong class="text-body">${{ "{:,.2f}".format(p.monto) }}</strong></div>
+                      <label class="form-label small fw-semibold">Fecha de pago</label>
+                      <input type="date" name="fecha_pago" class="form-control form-control-sm"
+                             value="{{ hoy.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 gap-2">
+                      <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                      <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-check2-circle me-1"></i>Confirmar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted opacity-25 d-block mb-3"></i>
+        <p class="text-muted small">Sin registros de pago aún.</p>
+        <a href="{{ url_for('nuevo_pago_servicio', id=servicio.id) }}"
+           class="btn btn-primary rounded-pill px-4">
+          <i class="bi bi-plus-lg me-1"></i>Registrar primer pago
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── ZONA DE PELIGRO ─────────────────────────────────────────────────────── #}
+  {% if current_user.rol in ['super_admin','admin'] %}
+  <div class="card border-0 shadow-sm rounded-4 mt-4"
+       style="border-left:4px solid #ef4444!important;">
+    <div class="card-body p-3 d-flex align-items-center justify-content-between gap-3">
+      <div>
+        <div class="fw-semibold text-danger small">Eliminar servicio</div>
+        <div class="text-muted" style="font-size:.72rem;">
+          Se eliminará el servicio y todo su historial de pagos. Esta acción es irreversible.
+        </div>
+      </div>
+      <form action="{{ url_for('eliminar_servicio', id=servicio.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold flex-shrink-0"
+                onclick="return confirm('¿Eliminar \"{{ servicio.nombre }}\" y todo su historial?')">
+          <i class="bi bi-trash me-1"></i>Eliminar
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
