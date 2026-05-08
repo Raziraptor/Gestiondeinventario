@@ -6114,30 +6114,34 @@ def api_ocr_recibo():
         from PIL import Image
         import io as _io
 
-        # Ruta explícita para cuando gunicorn corre con PATH reducido
+        # Rutas explícitas para gunicorn (PATH reducido en systemd)
         pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+        TESSERACT_CONFIG = '--oem 1 --psm 6'  # LSTM engine, bloque uniforme de texto
 
         contenido = archivo.read()
 
         if ext == 'pdf':
             try:
                 from pdf2image import convert_from_bytes
+                # 150 DPI es suficiente para recibos y procesa ~2x más rápido que 200
                 paginas = convert_from_bytes(
-                    contenido, first_page=1, last_page=2, dpi=200,
-                    poppler_path='/usr/bin'  # ruta explícita para gunicorn
+                    contenido, first_page=1, last_page=1, dpi=150,
+                    poppler_path='/usr/bin'
                 )
                 texto = '\n'.join(
-                    pytesseract.image_to_string(p, lang='spa+eng') for p in paginas
+                    pytesseract.image_to_string(p, lang='spa', config=TESSERACT_CONFIG)
+                    for p in paginas
                 )
             except ImportError:
                 return jsonify({'error': 'pdf2image no instalado en el servidor.'}), 503
         else:
             img = Image.open(_io.BytesIO(contenido))
-            # Escalar si la imagen es muy pequeña (mejora OCR)
-            if img.width < 1000:
-                factor = 1000 / img.width
+            # Convertir a escala de grises mejora velocidad y precisión
+            img = img.convert('L')
+            if img.width < 1200:
+                factor = 1200 / img.width
                 img = img.resize((int(img.width * factor), int(img.height * factor)), Image.LANCZOS)
-            texto = pytesseract.image_to_string(img, lang='spa+eng')
+            texto = pytesseract.image_to_string(img, lang='spa', config=TESSERACT_CONFIG)
 
         from servicios_ocr import analizar_recibo
         resultado = analizar_recibo(texto)
