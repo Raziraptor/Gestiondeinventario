@@ -39,9 +39,20 @@
                 <p class="page-subtitle">Registro, seguimiento y análisis de egresos.</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}" class="btn btn-success shadow-sm rounded-pill px-4 fw-bold text-nowrap">
-                    <i class="bi bi-file-earmark-excel me-1"></i> Excel
-                </a>
+                <div class="btn-group shadow-sm">
+                    <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}"
+                       class="btn btn-success rounded-pill-start fw-bold text-nowrap"
+                       style="border-radius:.5rem 0 0 .5rem;">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                    </a>
+                    <button type="button"
+                            class="btn btn-success dropdown-toggle dropdown-toggle-split fw-bold"
+                            style="border-radius:0 .5rem .5rem 0;border-left:1px solid rgba(255,255,255,.3);"
+                            data-bs-toggle="modal" data-bs-target="#modalRangoExcel"
+                            title="Exportar rango de meses">
+                        <i class="bi bi-calendar-range"></i>
+                    </button>
+                </div>
                 <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
                     <i class="bi bi-plus-lg me-1"></i> Registrar Gasto
                 </a>
@@ -159,6 +170,71 @@
         {% endfor %}
     </div>
     {{ paginator(pagination, '?mes=' ~ mes_seleccionado ~ '&ano=' ~ ano_seleccionado) }}
+</div>
+
+{# ── MODAL: Exportar rango de meses ──────────────────────────────────────── #}
+<div class="modal fade" id="modalRangoExcel" tabindex="-1" aria-labelledby="modalRangoExcelLabel">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold" id="modalRangoExcelLabel">
+          <i class="bi bi-calendar-range text-success me-2"></i>Exportar rango de meses
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('exportar_gastos_excel') }}" method="GET">
+        <div class="modal-body py-3">
+          <p class="text-muted small mb-3">
+            Ideal para auditorías trimestrales. Genera un Excel con una hoja por mes y una hoja de resumen.
+          </p>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">Desde</label>
+              <div class="row g-2">
+                <div class="col-7">
+                  <select name="mes_desde" class="form-select rounded-3">
+                    {% for num, nombre in meses_lista %}
+                    <option value="{{ num }}" {{ 'selected' if num == mes_seleccionado }}>{{ nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-5">
+                  <input type="number" name="ano_desde" class="form-control rounded-3 font-monospace"
+                         value="{{ ano_seleccionado }}" min="2020" max="2050">
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">Hasta</label>
+              <div class="row g-2">
+                <div class="col-7">
+                  <select name="mes_hasta" class="form-select rounded-3">
+                    {% for num, nombre in meses_lista %}
+                    <option value="{{ num }}" {{ 'selected' if num == mes_seleccionado }}>{{ nombre }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-5">
+                  <input type="number" name="ano_hasta" class="form-control rounded-3 font-monospace"
+                         value="{{ ano_seleccionado }}" min="2020" max="2050">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="alert alert-info border-0 rounded-3 mt-3 py-2 px-3" style="font-size:.82rem;">
+            <i class="bi bi-info-circle me-1"></i>
+            Los pagos de servicios aparecen marcados en azul claro y con origen <strong>Servicio</strong>.
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0 gap-2">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold">
+            <i class="bi bi-file-earmark-excel me-1"></i>Generar Excel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 {% endblock %}
