@@ -4,6 +4,15 @@
 {% block content %}
 <div class="container py-4 pb-5" style="max-width:620px;">
 
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('lista_almacenes') }}">Inventario</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('historial_producto', id=producto.id) }}">{{ producto.nombre }}</a></li>
+      <li class="breadcrumb-item active">Imprimir Etiqueta</li>
+    </ol>
+  </nav>
+
   {# ── ENCABEZADO ────────────────────────────────────────────────────────── #}
   <div class="mb-4">
     <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">

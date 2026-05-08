@@ -4,6 +4,15 @@
 {% block content %}
 <div class="container py-4 pb-5" style="max-width:560px;">
 
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('lista_servicios') }}">Servicios</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('detalle_servicio', id=servicio.id) }}">{{ servicio.nombre }}</a></li>
+      <li class="breadcrumb-item active">Registrar Pago</li>
+    </ol>
+  </nav>
+
   <div class="mb-4">
     <a href="{{ url_for('detalle_servicio', id=servicio.id) }}"
        class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
