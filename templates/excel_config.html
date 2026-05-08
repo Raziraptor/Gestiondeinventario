@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+{% block title %}Diseño de Excel{% endblock %}
+
+{% block content %}
+<div class="container py-4 pb-5" style="max-width:780px;">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('lista_gastos') }}">Control de Gastos</a></li>
+      <li class="breadcrumb-item active">Diseño de Excel</li>
+    </ol>
+  </nav>
+
+  <div class="mb-4">
+    <a href="{{ url_for('lista_gastos') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+    <h1 class="h4 fw-bold mb-1">
+      <i class="bi bi-file-earmark-excel text-success me-2"></i>Diseño de Excel
+    </h1>
+    <p class="text-muted small mb-0">Personaliza el aspecto de los reportes de gastos exportados a Excel.</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} rounded-3 border-0 shadow-sm mb-4 py-2 px-3" style="font-size:.88rem;">
+      <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'exclamation-circle' }} me-2"></i>{{ msg }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <form method="POST" id="excelForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ── PALETAS PREDISEÑADAS ───────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold text-muted text-uppercase small mb-3" style="letter-spacing:.4px;">
+          <i class="bi bi-palette me-1"></i> Esquemas de Color
+        </h6>
+        <div class="row g-3">
+          {% set paletas = [
+            ('Azul Corporativo',  '#1f4e79', '#dbeafe', 'bi-briefcase-fill',   'text-primary'),
+            ('Verde Esmeralda',   '#065f46', '#d1fae5', 'bi-tree-fill',        'text-success'),
+            ('Rojo Ejecutivo',    '#7f1d1d', '#fee2e2', 'bi-fire',             'text-danger'),
+            ('Gris Profesional',  '#374151', '#f3f4f6', 'bi-layers-fill',      'text-secondary'),
+            ('Morado Premium',    '#4c1d95', '#ede9fe', 'bi-stars',            'text-purple'),
+            ('Naranja Energía',   '#7c2d12', '#ffedd5', 'bi-lightning-fill',   'text-warning'),
+          ] %}
+          {% for nombre, hdr, acc, icon, txt_cls in paletas %}
+          <div class="col-6 col-md-4">
+            <button type="button"
+                    class="palette-btn w-100 rounded-4 p-3 text-start border"
+                    data-hdr="{{ hdr }}" data-acc="{{ acc }}"
+                    style="background:var(--card-bg);cursor:pointer;transition:.15s;">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="rounded-3 d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                      style="width:32px;height:32px;background:{{ hdr }}20;">
+                  <i class="bi {{ icon }} {{ txt_cls }}" style="font-size:.9rem;"></i>
+                </span>
+                <span class="fw-semibold" style="font-size:.85rem;">{{ nombre }}</span>
+              </div>
+              <div class="d-flex gap-1">
+                <span class="rounded-2 flex-grow-1" style="height:12px;background:{{ hdr }};"></span>
+                <span class="rounded-2 flex-grow-1" style="height:12px;background:{{ acc }};border:1px solid #ccc;"></span>
+              </div>
+            </button>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# ── COLORES PERSONALIZADOS ─────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold text-muted text-uppercase small mb-3" style="letter-spacing:.4px;">
+          <i class="bi bi-eyedropper me-1"></i> Colores Personalizados
+        </h6>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">Color de Encabezado</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="color" id="colorHdrPicker" class="form-control form-control-color rounded-3 shadow-sm"
+                     value="{{ org.excel_color_header or '#1f4e79' }}" style="width:52px;height:38px;">
+              <input type="text" id="colorHdrText" class="form-control font-monospace rounded-3 shadow-sm"
+                     value="{{ org.excel_color_header or '#1f4e79' }}" maxlength="7" style="font-size:.88rem;">
+              <input type="hidden" name="excel_color_header" id="colorHdr" value="{{ org.excel_color_header or '#1f4e79' }}">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">Color de Acento (filas alternas)</label>
+            <div class="d-flex align-items-center gap-2">
+              <input type="color" id="colorAccPicker" class="form-control form-control-color rounded-3 shadow-sm"
+                     value="{{ org.excel_color_accent or '#dbeafe' }}" style="width:52px;height:38px;">
+              <input type="text" id="colorAccText" class="form-control font-monospace rounded-3 shadow-sm"
+                     value="{{ org.excel_color_accent or '#dbeafe' }}" maxlength="7" style="font-size:.88rem;">
+              <input type="hidden" name="excel_color_accent" id="colorAcc" value="{{ org.excel_color_accent or '#dbeafe' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── FUENTE ────────────────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold text-muted text-uppercase small mb-3" style="letter-spacing:.4px;">
+          <i class="bi bi-fonts me-1"></i> Fuente
+        </h6>
+        <div class="row g-3">
+          {% set fuentes = [('Calibri','Calibri','Moderna y legible — ideal para Excel'),
+                            ('Arial','Arial','Clásica y universal'),
+                            ('Trebuchet MS','Trebuchet MS','Sans-serif con personalidad'),
+                            ('Times New Roman','Times New Roman','Formal y tradicional')] %}
+          {% for val, label, desc in fuentes %}
+          <div class="col-6 col-md-3">
+            <label class="d-block w-100 m-0" style="cursor:pointer;">
+              <input type="radio" name="excel_fuente" value="{{ val }}" class="font-radio d-none"
+                     {{ 'checked' if (org.excel_fuente or 'Calibri') == val else '' }}>
+              <div class="font-card rounded-4 p-3 text-center h-100 {{ 'selected' if (org.excel_fuente or 'Calibri') == val else '' }}">
+                <div class="fw-bold mb-1" style="font-family:'{{ label }}';font-size:1.1rem;">Aa</div>
+                <div class="fw-semibold" style="font-size:.82rem;">{{ label }}</div>
+                <div class="text-muted" style="font-size:.68rem;">{{ desc }}</div>
+              </div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# ── COLUMNAS Y OPCIONES ────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold text-muted text-uppercase small mb-3" style="letter-spacing:.4px;">
+          <i class="bi bi-table me-1"></i> Columnas y Opciones
+        </h6>
+        <div class="row g-3">
+          {% set toggles = [
+            ('excel_mostrar_logo',   org.excel_mostrar_logo   if org.excel_mostrar_logo   is not none else True,  'bi-image',         'Mostrar Logo',       'Encabezado con logo de tu empresa'),
+            ('excel_mostrar_id',     org.excel_mostrar_id     if org.excel_mostrar_id     is not none else True,  'bi-hash',          'Columna ID',         'Número de registro del gasto'),
+            ('excel_mostrar_oc',     org.excel_mostrar_oc     if org.excel_mostrar_oc     is not none else True,  'bi-receipt',       'OC Asociada',        'Orden de compra vinculada'),
+            ('excel_mostrar_origen', org.excel_mostrar_origen if org.excel_mostrar_origen is not none else True,  'bi-tag',           'Origen',             'Manual o Servicio'),
+          ] %}
+          {% for name, val, icon, label, desc in toggles %}
+          <div class="col-md-6">
+            <div class="toggle-card rounded-4 p-3 d-flex align-items-center gap-3 {{ 'active' if val else '' }}"
+                 style="border:2px solid var(--border);cursor:pointer;"
+                 onclick="toggleCheck('{{ name }}')">
+              <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                   style="width:36px;height:36px;background:rgba(79,70,229,.08);">
+                <i class="bi {{ icon }} text-primary" style="font-size:.9rem;"></i>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-semibold" style="font-size:.88rem;">{{ label }}</div>
+                <div class="text-muted" style="font-size:.72rem;">{{ desc }}</div>
+              </div>
+              <div class="form-check form-switch m-0">
+                <input class="form-check-input" type="checkbox" name="{{ name }}" id="{{ name }}"
+                       style="width:2.2em;height:1.2em;" {{ 'checked' if val else '' }}
+                       onclick="event.stopPropagation()">
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# ── PREVIEW ───────────────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h6 class="fw-bold text-muted text-uppercase small mb-3" style="letter-spacing:.4px;">
+          <i class="bi bi-eye me-1"></i> Vista Previa
+        </h6>
+        <div class="rounded-3 overflow-auto border" style="background:#f8f9fa;">
+          <table id="previewTable" class="table table-bordered mb-0" style="font-size:.8rem;min-width:480px;">
+            <thead>
+              <tr id="previewBanner">
+                <td colspan="6" id="previewTitle"
+                    style="text-align:center;font-weight:700;font-size:1rem;color:#fff;padding:10px;">
+                  Tu Empresa — Control de Gastos
+                </td>
+              </tr>
+              <tr id="previewSubBanner">
+                <td colspan="6" id="previewSubtitle"
+                    style="text-align:center;font-size:.75rem;color:#fff;padding:4px;">
+                  Mayo 2026
+                </td>
+              </tr>
+              <tr id="previewHeaders"></tr>
+            </thead>
+            <tbody id="previewBody"></tbody>
+            <tfoot>
+              <tr id="previewTotal">
+                <td colspan="3" style="text-align:right;font-weight:700;padding:6px 8px;">Total del Mes</td>
+                <td style="text-align:right;font-weight:700;padding:6px 8px;">$128,181.09</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="text-muted mt-2" style="font-size:.72rem;">
+          <i class="bi bi-info-circle me-1"></i>Vista aproximada — el archivo real incluye bordes, anchos automáticos y tabla de categorías.
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 pt-2 border-top" style="border-color:var(--border)!important;">
+      <a href="{{ url_for('lista_gastos') }}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+      <button type="submit" class="btn btn-success rounded-pill px-4 fw-semibold shadow-sm">
+        <i class="bi bi-floppy me-1"></i>Guardar Configuración
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.font-card {
+  border: 2px solid var(--border, #e2e8f0);
+  background: var(--surface-raised, #f8fafc);
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  cursor: pointer;
+}
+.font-card:hover  { border-color: rgba(79,70,229,.4); }
+.font-card.selected {
+  border-color: var(--primary, #4f46e5);
+  background: rgba(79,70,229,.06);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+}
+.font-card.selected .fw-bold { color: var(--primary, #4f46e5); }
+
+.palette-btn { transition: border-color .15s, box-shadow .15s; }
+.palette-btn:hover  { border-color: rgba(79,70,229,.4) !important; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.palette-btn.active { border-color: var(--primary, #4f46e5) !important; box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
+
+.toggle-card { transition: border-color .15s, background .15s; }
+.toggle-card.active { border-color: var(--primary, #4f46e5) !important; background: rgba(79,70,229,.04); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  // ── Estado ────────────────────────────────────────────────────────────────
+  const state = {
+    hdr: document.getElementById('colorHdr').value,
+    acc: document.getElementById('colorAcc').value,
+    fuente: document.querySelector('input[name="excel_fuente"]:checked')?.value || 'Calibri',
+    showId:     document.getElementById('excel_mostrar_id')?.checked ?? true,
+    showOc:     document.getElementById('excel_mostrar_oc')?.checked ?? true,
+    showOrigen: document.getElementById('excel_mostrar_origen')?.checked ?? true,
+  };
+
+  const SAMPLE_ROWS = [
+    { fecha:'2026-05-01', desc:'OA-1337 Home Depot 001',       cat:'Mantenimiento', monto:'$16,247.97', oc:'OC-56',  origen:'Manual'   },
+    { fecha:'2026-05-06', desc:'TD José Chagoya 06-12 Mayo',   cat:'Insumos',       monto:'$3,853.17',  oc:'—',      origen:'Manual'   },
+    { fecha:'2026-05-10', desc:'Servicio: Agua y Drenaje MTY', cat:'Servicios',     monto:'$49,372.00', oc:'—',      origen:'Servicio' },
+    { fecha:'2026-05-18', desc:'Pago de Gas LP - Gas Ideal',   cat:'Servicios',     monto:'$8,211.41',  oc:'—',      origen:'Servicio' },
+  ];
+
+  // ── Renderizar preview ────────────────────────────────────────────────────
+  function render() {
+    const hdr = state.hdr, acc = state.acc, fn = state.fuente;
+
+    // Banner
+    document.getElementById('previewTitle').style.background = hdr;
+    document.getElementById('previewTitle').style.fontFamily = fn;
+    document.getElementById('previewSubBanner').style.background = hdr;
+    document.getElementById('previewSubtitle').style.fontFamily = fn;
+
+    // Build columns
+    const cols = ['Fecha', 'Descripción', 'Categoría', 'Monto'];
+    if (state.showId)     cols.unshift('ID');
+    if (state.showOc)     cols.push('OC Asociada');
+    if (state.showOrigen) cols.push('Origen');
+
+    // Headers
+    const hdrsRow = document.getElementById('previewHeaders');
+    hdrsRow.innerHTML = '';
+    cols.forEach(h => {
+      const th = document.createElement('th');
+      th.textContent = h;
+      th.style.cssText = `background:${hdr};color:#fff;font-family:${fn};font-size:.78rem;padding:5px 8px;white-space:nowrap;`;
+      hdrsRow.appendChild(th);
+    });
+
+    // Body
+    const tbody = document.getElementById('previewBody');
+    tbody.innerHTML = '';
+    SAMPLE_ROWS.forEach((row, i) => {
+      const tr = document.createElement('tr');
+      const isSvc = row.origen === 'Servicio';
+      const bg = isSvc ? '#fffbeb' : (i % 2 === 1 ? acc : 'transparent');
+      const cells = ['Fecha', 'Descripción', 'Categoría', 'Monto'];
+      if (state.showId)     cells.unshift('ID');
+      if (state.showOc)     cells.push('OC Asociada');
+      if (state.showOrigen) cells.push('Origen');
+
+      const vals = {
+        'ID': String(200 + i), 'Fecha': row.fecha, 'Descripción': row.desc,
+        'Categoría': row.cat, 'Monto': row.monto,
+        'OC Asociada': row.oc, 'Origen': row.origen
+      };
+      cells.forEach(c => {
+        const td = document.createElement('td');
+        td.textContent = vals[c] || '';
+        td.style.cssText = `background:${bg};font-family:${fn};font-size:.78rem;padding:4px 8px;white-space:nowrap;`;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    // Total footer
+    const tfr = document.getElementById('previewTotal');
+    tfr.querySelectorAll('td').forEach(td => {
+      td.style.background = acc;
+      td.style.fontFamily = fn;
+    });
+    const colSpan = cols.length - 1;
+    tfr.children[0].colSpan = colSpan;
+  }
+
+  // ── Bindings: colores ─────────────────────────────────────────────────────
+  function syncColor(type, hex) {
+    state[type] = hex;
+    document.getElementById('colorHdr').value = state.hdr;
+    document.getElementById('colorAcc').value = state.acc;
+    render();
+  }
+
+  const hdrPicker = document.getElementById('colorHdrPicker');
+  const hdrText   = document.getElementById('colorHdrText');
+  const accPicker = document.getElementById('colorAccPicker');
+  const accText   = document.getElementById('colorAccText');
+
+  hdrPicker.addEventListener('input', e => { hdrText.value = e.target.value; syncColor('hdr', e.target.value); });
+  hdrText.addEventListener('input',   e => { if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) { hdrPicker.value = e.target.value; syncColor('hdr', e.target.value); }});
+  accPicker.addEventListener('input', e => { accText.value = e.target.value; syncColor('acc', e.target.value); });
+  accText.addEventListener('input',   e => { if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) { accPicker.value = e.target.value; syncColor('acc', e.target.value); }});
+
+  // ── Paletas ───────────────────────────────────────────────────────────────
+  document.querySelectorAll('.palette-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const h = btn.dataset.hdr, a = btn.dataset.acc;
+      hdrPicker.value = h; hdrText.value = h;
+      accPicker.value = a; accText.value = a;
+      syncColor('hdr', h); syncColor('acc', a);
+    });
+  });
+
+  // ── Fuentes ───────────────────────────────────────────────────────────────
+  document.querySelectorAll('input[name="excel_fuente"]').forEach(r => {
+    r.addEventListener('change', () => {
+      document.querySelectorAll('.font-card').forEach(c => c.classList.remove('selected'));
+      r.closest('label').querySelector('.font-card').classList.add('selected');
+      state.fuente = r.value;
+      render();
+    });
+  });
+
+  // ── Toggles de columna ────────────────────────────────────────────────────
+  window.toggleCheck = function(name) {
+    const cb = document.getElementById(name);
+    cb.checked = !cb.checked;
+    const card = cb.closest('.toggle-card');
+    card.classList.toggle('active', cb.checked);
+    if (name === 'excel_mostrar_id')     state.showId     = cb.checked;
+    if (name === 'excel_mostrar_oc')     state.showOc     = cb.checked;
+    if (name === 'excel_mostrar_origen') state.showOrigen = cb.checked;
+    render();
+  };
+  document.querySelectorAll('.toggle-card input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.toggle-card').classList.toggle('active', cb.checked);
+      if (cb.name === 'excel_mostrar_id')     state.showId     = cb.checked;
+      if (cb.name === 'excel_mostrar_oc')     state.showOc     = cb.checked;
+      if (cb.name === 'excel_mostrar_origen') state.showOrigen = cb.checked;
+      render();
+    });
+  });
+
+  render();  // Inicial
+})();
+</script>
+{% endblock %}

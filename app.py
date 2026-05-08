@@ -66,6 +66,8 @@ import openpyxl
 from openpyxl.styles import (Font, PatternFill, Alignment, NamedStyle, Border, Side)
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table as ExcelTable, TableStyleInfo
+from openpyxl.chart import BarChart, Reference
+from openpyxl.drawing.image import Image as XlImage
 
 # --- HTTP ---
 import requests
@@ -214,6 +216,15 @@ class Organizacion(db.Model):
     etiqueta_color_sku    = db.Column(db.String(7),  default='#1f4e79')
     etiqueta_estilo       = db.Column(db.String(20), default='moderno')
     etiqueta_mostrar_logo = db.Column(db.Boolean,    default=True)
+
+    # --- EXCEL ---
+    excel_color_header   = db.Column(db.String(7),  default='#1f4e79')
+    excel_color_accent   = db.Column(db.String(7),  default='#dbeafe')
+    excel_fuente         = db.Column(db.String(30), default='Calibri')
+    excel_mostrar_logo   = db.Column(db.Boolean,    default=True)
+    excel_mostrar_id     = db.Column(db.Boolean,    default=True)
+    excel_mostrar_oc     = db.Column(db.Boolean,    default=True)
+    excel_mostrar_origen = db.Column(db.Boolean,    default=True)
 
     usuarios = db.relationship('User', backref='organizacion', lazy=True)
     productos = db.relationship('Producto', backref='organizacion', lazy=True)
@@ -1038,6 +1049,27 @@ def configurar_etiqueta_diseno():
         flash('Diseño de etiquetas guardado.', 'success')
         return redirect(url_for('configurar_etiqueta_diseno'))
     return render_template('etiqueta_personalizar.html', org=org)
+
+
+@app.route('/configuracion/excel', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_view_management')
+def configurar_excel_diseno():
+    org = Organizacion.query.get_or_404(current_user.organizacion_id)
+    if request.method == 'POST':
+        fuentes_validas = {'Calibri', 'Arial', 'Trebuchet MS', 'Times New Roman'}
+        f = request.form.get('excel_fuente', 'Calibri')
+        org.excel_fuente         = f if f in fuentes_validas else 'Calibri'
+        org.excel_color_header   = request.form.get('excel_color_header', '#1f4e79')[:7]
+        org.excel_color_accent   = request.form.get('excel_color_accent', '#dbeafe')[:7]
+        org.excel_mostrar_logo   = 'excel_mostrar_logo'   in request.form
+        org.excel_mostrar_id     = 'excel_mostrar_id'     in request.form
+        org.excel_mostrar_oc     = 'excel_mostrar_oc'     in request.form
+        org.excel_mostrar_origen = 'excel_mostrar_origen' in request.form
+        db.session.commit()
+        flash('Diseño de Excel guardado. ✓', 'success')
+        return redirect(url_for('configurar_excel_diseno'))
+    return render_template('excel_config.html', org=org)
 
 
 @app.route('/producto/<int:id>/etiqueta/configurar')
@@ -4714,18 +4746,17 @@ def editar_gasto(id):
 @check_permission('perm_view_gastos')
 def exportar_gastos_excel():
     ahora = now_mx()
+    org   = Organizacion.query.get(current_user.organizacion_id)
 
-    # Soporte para rango de meses (auditoría trimestral) o mes individual
+    # ── Rango de meses ────────────────────────────────────────────────────────
     mes_desde = request.args.get('mes_desde', type=int)
     ano_desde = request.args.get('ano_desde', type=int)
     mes_hasta = request.args.get('mes_hasta', type=int)
     ano_hasta = request.args.get('ano_hasta', type=int)
-
-    if not mes_desde:  # compatibilidad con parámetros antiguos
+    if not mes_desde:
         mes_desde = mes_hasta = request.args.get('mes', type=int) or ahora.month
         ano_desde = ano_hasta = request.args.get('ano', type=int) or ahora.year
 
-    # Construir lista de períodos (año, mes) en el rango
     periodos = []
     y, m = ano_desde, mes_desde
     while (y < ano_hasta) or (y == ano_hasta and m <= mes_hasta):
@@ -4740,25 +4771,111 @@ def exportar_gastos_excel():
     base_query = (Gasto.query if current_user.rol == 'super_admin'
                   else Gasto.query.filter_by(organizacion_id=current_user.organizacion_id))
 
-    # ── Estilos compartidos ────────────────────────────────────────────────────
-    fnt_normal  = Font(name='Arial', size=11)
-    fnt_header  = Font(name='Arial', size=11, bold=True, color='FFFFFF')
-    fnt_total   = Font(name='Arial', size=11, bold=True, color='FFFFFF')
-    fill_header = PatternFill(start_color='1f4e79', end_color='1f4e79', fill_type='solid')
-    fill_total  = PatternFill(start_color='2e75b6', end_color='2e75b6', fill_type='solid')
-    fill_svc    = PatternFill(start_color='e8f4fd', end_color='e8f4fd', fill_type='solid')
-    align_c     = Alignment(horizontal='center', vertical='center')
-    align_r     = Alignment(horizontal='right',  vertical='center')
-    border_side = Side(border_style='thin', color='b0c4de')
-    border      = Border(left=border_side, right=border_side,
-                         top=border_side,  bottom=border_side)
-    cur_fmt     = '$#,##0.00'
-    HEADERS     = ['ID', 'Fecha', 'Descripción', 'Categoría', 'Monto', 'OC Asociada', 'Origen']
+    # ── Configuración de diseño ───────────────────────────────────────────────
+    def _argb(h):
+        return 'FF' + (h or '#000000').lstrip('#').upper()
 
-    def _auto_width(ws):
-        for col_idx, col in enumerate(ws.columns, 1):
-            max_len = max((len(str(c.value or '')) for c in col), default=10)
-            ws.column_dimensions[get_column_letter(col_idx)].width = min(max_len + 4, 45)
+    col_hdr     = _argb(getattr(org, 'excel_color_header',  '#1f4e79'))
+    col_acc     = _argb(getattr(org, 'excel_color_accent',  '#dbeafe'))
+    fuente      = getattr(org, 'excel_fuente',         'Calibri') or 'Calibri'
+    show_logo   = getattr(org, 'excel_mostrar_logo',   True)
+    show_id     = getattr(org, 'excel_mostrar_id',     True)
+    show_oc     = getattr(org, 'excel_mostrar_oc',     True)
+    show_origen = getattr(org, 'excel_mostrar_origen', True)
+    empresa     = (org.header_titulo or org.nombre) if org else 'Empresa'
+
+    # ── Columnas dinámicas ────────────────────────────────────────────────────
+    COLS = ['Fecha', 'Descripción', 'Categoría', 'Monto']
+    if show_id:     COLS = ['ID'] + COLS
+    if show_oc:     COLS.append('OC Asociada')
+    if show_origen: COLS.append('Origen')
+    N         = len(COLS)
+    monto_idx = COLS.index('Monto') + 1   # 1-based
+    last_col  = get_column_letter(N)
+
+    # ── Estilos ───────────────────────────────────────────────────────────────
+    fill_hdr    = PatternFill('solid', fgColor=col_hdr)
+    fill_acc    = PatternFill('solid', fgColor=col_acc)
+    fill_svc    = PatternFill('solid', fgColor='FFFFF8E1')  # ámbar muy suave
+
+    bd_s  = Side(border_style='thin',   color='CCCCCC')
+    bd_m  = Side(border_style='medium', color='888888')
+    bd    = Border(left=bd_s,  right=bd_s,  top=bd_s,  bottom=bd_s)
+    bd_tt = Border(left=bd_m,  right=bd_m,  top=bd_m,  bottom=bd_m)
+
+    f_title  = Font(name=fuente, size=14, bold=True,  color='FFFFFF')
+    f_sub    = Font(name=fuente, size=10,             color='FFFFFF')
+    f_hdr    = Font(name=fuente, size=10, bold=True,  color='FFFFFF')
+    f_normal = Font(name=fuente, size=10)
+    f_bold   = Font(name=fuente, size=11, bold=True)
+    f_wht    = Font(name=fuente, size=11, bold=True,  color='FFFFFF')
+
+    a_c = Alignment(horizontal='center', vertical='center')
+    a_r = Alignment(horizontal='right',  vertical='center')
+    a_l = Alignment(horizontal='left',   vertical='center')
+    cur_fmt = '$#,##0.00'
+
+    # ── Logo path ─────────────────────────────────────────────────────────────
+    logo_path = None
+    if show_logo and org and org.logo_url:
+        candidate = os.path.join(app.config['UPLOAD_FOLDER'], org.logo_url)
+        if os.path.exists(candidate):
+            logo_path = candidate
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+    def _auto_width(ws, max_w=52):
+        for ci, col in enumerate(ws.columns, 1):
+            w = max((len(str(c.value or '')) for c in col), default=10)
+            ws.column_dimensions[get_column_letter(ci)].width = min(w + 4, max_w)
+
+    def _banner(ws, title, subtitle=''):
+        ws.merge_cells(f'A1:{last_col}1')
+        c = ws['A1']
+        c.value, c.font, c.fill, c.alignment = title, f_title, fill_hdr, a_c
+        ws.row_dimensions[1].height = 30
+        ws.merge_cells(f'A2:{last_col}2')
+        c2 = ws['A2']
+        c2.value, c2.font, c2.fill, c2.alignment = subtitle, f_sub, fill_hdr, a_c
+        ws.row_dimensions[2].height = 16
+        if logo_path:
+            try:
+                img = XlImage(logo_path)
+                img.height, img.width = 42, 42
+                ws.add_image(img, 'A1')
+            except Exception:
+                pass
+
+    def _col_headers(ws, row, headers):
+        for ci, h in enumerate(headers, 1):
+            c = ws.cell(row, ci, h)
+            c.font, c.fill, c.alignment, c.border = f_hdr, fill_hdr, a_c, bd
+        ws.row_dimensions[row].height = 18
+
+    def _cat_summary(ws, gastos_list):
+        """Tabla de resumen por categoría al pie de cada hoja."""
+        cat_totals = {}
+        for g in gastos_list:
+            k = g.categoria or 'Sin categoría'
+            cat_totals[k] = cat_totals.get(k, 0) + g.monto
+        if not cat_totals:
+            return
+        ws.append([])
+        sr = ws.max_row + 1
+        ws.merge_cells(f'A{sr}:B{sr}')
+        sh = ws[f'A{sr}']
+        sh.value, sh.font, sh.fill, sh.alignment = 'Resumen por Categoría', f_hdr, fill_hdr, a_c
+        ws.row_dimensions[sr].height = 16
+        hr = sr + 1
+        for ci, txt in enumerate(['Categoría', 'Total'], 1):
+            c = ws.cell(hr, ci, txt)
+            c.font, c.fill, c.alignment, c.border = f_hdr, fill_hdr, (a_l if ci == 1 else a_r), bd
+        for cat, tot in sorted(cat_totals.items(), key=lambda x: -x[1]):
+            r = ws.max_row + 1
+            c1 = ws.cell(r, 1, cat)
+            c1.font, c1.border, c1.alignment = f_normal, bd, a_l
+            c2 = ws.cell(r, 2, tot)
+            c2.font, c2.border, c2.alignment = f_normal, bd, a_r
+            c2.number_format = cur_fmt
 
     def _add_month_sheet(wb, year, month, table_idx):
         gastos = base_query.filter(
@@ -4769,148 +4886,145 @@ def exportar_gastos_excel():
         nombre_mes = datetime(year, month, 1).strftime('%B').capitalize()
         ws = wb.create_sheet(title=f"{nombre_mes[:3]} {year}")
 
-        # Título
-        ws.merge_cells('A1:G1')
-        tc = ws['A1']
-        tc.value = f"Gastos — {nombre_mes} {year}"
-        tc.font = Font(name='Arial', size=13, bold=True, color='FFFFFF')
-        tc.fill = fill_header
-        tc.alignment = align_c
-        ws.row_dimensions[1].height = 22
-
-        # Cabeceras
-        ws.append(HEADERS)
-        for cell in ws[2]:
-            cell.font = fnt_header
-            cell.fill = fill_header
-            cell.alignment = align_c
-            cell.border = border
-        ws.row_dimensions[2].height = 18
+        _banner(ws, empresa, f'Control de Gastos — {nombre_mes} {year}')
+        _col_headers(ws, 3, COLS)
 
         total = 0.0
-        for g in gastos:
+        for i, g in enumerate(gastos):
             origen = 'Servicio' if g.descripcion.startswith('Servicio:') else 'Manual'
-            row = [g.id, g.fecha.date(), g.descripcion,
-                   g.categoria or '—', g.monto,
-                   g.orden_compra_id or '—', origen]
-            ws.append(row)
+            row_data = [g.fecha.date(), g.descripcion, g.categoria or '—', g.monto]
+            if show_id:     row_data = [g.id] + row_data
+            if show_oc:     row_data.append(g.orden_compra_id or '—')
+            if show_origen: row_data.append(origen)
+            ws.append(row_data)
             r = ws.max_row
-            for ci in range(1, 8):
+            use_acc = (i % 2 == 1)
+            for ci in range(1, N + 1):
                 c = ws.cell(r, ci)
-                c.font  = fnt_normal
-                c.border = border
+                c.font, c.border = f_normal, bd
                 if origen == 'Servicio':
                     c.fill = fill_svc
-            ws.cell(r, 5).number_format = cur_fmt
+                elif use_acc:
+                    c.fill = fill_acc
+            ws.cell(r, monto_idx).number_format = cur_fmt
+            ws.cell(r, monto_idx).alignment     = a_r
             total += g.monto
 
-        # Fila total
         if gastos:
-            tbl_name = f"Gastos{table_idx}"
             try:
-                tbl = ExcelTable(displayName=tbl_name, ref=f"A2:G{ws.max_row}")
+                tbl = ExcelTable(displayName=f'Gastos{table_idx}',
+                                 ref=f'A3:{last_col}{ws.max_row}')
                 tbl.tableStyleInfo = TableStyleInfo(
-                    name='TableStyleMedium2',
-                    showRowStripes=True, showFirstColumn=False,
-                    showLastColumn=False, showColumnStripes=False)
+                    name='TableStyleMedium2', showRowStripes=False)
                 ws.add_table(tbl)
             except Exception:
                 pass
 
-        ft_row = ws.max_row + 1
-        ws.cell(ft_row, 4).value = 'Total del Mes'
-        ws.cell(ft_row, 4).font  = fnt_total
-        ws.cell(ft_row, 4).fill  = fill_total
-        ws.cell(ft_row, 4).alignment = align_r
-        ws.cell(ft_row, 4).border = border
-        ws.cell(ft_row, 5).value  = total
-        ws.cell(ft_row, 5).number_format = cur_fmt
-        ws.cell(ft_row, 5).font  = fnt_normal
-        ws.cell(ft_row, 5).fill  = fill_total
-        ws.cell(ft_row, 5).font  = Font(name='Arial', size=11, bold=True)
-        ws.cell(ft_row, 5).border = border
+        # Fila total
+        ft = ws.max_row + 1
+        pre = get_column_letter(monto_idx - 1)
+        ws.merge_cells(f'A{ft}:{pre}{ft}')
+        c_lbl = ws.cell(ft, 1, 'Total del Mes')
+        c_lbl.font, c_lbl.fill, c_lbl.alignment, c_lbl.border = f_bold, fill_acc, a_r, bd
+        c_tot = ws.cell(ft, monto_idx, total)
+        c_tot.number_format = cur_fmt
+        c_tot.font, c_tot.fill, c_tot.alignment, c_tot.border = f_bold, fill_acc, a_r, bd
 
+        _cat_summary(ws, gastos)
+        ws.freeze_panes = 'A4'
         _auto_width(ws)
         return total, len(gastos)
 
-    # ── Construir workbook ─────────────────────────────────────────────────────
+    # ── Construir workbook ────────────────────────────────────────────────────
     wb = openpyxl.Workbook()
-    wb.remove(wb.active)  # quitar hoja vacía default
+    wb.remove(wb.active)
 
-    # Hoja resumen (si hay más de un mes)
+    ws_res = None
     if len(periodos) > 1:
         ws_res = wb.create_sheet(title='Resumen', index=0)
-        ws_res.merge_cells('A1:D1')
-        rc = ws_res['A1']
-        rc.value = 'Resumen de Gastos por Período'
-        rc.font  = Font(name='Arial', size=13, bold=True, color='FFFFFF')
-        rc.fill  = fill_header
-        rc.alignment = align_c
-        ws_res.row_dimensions[1].height = 22
-        res_headers = ['Período', 'Registros', 'Total', 'Incluye Servicios']
-        ws_res.append(res_headers)
-        for cell in ws_res[2]:
-            cell.font = fnt_header
-            cell.fill = fill_header
-            cell.alignment = align_c
-            cell.border = border
+        nm1 = datetime(periodos[0][0],  periodos[0][1],  1).strftime('%B').capitalize()
+        nm2 = datetime(periodos[-1][0], periodos[-1][1], 1).strftime('%B').capitalize()
+        _banner(ws_res, empresa,
+                f'Auditoría de Gastos — {nm1} {periodos[0][0]} a {nm2} {periodos[-1][0]}')
+        _col_headers(ws_res, 3, ['Período', 'Registros', 'Total (MXN)', 'Con Servicios'])
 
     totals_resumen = []
     for idx, (year, month) in enumerate(periodos, 1):
         total_mes, count_mes = _add_month_sheet(wb, year, month, idx)
         totals_resumen.append((year, month, total_mes, count_mes))
 
-    if len(periodos) > 1:
-        gran_total = 0.0
+    if ws_res is not None:
+        gran_total  = 0.0
+        all_g_range = []
         for year, month, total_mes, count_mes in totals_resumen:
             nombre_mes = datetime(year, month, 1).strftime('%B').capitalize()
-            tiene_svc = any(
-                g.descripcion.startswith('Servicio:')
-                for g in base_query.filter(
-                    extract('month', Gasto.fecha) == month,
-                    extract('year',  Gasto.fecha) == year).all()
-            )
-            ws_res.append([f"{nombre_mes} {year}", count_mes, total_mes, 'Sí' if tiene_svc else 'No'])
+            gastos_mes = base_query.filter(
+                extract('month', Gasto.fecha) == month,
+                extract('year',  Gasto.fecha) == year).all()
+            all_g_range.extend(gastos_mes)
+            tiene_svc = any(g.descripcion.startswith('Servicio:') for g in gastos_mes)
+            ws_res.append([f'{nombre_mes} {year}', count_mes, total_mes,
+                           'Sí' if tiene_svc else 'No'])
             r = ws_res.max_row
             ws_res.cell(r, 3).number_format = cur_fmt
+            ws_res.cell(r, 3).alignment     = a_r
             for ci in range(1, 5):
-                ws_res.cell(r, ci).font   = fnt_normal
-                ws_res.cell(r, ci).border = border
+                ws_res.cell(r, ci).font   = f_normal
+                ws_res.cell(r, ci).border = bd
             gran_total += total_mes
 
-        gt_row = ws_res.max_row + 1
-        ws_res.cell(gt_row, 2).value = sum(c for _, _, _, c in totals_resumen)
-        ws_res.cell(gt_row, 2).font  = fnt_total
-        ws_res.cell(gt_row, 2).fill  = fill_total
-        ws_res.cell(gt_row, 2).border = border
-        ws_res.merge_cells(f'A{gt_row}:A{gt_row}')
-        ws_res.cell(gt_row, 1).value = 'GRAN TOTAL'
-        ws_res.cell(gt_row, 1).font  = fnt_total
-        ws_res.cell(gt_row, 1).fill  = fill_total
-        ws_res.cell(gt_row, 1).alignment = align_r
-        ws_res.cell(gt_row, 1).border = border
-        ws_res.cell(gt_row, 3).value = gran_total
-        ws_res.cell(gt_row, 3).number_format = cur_fmt
-        ws_res.cell(gt_row, 3).font  = Font(name='Arial', size=11, bold=True)
-        ws_res.cell(gt_row, 3).fill  = fill_total
-        ws_res.cell(gt_row, 3).border = border
+        data_end = ws_res.max_row
+        gt = data_end + 1
+        ws_res.cell(gt, 1, 'GRAN TOTAL').font      = f_wht
+        ws_res.cell(gt, 1).fill, ws_res.cell(gt, 1).alignment = fill_hdr, a_r
+        ws_res.cell(gt, 1).border = bd
+        ws_res.cell(gt, 2, sum(c for _, _, _, c in totals_resumen)).font = f_wht
+        ws_res.cell(gt, 2).fill,  ws_res.cell(gt, 2).border              = fill_hdr, bd
+        ws_res.cell(gt, 2).alignment = a_c
+        ws_res.cell(gt, 3, gran_total).number_format = cur_fmt
+        ws_res.cell(gt, 3).font, ws_res.cell(gt, 3).fill   = f_wht, fill_hdr
+        ws_res.cell(gt, 3).alignment, ws_res.cell(gt, 3).border = a_r, bd
+
+        # Tabla T de categorías del período completo
+        _cat_summary(ws_res, all_g_range)
+
+        # Gráfico de barras por mes
+        try:
+            chart = BarChart()
+            chart.type, chart.grouping = 'col', 'clustered'
+            chart.title   = 'Gastos por Mes'
+            chart.y_axis.title = 'Total (MXN)'
+            chart.x_axis.title = 'Período'
+            data_ref = Reference(ws_res, min_col=3, max_col=3,
+                                 min_row=3, max_row=data_end)
+            cats_ref = Reference(ws_res, min_col=1, max_col=1,
+                                 min_row=4, max_row=data_end)
+            chart.add_data(data_ref, titles_from_data=True)
+            chart.set_categories(cats_ref)
+            chart.width, chart.height = 16, 10
+            ws_res.add_chart(chart, 'F3')
+        except Exception:
+            pass
+
+        ws_res.freeze_panes = 'A4'
         _auto_width(ws_res)
 
     # ── Nombre de archivo ─────────────────────────────────────────────────────
     if len(periodos) == 1:
-        nombre_mes = datetime(periodos[0][0], periodos[0][1], 1).strftime('%B').capitalize()
-        filename = f"Gastos_{nombre_mes}_{periodos[0][0]}.xlsx"
+        nom = datetime(periodos[0][0], periodos[0][1], 1).strftime('%B').capitalize()
+        filename = f"Gastos_{nom}_{periodos[0][0]}.xlsx"
     else:
-        nm1 = datetime(periodos[0][0],  periodos[0][1],  1).strftime('%b').capitalize()
-        nm2 = datetime(periodos[-1][0], periodos[-1][1], 1).strftime('%b').capitalize()
-        filename = f"Gastos_{nm1}{periodos[0][0]}_a_{nm2}{periodos[-1][0]}.xlsx"
+        n1 = datetime(periodos[0][0],  periodos[0][1],  1).strftime('%b').capitalize()
+        n2 = datetime(periodos[-1][0], periodos[-1][1], 1).strftime('%b').capitalize()
+        filename = f"Gastos_{n1}{periodos[0][0]}_a_{n2}{periodos[-1][0]}.xlsx"
 
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
     response = make_response(buffer.getvalue())
     response.headers['Content-Disposition'] = f'attachment; filename={filename}'
-    response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    response.headers['Content-Type'] = \
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
 
 # --- RUTAS DE AUTENTICACIÓN ---

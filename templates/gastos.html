@@ -41,17 +41,23 @@
             <div class="d-flex gap-2">
                 <div class="btn-group shadow-sm">
                     <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}"
-                       class="btn btn-success rounded-pill-start fw-bold text-nowrap"
+                       class="btn btn-success fw-bold text-nowrap"
                        style="border-radius:.5rem 0 0 .5rem;">
                         <i class="bi bi-file-earmark-excel me-1"></i> Excel
                     </a>
                     <button type="button"
-                            class="btn btn-success dropdown-toggle dropdown-toggle-split fw-bold"
-                            style="border-radius:0 .5rem .5rem 0;border-left:1px solid rgba(255,255,255,.3);"
+                            class="btn btn-success fw-bold"
+                            style="border-left:1px solid rgba(255,255,255,.3);"
                             data-bs-toggle="modal" data-bs-target="#modalRangoExcel"
                             title="Exportar rango de meses">
                         <i class="bi bi-calendar-range"></i>
                     </button>
+                    <a href="{{ url_for('configurar_excel_diseno') }}"
+                       class="btn btn-success fw-bold"
+                       style="border-radius:0 .5rem .5rem 0;border-left:1px solid rgba(255,255,255,.3);"
+                       title="Personalizar diseño del Excel">
+                        <i class="bi bi-gear"></i>
+                    </a>
                 </div>
                 <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
                     <i class="bi bi-plus-lg me-1"></i> Registrar Gasto
