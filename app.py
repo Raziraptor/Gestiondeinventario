@@ -206,6 +206,15 @@ class Organizacion(db.Model):
     footer_texto      = db.Column(db.Text,       nullable=True)
     pdf_mostrar_qr    = db.Column(db.Boolean,    default=False)
     whatsapp_notify   = db.Column(db.String(25), nullable=True, default=None)
+
+    # --- ETIQUETAS ---
+    etiqueta_fuente       = db.Column(db.String(50), default='Inter')
+    etiqueta_color_fondo  = db.Column(db.String(7),  default='#FFFFFF')
+    etiqueta_color_texto  = db.Column(db.String(7),  default='#1a1a1a')
+    etiqueta_color_sku    = db.Column(db.String(7),  default='#1f4e79')
+    etiqueta_estilo       = db.Column(db.String(20), default='moderno')
+    etiqueta_mostrar_logo = db.Column(db.Boolean,    default=True)
+
     usuarios = db.relationship('User', backref='organizacion', lazy=True)
     productos = db.relationship('Producto', backref='organizacion', lazy=True)
     categorias = db.relationship('Categoria', backref='organizacion', lazy=True)
@@ -1009,6 +1018,28 @@ def send_reset_email(user):
 # NUEVAS RUTAS PARA ETIQUETAS
 # =============================================
 
+@app.route('/configuracion/etiquetas', methods=['GET', 'POST'])
+@login_required
+@check_permission('perm_view_management')
+def configurar_etiqueta_diseno():
+    org = Organizacion.query.get_or_404(current_user.organizacion_id)
+    if request.method == 'POST':
+        fuentes_validas = {'Inter','Roboto','Montserrat','Poppins','Oswald','CenturyGothic'}
+        estilos_validos = {'moderno','bold','minimalista','dark','color'}
+        f = request.form.get('fuente', 'Inter')
+        e = request.form.get('estilo', 'moderno')
+        org.etiqueta_fuente       = f if f in fuentes_validas else 'Inter'
+        org.etiqueta_color_fondo  = request.form.get('color_fondo', '#FFFFFF')[:7]
+        org.etiqueta_color_texto  = request.form.get('color_texto', '#1a1a1a')[:7]
+        org.etiqueta_color_sku    = request.form.get('color_sku',   '#1f4e79')[:7]
+        org.etiqueta_estilo       = e if e in estilos_validos else 'moderno'
+        org.etiqueta_mostrar_logo = 'mostrar_logo' in request.form
+        db.session.commit()
+        flash('Diseño de etiquetas guardado.', 'success')
+        return redirect(url_for('configurar_etiqueta_diseno'))
+    return render_template('etiqueta_personalizar.html', org=org)
+
+
 @app.route('/producto/<int:id>/etiqueta/configurar')
 @login_required
 @check_permission('perm_view_dashboard')
@@ -1022,177 +1053,174 @@ def configurar_etiqueta(id):
     # La ubicación específica ahora se maneja dinámicamente en la plantilla HTML
     # iterando sobre producto.stocks, así que ya no necesitamos buscarla aquí.
     
-    return render_template('etiqueta_config.html', 
-                           producto=producto, 
-                           almacen_seleccionado=almacen_seleccionado)
+    org = Organizacion.query.get(current_user.organizacion_id)
+    return render_template('etiqueta_config.html',
+                           producto=producto,
+                           almacen_seleccionado=almacen_seleccionado,
+                           org=org)
 
 @app.route('/producto/<int:id>/etiqueta/generar', methods=['POST'])
 @login_required
 @check_permission('perm_view_dashboard')
 def generar_etiqueta_personalizada(id):
-    """ Genera etiqueta JPG. QR abajo-derecha para dar espacio al Nombre arriba (Full Width). """
+    """Genera etiqueta JPG usando la configuración de diseño de la organización."""
     producto = get_item_or_404(Producto, id)
-    
-    # --- NUEVO: Obtener datos de ubicación específicos del almacén seleccionado ---
+    org = Organizacion.query.get(current_user.organizacion_id)
+
     almacen_id = request.form.get('almacen_id')
     ubicacion = "N/A"
-    
     if almacen_id:
-        stock_especifico = Stock.query.filter_by(producto_id=id, almacen_id=almacen_id).first()
-        if stock_especifico and stock_especifico.ubicacion:
-            ubicacion = stock_especifico.ubicacion
+        st = Stock.query.filter_by(producto_id=id, almacen_id=almacen_id).first()
+        if st and st.ubicacion:
+            ubicacion = st.ubicacion
 
-    tamano = request.form.get('tamano') # '1x3' o '1.75x4'
-    DPI = 300 
-    
-    # --- CONFIGURACIÓN DE TAMAÑOS ---
+    tamano = request.form.get('tamano', '1x3')
+    DPI = 300
+
+    # ── Tamaño del lienzo ────────────────────────────────────────────────────
     if tamano == '1.75x4':
-        width_px = int(4 * DPI)
-        height_px = int(1.75 * DPI)
-        
-        font_size_nombre = 75
-        font_size_codigo = 95
-        font_size_ubic = 45
-        
-        qr_box_size = 13
-        margin = 30
-        gap_text_qr = 30
-        
-    else: # Default 1x3
-        width_px = int(3 * DPI)
-        height_px = int(1 * DPI)
-        
-        font_size_nombre = 50
-        font_size_codigo = 65
-        font_size_ubic = 35
-        
-        # Reducimos un pelín el QR para asegurar que deje espacio arriba
-        qr_box_size = 8 
-        margin = 20
-        gap_text_qr = 20
-
-    # Crear lienzo
-    img = Image.new('RGB', (width_px, height_px), color='white')
-    d = ImageDraw.Draw(img)
-
-    # --- CARGA DE FUENTES ---
-    try:
-        font_path_regular = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic.ttf')
-        font_path_bold = os.path.join(app.root_path, 'static', 'fonts', 'CenturyGothic-Bold.ttf')
-        if not os.path.exists(font_path_bold): font_path_bold = "arialbd.ttf" 
-        if not os.path.exists(font_path_regular): font_path_regular = "arial.ttf"
-        fnt_nombre = ImageFont.truetype(font_path_regular, font_size_nombre)
-        fnt_codigo = ImageFont.truetype(font_path_bold, font_size_codigo)
-        fnt_ubic = ImageFont.truetype(font_path_regular, font_size_ubic)
-    except IOError:
-        fnt_nombre = ImageFont.load_default()
-        fnt_codigo = ImageFont.load_default()
-        fnt_ubic = ImageFont.load_default()
-
-    # ==========================================
-    # 1. POSICIONAR CÓDIGO QR (Abajo - Derecha)
-    # ==========================================
-    qr_wrapper = qrcode.make(producto.codigo, box_size=qr_box_size, border=0)
-    qr_img = getattr(qr_wrapper, '_img', qr_wrapper)
-    qr_w, qr_h = qr_img.size
-    
-    # X: Pegado a la derecha
-    x_qr = int(width_px - qr_w - margin)
-    
-    # Y: Pegado al fondo (ABAJO) en lugar de centrado
-    # Esto libera el espacio de arriba para el nombre largo
-    y_qr = int(height_px - qr_h - margin)
-    
-    img.paste(qr_img, (x_qr, y_qr))
-
-    # ==========================================
-    # 2. POSICIONAR TEXTO
-    # ==========================================
-    margin_left = margin
-    current_y = margin # Empezamos arriba
-    
-    # Lógica inteligente para el ancho del Nombre:
-    # Si el nombre está "arriba" del QR (verticalmente), puede usar todo el ancho.
-    # Si el nombre choca con el QR, se limita.
-    
-    # Calculamos dónde empieza el QR verticalmente
-    qr_top_y = y_qr 
-    
-    # Espacio seguro para texto ancho (Nombre)
-    # Si la linea de texto termina ANTES de que empiece el QR, usa ancho total
-    if (current_y + font_size_nombre) < qr_top_y:
-        max_name_width = int(width_px - (margin * 2)) # Ancho completo
+        width_px, height_px = int(4 * DPI), int(1.75 * DPI)
+        fs_nombre, fs_codigo, fs_ubic = 75, 95, 45
+        qr_box, margin, gap = 13, 30, 30
     else:
-        max_name_width = int(x_qr - margin_left - gap_text_qr) # Limitado por QR
+        width_px, height_px = int(3 * DPI), int(1 * DPI)
+        fs_nombre, fs_codigo, fs_ubic = 50, 65, 35
+        qr_box, margin, gap = 8, 20, 20
 
-    # --- A. Nombre del Producto ---
-    nombre_texto = producto.nombre
-    while d.textlength(nombre_texto + "...", font=fnt_nombre) > max_name_width and len(nombre_texto) > 0:
-        nombre_texto = nombre_texto[:-1]
-    if len(nombre_texto) < len(producto.nombre):
-        nombre_texto += "..."
-        
-    d.text((margin_left, current_y), nombre_texto, font=fnt_nombre, fill="black")
-    
-    # --- B. Código (SKU) ---
-    current_y += int(font_size_nombre + 5)
-    
-    # Para las siguientes líneas, probablemente ya estemos a la altura del QR, así que limitamos el ancho
-    if (current_y + font_size_codigo) < qr_top_y:
-        max_std_width = int(width_px - (margin * 2))
-    else:
-        max_std_width = int(x_qr - margin_left - gap_text_qr)
-        
-    codigo_texto = producto.codigo
-    while d.textlength(codigo_texto, font=fnt_codigo) > max_std_width and len(codigo_texto) > 0:
-         codigo_texto = codigo_texto[:-1]
-         
-    d.text((margin_left, current_y), codigo_texto, font=fnt_codigo, fill="#1f4e79") # Azul
-    
-    # --- C. Ubicación / ID ---
-    current_y += int(font_size_codigo + 5)
-    
-    texto_inferior = f"UBIC: {ubicacion}" if ubicacion and ubicacion != "N/A" else f"ID: {producto.id}"
-    while d.textlength(texto_inferior, font=fnt_ubic) > max_std_width and len(texto_inferior) > 0:
-         texto_inferior = texto_inferior[:-1]
-         
-    d.text((margin_left, current_y), texto_inferior, font=fnt_ubic, fill="black")
+    # ── Config de la org (con fallbacks) ─────────────────────────────────────
+    fuente       = getattr(org, 'etiqueta_fuente',       None) or 'Inter'
+    color_fondo  = getattr(org, 'etiqueta_color_fondo',  None) or '#FFFFFF'
+    color_texto  = getattr(org, 'etiqueta_color_texto',  None) or '#1a1a1a'
+    color_sku    = getattr(org, 'etiqueta_color_sku',    None) or '#1f4e79'
+    estilo       = getattr(org, 'etiqueta_estilo',       None) or 'moderno'
+    mostrar_logo = getattr(org, 'etiqueta_mostrar_logo', True)
 
-    # ==========================================
-    # 3. POSICIONAR IMAGEN (Izquierda - Debajo del Texto)
-    # ==========================================
-    y_img_start = int(current_y + font_size_ubic + 10)
-    
-    # El espacio disponible ahora es más limitado porque el QR está abajo a la derecha,
-    # pero la esquina inferior izquierda suele estar libre.
-    available_height = int(height_px - y_img_start - margin)
-    
-    # El ancho disponible para la imagen es hasta donde empieza el QR
-    available_width = int(x_qr - margin_left - 10)
+    # Estilo modifica tamaños de fuente
+    if estilo == 'bold':
+        fs_nombre = int(fs_nombre * 1.18)
+        fs_codigo = int(fs_codigo * 1.18)
+    elif estilo == 'compacto':
+        fs_nombre = int(fs_nombre * 0.82)
+        fs_codigo = int(fs_codigo * 0.82)
+        fs_ubic   = int(fs_ubic   * 0.82)
 
-    if available_height > 20 and producto.imagen_url:
-        path_img_prod = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
-        if os.path.exists(path_img_prod):
+    def hex2rgb(h):
+        h = h.lstrip('#')
+        try:
+            return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+        except Exception:
+            return (255, 255, 255)
+
+    # ── Carga de fuentes ──────────────────────────────────────────────────────
+    FONT_MAP = {
+        'Inter':         ('Inter-Regular.ttf',      'Inter-Bold.ttf'),
+        'Roboto':        ('Roboto-Regular.ttf',      'Roboto-Bold.ttf'),
+        'Montserrat':    ('Montserrat-Regular.ttf',  'Montserrat-Bold.ttf'),
+        'Poppins':       ('Poppins-Regular.ttf',     'Poppins-Bold.ttf'),
+        'Oswald':        ('Oswald-Regular.ttf',      'Oswald-Bold.ttf'),
+        'CenturyGothic': ('CenturyGothic.ttf',       'CenturyGothic-Bold.ttf'),
+    }
+    reg_file, bold_file = FONT_MAP.get(fuente, ('Inter-Regular.ttf', 'Inter-Bold.ttf'))
+    fonts_dir = os.path.join(app.root_path, 'static', 'fonts')
+
+    def _font(filename, size):
+        path = os.path.join(fonts_dir, filename)
+        if os.path.exists(path):
             try:
-                prod_img = Image.open(path_img_prod)
-                
-                # Definimos caja máxima
-                box_w = available_width
-                box_h = available_height
-                
-                prod_img.thumbnail((box_w, box_h))
-                img.paste(prod_img, (margin_left, y_img_start))
+                return ImageFont.truetype(path, size)
             except Exception:
                 pass
+        for fb in ('arial.ttf', 'ArialMT.ttf', 'DejaVuSans.ttf'):
+            try:
+                return ImageFont.truetype(fb, size)
+            except Exception:
+                pass
+        return ImageFont.load_default()
 
-    # --- GUARDAR ---
+    fnt_nombre = _font(reg_file,  fs_nombre)
+    fnt_codigo = _font(bold_file, fs_codigo)
+    fnt_ubic   = _font(reg_file,  fs_ubic)
+
+    # ── Crear lienzo ──────────────────────────────────────────────────────────
+    img = Image.new('RGB', (width_px, height_px), color=hex2rgb(color_fondo))
+    d = ImageDraw.Draw(img)
+
+    # Borde sutil para estilo minimalista
+    if estilo == 'minimalista':
+        d.rectangle([(3, 3), (width_px - 4, height_px - 4)],
+                    outline=hex2rgb('#cbd5e1'), width=3)
+
+    # ── QR (abajo-derecha) ────────────────────────────────────────────────────
+    is_dark = hex2rgb(color_fondo)[0] < 128
+    qr_fg = hex2rgb('#FFFFFF') if is_dark else hex2rgb('#000000')
+    qr_bg = hex2rgb(color_fondo)
+    qr_wrapper = qrcode.QRCode(box_size=qr_box, border=0)
+    qr_wrapper.add_data(producto.codigo)
+    qr_wrapper.make(fit=True)
+    qr_img = qr_wrapper.make_image(fill_color=qr_fg, back_color=qr_bg).convert('RGB')
+    qr_w, qr_h = qr_img.size
+    x_qr = int(width_px - qr_w - margin)
+    y_qr = int(height_px - qr_h - margin)
+    img.paste(qr_img, (x_qr, y_qr))
+
+    # ── Texto ─────────────────────────────────────────────────────────────────
+    cur_y = margin
+    qr_top = y_qr
+
+    def _max_w(cur_y, fsize):
+        return (int(width_px - margin * 2) if (cur_y + fsize) < qr_top
+                else int(x_qr - margin - gap))
+
+    def _truncate(txt, fnt, max_w):
+        while d.textlength(txt + '…', font=fnt) > max_w and txt:
+            txt = txt[:-1]
+        return txt + '…' if len(txt) < len(producto.nombre if fnt == fnt_nombre else txt) else txt
+
+    # Nombre
+    nom = producto.nombre
+    mw = _max_w(cur_y, fs_nombre)
+    while d.textlength(nom + '…', font=fnt_nombre) > mw and nom:
+        nom = nom[:-1]
+    if nom != producto.nombre:
+        nom += '…'
+    d.text((margin, cur_y), nom, font=fnt_nombre, fill=hex2rgb(color_texto))
+    cur_y += fs_nombre + 5
+
+    # SKU
+    cod = producto.codigo
+    mw2 = _max_w(cur_y, fs_codigo)
+    while d.textlength(cod, font=fnt_codigo) > mw2 and cod:
+        cod = cod[:-1]
+    d.text((margin, cur_y), cod, font=fnt_codigo, fill=hex2rgb(color_sku))
+    cur_y += fs_codigo + 5
+
+    # Ubicación
+    ubic_txt = f"UBIC: {ubicacion}" if ubicacion and ubicacion != "N/A" else f"ID: {producto.id}"
+    mw3 = _max_w(cur_y, fs_ubic)
+    while d.textlength(ubic_txt, font=fnt_ubic) > mw3 and ubic_txt:
+        ubic_txt = ubic_txt[:-1]
+    d.text((margin, cur_y), ubic_txt, font=fnt_ubic, fill=hex2rgb(color_texto))
+    cur_y += fs_ubic + 10
+
+    # ── Imagen del producto ───────────────────────────────────────────────────
+    if mostrar_logo and producto.imagen_url:
+        avail_h = int(height_px - cur_y - margin)
+        avail_w = int(x_qr - margin - 10)
+        if avail_h > 20:
+            path_img = os.path.join(app.config['UPLOAD_FOLDER'], producto.imagen_url)
+            if os.path.exists(path_img):
+                try:
+                    prod_img = Image.open(path_img)
+                    prod_img.thumbnail((avail_w, avail_h))
+                    img.paste(prod_img, (margin, cur_y))
+                except Exception:
+                    pass
+
+    # ── Exportar ──────────────────────────────────────────────────────────────
     buffer = io.BytesIO()
     img.save(buffer, 'JPEG', quality=100)
     buffer.seek(0)
-    
-    nombre_clean = secure_filename(producto.nombre)
-    filename = f"Etiqueta_{nombre_clean}_{tamano}.jpg"
-
+    filename = f"Etiqueta_{secure_filename(producto.nombre)}_{tamano}.jpg"
     return send_file(buffer, mimetype='image/jpeg', as_attachment=True, download_name=filename)
 
 # --- Rutas Principales (Dashboard) ---
