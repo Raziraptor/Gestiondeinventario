@@ -171,8 +171,10 @@
     </div>
     {{ paginator(pagination, '?mes=' ~ mes_seleccionado ~ '&ano=' ~ ano_seleccionado) }}
 </div>
+{% endblock %}
 
-{# ── MODAL: Exportar rango de meses ──────────────────────────────────────── #}
+{% block scripts %}
+{# Modal fuera de <main> para evitar problemas de z-index con Bootstrap 5 #}
 <div class="modal fade" id="modalRangoExcel" tabindex="-1" aria-labelledby="modalRangoExcelLabel">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow rounded-4">
@@ -236,5 +238,4 @@
     </div>
   </div>
 </div>
-
 {% endblock %}
