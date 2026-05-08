@@ -350,6 +350,43 @@
             </div>
             {% endif %}
 
+            <!-- SERVICIOS -->
+            <div class="col-12 mt-2">
+                <p class="section-label">Servicios</p>
+                <div class="row g-2">
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{{ url_for('lista_servicios') }}" class="mod-card h-100">
+                            <div class="mod-icon" style="background:rgba(245,158,11,.12);">
+                                <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i>
+                            </div>
+                            <div class="mod-text">
+                                <div class="mod-name">
+                                    Servicios
+                                    {% if servicios_badge %}
+                                    <span class="badge rounded-pill ms-1 px-2"
+                                          style="background:#ef4444;color:#fff;font-size:.6rem;vertical-align:middle;">
+                                        {{ servicios_badge }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="mod-desc">Agua, Luz, Gas y más</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{{ url_for('nuevo_servicio') }}" class="mod-card h-100">
+                            <div class="mod-icon" style="background:rgba(16,185,129,.12);">
+                                <i class="bi bi-plus-circle-fill" style="color:#10b981;"></i>
+                            </div>
+                            <div class="mod-text">
+                                <div class="mod-name">Nuevo Servicio</div>
+                                <div class="mod-desc">Registrar recurrente</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             </div><!-- /row g-3 -->
         </div><!-- /col-lg-8 -->
 
