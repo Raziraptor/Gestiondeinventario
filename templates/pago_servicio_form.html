@@ -219,9 +219,11 @@ async function procesarArchivo(archivo) {
   dropResult.classList.add('d-none');
   dropProcessing.classList.remove('d-none');
 
-  // Llamada OCR
+  // Llamada OCR (incluir CSRF token requerido por Flask-WTF)
+  const csrfToken = document.querySelector('input[name="csrf_token"]').value;
   const fd = new FormData();
   fd.append('archivo', archivo);
+  fd.append('csrf_token', csrfToken);
   try {
     const resp = await fetch('{{ url_for("api_ocr_recibo") }}', { method:'POST', body:fd });
     const data = await resp.json();
@@ -251,7 +253,11 @@ async function procesarArchivo(archivo) {
     if (data.fecha_vencimiento) autoFill(campoFechaVenc, data.fecha_vencimiento);
 
   } catch(e) {
-    mostrarEstado('❌', 'Error de red', 'No se pudo conectar con el servidor', 'text-danger');
+    const msg = e instanceof SyntaxError
+      ? 'Respuesta inesperada del servidor'
+      : 'No se pudo conectar con el servidor';
+    mostrarEstado('❌', 'Error', msg, 'text-danger');
+    console.error('OCR error:', e);
   }
 }
 </script>
