@@ -6036,6 +6036,17 @@ def nuevo_pago_servicio(id):
             p.fecha_pago = datetime.strptime(request.form['fecha_pago'], '%Y-%m-%d').date()
             p.estado = 'pagado'
         db.session.add(p)
+        db.session.flush()  # para obtener p.id antes del commit
+        # Guardar comprobante si se subió
+        comp = request.files.get('comprobante')
+        if comp and comp.filename:
+            ext = comp.filename.rsplit('.', 1)[-1].lower()
+            if ext in ('jpg', 'jpeg', 'png', 'pdf', 'webp'):
+                carpeta = os.path.join(app.config['UPLOAD_FOLDER'], 'comprobantes')
+                os.makedirs(carpeta, exist_ok=True)
+                nombre = f"comp_{p.id}_{secrets.token_hex(6)}.{ext}"
+                comp.save(os.path.join(carpeta, nombre))
+                p.comprobante_url = nombre
         db.session.commit()
         flash('Pago registrado.', 'success')
         return redirect(url_for('detalle_servicio', id=s.id))
@@ -6072,10 +6083,65 @@ def eliminar_pago_servicio(id):
         Servicio.organizacion_id == current_user.organizacion_id
     ).first_or_404()
     serv_id = p.servicio_id
+    # Borrar comprobante si existe
+    if p.comprobante_url:
+        try:
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], 'comprobantes', p.comprobante_url))
+        except OSError:
+            pass
     db.session.delete(p)
     db.session.commit()
     flash('Registro de pago eliminado.', 'success')
     return redirect(url_for('detalle_servicio', id=serv_id))
+
+
+@app.route('/api/servicios/ocr-recibo', methods=['POST'])
+@login_required
+def api_ocr_recibo():
+    """Recibe imagen o PDF de un recibo y devuelve monto y fecha extraídos por OCR."""
+    if 'archivo' not in request.files:
+        return jsonify({'error': 'No se recibió ningún archivo.'}), 400
+    archivo = request.files['archivo']
+    if not archivo.filename:
+        return jsonify({'error': 'Archivo vacío.'}), 400
+
+    ext = archivo.filename.rsplit('.', 1)[-1].lower() if '.' in archivo.filename else ''
+    if ext not in ('jpg', 'jpeg', 'png', 'webp', 'pdf'):
+        return jsonify({'error': 'Formato no soportado. Usa JPG, PNG o PDF.'}), 400
+
+    try:
+        import pytesseract
+        from PIL import Image
+        import io as _io
+
+        contenido = archivo.read()
+
+        if ext == 'pdf':
+            try:
+                from pdf2image import convert_from_bytes
+                paginas = convert_from_bytes(contenido, first_page=1, last_page=2, dpi=200)
+                texto = '\n'.join(
+                    pytesseract.image_to_string(p, lang='spa+eng') for p in paginas
+                )
+            except ImportError:
+                return jsonify({'error': 'pdf2image no instalado en el servidor.'}), 503
+        else:
+            img = Image.open(_io.BytesIO(contenido))
+            # Escalar si la imagen es muy pequeña (mejora OCR)
+            if img.width < 1000:
+                factor = 1000 / img.width
+                img = img.resize((int(img.width * factor), int(img.height * factor)), Image.LANCZOS)
+            texto = pytesseract.image_to_string(img, lang='spa+eng')
+
+        from servicios_ocr import analizar_recibo
+        resultado = analizar_recibo(texto)
+        return jsonify(resultado)
+
+    except ImportError:
+        return jsonify({'error': 'Tesseract / pytesseract no instalado en el servidor.'}), 503
+    except Exception as e:
+        current_app.logger.error(f'OCR recibo: {e}')
+        return jsonify({'error': f'Error al procesar el archivo: {str(e)}'}), 500
 
 
 @app.errorhandler(403)

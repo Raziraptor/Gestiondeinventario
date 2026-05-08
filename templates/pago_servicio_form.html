@@ -2,7 +2,7 @@
 {% block title %}Registrar Pago · {{ servicio.nombre }}{% endblock %}
 
 {% block content %}
-<div class="container py-4 pb-5" style="max-width:520px;">
+<div class="container py-4 pb-5" style="max-width:560px;">
 
   <div class="mb-4">
     <a href="{{ url_for('detalle_servicio', id=servicio.id) }}"
@@ -17,60 +17,104 @@
 
   <div class="card border-0 shadow-sm rounded-4">
     <div class="card-body p-4">
-      <form method="POST">
+      <form method="POST" enctype="multipart/form-data" id="formPago">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        {# MONTO #}
+        {# ── ZONA OCR ──────────────────────────────────────────────────────── #}
+        <div class="mb-4">
+          <label class="fw-semibold small text-muted text-uppercase d-block mb-2" style="letter-spacing:.4px;">
+            <i class="bi bi-magic text-primary me-1"></i>Leer recibo automáticamente
+            <span class="badge rounded-pill ms-1 px-2"
+                  style="background:rgba(79,70,229,.1);color:var(--primary,#4f46e5);font-size:.65rem;font-weight:600;">OCR</span>
+          </label>
+
+          {# Drop zone #}
+          <div id="dropZone" class="rounded-4 text-center p-4 position-relative"
+               style="border:2px dashed var(--border,#cbd5e1);background:var(--surface-raised,#f8fafc);
+                      cursor:pointer;transition:.2s;">
+            <input type="file" id="archivoOcr" name="comprobante"
+                   accept=".jpg,.jpeg,.png,.webp,.pdf"
+                   class="position-absolute top-0 start-0 w-100 h-100 opacity-0"
+                   style="cursor:pointer;">
+            <div id="dropContent">
+              <i class="bi bi-cloud-upload fs-2 text-muted opacity-50 d-block mb-2"></i>
+              <div class="fw-semibold text-body" style="font-size:.88rem;">
+                Arrastra tu recibo aquí o <span class="text-primary text-decoration-underline">selecciona un archivo</span>
+              </div>
+              <div class="text-muted mt-1" style="font-size:.72rem;">
+                JPG, PNG, PDF · El sistema extraerá monto y fecha automáticamente
+              </div>
+            </div>
+            {# Estado: procesando #}
+            <div id="dropProcessing" class="d-none">
+              <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+              <div class="fw-semibold text-primary" style="font-size:.88rem;">Leyendo recibo...</div>
+            </div>
+            {# Estado: resultado #}
+            <div id="dropResult" class="d-none">
+              <div id="resultIcon" class="fs-2 mb-1"></div>
+              <div id="resultMsg" class="fw-semibold" style="font-size:.88rem;"></div>
+              <div id="resultSub" class="text-muted" style="font-size:.72rem;"></div>
+              <button type="button" class="btn btn-sm btn-link text-muted p-0 mt-2" onclick="resetDrop()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Subir otro
+              </button>
+            </div>
+          </div>
+
+          {# Preview imagen #}
+          <div id="previewImg" class="mt-2 text-center d-none">
+            <img id="previewSrc" src="" alt="preview"
+                 class="rounded-3 border shadow-sm" style="max-height:160px;max-width:100%;object-fit:contain;">
+          </div>
+        </div>
+
+        <hr class="my-3" style="border-color:var(--border,#e2e8f0);">
+
+        {# ── MONTO ─────────────────────────────────────────────────────────── #}
         <div class="mb-3">
           <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">
             Monto a pagar *
           </label>
           <div class="input-group input-group-lg shadow-sm">
             <span class="input-group-text fw-bold text-success">$</span>
-            <input type="number" name="monto" class="form-control fs-5 fw-bold"
-                   step="0.01" min="0.01" required placeholder="0.00"
-                   autofocus>
+            <input type="number" name="monto" id="campoMonto" class="form-control fs-5 fw-bold"
+                   step="0.01" min="0.01" required placeholder="0.00" autofocus>
             <span class="input-group-text text-muted">MXN</span>
           </div>
-          {% if promedio_prev is defined and promedio_prev %}
-          <div class="form-text" style="font-size:.72rem;">
-            <i class="bi bi-info-circle text-info me-1"></i>Promedio histórico: ${{ "{:,.2f}".format(promedio_prev) }}
-          </div>
-          {% endif %}
         </div>
 
-        {# FECHA DE VENCIMIENTO #}
+        {# ── FECHA DE VENCIMIENTO ──────────────────────────────────────────── #}
         <div class="mb-3">
           <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">
             Fecha de vencimiento *
           </label>
           <div class="input-group shadow-sm">
             <span class="input-group-text"><i class="bi bi-calendar-event text-danger"></i></span>
-            <input type="date" name="fecha_vencimiento" class="form-control" required
+            <input type="date" name="fecha_vencimiento" id="campoFechaVenc" class="form-control" required
                    value="{{ fecha_sugerida }}">
           </div>
           {% if fecha_sugerida %}
           <div class="form-text" style="font-size:.72rem;">
-            <i class="bi bi-magic text-primary me-1"></i>Calculada automáticamente según el día de vencimiento del servicio.
+            <i class="bi bi-magic text-primary me-1"></i>Calculada según el día de vencimiento configurado.
           </div>
           {% endif %}
         </div>
 
-        {# FECHA DE PAGO (opcional - si ya fue pagado) #}
+        {# ── FECHA DE PAGO ─────────────────────────────────────────────────── #}
         <div class="mb-3">
           <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">
-            Fecha de pago <span class="text-muted fw-normal">(dejar vacío si aún no se paga)</span>
+            Fecha de pago <span class="text-muted fw-normal normal-case" style="text-transform:none;">(vacío = pendiente)</span>
           </label>
           <div class="input-group shadow-sm">
             <span class="input-group-text"><i class="bi bi-check2-circle text-success"></i></span>
-            <input type="date" name="fecha_pago" class="form-control">
+            <input type="date" name="fecha_pago" id="campoFechaPago" class="form-control">
           </div>
           <div class="form-text" style="font-size:.72rem;">
-            Si ya lo pagaste, ingresa la fecha para registrarlo como <strong>Pagado</strong> directamente.
+            Si ya lo pagaste, agrégala para registrarlo como <strong>Pagado</strong> de inmediato.
           </div>
         </div>
 
-        {# NOTAS #}
+        {# ── NOTAS ─────────────────────────────────────────────────────────── #}
         <div class="mb-4">
           <label class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">Notas</label>
           <textarea name="notas" class="form-control" rows="2"
@@ -85,9 +129,131 @@
             <i class="bi bi-plus-circle me-1"></i>Guardar pago
           </button>
         </div>
+
       </form>
     </div>
   </div>
 
 </div>
+
+<style>
+#dropZone.drag-over {
+  border-color: var(--primary, #4f46e5) !important;
+  background: rgba(79,70,229,.06) !important;
+}
+.ocr-llenado {
+  animation: ocrFlash .6s ease;
+}
+@keyframes ocrFlash {
+  0%   { background: rgba(79,70,229,.18); }
+  100% { background: transparent; }
+}
+</style>
+
+{% block scripts %}
+<script>
+const dropZone      = document.getElementById('dropZone');
+const archivoInput  = document.getElementById('archivoOcr');
+const dropContent   = document.getElementById('dropContent');
+const dropProcessing= document.getElementById('dropProcessing');
+const dropResult    = document.getElementById('dropResult');
+const previewImg    = document.getElementById('previewImg');
+const previewSrc    = document.getElementById('previewSrc');
+const campoMonto    = document.getElementById('campoMonto');
+const campoFechaVenc= document.getElementById('campoFechaVenc');
+
+// Drag & drop visual
+['dragenter','dragover'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag-over'); }));
+['dragleave','drop'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('drag-over'); }));
+dropZone.addEventListener('drop', e => {
+  const f = e.dataTransfer?.files?.[0];
+  if (f) procesarArchivo(f);
+});
+archivoInput.addEventListener('change', () => {
+  if (archivoInput.files[0]) procesarArchivo(archivoInput.files[0]);
+});
+
+function resetDrop() {
+  archivoInput.value = '';
+  dropContent.classList.remove('d-none');
+  dropProcessing.classList.add('d-none');
+  dropResult.classList.add('d-none');
+  previewImg.classList.add('d-none');
+}
+
+function mostrarEstado(icon, msg, sub, color='text-body') {
+  document.getElementById('resultIcon').textContent = icon;
+  document.getElementById('resultMsg').className = `fw-semibold ${color}`;
+  document.getElementById('resultMsg').textContent = msg;
+  document.getElementById('resultSub').textContent = sub;
+  dropContent.classList.add('d-none');
+  dropProcessing.classList.add('d-none');
+  dropResult.classList.remove('d-none');
+}
+
+function autoFill(campo, valor) {
+  campo.value = valor;
+  campo.classList.add('ocr-llenado');
+  setTimeout(() => campo.classList.remove('ocr-llenado'), 700);
+}
+
+async function procesarArchivo(archivo) {
+  const ext = archivo.name.split('.').pop().toLowerCase();
+  if (!['jpg','jpeg','png','webp','pdf'].includes(ext)) {
+    mostrarEstado('⚠️', 'Formato no soportado', 'Usa JPG, PNG o PDF', 'text-warning');
+    return;
+  }
+
+  // Preview de imagen
+  if (['jpg','jpeg','png','webp'].includes(ext)) {
+    const reader = new FileReader();
+    reader.onload = e => { previewSrc.src = e.target.result; previewImg.classList.remove('d-none'); };
+    reader.readAsDataURL(archivo);
+  }
+
+  // Mostrar spinner
+  dropContent.classList.add('d-none');
+  dropResult.classList.add('d-none');
+  dropProcessing.classList.remove('d-none');
+
+  // Llamada OCR
+  const fd = new FormData();
+  fd.append('archivo', archivo);
+  try {
+    const resp = await fetch('{{ url_for("api_ocr_recibo") }}', { method:'POST', body:fd });
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      mostrarEstado('❌', 'No se pudo leer', data.error || 'Error desconocido', 'text-danger');
+      return;
+    }
+
+    const iconMap = { alta:'✅', media:'⚠️', baja:'❓' };
+    const colorMap = { alta:'text-success', media:'text-warning', baja:'text-danger' };
+    let partes = [];
+    if (data.monto)            partes.push(`Monto: $${Number(data.monto).toLocaleString('es-MX',{minimumFractionDigits:2})}`);
+    if (data.fecha_vencimiento) partes.push(`Vence: ${data.fecha_vencimiento}`);
+
+    mostrarEstado(
+      iconMap[data.confianza] || '❓',
+      data.nombre_proveedor !== 'Desconocido'
+        ? `${data.nombre_proveedor} detectado`
+        : 'Recibo procesado',
+      partes.join(' · ') || 'No se encontraron datos. Llena los campos manualmente.',
+      colorMap[data.confianza] || 'text-muted'
+    );
+
+    // Auto-llenar campos
+    if (data.monto)            autoFill(campoMonto,     data.monto);
+    if (data.fecha_vencimiento) autoFill(campoFechaVenc, data.fecha_vencimiento);
+
+  } catch(e) {
+    mostrarEstado('❌', 'Error de red', 'No se pudo conectar con el servidor', 'text-danger');
+  }
+}
+</script>
+{% endblock %}
+
 {% endblock %}

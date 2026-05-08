@@ -163,9 +163,16 @@
                 {{ p.fecha_pago.strftime('%d %b %Y') if p.fecha_pago else '—' }}
               </td>
               <td class="text-muted small" style="max-width:160px;">
-                <span class="text-truncate d-block" style="max-width:140px;" title="{{ p.notas or '' }}">
-                  {{ p.notas or '—' }}
+                <span class="text-truncate d-block" style="max-width:120px;" title="{{ p.notas or '' }}">
+                  {{ p.notas or '' }}
                 </span>
+                {% if p.comprobante_url %}
+                <a href="{{ url_for('static', filename='uploads/comprobantes/' + p.comprobante_url) }}"
+                   target="_blank" class="d-inline-flex align-items-center gap-1 mt-1"
+                   style="font-size:.68rem;color:var(--primary,#4f46e5);">
+                  <i class="bi bi-paperclip"></i>Comprobante
+                </a>
+                {% endif %}
               </td>
               <td class="pe-4 text-end">
                 <div class="d-flex gap-1 justify-content-end">
