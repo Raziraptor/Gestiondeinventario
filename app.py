@@ -6122,7 +6122,10 @@ def api_ocr_recibo():
         if ext == 'pdf':
             try:
                 from pdf2image import convert_from_bytes
-                paginas = convert_from_bytes(contenido, first_page=1, last_page=2, dpi=200)
+                paginas = convert_from_bytes(
+                    contenido, first_page=1, last_page=2, dpi=200,
+                    poppler_path='/usr/bin'  # ruta explícita para gunicorn
+                )
                 texto = '\n'.join(
                     pytesseract.image_to_string(p, lang='spa+eng') for p in paginas
                 )
