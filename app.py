@@ -6146,8 +6146,8 @@ def api_ocr_recibo():
         from servicios_ocr import analizar_recibo
         resultado = analizar_recibo(texto)
         # Log temporal para depuración de parsers
-        current_app.logger.info('OCR_TEXTO_CRUDO:\n%s', texto[:2000])
-        current_app.logger.info('OCR_RESULTADO: %s', resultado)
+        current_app.logger.warning('OCR_TEXTO_CRUDO:\n%s', texto[:2000])
+        current_app.logger.warning('OCR_RESULTADO: %s', resultado)
         return jsonify(resultado)
 
     except ImportError:
