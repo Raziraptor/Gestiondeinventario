@@ -11,7 +11,7 @@
     }
     .item-row {
         transition: all 0.3s ease;
-        border-left: 6px solid #6366f1;
+        border-left: 6px solid var(--primary);
         position: relative;
     }
     .ai-loading {
@@ -30,7 +30,7 @@
         overflow-y: auto;
     }
     .btn-ai {
-        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        background: linear-gradient(135deg, var(--primary), rgba(var(--primary-rgb),.75));
         color: white;
         border: none;
     }
@@ -41,15 +41,24 @@
 </style>
 
 <div class="container-fluid mt-3 mb-5">
-    <!-- ENCABEZADO -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-            <h2 class="fw-bold mb-1"><i class="bi bi-cpu-fill text-primary me-2"></i>{{ titulo }} <span class="badge bg-info ms-2 fs-6 fw-normal">AI Enhanced</span></h2>
-            <p class="text-muted mb-0">Cotiza y planifica suministros con ayuda de Inteligencia Artificial.</p>
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">{{ titulo }}</li>
+        </ol>
+    </nav>
+    <div class="page-header mb-4">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-cpu-fill"></i>{{ titulo }} <span class="badge bg-info ms-2 fs-6 fw-normal">AI Enhanced</span></h1>
+                <p class="page-subtitle">Cotiza y planifica suministros con ayuda de Inteligencia Artificial.</p>
+            </div>
+            <div>
+                <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Volver a Lista
+                </a>
+            </div>
         </div>
-        <a href="{{ url_for('lista_proyectos_oc') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm">
-            <i class="bi bi-arrow-left me-1"></i> Volver a Lista
-        </a>
     </div>
 
     <!-- FORMULARIO PRINCIPAL -->
@@ -260,7 +269,7 @@
             
             nombreInput.value = datos.nombre; 
             nombreInput.readOnly = true; 
-            row.style.borderLeftColor = '#0ea5e9'; // Azul
+            row.style.borderLeftColor = '#0ea5e9';
             row.querySelector('.item-sku-label').innerText = `CATÁLOGO: ${datos.codigo || 'N/A'}`;
             aiButton.style.display = 'none'; // Sin IA para catálogo
         } else {
@@ -270,7 +279,7 @@
             
             nombreInput.value = datos.nombre || '';
             nombreInput.readOnly = false;
-            row.style.borderLeftColor = '#8b5cf6'; // Morado IA
+            row.style.borderLeftColor = 'var(--primary)';
             row.querySelector('.item-sku-label').innerText = 'MANUAL / IA';
         }
 
@@ -320,6 +329,11 @@
         contenedor.appendChild(row);
         recalcularTotales();
     }
+
+    document.getElementById('form_proyecto_oc').addEventListener('submit', function() {
+        const btn = this.querySelector('[type="submit"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando…'; }
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         // Carga de datos de edición (Compatible con la estructura JSON de tu backend)

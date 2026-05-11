@@ -5,22 +5,25 @@
 <div class="container-fluid mt-3 mb-5" style="max-width:780px;">
 
     <!-- ENCABEZADO -->
-    <div class="mb-4">
+    <div class="page-header mb-4">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
                 <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
                 <li class="breadcrumb-item active">Importar Productos</li>
             </ol>
         </nav>
-        <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-arrow-up text-primary me-2"></i>Importar Productos</h2>
-        <p class="text-muted">Sube un archivo Excel (.xlsx) o CSV para agregar múltiples productos de una sola vez.</p>
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-file-earmark-arrow-up"></i>Importar Productos</h1>
+                <p class="page-subtitle">Sube un archivo Excel (.xlsx) o CSV para agregar múltiples productos de una sola vez.</p>
+            </div>
+        </div>
     </div>
 
     <!-- RESULTADO DE IMPORTACIÓN -->
     {% if resultados %}
     <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden">
-        <div class="card-header border-0 pt-4 pb-3 px-4"
-             style="background: {% if resultados.importados > 0 %}rgba(16,185,129,.08){% else %}rgba(239,68,68,.08){% endif %}">
+        <div class="card-header border-0 pt-4 pb-3 px-4 {% if resultados.importados > 0 %}alert-success-soft{% else %}alert-danger-soft{% endif %}">
             <h5 class="fw-bold mb-0">
                 {% if resultados.importados > 0 %}
                 <i class="bi bi-check-circle-fill text-success me-2"></i>Importación completada

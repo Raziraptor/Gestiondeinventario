@@ -660,7 +660,7 @@
               <td class="pe-4">
                 <div class="d-flex align-items-center gap-2 justify-content-end">
                   <div class="progress flex-grow-1 rounded-pill" style="height:6px;max-width:80px;">
-                    <div class="progress-bar rounded-pill" style="width:{{ pct|round(1) }}%;background:var(--primary,#4f46e5);"></div>
+                    <div class="progress-bar rounded-pill" style="width:{{ pct|round(1) }}%;background:var(--primary);"></div>
                   </div>
                   <span class="text-muted" style="font-size:.75rem;min-width:36px;">{{ pct|round(1) }}%</span>
                 </div>
@@ -903,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
       { label:'Entradas', data:data.entradas, backgroundColor:'rgba(16,185,129,.75)', borderColor:'#10b981', borderWidth:1.5, borderRadius:6 },
       { label:'Salidas',  data:data.salidas,  backgroundColor:'rgba(239,68,68,.75)',  borderColor:'#ef4444', borderWidth:1.5, borderRadius:6 }
     ]}, options:{ responsive:true, maintainAspectRatio:true,
-      plugins:{ legend:{ labels:{ color:t.text, font:{ family:'Inter', size:12 } } } },
+      plugins:{ legend:{ labels:{ color:t.text, font:{ family:'DM Sans', size:12 } } } },
       scales:{ x:{ ticks:{ color:t.text }, grid:{ color:t.grid } }, y:{ ticks:{ color:t.text }, grid:{ color:t.grid }, beginAtZero:true } }
     }});
   }
@@ -914,7 +914,7 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
       labels:['Stock Bajo','Óptimo','Exceso'],
       datasets:[{ data:[data.bajo,data.ok,data.exceso], backgroundColor:['#ef4444','#10b981','#3b82f6'], borderWidth:0, hoverOffset:8 }]
     }, options:{ responsive:true, maintainAspectRatio:true, cutout:'68%',
-      plugins:{ legend:{ position:'bottom', labels:{ color:t.text, padding:14, font:{ family:'Inter', size:11 } } } }
+      plugins:{ legend:{ position:'bottom', labels:{ color:t.text, padding:14, font:{ family:'DM Sans', size:11 } } } }
     }});
   }
   function renderTop(data) {
@@ -924,8 +924,11 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
       ctx.closest('.card-body').innerHTML = '<p class="text-muted text-center py-3 mb-0 small"><i class="bi bi-info-circle me-1"></i>Sin salidas este mes.</p>';
       return;
     }
+    const cs = getComputedStyle(document.documentElement);
+    const pRgb = cs.getPropertyValue('--primary-rgb').trim();
+    const pColor = cs.getPropertyValue('--primary').trim();
     cTop = new Chart(ctx, { type:'bar', data:{ labels:data.labels,
-      datasets:[{ label:'Unidades Salidas', data:data.valores, backgroundColor:'rgba(79,70,229,.75)', borderColor:'#4f46e5', borderWidth:1.5, borderRadius:6 }]
+      datasets:[{ label:'Unidades Salidas', data:data.valores, backgroundColor:`rgba(${pRgb},.75)`, borderColor:pColor, borderWidth:1.5, borderRadius:6 }]
     }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:true,
       plugins:{ legend:{ display:false } },
       scales:{ x:{ ticks:{ color:t.text }, grid:{ color:t.grid }, beginAtZero:true }, y:{ ticks:{ color:t.text, font:{ size:11 } }, grid:{ display:false } } }

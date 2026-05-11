@@ -12,14 +12,16 @@
     </ol>
   </nav>
 
-  <div class="mb-4">
+  <div class="page-header mb-4">
     <a href="{{ url_for('lista_gastos') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
       <i class="bi bi-arrow-left me-1"></i>Volver
     </a>
-    <h1 class="h4 fw-bold mb-1">
-      <i class="bi bi-file-earmark-excel text-success me-2"></i>Diseño de Excel
-    </h1>
-    <p class="text-muted small mb-0">Personaliza el aspecto de los reportes de gastos exportados a Excel.</p>
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-title"><i class="bi bi-file-earmark-excel"></i>Diseño de Excel</h1>
+        <p class="page-subtitle">Personaliza el aspecto de los reportes de gastos exportados a Excel.</p>
+      </div>
+    </div>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}

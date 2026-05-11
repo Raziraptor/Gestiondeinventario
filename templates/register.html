@@ -3,89 +3,84 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h2>{{ titulo }}</h2>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('register') }}" novalidate>
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        {{ form.hidden_tag() }}
-                        
-                        <div class="mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {% if form.username.errors %}
-                                {{ form.username(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for error in form.username.errors %}
-                                        <span>{{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form.username(class="form-control") }}
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.email.label(class="form-label") }}
-                            {% if form.email.errors %}
-                                {{ form.email(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for error in form.email.errors %}
-                                        <span>{{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form.email(class="form-control") }}
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.password.label(class="form-label") }}
-                            {% if form.password.errors %}
-                                {{ form.password(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for error in form.password.errors %}
-                                        <span>{{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form.password(class="form-control") }}
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.confirm_password.label(class="form-label") }}
-                            {% if form.confirm_password.errors %}
-                                {{ form.confirm_password(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for error in form.confirm_password.errors %}
-                                        <span>{{ error }}</span>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form.confirm_password(class="form-control") }}
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.codigo_invitacion.label(class="form-label") }}
-                            {{ form.codigo_invitacion(class="form-control", placeholder="Ej: A1B-C2D") }}
-                        </div>
-                        <div class="d-grid">
-                            {{ form.submit(class="btn btn-primary") }}
-                        </div>
-                    </form>
-                </div>
-                <div class="card-footer text-center">
-                    <small class="text-muted">
-                        ¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Inicia Sesión</a>
-                    </small>
-                </div>
-            </div>
-        </div>
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5" style="background:var(--bs-body-bg);">
+  <div class="w-100" style="max-width:420px;">
+    <div class="rounded-top-4 p-4 text-center text-white" style="background:linear-gradient(135deg,var(--primary),rgba(var(--primary-rgb),.7));">
+      <i class="bi bi-person-plus-fill fs-1 mb-2 d-block" style="filter:drop-shadow(0 0 12px rgba(255,255,255,.35))"></i>
+      <h3 class="fw-bold mb-0">Crear Cuenta</h3>
+      <p class="mb-0 mt-1 opacity-75 small">Únete a tu organización</p>
     </div>
-{% endblock %}
+    <div class="card border-0 rounded-bottom-4 shadow-lg p-4 p-md-5">
+      <form method="POST" action="{{ url_for('register') }}" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ form.hidden_tag() }}
 
+        <div class="mb-3">
+          {{ form.username.label(class="form-label fw-bold small text-muted text-uppercase", style="letter-spacing:0.5px") }}
+          {% if form.username.errors %}
+            {{ form.username(class="form-control is-invalid") }}
+            <div class="invalid-feedback">
+              {% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}
+            </div>
+          {% else %}
+            {{ form.username(class="form-control") }}
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.email.label(class="form-label fw-bold small text-muted text-uppercase", style="letter-spacing:0.5px") }}
+          {% if form.email.errors %}
+            {{ form.email(class="form-control is-invalid") }}
+            <div class="invalid-feedback">
+              {% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}
+            </div>
+          {% else %}
+            {{ form.email(class="form-control") }}
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.password.label(class="form-label fw-bold small text-muted text-uppercase", style="letter-spacing:0.5px") }}
+          {% if form.password.errors %}
+            {{ form.password(class="form-control is-invalid") }}
+            <div class="invalid-feedback">
+              {% for error in form.password.errors %}<span>{{ error }}</span>{% endfor %}
+            </div>
+          {% else %}
+            {{ form.password(class="form-control") }}
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.confirm_password.label(class="form-label fw-bold small text-muted text-uppercase", style="letter-spacing:0.5px") }}
+          {% if form.confirm_password.errors %}
+            {{ form.confirm_password(class="form-control is-invalid") }}
+            <div class="invalid-feedback">
+              {% for error in form.confirm_password.errors %}<span>{{ error }}</span>{% endfor %}
+            </div>
+          {% else %}
+            {{ form.confirm_password(class="form-control") }}
+          {% endif %}
+        </div>
+
+        <div class="mb-4">
+          {{ form.codigo_invitacion.label(class="form-label fw-bold small text-muted text-uppercase", style="letter-spacing:0.5px") }}
+          {{ form.codigo_invitacion(class="form-control", placeholder="Ej: A1B-C2D") }}
+        </div>
+
+        <div class="d-grid">
+          {{ form.submit(class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm py-3") }}
+        </div>
+      </form>
+      <script>document.querySelector('form').addEventListener('submit',function(){var btn=this.querySelector('[type="submit"]');if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Creando cuenta…';}});</script>
+
+      <div class="text-center mt-4 pt-4 border-top border-secondary border-opacity-10">
+        <p class="text-muted small mb-0">
+          ¿Ya tienes una cuenta?<br>
+          <a href="{{ url_for('login') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Inicia Sesión</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

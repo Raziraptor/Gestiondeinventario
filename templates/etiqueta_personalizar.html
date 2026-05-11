@@ -18,14 +18,12 @@
   </nav>
 
   {# ── ENCABEZADO ─────────────────────────────────────────────────────────── #}
-  <div class="d-flex align-items-center gap-3 mb-4">
-    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-         style="width:52px;height:52px;background:rgba(var(--primary-rgb),.1);">
-      <i class="bi bi-tag-fill" style="color:var(--primary,#4f46e5);font-size:1.4rem;"></i>
-    </div>
-    <div>
-      <h1 class="h4 fw-bold mb-0">Diseño de Etiquetas</h1>
-      <p class="text-muted small mb-0">Tipografía, colores y estilo para todas las etiquetas generadas.</p>
+  <div class="page-header mb-4">
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-title"><i class="bi bi-tag-fill"></i>Diseño de Etiquetas</h1>
+        <p class="page-subtitle">Tipografía, colores y estilo para todas las etiquetas generadas.</p>
+      </div>
     </div>
   </div>
 
@@ -144,7 +142,7 @@
                   <div class="estilo-card rounded-3 p-3 text-center h-100"
                        data-key="{{ key }}"
                        style="border:2px solid var(--border,#e2e8f0);background:var(--surface-raised,#f8fafc);transition:.15s;cursor:pointer;">
-                    <i class="bi {{ icon }} d-block mb-2" style="font-size:1.5rem;color:var(--primary,#4f46e5);"></i>
+                    <i class="bi {{ icon }} d-block mb-2" style="font-size:1.5rem;color:var(--primary);"></i>
                     <div class="fw-semibold" style="font-size:.88rem;">{{ label }}</div>
                     <div class="text-muted mt-1" style="font-size:.75rem;">{{ desc }}</div>
                   </div>
