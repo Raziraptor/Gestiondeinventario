@@ -46,7 +46,7 @@
   {% endif %}
 
   {# ── KPIs ────────────────────────────────────────────────────────────────── #}
-  <div class="row g-3 mb-4">
+  <div class="row g-3 mb-4 animate-cards">
     <div class="col-6 col-md-3">
       <div class="card border-0 shadow-sm rounded-4 h-100">
         <div class="card-body p-3 text-center">
@@ -84,7 +84,7 @@
 
   {# ── LISTA DE SERVICIOS ──────────────────────────────────────────────────── #}
   {% if servicios %}
-  <div class="row g-3">
+  <div class="row g-3 animate-cards">
     {% for s in servicios %}
     {% set icon, color, label = tipos.get(s.tipo, tipos['otro']) %}
     {# Próximo pago pendiente o vencido #}

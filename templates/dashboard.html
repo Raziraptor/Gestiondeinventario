@@ -128,7 +128,7 @@
   {% else %}
 
   {# ── KPIs ─────────────────────────────────────────────────────────────── #}
-  <div class="row g-3 mb-4">
+  <div class="row g-3 mb-4 animate-cards">
 
     {# Tarjeta de salud del almacén (ancho) #}
     <div class="col-12 col-lg-5">
@@ -925,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
       return;
     }
     cTop = new Chart(ctx, { type:'bar', data:{ labels:data.labels,
-      datasets:[{ label:'Unidades Salidas', data:data.valores, backgroundColor:'rgba(0,122,255,.75)', borderColor:'#007AFF', borderWidth:1.5, borderRadius:6 }]
+      datasets:[{ label:'Unidades Salidas', data:data.valores, backgroundColor:'rgba(79,70,229,.75)', borderColor:'#4f46e5', borderWidth:1.5, borderRadius:6 }]
     }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:true,
       plugins:{ legend:{ display:false } },
       scales:{ x:{ ticks:{ color:t.text }, grid:{ color:t.grid }, beginAtZero:true }, y:{ ticks:{ color:t.text, font:{ size:11 } }, grid:{ display:false } } }
