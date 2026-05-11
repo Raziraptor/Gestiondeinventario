@@ -2238,5 +2238,20 @@
     {% endif %}
 
     {% block scripts %}{% endblock %}
+
+    <script>
+    /* Fallback for missing profile pictures — runs in capture phase so it fires before broken-image renders */
+    (function () {
+        var FALLBACK = "{{ url_for('static', filename='img/default_avatar.svg') }}";
+        document.addEventListener('error', function (e) {
+            var el = e.target;
+            if (el.tagName === 'IMG' && el.src && el.src.indexOf('profile_pics') !== -1) {
+                el.onerror = null;
+                el.src = FALLBACK;
+                el.style.padding = '3px';
+            }
+        }, true);
+    })();
+    </script>
 </body>
 </html>
