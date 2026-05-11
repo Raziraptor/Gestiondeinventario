@@ -129,6 +129,26 @@ def create_db_command():
     db.create_all()
     print("¡Base de datos y tablas creadas exitosamente!")
 
+@app.cli.command("fix-db-proyectos")
+@with_appcontext
+def fix_db_proyectos():
+    """Agrega columnas faltantes a proyecto_oc_detalle (enlace_proveedor, comentarios_detalle)."""
+    from sqlalchemy import text
+    stmts = [
+        "ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS enlace_proveedor VARCHAR(500)",
+        "ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS comentarios_detalle TEXT",
+    ]
+    with db.engine.connect() as conn:
+        for stmt in stmts:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+                print(f"OK: {stmt}")
+            except Exception as e:
+                conn.rollback()
+                print(f"Omitido (ya existe): {e}")
+    print("fix-db-proyectos completado.")
+
 @app.cli.command("migrate-fase-c")
 @with_appcontext
 def migrate_fase_c():
@@ -3869,7 +3889,7 @@ def nuevo_proyecto_oc():
         except Exception as e:
             db.session.rollback()
             print(f"ERROR OC PROYECTO: {e}")
-            flash(f'Error al guardar en la base de datos. Asegúrate de ejecutar /fix-db-proyectos una vez.', 'danger')
+            flash(f'Error al guardar la OC de proyecto: {e}', 'danger')
     
     return render_template('proyecto_oc_form.html', 
                            titulo="Crear OC de Proyecto",
