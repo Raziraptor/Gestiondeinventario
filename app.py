@@ -132,11 +132,15 @@ def create_db_command():
 @app.cli.command("fix-db-proyectos")
 @with_appcontext
 def fix_db_proyectos():
-    """Agrega columnas faltantes a proyecto_oc_detalle (enlace_proveedor, comentarios_detalle)."""
+    """Corrige columnas de proyecto_oc_detalle: agrega faltantes y amplía límites de texto."""
     from sqlalchemy import text
     stmts = [
+        # Columnas que pueden no existir
         "ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS enlace_proveedor VARCHAR(500)",
         "ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS comentarios_detalle TEXT",
+        # Ampliar columnas con límite demasiado corto (causa StringDataRightTruncation)
+        "ALTER TABLE proyecto_oc_detalle ALTER COLUMN descripcion_nuevo TYPE TEXT",
+        "ALTER TABLE proyecto_oc_detalle ALTER COLUMN proveedor_sugerido TYPE VARCHAR(255)",
     ]
     with db.engine.connect() as conn:
         for stmt in stmts:
@@ -146,7 +150,7 @@ def fix_db_proyectos():
                 print(f"OK: {stmt}")
             except Exception as e:
                 conn.rollback()
-                print(f"Omitido (ya existe): {e}")
+                print(f"Omitido: {e}")
     print("fix-db-proyectos completado.")
 
 @app.cli.command("migrate-fase-c")
@@ -553,8 +557,8 @@ class ProyectoOCDetalle(db.Model):
     producto_id = db.Column(db.Integer, db.ForeignKey('producto.id'), nullable=True)
     producto = db.relationship('Producto')
     
-    descripcion_nuevo = db.Column(db.String(255), nullable=True)
-    proveedor_sugerido = db.Column(db.String(100), nullable=True)
+    descripcion_nuevo = db.Column(db.Text, nullable=True)
+    proveedor_sugerido = db.Column(db.String(255), nullable=True)
     
     cantidad = db.Column(db.Integer, nullable=False, default=1)
     costo_unitario = db.Column(db.Float, nullable=False, default=0.0)
