@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('lista_facturas') }}">Cuentas por Pagar</a></li>
+            <li class="breadcrumb-item active">{{ titulo }}</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-file-earmark-plus text-primary me-2"></i>{{ titulo }}</h1>
+                <p class="page-subtitle">Registra la factura del proveedor y su fecha de vencimiento.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-receipt text-primary me-2"></i>Datos de la Factura</h4>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" id="form-factura"
+                          action="{{ url_for('editar_factura', id=factura.id) if factura else url_for('nueva_factura') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="row g-4">
+
+                            <!-- Número de factura -->
+                            <div class="col-md-6">
+                                <label for="numero_factura" class="form-label fw-bold small text-muted">Número de Factura</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-hash text-secondary"></i></span>
+                                    <input type="text" class="form-control" id="numero_factura" name="numero_factura"
+                                           value="{{ factura.numero_factura if factura else '' }}"
+                                           placeholder="Ej: FAC-2026-001" required>
+                                </div>
+                            </div>
+
+                            <!-- Proveedor -->
+                            <div class="col-md-6">
+                                <label for="proveedor_id" class="form-label fw-bold small text-muted">Proveedor</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-building text-secondary"></i></span>
+                                    <select class="form-select" id="proveedor_id" name="proveedor_id" required>
+                                        <option value="">Selecciona un proveedor…</option>
+                                        {% for prov in proveedores %}
+                                        <option value="{{ prov.id }}"
+                                            {% if factura and factura.proveedor_id == prov.id %}selected{% endif %}>
+                                            {{ prov.nombre }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Fecha de emisión -->
+                            <div class="col-md-4">
+                                <label for="fecha_emision" class="form-label fw-bold small text-muted">Fecha de Emisión</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar-date text-secondary"></i></span>
+                                    <input type="date" class="form-control" id="fecha_emision" name="fecha_emision"
+                                           value="{{ factura.fecha_emision.strftime('%Y-%m-%d') if factura else now.strftime('%Y-%m-%d') }}" required>
+                                </div>
+                            </div>
+
+                            <!-- Fecha de vencimiento -->
+                            <div class="col-md-4">
+                                <label for="fecha_vencimiento" class="form-label fw-bold small text-muted">Fecha de Vencimiento</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-calendar-x text-danger"></i></span>
+                                    <input type="date" class="form-control" id="fecha_vencimiento" name="fecha_vencimiento"
+                                           value="{{ factura.fecha_vencimiento.strftime('%Y-%m-%d') if factura else '' }}" required>
+                                </div>
+                            </div>
+
+                            <!-- Monto -->
+                            <div class="col-md-4">
+                                <label for="monto" class="form-label fw-bold small text-success">Monto Total</label>
+                                <div class="input-group input-group-lg shadow-sm">
+                                    <span class="input-group-text bg-light border-success text-success fw-bold">MXN $</span>
+                                    <input type="number" class="form-control bg-light border-success fw-bold text-dark fs-5"
+                                           id="monto" name="monto"
+                                           value="{{ factura.monto if factura else '' }}"
+                                           step="0.01" min="0" placeholder="0.00" required>
+                                </div>
+                            </div>
+
+                            <!-- OC Vinculada (opcional) -->
+                            <div class="col-12">
+                                <div class="alert-info-soft rounded-3 p-3">
+                                    <label for="orden_compra_id" class="form-label fw-bold small text-primary mb-2">
+                                        <i class="bi bi-link-45deg me-1"></i>Orden de Compra Relacionada (Opcional)
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-receipt text-secondary"></i></span>
+                                        <select class="form-select" id="orden_compra_id" name="orden_compra_id">
+                                            <option value="">— Ninguna —</option>
+                                            {% for oc in ordenes %}
+                                            <option value="{{ oc.id }}"
+                                                {% if factura and factura.orden_compra_id == oc.id %}selected{% endif %}>
+                                                OC #{{ oc.id }} — {{ oc.proveedor.nombre }} (${{ "%.2f"|format(oc.costo_total) }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-text mt-2 text-dark opacity-75 small">
+                                        Vincula esta factura a una OC existente para hacer el match compra → factura.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notas -->
+                            <div class="col-12">
+                                <label for="notas" class="form-label fw-bold small text-muted">Notas (Opcional)</label>
+                                <textarea class="form-control" id="notas" name="notas" rows="2"
+                                          placeholder="Condiciones de pago, referencia bancaria, etc.">{{ factura.notas if factura and factura.notas else '' }}</textarea>
+                            </div>
+
+                            <!-- Botones -->
+                            <div class="col-12 mt-4">
+                                <hr class="border-secondary border-opacity-25 mb-4">
+                                <div class="d-flex gap-3 justify-content-end">
+                                    <a href="{{ url_for('lista_facturas') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                        <i class="bi bi-save me-2"></i>Guardar Factura
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Loading state — UI UX Pro Max: Submit Feedback (High severity) */
+(function () {
+    const form = document.getElementById('form-factura');
+    if (!form) return;
+    form.addEventListener('submit', function () {
+        if (!navigator.onLine) return;
+        const btn = form.querySelector('[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando…';
+        }
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import paginator %}
+
+{% block title %}Cuentas por Pagar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">Cuentas por Pagar</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-file-earmark-text text-primary me-2"></i>Cuentas por Pagar</h1>
+                <p class="page-subtitle">Facturas de proveedores, vencimientos y antigüedad de saldos.</p>
+            </div>
+            <a href="{{ url_for('nueva_factura') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold">
+                <i class="bi bi-plus-lg me-1"></i> Registrar Factura
+            </a>
+        </div>
+    </div>
+
+    <!-- ── KPIs ── -->
+    <div class="row g-4 mb-4 animate-cards">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="rounded-3 p-2 mb-3 d-inline-block" style="background:rgba(var(--primary-rgb),.12);">
+                        <i class="bi bi-hourglass-split fs-5" style="color:var(--primary);"></i>
+                    </div>
+                    <div class="fw-bold fs-4 text-body">${{ "{:,.2f}".format(total_pendiente) }}</div>
+                    <div class="small text-muted mt-1">Total pendiente de pago</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="rounded-3 p-2 mb-3 d-inline-block" style="background:rgba(239,68,68,.12);">
+                        <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                    </div>
+                    <div class="fw-bold fs-4 {{ 'text-danger' if total_vencido > 0 else 'text-body' }}">${{ "{:,.2f}".format(total_vencido) }}</div>
+                    <div class="small text-muted mt-1">Facturas vencidas</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="rounded-3 p-2 mb-3 d-inline-block" style="background:rgba(16,185,129,.12);">
+                        <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                    </div>
+                    <div class="fw-bold fs-4 text-body">${{ "{:,.2f}".format(total_pagado_mes) }}</div>
+                    <div class="small text-muted mt-1">Pagado este mes</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aging summary -->
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="small fw-bold text-muted text-uppercase mb-3" style="font-size:.7rem;letter-spacing:.5px;">Antigüedad de saldos</div>
+                    {% set aging_labels = [('vigente','Al corriente','text-success'), ('1-30','1–30 días','text-warning'), ('31-60','31–60 días','text-orange'), ('61-90','61–90 días','text-danger'), ('90+','+90 días','text-danger fw-bold')] %}
+                    {% for key, label, cls in aging_labels %}
+                    {% if aging[key] > 0 %}
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">{{ label }}</span>
+                        <span class="fw-bold {{ cls }}">${{ "{:,.0f}".format(aging[key]) }}</span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% if aging.values() | sum == 0 %}
+                    <div class="small text-muted text-center py-1"><i class="bi bi-check-lg me-1 text-success"></i>Sin saldos pendientes</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── FILTROS ── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4" style="background:var(--surface-raised)">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="estado" class="form-label fw-bold small text-muted text-uppercase">Estado</label>
+                    <select id="estado" name="estado" class="form-select border-0 shadow-sm">
+                        <option value="" {% if not estado_filtro %}selected{% endif %}>Todos los estados</option>
+                        <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="vencido"   {% if estado_filtro == 'vencido'   %}selected{% endif %}>Vencido</option>
+                        <option value="pagado"    {% if estado_filtro == 'pagado'    %}selected{% endif %}>Pagado</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase">Proveedor</label>
+                    <select id="proveedor_id" name="proveedor_id" class="form-select border-0 shadow-sm">
+                        <option value="0">Todos los proveedores</option>
+                        {% for prov in proveedores %}
+                        <option value="{{ prov.id }}" {% if prov.id == proveedor_filtro %}selected{% endif %}>{{ prov.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary fw-bold flex-grow-1 rounded-3">
+                        <i class="bi bi-filter me-1"></i>Filtrar
+                    </button>
+                    <a href="{{ url_for('lista_facturas') }}" class="btn btn-outline-secondary rounded-3" title="Limpiar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── TABLA — overflow-x-auto para mobile (UI UX Pro Max: Table Handling) ── -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            {% if facturas %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;"># Factura</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Proveedor</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">OC Vinculada</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Emisión</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Vencimiento</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Estado</th>
+                            <th class="py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Monto</th>
+                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in facturas %}
+                        {% set dias = f.dias_vencimiento %}
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <span class="fw-bold small text-body">{{ f.numero_factura }}</span>
+                            </td>
+                            <td class="py-3 small text-body">{{ f.proveedor.nombre }}</td>
+                            <td class="py-3 small text-muted">
+                                {% if f.orden_compra %}
+                                    <a href="{{ url_for('ver_orden', id=f.orden_compra.id) }}" class="text-primary text-decoration-none fw-semibold">
+                                        OC #{{ f.orden_compra.id }}
+                                    </a>
+                                {% else %}
+                                    <span class="opacity-50">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 small text-muted text-nowrap">{{ f.fecha_emision.strftime('%d/%m/%Y') }}</td>
+                            <td class="py-3 small text-nowrap">
+                                <span class="{{ 'text-danger fw-bold' if f.estado == 'vencido' else 'text-muted' }}">
+                                    {{ f.fecha_vencimiento.strftime('%d/%m/%Y') }}
+                                </span>
+                                {% if f.estado == 'pendiente' %}
+                                    {% if dias < 0 %}
+                                        <span class="badge text-bg-danger ms-1" style="font-size:.65rem;">{{ dias|abs }}d vencida</span>
+                                    {% elif dias <= 7 %}
+                                        <span class="badge text-bg-warning ms-1" style="font-size:.65rem;">{{ dias }}d</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                {% if f.estado == 'pagado' %}
+                                    <span class="badge-status badge-recibida"><i class="bi bi-check-circle-fill"></i> Pagado</span>
+                                {% elif f.estado == 'vencido' %}
+                                    <span class="badge-status badge-cancelada"><i class="bi bi-exclamation-circle-fill"></i> Vencido</span>
+                                {% else %}
+                                    <span class="badge-status badge-borrador"><i class="bi bi-hourglass-split"></i> Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 text-end fw-bold text-body">${{ "{:,.2f}".format(f.monto) }}</td>
+                            <td class="pe-4 py-3">
+                                <div class="d-flex gap-2 justify-content-end align-items-center">
+                                    {% if f.estado != 'pagado' %}
+                                    <form action="{{ url_for('marcar_factura_pagada', id=f.id) }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-success btn-sm rounded-3 fw-bold"
+                                                title="Marcar como pagada"
+                                                data-confirm="¿Marcar la factura {{ f.numero_factura }} como pagada?">
+                                            <i class="bi bi-check-lg me-1"></i>Pagar
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <a href="{{ url_for('editar_factura', id=f.id) }}" class="btn btn-outline-secondary btn-sm rounded-3" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form action="{{ url_for('eliminar_factura', id=f.id) }}" method="POST"
+                                          data-confirm="¿Eliminar esta factura? Esta acción no se puede deshacer.">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" aria-label="Eliminar factura">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-file-earmark-text empty-state-icon"></i>
+                <h5>Sin facturas registradas</h5>
+                <p>Registra las facturas de tus proveedores para controlar vencimientos y saldos pendientes.</p>
+                <a href="{{ url_for('nueva_factura') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                    <i class="bi bi-plus-circle me-1"></i> Registrar primera factura
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Loading state en botones de pago — UI UX Pro Max: Loading Buttons (High) */
+document.querySelectorAll('form[action*="marcar-pagada"] button[type="submit"]').forEach(btn => {
+    btn.closest('form').addEventListener('submit', function () {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Pagando…';
+    });
+});
+</script>
+{% endblock %}

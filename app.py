@@ -556,6 +556,49 @@ class PagoServicio(db.Model):
     creado_en         = db.Column(db.DateTime,   default=now_mx)
 
 
+# --- MODELO 'FacturaProveedor' — Cuentas por Pagar ---
+class FacturaProveedor(db.Model):
+    __tablename__ = 'factura_proveedor'
+    id                = db.Column(db.Integer,    primary_key=True)
+    numero_factura    = db.Column(db.String(80),  nullable=False)
+    proveedor_id      = db.Column(db.Integer,    db.ForeignKey('proveedor.id'), nullable=False)
+    proveedor         = db.relationship('Proveedor', backref='facturas')
+    orden_compra_id   = db.Column(db.Integer,    db.ForeignKey('orden_compra.id'), nullable=True)
+    orden_compra      = db.relationship('OrdenCompra', backref='facturas')
+    monto             = db.Column(db.Float,      nullable=False)
+    fecha_emision     = db.Column(db.Date,       nullable=False)
+    fecha_vencimiento = db.Column(db.Date,       nullable=False)
+    estado            = db.Column(db.String(20), nullable=False, default='pendiente')  # pendiente | pagado | vencido
+    notas             = db.Column(db.Text,       nullable=True)
+    registrado_por_id = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=True)
+    registrado_por    = db.relationship('User',  foreign_keys=[registrado_por_id])
+    creado_en         = db.Column(db.DateTime,   default=now_mx)
+    organizacion_id   = db.Column(db.Integer,    db.ForeignKey('organizacion.id'), nullable=False)
+
+    @property
+    def dias_vencimiento(self):
+        return (self.fecha_vencimiento - date.today()).days
+
+    @property
+    def esta_vencida(self):
+        return self.estado == 'pendiente' and self.fecha_vencimiento < date.today()
+
+    @property
+    def bucket_aging(self):
+        if self.estado == 'pagado':
+            return 'pagado'
+        dias = (date.today() - self.fecha_vencimiento).days
+        if dias <= 0:
+            return 'vigente'
+        elif dias <= 30:
+            return '1-30'
+        elif dias <= 60:
+            return '31-60'
+        elif dias <= 90:
+            return '61-90'
+        return '90+'
+
+
 # ==============================================================================
 # 5. CARGADOR DE USUARIO (FLASK-LOGIN)
 # ==============================================================================
@@ -5230,6 +5273,171 @@ def exportar_gastos_excel():
     response.headers['Content-Type'] = \
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     return response
+
+# ──────────────────────────────────────────────
+# CUENTAS POR PAGAR — FACTURAS DE PROVEEDORES
+# ──────────────────────────────────────────────
+
+@app.route('/cuentas-por-pagar')
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def lista_facturas():
+    org_id = current_user.organizacion_id
+    ahora  = now_mx()
+
+    # Actualizar estado a 'vencido' automáticamente
+    vencidas = FacturaProveedor.query.filter_by(organizacion_id=org_id, estado='pendiente').filter(
+        FacturaProveedor.fecha_vencimiento < ahora.date()
+    ).all()
+    for f in vencidas:
+        f.estado = 'vencido'
+    if vencidas:
+        db.session.commit()
+
+    estado_filtro = request.args.get('estado', '')
+    proveedor_filtro = request.args.get('proveedor_id', type=int, default=0)
+
+    q = FacturaProveedor.query.filter_by(organizacion_id=org_id)
+    if estado_filtro:
+        q = q.filter_by(estado=estado_filtro)
+    if proveedor_filtro:
+        q = q.filter_by(proveedor_id=proveedor_filtro)
+    facturas = q.order_by(FacturaProveedor.fecha_vencimiento.asc()).all()
+
+    # KPIs
+    todas = FacturaProveedor.query.filter_by(organizacion_id=org_id).all()
+    total_pendiente = sum(f.monto for f in todas if f.estado in ('pendiente', 'vencido'))
+    total_vencido   = sum(f.monto for f in todas if f.estado == 'vencido')
+    total_pagado_mes = sum(
+        f.monto for f in todas
+        if f.estado == 'pagado'
+        and f.fecha_vencimiento.month == ahora.month
+        and f.fecha_vencimiento.year  == ahora.year
+    )
+
+    # Aging buckets
+    aging = {'vigente': 0.0, '1-30': 0.0, '31-60': 0.0, '61-90': 0.0, '90+': 0.0}
+    for f in todas:
+        if f.estado != 'pagado':
+            aging[f.bucket_aging] = aging.get(f.bucket_aging, 0.0) + f.monto
+
+    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+
+    return render_template('facturas_lista.html',
+        titulo='Cuentas por Pagar',
+        facturas=facturas,
+        total_pendiente=total_pendiente,
+        total_vencido=total_vencido,
+        total_pagado_mes=total_pagado_mes,
+        aging=aging,
+        proveedores=proveedores,
+        estado_filtro=estado_filtro,
+        proveedor_filtro=proveedor_filtro,
+        ahora=ahora,
+        now=ahora,
+    )
+
+
+@app.route('/factura/nueva', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def nueva_factura():
+    org_id = current_user.organizacion_id
+    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+    ordenes = OrdenCompra.query.filter_by(organizacion_id=org_id).order_by(OrdenCompra.fecha_creacion.desc()).all()
+
+    if request.method == 'POST':
+        try:
+            factura = FacturaProveedor(
+                numero_factura    = request.form['numero_factura'].strip(),
+                proveedor_id      = int(request.form['proveedor_id']),
+                orden_compra_id   = int(request.form['orden_compra_id']) if request.form.get('orden_compra_id') else None,
+                monto             = float(request.form['monto']),
+                fecha_emision     = date.fromisoformat(request.form['fecha_emision']),
+                fecha_vencimiento = date.fromisoformat(request.form['fecha_vencimiento']),
+                notas             = request.form.get('notas', '').strip() or None,
+                registrado_por_id = current_user.id,
+                organizacion_id   = org_id,
+            )
+            db.session.add(factura)
+            db.session.commit()
+            flash('Factura registrada correctamente.', 'success')
+            return redirect(url_for('lista_facturas'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al registrar la factura: {e}', 'danger')
+
+    return render_template('factura_form.html',
+        titulo='Nueva Factura',
+        factura=None,
+        proveedores=proveedores,
+        ordenes=ordenes,
+        now=now_mx(),
+    )
+
+
+@app.route('/factura/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def editar_factura(id):
+    org_id  = current_user.organizacion_id
+    factura = FacturaProveedor.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
+    ordenes     = OrdenCompra.query.filter_by(organizacion_id=org_id).order_by(OrdenCompra.fecha_creacion.desc()).all()
+
+    if request.method == 'POST':
+        try:
+            factura.numero_factura    = request.form['numero_factura'].strip()
+            factura.proveedor_id      = int(request.form['proveedor_id'])
+            factura.orden_compra_id   = int(request.form['orden_compra_id']) if request.form.get('orden_compra_id') else None
+            factura.monto             = float(request.form['monto'])
+            factura.fecha_emision     = date.fromisoformat(request.form['fecha_emision'])
+            factura.fecha_vencimiento = date.fromisoformat(request.form['fecha_vencimiento'])
+            factura.notas             = request.form.get('notas', '').strip() or None
+            db.session.commit()
+            flash('Factura actualizada.', 'success')
+            return redirect(url_for('lista_facturas'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar: {e}', 'danger')
+
+    return render_template('factura_form.html',
+        titulo='Editar Factura',
+        factura=factura,
+        proveedores=proveedores,
+        ordenes=ordenes,
+        now=now_mx(),
+    )
+
+
+@app.route('/factura/<int:id>/marcar-pagada', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def marcar_factura_pagada(id):
+    org_id  = current_user.organizacion_id
+    factura = FacturaProveedor.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    factura.estado = 'pagado'
+    db.session.commit()
+    flash(f'Factura #{factura.numero_factura} marcada como pagada.', 'success')
+    return redirect(url_for('lista_facturas'))
+
+
+@app.route('/factura/<int:id>/eliminar', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def eliminar_factura(id):
+    org_id  = current_user.organizacion_id
+    factura = FacturaProveedor.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    db.session.delete(factura)
+    db.session.commit()
+    flash('Factura eliminada.', 'success')
+    return redirect(url_for('lista_facturas'))
+
 
 # --- RUTAS DE AUTENTICACIÓN ---
 
