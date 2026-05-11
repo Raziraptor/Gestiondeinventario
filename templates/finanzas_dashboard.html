@@ -3,6 +3,29 @@
 {% block title %}Dashboard Financiero{% endblock %}
 
 {% block content %}
+<style>
+/* Skeleton shimmer — UI UX Pro Max: Loading States (High severity) */
+@keyframes fin-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.fin-skeleton {
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg,
+        var(--surface-raised) 25%,
+        var(--hover-bg)       50%,
+        var(--surface-raised) 75%);
+    background-size: 200% 100%;
+    animation: fin-shimmer 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .fin-skeleton { animation: none; opacity: .6; }
+}
+/* Minimal glow — UI UX Pro Max: dark mode ERP analytics key effect */
+.kpi-value-glow {
+    text-shadow: 0 0 22px rgba(var(--primary-rgb), .35);
+}
+</style>
 
 <div class="container-fluid mt-3 mb-5">
 
@@ -56,7 +79,7 @@
                             {% endif %}
                         {% endif %}
                     </div>
-                    <div class="fw-bold fs-4 text-body">${{ "{:,.2f}".format(total_mes) }}</div>
+                    <div class="fw-bold text-body kpi-value-glow" style="font-size:1.8rem;">${{ "{:,.2f}".format(total_mes) }}</div>
                     <div class="small text-muted mt-1">Gasto total este mes</div>
                     {% if variacion is not none %}
                     <div class="small text-muted mt-1 opacity-75">
@@ -164,15 +187,20 @@
     ══════════════════════════════════════════════ -->
     <div class="row g-4 mb-4">
 
-        <!-- Gráfica: Tendencia mensual (últimos 6 meses) -->
+        <!-- Gráfica: Tendencia mensual — Smooth Area (UI UX Pro Max: trend = line/area chart) -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 pt-4 pb-3 px-4 d-flex align-items-center justify-content-between">
-                    <h6 class="fw-bold mb-0 text-body"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Gasto mensual — últimos 6 meses</h6>
-                    <span class="small text-muted">Gastos + Compras + Servicios</span>
+                    <h6 class="fw-bold mb-0 text-body"><i class="bi bi-activity me-2 text-primary"></i>Tendencia de gasto — últimos 6 meses</h6>
+                    <span class="small text-muted">Compras + Gastos + Servicios</span>
                 </div>
-                <div class="card-body p-4">
-                    <canvas id="chartMensual" height="100"></canvas>
+                <div class="card-body p-4 position-relative" style="min-height:220px;">
+                    <!-- Skeleton loader — visible hasta que fetch resuelva -->
+                    <div id="skeletonMensual" class="fin-skeleton position-absolute rounded-3"
+                         style="top:1rem;left:1rem;right:1rem;bottom:1rem;z-index:1;" aria-hidden="true"></div>
+                    <canvas id="chartMensual" height="100"
+                            aria-label="Gráfica de tendencia de gasto mensual por tipo"
+                            role="img" style="position:relative;z-index:2;"></canvas>
                 </div>
             </div>
         </div>
@@ -282,73 +310,97 @@
         'rgba(168,85,247,1)',
     ];
 
-    // ── Gráfica de tendencia mensual (stacked bar) ──
+    // ── Gráfica de tendencia — Smooth Area (UI UX Pro Max: trend over time = line/area) ──
     fetch('/api/finanzas/mensual')
         .then(r => r.json())
         .then(data => {
+            const skeleton = document.getElementById('skeletonMensual');
+            if (skeleton) skeleton.remove();
+
             const ctx = document.getElementById('chartMensual');
             if (!ctx) return;
+
+            const fmt = v => '$' + v.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+
             new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: data.labels,
                     datasets: [
                         {
                             label: 'Compras OC',
                             data: data.ocs,
-                            backgroundColor: `rgba(${pRgb},.75)`,
                             borderColor: `rgba(${pRgb},1)`,
-                            borderWidth: 1,
-                            borderRadius: 4,
+                            backgroundColor: `rgba(${pRgb},.1)`,
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: `rgba(${pRgb},1)`,
                         },
                         {
                             label: 'Gastos directos',
                             data: data.gastos,
-                            backgroundColor: 'rgba(16,185,129,.65)',
                             borderColor: 'rgba(16,185,129,1)',
-                            borderWidth: 1,
-                            borderRadius: 4,
+                            backgroundColor: 'rgba(16,185,129,.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: 'rgba(16,185,129,1)',
                         },
                         {
                             label: 'Servicios',
                             data: data.servicios,
-                            backgroundColor: 'rgba(245,158,11,.65)',
                             borderColor: 'rgba(245,158,11,1)',
-                            borderWidth: 1,
-                            borderRadius: 4,
+                            backgroundColor: 'rgba(245,158,11,.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointBackgroundColor: 'rgba(245,158,11,1)',
                         },
                     ]
                 },
                 options: {
                     responsive: true,
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: {
                             labels: { color: labelColor, font: { family: 'DM Sans', size: 12 } }
                         },
                         tooltip: {
                             callbacks: {
-                                label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('es-MX', {minimumFractionDigits:2})}`,
+                                label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`,
+                                footer: items => {
+                                    const total = items.reduce((s, i) => s + i.parsed.y, 0);
+                                    return `Total: ${fmt(total)}`;
+                                }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            stacked: true,
                             grid: { color: gridColor },
                             ticks: { color: labelColor, font: { family: 'DM Sans' } }
                         },
                         y: {
-                            stacked: true,
                             grid: { color: gridColor },
-                            ticks: {
-                                color: labelColor,
-                                font: { family: 'DM Sans' },
-                                callback: v => '$' + v.toLocaleString('es-MX')
-                            }
+                            ticks: { color: labelColor, font: { family: 'DM Sans' }, callback: fmt }
                         }
                     }
                 }
             });
+        })
+        .catch(() => {
+            const skeleton = document.getElementById('skeletonMensual');
+            if (skeleton) {
+                skeleton.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100 text-muted small"><i class="bi bi-exclamation-circle me-2"></i>No se pudo cargar la gráfica</div>';
+                skeleton.style.animation = 'none';
+            }
         });
 
     // ── Gráfica de categorías (doughnut) ──
