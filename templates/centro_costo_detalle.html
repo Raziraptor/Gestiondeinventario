@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ cc.nombre }} — P&L{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('lista_centros_costo') }}">Centros de Costo</a></li>
+            <li class="breadcrumb-item active">{{ cc.nombre }}</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-folder2-open text-primary me-2"></i>{{ cc.nombre }}</h1>
+                <p class="page-subtitle">{{ cc.descripcion or 'Desglose de costos del proyecto.' }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('editar_centro_costo', id=cc.id) }}" class="btn btn-outline-secondary rounded-3 fw-bold">
+                    <i class="bi bi-pencil me-1"></i>Editar
+                </a>
+                <form action="{{ url_for('cerrar_centro_costo', id=cc.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn rounded-3 fw-bold {{ 'btn-outline-success' if cc.estado == 'cerrado' else 'btn-outline-danger' }}"
+                            data-confirm="{{ '¿Reactivar este centro de costo?' if cc.estado == 'cerrado' else '¿Cerrar este centro de costo?' }}">
+                        <i class="bi {{ 'bi-unlock me-1' if cc.estado == 'cerrado' else 'bi-lock me-1' }}"></i>
+                        {{ 'Reactivar' if cc.estado == 'cerrado' else 'Cerrar' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── KPIs ── -->
+    <div class="row g-4 mb-4 animate-cards">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="rounded-3 p-2 mb-3 d-inline-block" style="background:rgba(var(--primary-rgb),.1);">
+                        <i class="bi bi-currency-dollar fs-5" style="color:var(--primary);"></i>
+                    </div>
+                    <div class="fw-bold text-body" style="font-size:1.6rem;">${{ "{:,.2f}".format(total) }}</div>
+                    <div class="small text-muted mt-1">Gasto total acumulado</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="rounded-3 p-2 mb-3 d-inline-block" style="background:rgba(16,185,129,.1);">
+                        <i class="bi bi-cash-coin fs-5 text-success"></i>
+                    </div>
+                    <div class="fw-bold text-body" style="font-size:1.6rem;">${{ "{:,.2f}".format(total_gastos) }}</div>
+                    <div class="small text-muted mt-1">Gastos directos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="rounded-3 p-2 mb-3 d-inline-block" style="background:rgba(245,158,11,.1);">
+                        <i class="bi bi-lightning-charge-fill fs-5 text-warning"></i>
+                    </div>
+                    <div class="fw-bold text-body" style="font-size:1.6rem;">${{ "{:,.2f}".format(total_servicios) }}</div>
+                    <div class="small text-muted mt-1">Servicios pagados</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="rounded-3 p-2 mb-3 d-inline-block" style="background:rgba(99,102,241,.1);">
+                        <i class="bi bi-file-earmark-text fs-5 text-info"></i>
+                    </div>
+                    <div class="fw-bold text-body" style="font-size:1.6rem;">${{ "{:,.2f}".format(total_facturas) }}</div>
+                    <div class="small text-muted mt-1">Facturas de proveedor</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── PRESUPUESTO vs REAL ── -->
+    {% if cc.presupuesto %}
+    {% set pct = cc.pct_presupuesto %}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 text-body"><i class="bi bi-bullseye me-2 text-primary"></i>Presupuesto vs Real</h6>
+                <span class="fw-bold {{ 'text-danger' if pct >= 90 else 'text-success' if pct < 70 else 'text-warning' }} fs-5">{{ pct }}%</span>
+            </div>
+            <div class="progress rounded-pill mb-2" style="height:12px;">
+                <div class="progress-bar rounded-pill {{ 'bg-danger' if pct >= 90 else 'bg-success' if pct < 70 else 'bg-warning' }}"
+                     role="progressbar" style="width:{{ pct }}%"
+                     aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between small text-muted mt-1">
+                <span>Gastado: <strong class="text-body">${{ "{:,.2f}".format(total) }}</strong></span>
+                <span>Presupuesto: <strong class="text-body">${{ "{:,.2f}".format(cc.presupuesto) }}</strong></span>
+                <span>Disponible: <strong class="{{ 'text-danger' if cc.presupuesto - total < 0 else 'text-success' }}">${{ "{:,.2f}".format(cc.presupuesto - total) }}</strong></span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── GRÁFICA: Gastos por categoría (Horizontal Bar — UI UX Pro Max recomendación) ── -->
+    {% if cat_items %}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 pt-4 pb-3 px-4">
+            <h6 class="fw-bold mb-0 text-body"><i class="bi bi-bar-chart-steps me-2 text-primary"></i>Gastos directos por categoría</h6>
+        </div>
+        <div class="card-body p-4">
+            <canvas id="chartCategorias" aria-label="Desglose de gastos por categoría" role="img"
+                    style="max-height:{{ [cat_items|length * 45, 300]|min }}px;"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── TRANSACCIONES ── -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 pt-4 pb-3 px-4">
+            <h6 class="fw-bold mb-0 text-body"><i class="bi bi-clock-history me-2 text-primary"></i>Todas las transacciones</h6>
+        </div>
+        <div class="card-body p-0">
+            {% if txs %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Fecha</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Tipo</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Descripción</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Categoría</th>
+                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in txs %}
+                        <tr>
+                            <td class="ps-4 py-3 small text-muted text-nowrap">{{ tx.fecha.strftime('%d/%m/%Y') if tx.fecha else '—' }}</td>
+                            <td class="py-3">
+                                <span class="badge-status {{ tx.cls }} d-inline-flex align-items-center gap-1">
+                                    <i class="bi {{ tx.icon }}" style="font-size:.75rem;"></i>{{ tx.tipo }}
+                                </span>
+                            </td>
+                            <td class="py-3 small fw-semibold text-body" style="max-width:240px;">
+                                <span class="text-truncate d-block">{{ tx.desc }}</span>
+                            </td>
+                            <td class="py-3 small text-muted">{{ tx.cat }}</td>
+                            <td class="pe-4 py-3 fw-bold text-body text-end">${{ "{:,.2f}".format(tx.monto) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 opacity-25 d-block mb-2"></i>
+                <span class="small">Sin transacciones asignadas a este centro de costo.</span>
+                <div class="mt-2 small">Asigna gastos, servicios o facturas desde sus respectivos formularios.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if cat_items %}
+<script>
+(function () {
+    const cs       = getComputedStyle(document.documentElement);
+    const pRgb     = cs.getPropertyValue('--primary-rgb').trim() || '99,102,241';
+    const isDark   = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const gridColor  = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+    const labelColor = isDark ? '#94a3b8' : '#64748b';
+
+    const PALETTE = [
+        `rgba(${pRgb},1)`, 'rgba(16,185,129,1)', 'rgba(245,158,11,1)',
+        'rgba(239,68,68,1)', 'rgba(6,182,212,1)', 'rgba(168,85,247,1)',
+    ];
+
+    const labels = [{% for cat, val in cat_items %}"{{ cat }}"{% if not loop.last %},{% endif %}{% endfor %}];
+    const values = [{% for cat, val in cat_items %}{{ val }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+    const ctx = document.getElementById('chartCategorias');
+    if (!ctx) return;
+
+    /* Horizontal Bar — UI UX Pro Max: compare categories + value labels */
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: labels.map((_, i) => PALETTE[i % PALETTE.length].replace(',1)', ',.75)')),
+                borderColor: labels.map((_, i) => PALETTE[i % PALETTE.length]),
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',   /* horizontal */
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` $${ctx.parsed.x.toLocaleString('es-MX', {minimumFractionDigits:2})}`
+                    }
+                },
+                /* Value labels on bars (UI UX Pro Max: add value labels for clarity) */
+                datalabels: false,
+            },
+            scales: {
+                x: {
+                    grid: { color: gridColor },
+                    ticks: {
+                        color: labelColor,
+                        font: { family: 'DM Sans' },
+                        callback: v => '$' + v.toLocaleString('es-MX')
+                    }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: labelColor, font: { family: 'DM Sans' } }
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

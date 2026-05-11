@@ -128,6 +128,22 @@
                     placeholder="Número de folio, referencia, etc."></textarea>
         </div>
 
+        {# ── CENTRO DE COSTO ───────────────────────────────────────────────── #}
+        {% if centros %}
+        <div class="mb-4">
+          <label for="centro_costo_id" class="form-label fw-semibold small text-muted text-uppercase" style="letter-spacing:.4px;">
+            <i class="bi bi-diagram-3 me-1 text-primary"></i>Centro de Costo (Opcional)
+          </label>
+          <select class="form-select" id="centro_costo_id" name="centro_costo_id">
+            <option value="">— Sin asignar —</option>
+            {% for cc in centros %}
+            <option value="{{ cc.id }}">{{ cc.nombre }}{% if cc.estado == 'cerrado' %} (Cerrado){% endif %}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text" style="font-size:.72rem;">Asigna este pago a un proyecto para incluirlo en su P&L.</div>
+        </div>
+        {% endif %}
+
         <div class="d-flex justify-content-end gap-2 pt-2 border-top"
              style="border-color:var(--border,#e2e8f0)!important;">
           <a href="{{ url_for('detalle_servicio', id=servicio.id) }}"

@@ -121,6 +121,25 @@
                                 </div>
                             </div>
 
+                            <!-- Centro de Costo (Opcional) -->
+                            {% if centros %}
+                            <div class="col-12">
+                                <label for="centro_costo_id" class="form-label fw-bold small text-muted">
+                                    <i class="bi bi-diagram-3 me-1 text-primary"></i>Centro de Costo (Opcional)
+                                </label>
+                                <select class="form-select" id="centro_costo_id" name="centro_costo_id">
+                                    <option value="">— Sin asignar —</option>
+                                    {% for cc in centros %}
+                                    <option value="{{ cc.id }}"
+                                        {% if factura and factura.centro_costo_id == cc.id %}selected{% endif %}>
+                                        {{ cc.nombre }}{% if cc.estado == 'cerrado' %} (Cerrado){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Asigna esta factura a un proyecto para incluirla en su P&L.</div>
+                            </div>
+                            {% endif %}
+
                             <!-- Notas -->
                             <div class="col-12">
                                 <label for="notas" class="form-label fw-bold small text-muted">Notas (Opcional)</label>

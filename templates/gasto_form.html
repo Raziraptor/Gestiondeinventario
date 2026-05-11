@@ -98,7 +98,7 @@
                                         <select class="form-select" id="orden_compra_id" name="orden_compra_id">
                                             <option value="">-- Ninguna --</option>
                                             {% for oc in ordenes %}
-                                                <option value="{{ oc.id }}" 
+                                                <option value="{{ oc.id }}"
                                                         {% if gasto and gasto.orden_compra_id == oc.id %}selected{% endif %}>
                                                     OC #{{ oc.id }} - {{ oc.proveedor.nombre }} (${{ "%.2f"|format(oc.costo_total) }})
                                                 </option>
@@ -110,6 +110,25 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- CAMPO: Centro de Costo (Opcional) -->
+                            {% if centros %}
+                            <div class="col-12">
+                                <label for="centro_costo_id" class="form-label fw-bold small text-muted">
+                                    <i class="bi bi-diagram-3 me-1 text-primary"></i>Centro de Costo (Opcional)
+                                </label>
+                                <select class="form-select" id="centro_costo_id" name="centro_costo_id">
+                                    <option value="">— Sin asignar —</option>
+                                    {% for cc in centros %}
+                                    <option value="{{ cc.id }}"
+                                        {% if gasto and gasto.centro_costo_id == cc.id %}selected{% endif %}>
+                                        {{ cc.nombre }}{% if cc.estado == 'cerrado' %} (Cerrado){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Asigna este gasto a un proyecto para ver su P&L.</div>
+                            </div>
+                            {% endif %}
 
                             <!-- SEPARADOR Y BOTONES -->
                             <div class="col-12 mt-5">

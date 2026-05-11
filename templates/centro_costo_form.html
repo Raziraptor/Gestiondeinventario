@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('lista_centros_costo') }}">Centros de Costo</a></li>
+            <li class="breadcrumb-item active">{{ titulo }}</li>
+        </ol>
+    </nav>
+
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-diagram-3 text-primary me-2"></i>{{ titulo }}</h1>
+                <p class="page-subtitle">Define el proyecto o área para agrupar su gasto total.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-folder2 text-primary me-2"></i>Datos del Centro</h4>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" id="form-cc"
+                          action="{{ url_for('editar_centro_costo', id=centro.id) if centro else url_for('nuevo_centro_costo') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <label for="nombre" class="form-label fw-bold small text-muted">Nombre del Centro de Costo</label>
+                                <input type="text" class="form-control form-control-lg" id="nombre" name="nombre"
+                                       value="{{ centro.nombre if centro else '' }}"
+                                       placeholder="Ej: Proyecto Remodelación, Área TI, Campaña Verano…" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="descripcion" class="form-label fw-bold small text-muted">Descripción (Opcional)</label>
+                                <textarea class="form-control" id="descripcion" name="descripcion" rows="2"
+                                          placeholder="Alcance, responsable, objetivo del proyecto…">{{ centro.descripcion if centro and centro.descripcion else '' }}</textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="presupuesto" class="form-label fw-bold small text-muted">Presupuesto Asignado (Opcional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text text-muted">MXN $</span>
+                                    <input type="number" class="form-control" id="presupuesto" name="presupuesto"
+                                           value="{{ centro.presupuesto if centro and centro.presupuesto else '' }}"
+                                           step="0.01" min="0" placeholder="0.00">
+                                </div>
+                                <div class="form-text">Déjalo vacío si no tienes un límite definido.</div>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <hr class="border-secondary border-opacity-25 mb-4">
+                                <div class="d-flex gap-3 justify-content-end">
+                                    <a href="{{ url_for('lista_centros_costo') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                        <i class="bi bi-save me-2"></i>Guardar Centro
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const f = document.getElementById('form-cc');
+    if (!f) return;
+    f.addEventListener('submit', function () {
+        const btn = f.querySelector('[type="submit"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando…'; }
+    });
+})();
+</script>
+{% endblock %}

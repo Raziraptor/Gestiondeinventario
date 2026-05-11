@@ -129,6 +129,26 @@ def create_db_command():
     db.create_all()
     print("¡Base de datos y tablas creadas exitosamente!")
 
+@app.cli.command("migrate-fase-c")
+@with_appcontext
+def migrate_fase_c():
+    """Agrega centro_costo_id a gasto, pago_servicio y factura_proveedor (seguro, idempotente)."""
+    from sqlalchemy import text
+    stmts = [
+        "ALTER TABLE gasto ADD COLUMN IF NOT EXISTS centro_costo_id INTEGER REFERENCES centro_costo(id) ON DELETE SET NULL",
+        "ALTER TABLE pago_servicio ADD COLUMN IF NOT EXISTS centro_costo_id INTEGER REFERENCES centro_costo(id) ON DELETE SET NULL",
+        "ALTER TABLE factura_proveedor ADD COLUMN IF NOT EXISTS centro_costo_id INTEGER REFERENCES centro_costo(id) ON DELETE SET NULL",
+    ]
+    with db.engine.connect() as conn:
+        for stmt in stmts:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+                print(f"OK: {stmt[:70]}")
+            except Exception as e:
+                conn.rollback()
+                print(f"Omitido (ya existe?): {e}")
+
 @app.cli.command("gen-vapid")
 @with_appcontext
 def gen_vapid_command():
@@ -406,7 +426,10 @@ class Gasto(db.Model):
     
     orden_compra_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
     orden_compra = db.relationship('OrdenCompra', backref='gastos_asociados', lazy=True)
-    
+
+    centro_costo_id = db.Column(db.Integer, db.ForeignKey('centro_costo.id'), nullable=True)
+    centro_costo = db.relationship('CentroCosto', backref='gastos', lazy=True)
+
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
     def __repr__(self):
@@ -554,6 +577,8 @@ class PagoServicio(db.Model):
     comprobante_url   = db.Column(db.String(300),nullable=True)
     registrado_por_id = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=True)
     creado_en         = db.Column(db.DateTime,   default=now_mx)
+    centro_costo_id   = db.Column(db.Integer,    db.ForeignKey('centro_costo.id'), nullable=True)
+    centro_costo      = db.relationship('CentroCosto', backref='pagos_servicio', lazy=True)
 
 
 # --- MODELO 'FacturaProveedor' — Cuentas por Pagar ---
@@ -574,6 +599,8 @@ class FacturaProveedor(db.Model):
     registrado_por    = db.relationship('User',  foreign_keys=[registrado_por_id])
     creado_en         = db.Column(db.DateTime,   default=now_mx)
     organizacion_id   = db.Column(db.Integer,    db.ForeignKey('organizacion.id'), nullable=False)
+    centro_costo_id   = db.Column(db.Integer,    db.ForeignKey('centro_costo.id'), nullable=True)
+    centro_costo      = db.relationship('CentroCosto', backref='facturas', lazy=True)
 
     @property
     def dias_vencimiento(self):
@@ -597,6 +624,33 @@ class FacturaProveedor(db.Model):
         elif dias <= 90:
             return '61-90'
         return '90+'
+
+
+# --- MODELO 'CentroCosto' — Fase C ERP ---
+class CentroCosto(db.Model):
+    __tablename__ = 'centro_costo'
+    id              = db.Column(db.Integer,    primary_key=True)
+    nombre          = db.Column(db.String(120), nullable=False)
+    descripcion     = db.Column(db.Text,       nullable=True)
+    presupuesto     = db.Column(db.Float,      nullable=True)   # None = sin límite
+    estado          = db.Column(db.String(20), nullable=False, default='activo')  # activo | cerrado
+    creado_en       = db.Column(db.DateTime,   default=now_mx)
+    organizacion_id = db.Column(db.Integer,    db.ForeignKey('organizacion.id'), nullable=False)
+    creador_id      = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=True)
+    creador         = db.relationship('User',  foreign_keys=[creador_id])
+
+    @property
+    def total_gastado(self):
+        g = sum(x.monto for x in self.gastos)
+        p = sum(x.monto for x in self.pagos_servicio if x.estado == 'pagado')
+        f = sum(x.monto for x in self.facturas)
+        return g + p + f
+
+    @property
+    def pct_presupuesto(self):
+        if not self.presupuesto or self.presupuesto <= 0:
+            return None
+        return min(round(self.total_gastado / self.presupuesto * 100, 1), 100)
 
 
 # ==============================================================================
@@ -4916,12 +4970,14 @@ def lista_gastos():
 def nuevo_gasto():
     org_id = current_user.organizacion_id
     ordenes = OrdenCompra.query.filter_by(organizacion_id=org_id).order_by(OrdenCompra.fecha_creacion.desc()).all()
+    centros = CentroCosto.query.filter_by(organizacion_id=org_id).order_by(CentroCosto.nombre).all()
 
     if request.method == 'POST':
         try:
             fecha_gasto = datetime.strptime(request.form['fecha'], '%Y-%m-%d')
             oc_id = request.form.get('orden_compra_id')
             if oc_id == "": oc_id = None
+            cc_id = request.form.get('centro_costo_id') or None
 
             nuevo_gasto = Gasto(
                 descripcion=request.form['descripcion'],
@@ -4929,6 +4985,7 @@ def nuevo_gasto():
                 categoria=request.form['categoria'],
                 fecha=fecha_gasto,
                 orden_compra_id=oc_id,
+                centro_costo_id=cc_id,
                 organizacion_id=current_user.organizacion_id
             )
             db.session.add(nuevo_gasto)
@@ -4941,9 +4998,10 @@ def nuevo_gasto():
             db.session.rollback()
             flash(f'Error al registrar el gasto: {e}', 'danger')
 
-    return render_template('gasto_form.html', 
-                           titulo="Registrar Nuevo Gasto", 
+    return render_template('gasto_form.html',
+                           titulo="Registrar Nuevo Gasto",
                            ordenes=ordenes,
+                           centros=centros,
                            now=now_mx())
 
 @app.route('/gasto/editar/<int:id>', methods=['GET', 'POST'])
@@ -4953,26 +5011,23 @@ def editar_gasto(id):
     """ Edita un gasto existente. """
     gasto = get_item_or_404(Gasto, id)
     org_id = current_user.organizacion_id
-    
-    # Necesitamos las órdenes para el dropdown (si se quiere cambiar la asociación)
     ordenes = OrdenCompra.query.filter_by(organizacion_id=org_id).order_by(OrdenCompra.fecha_creacion.desc()).all()
+    centros = CentroCosto.query.filter_by(organizacion_id=org_id).order_by(CentroCosto.nombre).all()
 
     if request.method == 'POST':
         try:
-            # Convertir la fecha del formulario
             fecha_gasto = datetime.strptime(request.form['fecha'], '%Y-%m-%d')
-            
-            # Manejo del ID de OC (puede ser cadena vacía si no se selecciona nada)
             oc_id = request.form.get('orden_compra_id')
-            if oc_id == "" or oc_id == "None": 
+            if oc_id == "" or oc_id == "None":
                 oc_id = None
+            cc_id = request.form.get('centro_costo_id') or None
 
-            # Actualizar campos
             gasto.descripcion = request.form['descripcion']
             gasto.monto = float(request.form['monto'])
             gasto.categoria = request.form['categoria']
             gasto.fecha = fecha_gasto
             gasto.orden_compra_id = oc_id
+            gasto.centro_costo_id = cc_id
 
             log_actividad('editar', 'gasto', f'Gasto editado: {gasto.descripcion} — ${gasto.monto:,.2f}', entidad_id=gasto.id)
             db.session.commit()
@@ -4983,10 +5038,11 @@ def editar_gasto(id):
             db.session.rollback()
             flash(f'Error al actualizar el gasto: {e}', 'danger')
 
-    return render_template('gasto_form.html', 
-                           titulo="Editar Gasto", 
+    return render_template('gasto_form.html',
+                           titulo="Editar Gasto",
                            ordenes=ordenes,
-                           gasto=gasto) # <-- Pasamos el objeto gasto
+                           centros=centros,
+                           gasto=gasto)
 
 @app.route('/gastos/exportar_excel')
 @login_required
@@ -5275,6 +5331,123 @@ def exportar_gastos_excel():
     return response
 
 # ──────────────────────────────────────────────
+# CENTROS DE COSTO — FASE C ERP
+# ──────────────────────────────────────────────
+
+@app.route('/centros-costo')
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def lista_centros_costo():
+    org_id = current_user.organizacion_id
+    centros = CentroCosto.query.filter_by(organizacion_id=org_id).order_by(CentroCosto.creado_en.desc()).all()
+    return render_template('centros_costo_lista.html',
+        titulo='Centros de Costo', centros=centros, now=now_mx())
+
+
+@app.route('/centro-costo/nuevo', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def nuevo_centro_costo():
+    if request.method == 'POST':
+        try:
+            cc = CentroCosto(
+                nombre          = request.form['nombre'].strip(),
+                descripcion     = request.form.get('descripcion', '').strip() or None,
+                presupuesto     = float(request.form['presupuesto']) if request.form.get('presupuesto') else None,
+                organizacion_id = current_user.organizacion_id,
+                creador_id      = current_user.id,
+            )
+            db.session.add(cc)
+            db.session.commit()
+            flash('Centro de costo creado.', 'success')
+            return redirect(url_for('lista_centros_costo'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    return render_template('centro_costo_form.html', titulo='Nuevo Centro de Costo', centro=None, now=now_mx())
+
+
+@app.route('/centro-costo/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def editar_centro_costo(id):
+    org_id = current_user.organizacion_id
+    cc = CentroCosto.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    if request.method == 'POST':
+        try:
+            cc.nombre       = request.form['nombre'].strip()
+            cc.descripcion  = request.form.get('descripcion', '').strip() or None
+            cc.presupuesto  = float(request.form['presupuesto']) if request.form.get('presupuesto') else None
+            db.session.commit()
+            flash('Centro de costo actualizado.', 'success')
+            return redirect(url_for('detalle_centro_costo', id=cc.id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error: {e}', 'danger')
+    return render_template('centro_costo_form.html', titulo='Editar Centro de Costo', centro=cc, now=now_mx())
+
+
+@app.route('/centro-costo/<int:id>/cerrar', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def cerrar_centro_costo(id):
+    org_id = current_user.organizacion_id
+    cc = CentroCosto.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    cc.estado = 'cerrado' if cc.estado == 'activo' else 'activo'
+    db.session.commit()
+    flash(f'Centro de costo {"cerrado" if cc.estado == "cerrado" else "reactivado"}.', 'success')
+    return redirect(url_for('detalle_centro_costo', id=cc.id))
+
+
+@app.route('/centro-costo/<int:id>')
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def detalle_centro_costo(id):
+    org_id = current_user.organizacion_id
+    cc = CentroCosto.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+
+    # Desglose por tipo
+    total_gastos    = sum(g.monto for g in cc.gastos)
+    total_servicios = sum(p.monto for p in cc.pagos_servicio if p.estado == 'pagado')
+    total_facturas  = sum(f.monto for f in cc.facturas)
+    total           = total_gastos + total_servicios + total_facturas
+
+    # Gastos por categoría (horizontal bar)
+    cat_map = {}
+    for g in cc.gastos:
+        k = g.categoria or 'Sin categoría'
+        cat_map[k] = cat_map.get(k, 0) + g.monto
+    cat_items = sorted(cat_map.items(), key=lambda x: -x[1])
+
+    # Feed unificado de transacciones
+    txs = []
+    for g in cc.gastos:
+        txs.append({'fecha': g.fecha.date() if hasattr(g.fecha,'date') else g.fecha,
+                    'tipo':'Gasto','desc':g.descripcion,'cat':g.categoria or '—',
+                    'monto':g.monto,'icon':'bi-cash-coin','cls':'badge-borrador'})
+    for p in cc.pagos_servicio:
+        txs.append({'fecha': p.fecha_pago,
+                    'tipo':'Servicio','desc':p.servicio.nombre,'cat':p.servicio.tipo or '—',
+                    'monto':p.monto,'icon':'bi-lightning-charge-fill','cls':'badge-enviada'})
+    for f in cc.facturas:
+        txs.append({'fecha': f.fecha_emision,
+                    'tipo':'Factura','desc':f.numero_factura + ' — ' + f.proveedor.nombre,'cat':'Proveedor',
+                    'monto':f.monto,'icon':'bi-file-earmark-text','cls':'badge-recibida'})
+    txs.sort(key=lambda x: x['fecha'] if x['fecha'] else date.min, reverse=True)
+
+    return render_template('centro_costo_detalle.html',
+        titulo=cc.nombre, cc=cc,
+        total=total, total_gastos=total_gastos,
+        total_servicios=total_servicios, total_facturas=total_facturas,
+        cat_items=cat_items, txs=txs, now=now_mx())
+
+
+# ──────────────────────────────────────────────
 # CUENTAS POR PAGAR — FACTURAS DE PROVEEDORES
 # ──────────────────────────────────────────────
 
@@ -5347,6 +5520,7 @@ def nueva_factura():
     org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
     ordenes = OrdenCompra.query.filter_by(organizacion_id=org_id).order_by(OrdenCompra.fecha_creacion.desc()).all()
+    centros = CentroCosto.query.filter_by(organizacion_id=org_id).order_by(CentroCosto.nombre).all()
 
     if request.method == 'POST':
         try:
@@ -5354,6 +5528,7 @@ def nueva_factura():
                 numero_factura    = request.form['numero_factura'].strip(),
                 proveedor_id      = int(request.form['proveedor_id']),
                 orden_compra_id   = int(request.form['orden_compra_id']) if request.form.get('orden_compra_id') else None,
+                centro_costo_id   = int(request.form['centro_costo_id']) if request.form.get('centro_costo_id') else None,
                 monto             = float(request.form['monto']),
                 fecha_emision     = date.fromisoformat(request.form['fecha_emision']),
                 fecha_vencimiento = date.fromisoformat(request.form['fecha_vencimiento']),
@@ -5374,6 +5549,7 @@ def nueva_factura():
         factura=None,
         proveedores=proveedores,
         ordenes=ordenes,
+        centros=centros,
         now=now_mx(),
     )
 
@@ -5387,12 +5563,14 @@ def editar_factura(id):
     factura = FacturaProveedor.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
     ordenes     = OrdenCompra.query.filter_by(organizacion_id=org_id).order_by(OrdenCompra.fecha_creacion.desc()).all()
+    centros     = CentroCosto.query.filter_by(organizacion_id=org_id).order_by(CentroCosto.nombre).all()
 
     if request.method == 'POST':
         try:
             factura.numero_factura    = request.form['numero_factura'].strip()
             factura.proveedor_id      = int(request.form['proveedor_id'])
             factura.orden_compra_id   = int(request.form['orden_compra_id']) if request.form.get('orden_compra_id') else None
+            factura.centro_costo_id   = int(request.form['centro_costo_id']) if request.form.get('centro_costo_id') else None
             factura.monto             = float(request.form['monto'])
             factura.fecha_emision     = date.fromisoformat(request.form['fecha_emision'])
             factura.fecha_vencimiento = date.fromisoformat(request.form['fecha_vencimiento'])
@@ -5409,6 +5587,7 @@ def editar_factura(id):
         factura=factura,
         proveedores=proveedores,
         ordenes=ordenes,
+        centros=centros,
         now=now_mx(),
     )
 
@@ -6701,12 +6880,14 @@ def detalle_servicio(id):
 def nuevo_pago_servicio(id):
     import calendar
     s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    centros = CentroCosto.query.filter_by(organizacion_id=current_user.organizacion_id).order_by(CentroCosto.nombre).all()
     if request.method == 'POST':
         p = PagoServicio(
             servicio_id       = s.id,
             monto             = float(request.form['monto']),
             fecha_vencimiento = datetime.strptime(request.form['fecha_vencimiento'], '%Y-%m-%d').date(),
             notas             = request.form.get('notas', '').strip() or None,
+            centro_costo_id   = int(request.form['centro_costo_id']) if request.form.get('centro_costo_id') else None,
             registrado_por_id = current_user.id,
         )
         if request.form.get('fecha_pago'):
@@ -6743,7 +6924,7 @@ def nuevo_pago_servicio(id):
         anio = hoy.year  if mes >= hoy.month else hoy.year + 1
         dia  = min(s.dia_vencimiento, calendar.monthrange(anio, mes)[1])
         fecha_sugerida = f'{anio}-{mes:02d}-{dia:02d}'
-    return render_template('pago_servicio_form.html', servicio=s, fecha_sugerida=fecha_sugerida)
+    return render_template('pago_servicio_form.html', servicio=s, fecha_sugerida=fecha_sugerida, centros=centros)
 
 
 @app.route('/servicios/pago/<int:id>/marcar-pagado', methods=['POST'])
