@@ -197,9 +197,7 @@
         /* Cards con radio Apple por defecto */
         .card { border-radius: var(--radius-lg) !important; }
 
-        /* Botones con radio cápsula refinado */
-        .btn { border-radius: var(--radius-sm) !important; font-weight: 500; letter-spacing: -0.01em; }
-        .btn.rounded-pill { border-radius: 100px !important; }
+        /* Botones — alineados con la sección BUTTONS más abajo */
 
         /* ============================================================
            SUPERFICIE ELEVADA (reemplaza surface-panel)
@@ -247,7 +245,7 @@
         }
         .dropdown-item {
             color: var(--bs-body-color);
-            border-radius: 0.5rem;
+            border-radius: var(--radius-sm);
             padding: 0.5rem 0.875rem;
             font-weight: 500;
             font-size: 0.9rem;
@@ -318,7 +316,7 @@
             background-color: var(--surface-raised) !important;
             border: 1px solid var(--border) !important;
             color: var(--bs-body-color) !important;
-            border-radius: 0.625rem;
+            border-radius: var(--radius-sm);
             font-size: 0.9375rem;
             transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
         }
@@ -399,18 +397,18 @@
         ============================================================ */
         .btn {
             font-weight: 600;
-            letter-spacing: -0.1px;
+            letter-spacing: -0.01em;
             transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 0.5rem;
+            border-radius: var(--radius-sm);
         }
         .btn:active { transform: scale(0.97); }
+        .btn.rounded-pill { border-radius: 100px !important; }
         .btn-primary {
             background-color: var(--primary) !important;
             border-color: var(--primary) !important;
             color: #fff !important;
         }
-        [data-bs-theme="dark"] .btn-primary { color: #0d1117 !important; }
-        .btn-primary:hover { filter: brightness(1.1); }
+        .btn-primary:hover { filter: brightness(1.08); }
 
         .btn-outline-primary { border-color: var(--primary) !important; color: var(--primary) !important; }
         .btn-outline-primary:hover { background: var(--primary) !important; color: #fff !important; }
@@ -444,7 +442,7 @@
         .alert-premium {
             background-color: var(--surface);
             color: var(--bs-body-color);
-            border-radius: 0.875rem;
+            border-radius: var(--radius-md);
             border: 1px solid var(--border);
             border-left: 5px solid;
             box-shadow: var(--shadow-md);
@@ -464,7 +462,7 @@
             background-color: var(--surface);
             border: 1px solid var(--border);
             box-shadow: var(--shadow-sm);
-            border-radius: 1rem;
+            border-radius: var(--radius-lg);
             transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
         .dashboard-card .card-body {
@@ -517,7 +515,7 @@
         .toast-app {
             pointer-events: all; position: relative; overflow: hidden;
             background: var(--surface); border: 1px solid var(--border);
-            border-radius: 1rem; box-shadow: var(--shadow-lg);
+            border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
             padding: 0.9rem 1rem; display: flex; align-items: center;
             gap: 0.75rem; min-width: 260px;
             animation: toastSlideIn 0.38s cubic-bezier(0.34,1.56,0.64,1) both;
@@ -569,7 +567,7 @@
         .search-dropdown {
             position:absolute; top:calc(100% + 0.5rem); left:50%; transform:translateX(-50%);
             width:340px; background:var(--surface); border:1px solid var(--border);
-            border-radius:1rem; box-shadow:var(--shadow-lg); z-index:2000;
+            border-radius: var(--radius-md); box-shadow:var(--shadow-lg); z-index:2000;
             overflow:hidden; display:none;
             animation:dropIn 0.18s ease both;
         }
@@ -586,7 +584,7 @@
         .search-item:last-child { border-bottom:none; }
         .search-item:hover { background:var(--hover-bg); color:var(--primary); }
         .search-item-icon {
-            width:34px; height:34px; border-radius:0.5rem; background:var(--hover-bg);
+            width:34px; height:34px; border-radius: var(--radius-sm); background:var(--hover-bg);
             display:flex; align-items:center; justify-content:center;
             flex-shrink:0; font-size:1rem; overflow:hidden;
         }
@@ -595,7 +593,7 @@
            MODAL DE CONFIRMACIÓN GLOBAL
         ============================================================ */
         .confirm-modal-body { background:var(--surface); border:1px solid var(--border);
-                              border-radius:1.25rem !important; }
+                              border-radius: var(--radius-lg) !important; }
         .confirm-icon-wrap {
             width:64px; height:64px; border-radius:50%;
             display:flex; align-items:center; justify-content:center;
@@ -646,10 +644,11 @@
             gap: 1rem;
         }
         .page-title {
-            font-size: 1.45rem; font-weight: 700;
-            letter-spacing: -.3px; margin: 0; line-height: 1.2;
+            font-size: 1.5rem; font-weight: 700;
+            letter-spacing: -0.03em; margin: 0; line-height: 1.2;
+            color: var(--text-primary);
         }
-        .page-subtitle { font-size: .875rem; color: var(--bs-secondary); margin: 0; }
+        .page-subtitle { font-size: .875rem; color: var(--text-secondary); margin: .15rem 0 0; }
 
         /* ============================================================
            STATUS BADGES (theme-aware)
@@ -671,7 +670,7 @@
         .surface-panel {
             background: var(--surface-raised);
             border: 1px solid var(--border);
-            border-radius: .75rem;
+            border-radius: var(--radius-md);
         }
 
         /* ============================================================
@@ -742,7 +741,7 @@
         .qa-search-list {
             position:absolute; top:calc(100% + 4px); left:0; right:0;
             background:var(--surface); border:1px solid var(--border);
-            border-radius:.875rem; box-shadow:var(--shadow-lg);
+            border-radius: var(--radius-md); box-shadow:var(--shadow-lg);
             z-index:10; max-height:200px; overflow-y:auto; display:none;
         }
         .qa-item {
@@ -755,7 +754,7 @@
         .qa-tipo-btn {
             flex:1; padding:.45rem; border:2px solid var(--border);
             background:transparent; color:var(--bs-body-color);
-            border-radius:.625rem; font-weight:700; font-size:.9rem;
+            border-radius: var(--radius-sm); font-weight:700; font-size:.9rem;
             transition:all .15s; cursor:pointer;
         }
         .qa-tipo-btn.qa-active-entrada { border-color:#10b981; background:rgba(16,185,129,.1); color:#10b981; }
