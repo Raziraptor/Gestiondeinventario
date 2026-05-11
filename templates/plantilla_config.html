@@ -362,12 +362,12 @@
 <style>
 .drop-zone:hover, .drop-zone.drag-over {
   border-color: var(--primary, #4f46e5) !important;
-  background: rgba(79,70,229,.04);
+  background: rgba(var(--primary-rgb),.04);
 }
 .font-card { transition: border-color .15s, box-shadow .15s; }
 .font-card:has(.font-radio:checked) {
   border-color: var(--primary, #4f46e5) !important;
-  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.15);
 }
 .palette-btn { transition: transform .1s, box-shadow .1s; }
 .palette-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.18); }

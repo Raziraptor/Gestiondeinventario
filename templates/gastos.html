@@ -5,19 +5,14 @@
 
 {% block content %}
 <style>
-.gasto-card {
-    transition: transform 0.25s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.25s ease;
-}
-.gasto-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg) !important;
-    border-color: var(--primary) !important;
-}
+.gasto-card { }
 .total-card {
-    background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, rgba(var(--primary-rgb),.7) 100%);
     color: #fff !important; border: none;
 }
-[data-bs-theme="dark"] .total-card { background: linear-gradient(135deg, #3730a3 0%, #312e81 100%); }
+[data-bs-theme="dark"] .total-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #0050b3 100%);
+}
 </style>
 
 <div class="container-fluid mt-3 mb-5">
@@ -118,7 +113,7 @@
     <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
         {% for gasto in gastos %}
             <div class="col">
-                <div class="card h-100 shadow-sm rounded-4 gasto-card" style="border:1px solid var(--border)">
+                <div class="card h-100 shadow-sm rounded-4 gasto-card content-card" style="border:1px solid var(--border)">
                     
                     <!-- ENCABEZADO: Categoría y Fecha -->
                     <div class="card-header bg-transparent d-flex justify-content-between align-items-center pt-3 pb-2" style="border-bottom:1px solid var(--border)">
@@ -145,9 +140,9 @@
                             {% endif %}
                             
                             <!-- Monto Grande con Formato -->
-                            <div class="surface-panel rounded-4 p-3 text-center mt-2">
-                                <small class="text-uppercase fw-bold text-muted mb-1 d-block" style="font-size: 0.7rem; letter-spacing: 1px;">Monto</small>
-                                <div class="fs-3 fw-bold text-body">${{ "{:,.2f}".format(gasto.monto) }}</div>
+                            <div class="total-panel" style="background:var(--primary-tonal);border:1px solid rgba(var(--primary-rgb),.12);">
+                                <span class="total-panel-label text-primary">Monto</span>
+                                <div class="total-panel-value text-primary">${{ "{:,.2f}".format(gasto.monto) }}</div>
                             </div>
                         </div>
                     </div>

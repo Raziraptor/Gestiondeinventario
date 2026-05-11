@@ -35,7 +35,7 @@
            style="width:56px;height:56px;object-fit:cover;">
       {% else %}
       <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-           style="width:56px;height:56px;background:rgba(79,70,229,.1);border:1px solid rgba(79,70,229,.2);">
+           style="width:56px;height:56px;background:rgba(var(--primary-rgb),.1);border:1px solid rgba(var(--primary-rgb),.2);">
         <i class="bi bi-box-seam fs-4 text-primary"></i>
       </div>
       {% endif %}
@@ -48,7 +48,7 @@
           </span>
           {% if producto.categoria %}
           <span class="badge rounded-pill px-2 py-1"
-                style="background:rgba(79,70,229,.08);color:var(--primary,#4f46e5);font-size:.72rem;">
+                style="background:rgba(var(--primary-rgb),.08);color:var(--primary,#4f46e5);font-size:.72rem;">
             {{ producto.categoria.nombre }}
           </span>
           {% endif %}
@@ -161,13 +161,13 @@
   transition: border-color .15s, background .15s, box-shadow .15s;
 }
 .size-card:hover {
-  border-color: rgba(79,70,229,.4);
-  background: rgba(79,70,229,.04);
+  border-color: rgba(var(--primary-rgb),.4);
+  background: rgba(var(--primary-rgb),.04);
 }
 .size-card.selected {
   border-color: var(--primary, #4f46e5);
-  background: rgba(79,70,229,.06);
-  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+  background: rgba(var(--primary-rgb),.06);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.12);
 }
 .size-card.selected .fw-bold { color: var(--primary, #4f46e5); }
 
@@ -178,8 +178,8 @@
     -45deg,
     transparent,
     transparent 4px,
-    rgba(79,70,229,.04) 4px,
-    rgba(79,70,229,.04) 8px
+    rgba(var(--primary-rgb),.04) 4px,
+    rgba(var(--primary-rgb),.04) 8px
   );
   position: relative;
 }
@@ -189,8 +189,8 @@
     -45deg,
     transparent,
     transparent 4px,
-    rgba(79,70,229,.08) 4px,
-    rgba(79,70,229,.08) 8px
+    rgba(var(--primary-rgb),.08) 4px,
+    rgba(var(--primary-rgb),.08) 8px
   );
 }
 </style>

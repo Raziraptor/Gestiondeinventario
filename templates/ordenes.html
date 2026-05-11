@@ -6,13 +6,7 @@
 {% block content %}
 <style>
 .orden-card {
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    border-radius: 1rem; overflow: hidden;
-}
-.orden-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg) !important;
-    border-color: var(--primary) !important;
+    border-radius: var(--radius-lg); overflow: hidden;
 }
 .status-badge {
     font-size: .75rem; font-weight: 700; text-transform: uppercase;
@@ -115,7 +109,7 @@
             {% endif %}
 
             <div class="col orden-item" data-estado="{{ orden.estado }}">
-                <div class="card h-100 shadow-sm orden-card border-0 border-top border-4" style="border-top-color: {{ border_color }} !important;">
+                <div class="card h-100 shadow-sm orden-card content-card border-0 border-top border-4" style="border-top-color: {{ border_color }} !important;">
                     
                     <div class="card-body p-4">
                         <!-- ENCABEZADO DE TARJETA -->
@@ -175,9 +169,9 @@
                         </div>
 
                         <!-- TOTAL -->
-                        <div class="text-center py-2 bg-success bg-opacity-10 rounded-3 border border-success border-opacity-10">
-                            <small class="text-uppercase text-success fw-bold" style="font-size: 0.65rem; letter-spacing: 1px;">Inversión Estimada</small>
-                            <div class="h3 fw-bold text-success mb-0">${{ "{:,.2f}".format(orden.costo_total) }}</div>
+                        <div class="total-panel" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.15);">
+                            <span class="total-panel-label text-success">Inversión Estimada</span>
+                            <div class="total-panel-value text-success">${{ "{:,.2f}".format(orden.costo_total) }}</div>
                         </div>
                     </div>
 

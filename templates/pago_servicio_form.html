@@ -34,7 +34,7 @@
           <label class="fw-semibold small text-muted text-uppercase d-block mb-2" style="letter-spacing:.4px;">
             <i class="bi bi-magic text-primary me-1"></i>Leer recibo automáticamente
             <span class="badge rounded-pill ms-1 px-2"
-                  style="background:rgba(79,70,229,.1);color:var(--primary,#4f46e5);font-size:.65rem;font-weight:600;">OCR</span>
+                  style="background:rgba(var(--primary-rgb),.1);color:var(--primary,#4f46e5);font-size:.65rem;font-weight:600;">OCR</span>
           </label>
 
           {# Drop zone #}
@@ -146,13 +146,13 @@
 <style>
 #dropZone.drag-over {
   border-color: var(--primary, #4f46e5) !important;
-  background: rgba(79,70,229,.06) !important;
+  background: rgba(var(--primary-rgb),.06) !important;
 }
 .ocr-llenado {
   animation: ocrFlash .6s ease;
 }
 @keyframes ocrFlash {
-  0%   { background: rgba(79,70,229,.18); }
+  0%   { background: rgba(var(--primary-rgb),.18); }
   100% { background: transparent; }
 }
 </style>

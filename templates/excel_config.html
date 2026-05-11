@@ -150,7 +150,7 @@
                  style="border:2px solid var(--border);cursor:pointer;"
                  onclick="toggleCheck('{{ name }}')">
               <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                   style="width:36px;height:36px;background:rgba(79,70,229,.08);">
+                   style="width:36px;height:36px;background:rgba(var(--primary-rgb),.08);">
                 <i class="bi {{ icon }} text-primary" style="font-size:.9rem;"></i>
               </div>
               <div class="flex-grow-1 min-w-0">
@@ -223,20 +223,20 @@
   transition: border-color .15s, background .15s, box-shadow .15s;
   cursor: pointer;
 }
-.font-card:hover  { border-color: rgba(79,70,229,.4); }
+.font-card:hover  { border-color: rgba(var(--primary-rgb),.4); }
 .font-card.selected {
   border-color: var(--primary, #4f46e5);
-  background: rgba(79,70,229,.06);
-  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+  background: rgba(var(--primary-rgb),.06);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.12);
 }
 .font-card.selected .fw-bold { color: var(--primary, #4f46e5); }
 
 .palette-btn { transition: border-color .15s, box-shadow .15s; }
-.palette-btn:hover  { border-color: rgba(79,70,229,.4) !important; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-.palette-btn.active { border-color: var(--primary, #4f46e5) !important; box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
+.palette-btn:hover  { border-color: rgba(var(--primary-rgb),.4) !important; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.palette-btn.active { border-color: var(--primary, #4f46e5) !important; box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.15); }
 
 .toggle-card { transition: border-color .15s, background .15s; }
-.toggle-card.active { border-color: var(--primary, #4f46e5) !important; background: rgba(79,70,229,.04); }
+.toggle-card.active { border-color: var(--primary, #4f46e5) !important; background: rgba(var(--primary-rgb),.04); }
 </style>
 {% endblock %}
 

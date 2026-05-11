@@ -16,7 +16,7 @@
 
 .qa-salida   { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.3);  color: #ef4444; }
 .qa-gasto    { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.3); color: #10b981; }
-.qa-oc       { background: rgba(79,70,229,.12);  border-color: rgba(79,70,229,.3);  color: var(--primary); }
+.qa-oc       { background: var(--primary-tonal); border-color: rgba(var(--primary-rgb),.3); color: var(--primary); }
 .qa-proyecto { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.3); color: #8b5cf6; }
 .qa-inv      { background: rgba(6,182,212,.12);  border-color: rgba(6,182,212,.3);  color: #06b6d4; }
 
@@ -29,7 +29,7 @@
 /* ── Tarjetas de módulos ────────────────────────────── */
 .mod-card {
     display: flex; align-items: center; gap: .9rem;
-    padding: .9rem 1rem; border-radius: .875rem;
+    padding: .9rem 1rem; border-radius: var(--radius-md);
     text-decoration: none; color: var(--bs-body-color);
     border: 1px solid var(--border);
     background: var(--surface-raised);
@@ -244,7 +244,7 @@
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
                     <div class="col-sm-6 col-md-4">
                         <a href="{{ url_for('lista_ordenes') }}" class="mod-card h-100">
-                            <div class="mod-icon" style="background:rgba(79,70,229,.12);">
+                            <div class="mod-icon" style="background:var(--primary-tonal);">
                                 <i class="bi bi-receipt" style="color:var(--primary);"></i>
                             </div>
                             <div class="mod-text">
@@ -321,7 +321,7 @@
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_dashboard %}
                     <div class="col-sm-6 col-md-4">
                         <a href="{{ url_for('reportes') }}" class="mod-card h-100">
-                            <div class="mod-icon" style="background:rgba(79,70,229,.12);">
+                            <div class="mod-icon" style="background:var(--primary-tonal);">
                                 <i class="bi bi-bar-chart-fill" style="color:var(--primary);"></i>
                             </div>
                             <div class="mod-text">
@@ -399,7 +399,7 @@
             <div class="d-flex flex-column gap-2 mb-4">
 
                 <a href="{{ url_for('admin_panel') }}" class="mod-card">
-                    <div class="mod-icon" style="background:rgba(79,70,229,.12);">
+                    <div class="mod-icon" style="background:var(--primary-tonal);">
                         <i class="bi bi-shield-lock-fill" style="color:var(--primary);"></i>
                     </div>
                     <div class="mod-text">

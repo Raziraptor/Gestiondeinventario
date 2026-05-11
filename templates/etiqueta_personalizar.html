@@ -20,7 +20,7 @@
   {# ── ENCABEZADO ─────────────────────────────────────────────────────────── #}
   <div class="d-flex align-items-center gap-3 mb-4">
     <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-         style="width:52px;height:52px;background:rgba(79,70,229,.1);">
+         style="width:52px;height:52px;background:rgba(var(--primary-rgb),.1);">
       <i class="bi bi-tag-fill" style="color:var(--primary,#4f46e5);font-size:1.4rem;"></i>
     </div>
     <div>
@@ -232,8 +232,8 @@
 <style>
 .font-card.selected, .estilo-card.selected {
   border-color: var(--primary, #4f46e5) !important;
-  background: rgba(79,70,229,.08) !important;
-  box-shadow: 0 0 0 3px rgba(79,70,229,.15);
+  background: rgba(var(--primary-rgb),.08) !important;
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.15);
 }
 .font-card:hover:not(.selected), .estilo-card:hover:not(.selected) {
   border-color: #94a3b8 !important;
