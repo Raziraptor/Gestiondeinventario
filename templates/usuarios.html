@@ -3,18 +3,25 @@
 {% block title %}Gestión de Usuarios{% endblock %}
 
 {% block content %}
-    <!-- ENCABEZADO -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2><i class="bi bi-people-fill"></i> Gestión de Usuarios</h2>
-            <p class="text-muted mb-0">Administra accesos y restablece contraseñas.</p>
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">Usuarios</li>
+        </ol>
+    </nav>
+
+    <div class="page-header mb-4">
+        <div class="page-header-row">
+            <div>
+                <h2 class="page-title"><i class="bi bi-people-fill me-2"></i>Gestión de Usuarios</h2>
+                <p class="page-subtitle">Administra accesos y restablece contraseñas.</p>
+            </div>
+            {% if 'register' in config or 'registro' in config %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
+                <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
+            </a>
+            {% endif %}
         </div>
-        <!-- Ajusta la condición y la ruta 'register' según tu configuración real -->
-        {% if 'register' in config or 'registro' in config %} 
-        <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
-            <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
-        </a>
-        {% endif %}
     </div>
 
     <!-- TABLA DE USUARIOS -->

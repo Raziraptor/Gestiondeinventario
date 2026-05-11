@@ -6,14 +6,13 @@
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO Y BOTONES DE ACCIÓN -->
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-4 gap-3">
-        <div>
-            <h2 class="mb-1 fw-bold"><i class="bi bi-file-earmark-text-fill text-primary me-2"></i>{{ titulo }}</h2>
-            <p class="text-muted mb-0">Resumen detallado y estado actual de la solicitud.</p>
-        </div>
-        
-        <div class="d-flex flex-wrap gap-2">
+    <div class="page-header mb-4">
+        <div class="page-header-row">
+            <div>
+                <h2 class="page-title"><i class="bi bi-file-earmark-text-fill text-primary me-2"></i>{{ titulo }}</h2>
+                <p class="page-subtitle">Resumen detallado y estado actual de la solicitud.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
             <!-- Botón PDF -->
             <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold" target="_blank">
                 <i class="bi bi-file-earmark-pdf me-1"></i> Imprimir PDF
@@ -38,28 +37,18 @@
             <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
                 <i class="bi bi-arrow-left me-1"></i> Volver
             </a>
+            </div>
         </div>
     </div>
 
     <!-- TARJETA PRINCIPAL DEL DETALLE -->
     <div class="card shadow-sm border-0 rounded-4">
         
-        <!-- CABECERA: Estado y Creador -->
-        {% set status_class = 'bg-warning text-dark' %}
-        {% set status_icon = 'bi-clock-history' %}
-        {% if orden.estado == 'cancelada' %}
-            {% set status_class = 'bg-secondary text-white' %}
-            {% set status_icon = 'bi-x-circle' %}
-        {% elif orden.estado == 'recibida' %}
-            {% set status_class = 'bg-success text-white' %}
-            {% set status_icon = 'bi-check-circle' %}
-        {% endif %}
-
         <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
             <div class="d-flex align-items-center gap-3">
                 <h5 class="mb-0 fw-bold text-body">Estado Actual:</h5>
-                <span class="badge {{ status_class }} rounded-pill px-3 py-2 shadow-sm fs-6">
-                    <i class="bi {{ status_icon }} me-1"></i> {{ orden.estado|capitalize }}
+                <span class="badge-status badge-{{ orden.estado }} rounded-pill px-3 py-2 shadow-sm fs-6">
+                    {{ orden.estado|capitalize }}
                 </span>
             </div>
             <div class="text-muted fw-semibold d-flex align-items-center">
@@ -73,7 +62,7 @@
         <div class="card-body p-4 p-md-5">
             
             <!-- CAJAS DE INFORMACIÓN (Proveedor y Almacén) -->
-            <div class="row g-4 mb-5">
+            <div class="row g-4 mb-5 animate-cards">
                 <div class="col-md-6">
                     <div class="p-4 rounded-4 border border-secondary border-opacity-25 h-100 info-box shadow-sm">
                         <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">

@@ -6,12 +6,21 @@
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO -->
-    <div class="text-center mb-5">
-        <h2 class="fw-bold fs-1"><i class="bi bi-cash-coin text-success me-2"></i>{{ titulo }}</h2>
-        <p class="text-muted fs-5">
-            Registra y categoriza las salidas de dinero de la organización
-        </p>
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('lista_gastos') }}">Gastos</a></li>
+            <li class="breadcrumb-item active">{{ titulo }}</li>
+        </ol>
+    </nav>
+
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-cash-coin text-success me-2"></i>{{ titulo }}</h1>
+                <p class="page-subtitle">Registra y categoriza las salidas de dinero de la organización.</p>
+            </div>
+        </div>
     </div>
 
     <div class="row justify-content-center">
@@ -32,8 +41,8 @@
                             <div class="col-md-4">
                                 <label for="fecha" class="form-label fw-bold small text-muted">Fecha del Gasto</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-calendar-date text-secondary"></i></span>
-                                    <input type="date" class="form-control bg-light border-secondary border-opacity-25" id="fecha" name="fecha" 
+                                    <span class="input-group-text "><i class="bi bi-calendar-date text-secondary"></i></span>
+                                    <input type="date" class="form-control " id="fecha" name="fecha" 
                                            value="{{ gasto.fecha.strftime('%Y-%m-%d') if gasto else now.strftime('%Y-%m-%d') }}" required>
                                 </div>
                             </div>
@@ -42,8 +51,8 @@
                             <div class="col-md-8">
                                 <label for="descripcion" class="form-label fw-bold small text-muted">Descripción Corta</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-card-text text-secondary"></i></span>
-                                    <input type="text" class="form-control bg-light border-secondary border-opacity-25" id="descripcion" name="descripcion" 
+                                    <span class="input-group-text "><i class="bi bi-card-text text-secondary"></i></span>
+                                    <input type="text" class="form-control " id="descripcion" name="descripcion" 
                                            value="{{ gasto.descripcion if gasto else '' }}" 
                                            placeholder="Ej: Pago de luz, Papelería, Flete..." required>
                                 </div>
@@ -64,8 +73,8 @@
                             <div class="col-md-6">
                                 <label for="categoria" class="form-label fw-bold small text-muted">Categoría Contable</label>
                                 <div class="input-group input-group-lg shadow-sm">
-                                    <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-tags text-primary"></i></span>
-                                    <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="categoria" name="categoria" required>
+                                    <span class="input-group-text "><i class="bi bi-tags text-primary"></i></span>
+                                    <select class="form-select  fs-6" id="categoria" name="categoria" required>
                                         <option value="">Selecciona...</option>
                                         {% set cat_actual = gasto.categoria if gasto else '' %}
                                         <option value="Servicios" {% if cat_actual == 'Servicios' %}selected{% endif %}>Servicios (Luz, Agua, Internet)</option>
@@ -80,13 +89,13 @@
 
                             <!-- CAMPO: Vincular a OC (Opcional) -->
                             <div class="col-12 mt-4">
-                                <div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3">
+                                <div class="alert-info-soft rounded-3 p-3">
                                     <label for="orden_compra_id" class="form-label fw-bold small text-primary mb-2">
                                         <i class="bi bi-link-45deg me-1"></i>Vincular a Orden de Compra (Opcional)
                                     </label>
                                     <div class="input-group">
-                                        <span class="input-group-text bg-white border-primary border-opacity-25"><i class="bi bi-receipt text-secondary"></i></span>
-                                        <select class="form-select bg-white border-primary border-opacity-25" id="orden_compra_id" name="orden_compra_id">
+                                        <span class="input-group-text"><i class="bi bi-receipt text-secondary"></i></span>
+                                        <select class="form-select" id="orden_compra_id" name="orden_compra_id">
                                             <option value="">-- Ninguna --</option>
                                             {% for oc in ordenes %}
                                                 <option value="{{ oc.id }}" 
@@ -127,6 +136,21 @@
 
 {% block scripts %}
 <script>
+(function () {
+    /* Loading state en submit — UI UX Pro Max: "Loading Buttons" High */
+    const allForms = document.querySelectorAll('form[method="POST"]');
+    allForms.forEach(function(f) {
+        f.addEventListener('submit', function() {
+            if (!navigator.onLine) return;
+            const btn = f.querySelector('[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando…';
+            }
+        });
+    });
+})();
+
 (function () {
     const form = document.querySelector('form[method="POST"]');
     if (!form || !window.OfflineQueue) return;

@@ -12,27 +12,15 @@
     </ol>
   </nav>
 
-  {# ── ENCABEZADO ─────────────────────────────────────────────────────────── #}
-  <div class="mb-4">
-    <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
-      <i class="bi bi-arrow-left me-1"></i>Inicio
-    </a>
-    <div class="d-flex align-items-center gap-3">
-      <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-           style="width:52px;height:52px;background:rgba(245,158,11,.12);">
-        <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:1.4rem;"></i>
-      </div>
+  <div class="page-header mb-4">
+    <div class="page-header-row">
       <div>
-        <h1 class="h4 fw-bold mb-0">Productos Sin Almacén</h1>
-        <div class="text-muted small">
-          {{ productos|length }} producto{{ 's' if productos|length != 1 else '' }} sin asignar
-        </div>
+        <h1 class="page-title"><i class="bi bi-exclamation-triangle-fill me-2" style="color:#f59e0b;"></i>Productos Sin Almacén</h1>
+        <p class="page-subtitle">{{ productos|length }} producto{{ 's' if productos|length != 1 else '' }} sin asignar</p>
       </div>
-      <div class="ms-auto">
-        <a href="{{ url_for('nuevo_producto') }}" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold shadow-sm">
-          <i class="bi bi-plus-lg me-1"></i>Nuevo producto
-        </a>
-      </div>
+      <a href="{{ url_for('nuevo_producto') }}" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold shadow-sm">
+        <i class="bi bi-plus-lg me-1"></i>Nuevo producto
+      </a>
     </div>
   </div>
 

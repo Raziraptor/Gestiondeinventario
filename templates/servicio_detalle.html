@@ -14,24 +14,23 @@
   </nav>
 
   {# ── ENCABEZADO ─────────────────────────────────────────────────────────── #}
-  <div class="mb-4">
-    <a href="{{ url_for('lista_servicios') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 mb-3">
-      <i class="bi bi-arrow-left me-1"></i>Servicios
-    </a>
-    <div class="d-flex align-items-center gap-3">
-      <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-           style="width:52px;height:52px;background:{{ color }}1a;">
-        <i class="bi {{ icon }}" style="color:{{ color }};font-size:1.4rem;"></i>
-      </div>
-      <div>
-        <h1 class="h4 fw-bold mb-0">{{ servicio.nombre }}</h1>
-        <div class="text-muted small">
-          {{ label }}
-          {% if servicio.proveedor_nombre %} · {{ servicio.proveedor_nombre }}{% endif %}
-          {% if servicio.numero_contrato %} · <span class="font-monospace">{{ servicio.numero_contrato }}</span>{% endif %}
+  <div class="page-header">
+    <div class="page-header-row">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:52px;height:52px;background:{{ color }}1a;">
+          <i class="bi {{ icon }}" style="color:{{ color }};font-size:1.4rem;"></i>
+        </div>
+        <div>
+          <h1 class="page-title">{{ servicio.nombre }}</h1>
+          <p class="page-subtitle mb-0">
+            {{ label }}
+            {% if servicio.proveedor_nombre %} · {{ servicio.proveedor_nombre }}{% endif %}
+            {% if servicio.numero_contrato %} · <span class="font-monospace">{{ servicio.numero_contrato }}</span>{% endif %}
+          </p>
         </div>
       </div>
-      <div class="ms-auto d-flex gap-2">
+      <div class="d-flex gap-2">
         {% if current_user.rol in ['super_admin','admin'] %}
         <a href="{{ url_for('editar_servicio', id=servicio.id) }}"
            class="btn btn-sm btn-outline-secondary rounded-pill px-3">
@@ -76,8 +75,7 @@
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="card border-0 shadow-sm rounded-4"
-           style="background:linear-gradient(135deg,rgba(16,185,129,.07),rgba(59,130,246,.07));">
+      <div class="card border-0 shadow-sm rounded-4 surface-panel">
         <div class="card-body p-3 text-center">
           <div class="fw-bold fs-4 text-success">${{ "{:,.0f}".format(promedio) }}</div>
           <div class="text-muted small">Promedio/pago</div>
@@ -119,7 +117,7 @@
         <i class="bi bi-clock-history text-primary me-1"></i>Historial de Pagos
       </span>
       <span class="badge rounded-pill px-3 py-1"
-            style="background:var(--hover-bg,#f1f5f9);color:#64748b;border:1px solid var(--border,#e2e8f0);font-size:.72rem;">
+            style="background:var(--hover-bg);color:var(--bs-secondary);border:1px solid var(--border);font-size:.72rem;">
         {{ servicio.pagos|length }} registros
       </span>
     </div>
@@ -154,15 +152,15 @@
               <td class="fw-bold" style="font-size:.95rem;">${{ "{:,.2f}".format(p.monto) }}</td>
               <td>
                 {% if p.estado == 'pagado' %}
-                <span class="badge rounded-pill px-2 py-1" style="background:rgba(16,185,129,.12);color:#10b981;font-size:.7rem;">
+                <span class="badge badge-status badge-recibida rounded-pill px-2 py-1">
                   <i class="bi bi-check-circle-fill me-1"></i>Pagado
                 </span>
                 {% elif p.estado == 'vencido' %}
-                <span class="badge rounded-pill px-2 py-1" style="background:rgba(239,68,68,.12);color:#ef4444;font-size:.7rem;">
+                <span class="badge badge-status badge-cancelada rounded-pill px-2 py-1">
                   <i class="bi bi-exclamation-triangle-fill me-1"></i>Vencido
                 </span>
                 {% else %}
-                <span class="badge rounded-pill px-2 py-1" style="background:rgba(245,158,11,.12);color:#f59e0b;font-size:.7rem;">
+                <span class="badge badge-status badge-enviada rounded-pill px-2 py-1">
                   <i class="bi bi-clock-fill me-1"></i>Pendiente
                 </span>
                 {% endif %}
@@ -177,7 +175,7 @@
                 {% if p.comprobante_url %}
                 <a href="{{ url_for('static', filename='uploads/comprobantes/' + p.comprobante_url) }}"
                    target="_blank" class="d-inline-flex align-items-center gap-1 mt-1"
-                   style="font-size:.68rem;color:var(--primary,#4f46e5);">
+                   style="font-size:.68rem;color:var(--primary);">
                   <i class="bi bi-paperclip"></i>Comprobante
                 </a>
                 {% endif %}

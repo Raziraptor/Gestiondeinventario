@@ -9,10 +9,21 @@
 
 <div class="container-fluid mt-3 mb-5">
 
-    <!-- ENCABEZADO -->
-    <div class="text-center mb-5">
-        <h2 class="fw-bold fs-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ titulo }}</h2>
-        <p class="text-muted fs-5">Genera o edita solicitudes de abastecimiento para tus almacenes</p>
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('lista_ordenes') }}">Órdenes</a></li>
+            <li class="breadcrumb-item active">{{ titulo }}</li>
+        </ol>
+    </nav>
+
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ titulo }}</h1>
+                <p class="page-subtitle">Genera o edita solicitudes de abastecimiento para tus almacenes.</p>
+            </div>
+        </div>
     </div>
 
     <form method="POST" action="{{ url_for('editar_orden', id=orden.id) if orden else url_for('nueva_orden_manual') }}" id="form_orden">
@@ -28,8 +39,8 @@
                     <div class="col-md-6">
                         <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Proveedor</label>
                         <div class="input-group input-group-lg shadow-sm">
-                            <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-building text-secondary"></i></span>
-                            <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="proveedor_id" name="proveedor_id" 
+                            <span class="input-group-text"><i class="bi bi-building text-secondary"></i></span>
+                            <select class="form-select fs-6" id="proveedor_id" name="proveedor_id" 
                                     {% if orden %}disabled{% endif %} required>
                                 <option value="">-- Selecciona un proveedor --</option>
                                 {% for prov in proveedores %}
@@ -47,8 +58,8 @@
                     <div class="col-md-6">
                         <label for="almacen_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Almacén de Destino</label>
                         <div class="input-group input-group-lg shadow-sm">
-                            <span class="input-group-text bg-light border-secondary border-opacity-25"><i class="bi bi-shop text-secondary"></i></span>
-                            <select class="form-select bg-light border-secondary border-opacity-25 fs-6" id="almacen_id" name="almacen_id" 
+                            <span class="input-group-text"><i class="bi bi-shop text-secondary"></i></span>
+                            <select class="form-select fs-6" id="almacen_id" name="almacen_id" 
                                     {% if orden %}disabled{% endif %} required>
                                 <option value="">-- Selecciona un almacén --</option>
                                 {% for alm in almacenes %}
@@ -72,7 +83,7 @@
                 <h5 class="mb-0 fw-bold text-body"><i class="bi bi-search text-info me-2"></i>Buscar o Escanear Producto</h5>
             </div>
             <div class="card-body p-4 p-md-5">
-                <div id="mensaje_bloqueo_buscador" class="alert alert-warning border-warning border-opacity-25 shadow-sm rounded-3 py-3 mb-4 d-flex align-items-center" style="display: none;">
+                <div id="mensaje_bloqueo_buscador" class="alert alert-warning-soft rounded-3 py-3 mb-4 d-flex align-items-center" style="display: none;">
                     <i class="bi bi-exclamation-triangle-fill fs-4 me-3 text-warning"></i>
                     <div>Selecciona Proveedor y Almacén para habilitar el buscador.</div>
                 </div>
@@ -88,8 +99,8 @@
 
                 <div class="position-relative">
                     <div class="input-group input-group-lg shadow-sm">
-                        <span class="input-group-text bg-light border-secondary border-opacity-25 text-primary"><i class="bi bi-upc-scan"></i></span>
-                        <input type="text" id="buscador" class="form-control bg-light border-secondary border-opacity-25 fs-6" 
+                        <span class="input-group-text text-primary"><i class="bi bi-upc-scan"></i></span>
+                        <input type="text" id="buscador" class="form-control fs-6" 
                                placeholder="Nombre, SKU o escanea un código..." autocomplete="off" disabled>
                         <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" onclick="iniciarEscaner()" disabled>
                             <i class="bi bi-qr-code-scan me-1"></i> <span>Escanear</span>
@@ -103,11 +114,11 @@
         </div>
 
         <!-- SECCIÓN 3: LISTA (CARRITO) -->
-        <div class="d-flex justify-content-between align-items-end mb-3 mt-5 px-2">
+        <div class="d-flex justify-content-between align-items-center mb-3 mt-5 px-2 flex-wrap gap-3">
             <h4 class="fw-bold mb-0 text-body"><i class="bi bi-box-seam text-primary me-2"></i>Artículos Solicitados</h4>
-            <div class="bg-success bg-opacity-10 border border-success border-opacity-25 rounded-3 px-4 py-2 shadow-sm text-center">
-                <small class="text-uppercase text-success fw-bold" style="font-size: 0.7rem;">Total Estimado</small>
-                <h3 class="text-success fw-bold mb-0">$<span id="gran_total">0.00</span></h3>
+            <div class="total-panel" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);min-width:160px;">
+                <span class="total-panel-label text-success">Total Estimado</span>
+                <span class="total-panel-value text-success">$<span id="gran_total">0.00</span></span>
             </div>
         </div>
 
@@ -118,7 +129,7 @@
                     {% set factor = p_match.unidades_por_caja if p_match and 'unidades_por_caja' in p_match else 1 %}
                     {% set enlace_actual = detalle.enlace_proveedor if detalle.enlace_proveedor else (p_match.get('enlace', '') if p_match else '') %}
                     
-                    <div class="producto-linea border border-secondary border-opacity-25 p-4 rounded-4 shadow-sm mb-3">
+                    <div class="producto-linea surface-panel p-4 rounded-4 shadow-sm mb-3">
                         <div class="row g-3 align-items-center">
                             <div class="col-md-3">
                                 <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem;">Producto</label>
@@ -321,7 +332,7 @@
         const linkHint = enlace ? `<div class="form-text text-primary small mt-1"><i class="bi bi-check2-circle"></i> Enlace auto-detectado.</div>` : '';
 
         const div = document.createElement('div');
-        div.classList.add('producto-linea', 'border', 'border-secondary', 'border-opacity-25', 'p-4', 'rounded-4', 'shadow-sm', 'mb-3');
+        div.classList.add('producto-linea', 'surface-panel', 'p-4', 'rounded-4', 'shadow-sm', 'mb-3');
         div.innerHTML = `
             <div class="row g-3 align-items-center">
                 <div class="col-md-3">
@@ -388,5 +399,14 @@
         });
         granTotalSpan.innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
     }
+
+    /* Loading state — UI UX Pro Max: "Loading Buttons" High */
+    document.getElementById('form_orden').addEventListener('submit', function() {
+        const btn = this.querySelector('[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando…';
+        }
+    });
 </script>
 {% endblock %}
