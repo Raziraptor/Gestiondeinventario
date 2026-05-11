@@ -1210,6 +1210,13 @@
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
+                                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('finanzas_dashboard') }}">
+                                        <i class="bi bi-graph-up-arrow me-2 text-success"></i> Dashboard Financiero
+                                    </a>
+                                </li>
+                                {% endif %}
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('reportes') }}">
                                         <i class="bi bi-file-earmark-bar-graph me-2 text-info"></i> Reportes

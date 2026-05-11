@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Financiero{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid mt-3 mb-5">
+
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">Dashboard Financiero</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-graph-up-arrow text-success me-2"></i>Dashboard Financiero</h1>
+                <p class="page-subtitle">Visión consolidada del gasto — Compras, Gastos directos y Servicios.</p>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge rounded-pill text-bg-secondary fw-normal px-3 py-2">
+                    <i class="bi bi-calendar3 me-1"></i>{{ ahora.strftime('%B %Y').capitalize() }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         FILA 1 — KPIs
+    ══════════════════════════════════════════════ -->
+    <div class="row g-4 mb-4 animate-cards">
+
+        <!-- KPI: Gasto Total Mes -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4 content-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded-3 p-2" style="background:rgba(var(--primary-rgb),.12);">
+                            <i class="bi bi-currency-dollar fs-4" style="color:var(--primary);"></i>
+                        </div>
+                        {% if variacion is not none %}
+                            {% if variacion > 0 %}
+                                <span class="badge rounded-pill text-bg-danger small">
+                                    <i class="bi bi-arrow-up-short"></i>{{ "%.1f"|format(variacion|abs) }}%
+                                </span>
+                            {% elif variacion < 0 %}
+                                <span class="badge rounded-pill text-bg-success small">
+                                    <i class="bi bi-arrow-down-short"></i>{{ "%.1f"|format(variacion|abs) }}%
+                                </span>
+                            {% else %}
+                                <span class="badge rounded-pill text-bg-secondary small">= 0%</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="fw-bold fs-4 text-body">${{ "{:,.2f}".format(total_mes) }}</div>
+                    <div class="small text-muted mt-1">Gasto total este mes</div>
+                    {% if variacion is not none %}
+                    <div class="small text-muted mt-1 opacity-75">
+                        vs. ${{ "{:,.2f}".format(total_mes_ant) }} mes anterior
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: OCs en Tránsito -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4 content-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded-3 p-2" style="background:rgba(6,182,212,.12);">
+                            <i class="bi bi-truck fs-4 text-info"></i>
+                        </div>
+                        <span class="badge rounded-pill text-bg-info small">Comprometido</span>
+                    </div>
+                    <div class="fw-bold fs-4 text-body">${{ "{:,.2f}".format(ocs_en_transito) }}</div>
+                    <div class="small text-muted mt-1">OCs enviadas sin recibir</div>
+                    <div class="small text-muted mt-1 opacity-75">Gasto comprometido pendiente</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: Por Vencer -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4 content-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded-3 p-2" style="background:rgba(245,158,11,.12);">
+                            <i class="bi bi-alarm fs-4 text-warning"></i>
+                        </div>
+                        {% if servicios_por_vencer %}
+                            <span class="badge rounded-pill text-bg-warning small">{{ servicios_por_vencer|length }} servicio{{ 's' if servicios_por_vencer|length > 1 }}</span>
+                        {% else %}
+                            <span class="badge rounded-pill text-bg-success small"><i class="bi bi-check-lg me-1"></i>Al día</span>
+                        {% endif %}
+                    </div>
+                    <div class="fw-bold fs-4 text-body">${{ "{:,.2f}".format(monto_por_vencer) }}</div>
+                    <div class="small text-muted mt-1">Servicios por vencer</div>
+                    <div class="small text-muted mt-1 opacity-75">Próximos 15 días</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI: Desglose mes actual -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4 content-card">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="rounded-3 p-2" style="background:rgba(16,185,129,.12);">
+                            <i class="bi bi-pie-chart fs-4 text-success"></i>
+                        </div>
+                    </div>
+                    <div class="small fw-bold text-muted text-uppercase mb-2" style="font-size:.7rem;letter-spacing:.5px;">Desglose del mes</div>
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted"><i class="bi bi-receipt me-1 text-primary"></i>Compras OC</span>
+                            <span class="fw-bold">${{ "{:,.0f}".format(ocs_mes) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted"><i class="bi bi-cash-coin me-1 text-success"></i>Gastos</span>
+                            <span class="fw-bold">${{ "{:,.0f}".format(gastos_mes) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted"><i class="bi bi-lightning-charge me-1 text-warning"></i>Servicios</span>
+                            <span class="fw-bold">${{ "{:,.0f}".format(servicios_mes) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         ALERTA: SERVICIOS POR VENCER
+    ══════════════════════════════════════════════ -->
+    {% if servicios_por_vencer %}
+    <div class="alert-warning-soft rounded-4 p-4 mb-4 d-flex align-items-start gap-3">
+        <i class="bi bi-exclamation-triangle-fill text-warning fs-5 mt-1 flex-shrink-0"></i>
+        <div class="flex-grow-1">
+            <div class="fw-bold text-body mb-2">Servicios próximos a vencer</div>
+            <div class="row g-2">
+                {% for pago in servicios_por_vencer %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="surface-panel p-3 rounded-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="small fw-bold text-body">{{ pago.servicio.nombre }}</div>
+                            <div class="small text-muted">Vence: {{ pago.fecha_vencimiento.strftime('%d/%m/%Y') }}</div>
+                        </div>
+                        <div class="fw-bold text-warning">${{ "{:,.2f}".format(pago.monto) }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ══════════════════════════════════════════════
+         FILA 2 — GRÁFICAS
+    ══════════════════════════════════════════════ -->
+    <div class="row g-4 mb-4">
+
+        <!-- Gráfica: Tendencia mensual (últimos 6 meses) -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 pt-4 pb-3 px-4 d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold mb-0 text-body"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Gasto mensual — últimos 6 meses</h6>
+                    <span class="small text-muted">Gastos + Compras + Servicios</span>
+                </div>
+                <div class="card-body p-4">
+                    <canvas id="chartMensual" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfica: Distribución por categoría -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 pt-4 pb-3 px-4">
+                    <h6 class="fw-bold mb-0 text-body"><i class="bi bi-pie-chart me-2 text-primary"></i>Gastos por categoría</h6>
+                    <div class="small text-muted">Mes actual</div>
+                </div>
+                <div class="card-body p-4 d-flex flex-column align-items-center justify-content-center">
+                    {% if gastos_por_cat %}
+                        <canvas id="chartCategorias" style="max-height:220px;max-width:220px;"></canvas>
+                        <div class="mt-3 w-100" id="legendCategorias"></div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-bar-chart fs-1 opacity-25 d-block mb-2"></i>
+                            <span class="small">Sin gastos directos este mes</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         FILA 3 — ÚLTIMAS TRANSACCIONES
+    ══════════════════════════════════════════════ -->
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 pt-4 pb-3 px-4 d-flex align-items-center justify-content-between">
+            <h6 class="fw-bold mb-0 text-body"><i class="bi bi-clock-history me-2 text-primary"></i>Últimas transacciones</h6>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('lista_gastos') }}" class="btn btn-outline-secondary btn-sm rounded-3">Ver gastos</a>
+                <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary btn-sm rounded-3">Ver OCs</a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if transacciones %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Fecha</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Tipo</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Descripción</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Categoría</th>
+                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transacciones %}
+                        <tr>
+                            <td class="ps-4 py-3 small text-muted text-nowrap">
+                                {{ tx.fecha.strftime('%d/%m/%Y') if tx.fecha else '—' }}
+                            </td>
+                            <td class="py-3">
+                                <span class="badge-status {{ tx.badge_class }} d-inline-flex align-items-center gap-1">
+                                    <i class="bi {{ tx.icon }}" style="font-size:.75rem;"></i>
+                                    {{ tx.tipo }}
+                                </span>
+                            </td>
+                            <td class="py-3 small text-body fw-semibold" style="max-width:260px;">
+                                <span class="text-truncate d-block">{{ tx.descripcion }}</span>
+                            </td>
+                            <td class="py-3">
+                                <span class="small text-muted">{{ tx.categoria }}</span>
+                            </td>
+                            <td class="pe-4 py-3 text-end fw-bold text-body">
+                                ${{ "{:,.2f}".format(tx.monto) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-receipt fs-1 opacity-25 d-block mb-2"></i>
+                <span class="small">Sin transacciones registradas aún</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const cs      = getComputedStyle(document.documentElement);
+    const pRgb    = cs.getPropertyValue('--primary-rgb').trim() || '99,102,241';
+    const surface = cs.getPropertyValue('--surface-raised').trim();
+    const isDark  = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+
+    const gridColor  = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+    const labelColor = isDark ? '#94a3b8' : '#64748b';
+
+    const COLORS = [
+        `rgba(${pRgb},1)`,
+        'rgba(6,182,212,1)',
+        'rgba(16,185,129,1)',
+        'rgba(245,158,11,1)',
+        'rgba(239,68,68,1)',
+        'rgba(168,85,247,1)',
+    ];
+
+    // ── Gráfica de tendencia mensual (stacked bar) ──
+    fetch('/api/finanzas/mensual')
+        .then(r => r.json())
+        .then(data => {
+            const ctx = document.getElementById('chartMensual');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Compras OC',
+                            data: data.ocs,
+                            backgroundColor: `rgba(${pRgb},.75)`,
+                            borderColor: `rgba(${pRgb},1)`,
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Gastos directos',
+                            data: data.gastos,
+                            backgroundColor: 'rgba(16,185,129,.65)',
+                            borderColor: 'rgba(16,185,129,1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'Servicios',
+                            data: data.servicios,
+                            backgroundColor: 'rgba(245,158,11,.65)',
+                            borderColor: 'rgba(245,158,11,1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: labelColor, font: { family: 'DM Sans', size: 12 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('es-MX', {minimumFractionDigits:2})}`,
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: { color: gridColor },
+                            ticks: { color: labelColor, font: { family: 'DM Sans' } }
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: labelColor,
+                                font: { family: 'DM Sans' },
+                                callback: v => '$' + v.toLocaleString('es-MX')
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+    // ── Gráfica de categorías (doughnut) ──
+    const ctxCat = document.getElementById('chartCategorias');
+    if (ctxCat) {
+        const catLabels = [{% for cat, monto in gastos_por_cat %}"{{ cat }}"{% if not loop.last %},{% endif %}{% endfor %}];
+        const catData   = [{% for cat, monto in gastos_por_cat %}{{ monto }}{% if not loop.last %},{% endif %}{% endfor %}];
+
+        new Chart(ctxCat, {
+            type: 'doughnut',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catData,
+                    backgroundColor: COLORS.slice(0, catLabels.length),
+                    borderWidth: 0,
+                    hoverOffset: 6,
+                }]
+            },
+            options: {
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: $${ctx.parsed.toLocaleString('es-MX', {minimumFractionDigits:2})}`
+                        }
+                    }
+                }
+            }
+        });
+
+        // Leyenda manual
+        const legend = document.getElementById('legendCategorias');
+        if (legend) {
+            legend.innerHTML = catLabels.map((l, i) =>
+                `<div class="d-flex justify-content-between align-items-center small py-1 border-bottom border-secondary border-opacity-10">
+                    <span class="d-flex align-items-center gap-2">
+                        <span style="width:10px;height:10px;border-radius:50%;background:${COLORS[i]};display:inline-block;flex-shrink:0;"></span>
+                        <span class="text-muted">${l}</span>
+                    </span>
+                    <span class="fw-bold text-body">$${catData[i].toLocaleString('es-MX',{minimumFractionDigits:2})}</span>
+                </div>`
+            ).join('');
+        }
+    }
+})();
+</script>
+{% endblock %}

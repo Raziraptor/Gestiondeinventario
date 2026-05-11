@@ -4261,6 +4261,210 @@ def exportar_proyectos_oc_excel():
 
 # --- RUTAS DE REPORTES ---
 
+# ──────────────────────────────────────────────
+# DASHBOARD FINANCIERO UNIFICADO
+# ──────────────────────────────────────────────
+
+@app.route('/finanzas')
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def finanzas_dashboard():
+    org_id = current_user.organizacion_id
+    ahora  = now_mx()
+    mes_actual = ahora.month
+    ano_actual = ahora.year
+
+    # Mes anterior
+    mes_ant = mes_actual - 1 if mes_actual > 1 else 12
+    ano_ant = ano_actual if mes_actual > 1 else ano_actual - 1
+
+    def _sum_gastos(mes, ano):
+        return db.session.query(db.func.coalesce(db.func.sum(Gasto.monto), 0.0)).filter(
+            Gasto.organizacion_id == org_id,
+            db.extract('month', Gasto.fecha) == mes,
+            db.extract('year',  Gasto.fecha) == ano
+        ).scalar()
+
+    def _sum_ocs(mes, ano):
+        return db.session.query(
+            db.func.coalesce(db.func.sum(
+                OrdenCompraDetalle.cantidad_solicitada * OrdenCompraDetalle.costo_unitario_estimado
+            ), 0.0)
+        ).join(OrdenCompra).filter(
+            OrdenCompra.organizacion_id == org_id,
+            OrdenCompra.estado == 'recibida',
+            db.extract('month', OrdenCompra.fecha_recepcion) == mes,
+            db.extract('year',  OrdenCompra.fecha_recepcion) == ano
+        ).scalar()
+
+    def _sum_servicios(mes, ano):
+        return db.session.query(db.func.coalesce(db.func.sum(PagoServicio.monto), 0.0)).join(Servicio).filter(
+            Servicio.organizacion_id == org_id,
+            PagoServicio.estado == 'pagado',
+            db.extract('month', PagoServicio.fecha_pago) == mes,
+            db.extract('year',  PagoServicio.fecha_pago) == ano
+        ).scalar()
+
+    # KPIs mes actual
+    gastos_mes      = _sum_gastos(mes_actual, ano_actual)
+    ocs_mes         = _sum_ocs(mes_actual, ano_actual)
+    servicios_mes   = _sum_servicios(mes_actual, ano_actual)
+    total_mes       = gastos_mes + ocs_mes + servicios_mes
+
+    # KPI mes anterior (para variación %)
+    total_mes_ant   = _sum_gastos(mes_ant, ano_ant) + _sum_ocs(mes_ant, ano_ant) + _sum_servicios(mes_ant, ano_ant)
+    variacion       = ((total_mes - total_mes_ant) / total_mes_ant * 100) if total_mes_ant > 0 else None
+
+    # OCs comprometidas (estado=enviada, aún no recibidas)
+    ocs_en_transito = db.session.query(
+        db.func.coalesce(db.func.sum(
+            OrdenCompraDetalle.cantidad_solicitada * OrdenCompraDetalle.costo_unitario_estimado
+        ), 0.0)
+    ).join(OrdenCompra).filter(
+        OrdenCompra.organizacion_id == org_id,
+        OrdenCompra.estado == 'enviada'
+    ).scalar()
+
+    # Servicios por vencer próximos 15 días
+    limite_aviso        = ahora.date() + timedelta(days=15)
+    servicios_por_vencer = (
+        PagoServicio.query.join(Servicio)
+        .filter(Servicio.organizacion_id == org_id,
+                PagoServicio.estado == 'pendiente',
+                PagoServicio.fecha_vencimiento <= limite_aviso)
+        .order_by(PagoServicio.fecha_vencimiento)
+        .all()
+    )
+    monto_por_vencer = sum(p.monto for p in servicios_por_vencer)
+
+    # Gastos por categoría (mes actual)
+    gastos_por_cat = db.session.query(
+        db.func.coalesce(Gasto.categoria, 'Sin categoría'),
+        db.func.sum(Gasto.monto)
+    ).filter(
+        Gasto.organizacion_id == org_id,
+        db.extract('month', Gasto.fecha) == mes_actual,
+        db.extract('year',  Gasto.fecha) == ano_actual
+    ).group_by(Gasto.categoria).all()
+
+    # Últimas transacciones unificadas
+    ultimos_gastos = (Gasto.query
+        .filter_by(organizacion_id=org_id)
+        .order_by(Gasto.fecha.desc()).limit(8).all())
+
+    ultimas_ocs = (OrdenCompra.query
+        .filter_by(organizacion_id=org_id, estado='recibida')
+        .order_by(OrdenCompra.fecha_recepcion.desc()).limit(8).all())
+
+    ultimos_pagos = (PagoServicio.query.join(Servicio)
+        .filter(Servicio.organizacion_id == org_id,
+                PagoServicio.estado == 'pagado')
+        .order_by(PagoServicio.fecha_pago.desc()).limit(8).all())
+
+    # Mezcla y ordena por fecha descendente
+    transacciones = []
+    for g in ultimos_gastos:
+        transacciones.append({
+            'fecha': g.fecha.date() if hasattr(g.fecha, 'date') else g.fecha,
+            'tipo': 'Gasto',
+            'descripcion': g.descripcion,
+            'categoria': g.categoria or 'Sin categoría',
+            'monto': g.monto,
+            'badge_class': 'badge-borrador',
+            'icon': 'bi-cash-coin',
+        })
+    for oc in ultimas_ocs:
+        transacciones.append({
+            'fecha': oc.fecha_recepcion.date() if oc.fecha_recepcion and hasattr(oc.fecha_recepcion, 'date') else oc.fecha_recepcion,
+            'tipo': 'Compra',
+            'descripcion': f'OC #{oc.id} — {oc.proveedor.nombre}',
+            'categoria': 'Inventario',
+            'monto': oc.costo_total,
+            'badge_class': 'badge-recibida',
+            'icon': 'bi-cart-check-fill',
+        })
+    for p in ultimos_pagos:
+        transacciones.append({
+            'fecha': p.fecha_pago,
+            'tipo': 'Servicio',
+            'descripcion': p.servicio.nombre,
+            'categoria': p.servicio.tipo.capitalize() if p.servicio.tipo else 'Servicio',
+            'monto': p.monto,
+            'badge_class': 'badge-enviada',
+            'icon': 'bi-lightning-charge-fill',
+        })
+    transacciones.sort(key=lambda x: x['fecha'] if x['fecha'] else date.min, reverse=True)
+    transacciones = transacciones[:15]
+
+    return render_template('finanzas_dashboard.html',
+        titulo='Dashboard Financiero',
+        total_mes=total_mes,
+        gastos_mes=gastos_mes,
+        ocs_mes=ocs_mes,
+        servicios_mes=servicios_mes,
+        ocs_en_transito=ocs_en_transito,
+        monto_por_vencer=monto_por_vencer,
+        variacion=variacion,
+        total_mes_ant=total_mes_ant,
+        servicios_por_vencer=servicios_por_vencer,
+        gastos_por_cat=gastos_por_cat,
+        transacciones=transacciones,
+        ahora=ahora,
+        mes_actual=mes_actual,
+        ano_actual=ano_actual,
+        now=ahora,
+    )
+
+
+@app.route('/api/finanzas/mensual')
+@login_required
+@check_org_permission
+def api_finanzas_mensual():
+    org_id = current_user.organizacion_id
+    ahora  = now_mx()
+    labels, gastos_data, ocs_data, servicios_data = [], [], [], []
+
+    for i in range(5, -1, -1):
+        m = ahora.month - i
+        y = ahora.year
+        if m <= 0:
+            m += 12
+            y -= 1
+
+        g = db.session.query(db.func.coalesce(db.func.sum(Gasto.monto), 0.0)).filter(
+            Gasto.organizacion_id == org_id,
+            db.extract('month', Gasto.fecha) == m,
+            db.extract('year',  Gasto.fecha) == y
+        ).scalar()
+
+        o = db.session.query(
+            db.func.coalesce(db.func.sum(
+                OrdenCompraDetalle.cantidad_solicitada * OrdenCompraDetalle.costo_unitario_estimado
+            ), 0.0)
+        ).join(OrdenCompra).filter(
+            OrdenCompra.organizacion_id == org_id,
+            OrdenCompra.estado == 'recibida',
+            db.extract('month', OrdenCompra.fecha_recepcion) == m,
+            db.extract('year',  OrdenCompra.fecha_recepcion) == y
+        ).scalar()
+
+        s = db.session.query(db.func.coalesce(db.func.sum(PagoServicio.monto), 0.0)).join(Servicio).filter(
+            Servicio.organizacion_id == org_id,
+            PagoServicio.estado == 'pagado',
+            db.extract('month', PagoServicio.fecha_pago) == m,
+            db.extract('year',  PagoServicio.fecha_pago) == y
+        ).scalar()
+
+        import calendar
+        labels.append(calendar.month_abbr[m] + f' {y}')
+        gastos_data.append(round(float(g), 2))
+        ocs_data.append(round(float(o), 2))
+        servicios_data.append(round(float(s), 2))
+
+    return jsonify({'labels': labels, 'gastos': gastos_data, 'ocs': ocs_data, 'servicios': servicios_data})
+
+
 @app.route('/reportes')
 @login_required
 @check_org_permission
