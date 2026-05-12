@@ -56,23 +56,62 @@
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
                 </a>
 
+                {% set es_admin = current_user.rol in ['super_admin', 'admin'] %}
+
                 {% if proyecto_oc.estado == 'borrador' %}
                     <a href="{{ url_for('editar_proyecto_oc', id=proyecto_oc.id) }}"
                        class="btn btn-warning rounded-pill px-3 shadow-sm fw-bold text-dark">
                         <i class="bi bi-pencil-fill me-1"></i> Editar
                     </a>
+                    {% if es_admin %}
                     <form action="{{ url_for('enviar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
-                          data-confirm="¿Marcar esta OC como enviada al proveedor?">
+                          data-confirm="¿Enviar esta OC directamente al proveedor?">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-info rounded-pill px-3 shadow-sm fw-bold text-white">
-                            <i class="bi bi-send me-1"></i> Marcar como Enviada
+                            <i class="bi bi-send me-1"></i> Enviar Directo
                         </button>
                     </form>
+                    {% else %}
+                    <form action="{{ url_for('solicitar_aprobacion_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
+                          data-confirm="¿Enviar esta OC a aprobación?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-primary rounded-pill px-3 shadow-sm fw-bold">
+                            <i class="bi bi-shield-check me-1"></i> Solicitar Aprobación
+                        </button>
+                    </form>
+                    {% endif %}
                     <form action="{{ url_for('cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
                           data-confirm="¿Cancelar esta Orden de Compra de Proyecto?">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm fw-bold">
                             <i class="bi bi-x-circle me-1"></i> Cancelar OC
+                        </button>
+                    </form>
+
+                {% elif proyecto_oc.estado == 'pendiente_aprobacion' %}
+                    {% if es_admin %}
+                    <form action="{{ url_for('aprobar_solicitud', id=solicitud_pendiente.id) if solicitud_pendiente else '#' }}" method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-success rounded-pill px-3 shadow-sm fw-bold">
+                            <i class="bi bi-check-circle me-1"></i> Aprobar
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-danger rounded-pill px-3 shadow-sm fw-bold"
+                            data-bs-toggle="modal" data-bs-target="#modalRechazar">
+                        <i class="bi bi-x-circle me-1"></i> Rechazar
+                    </button>
+                    {% else %}
+                    <span class="badge rounded-pill bg-warning text-dark px-3 py-2 fw-semibold fs-6">
+                        <i class="bi bi-hourglass-split me-1"></i> Pendiente de aprobación
+                    </span>
+                    {% endif %}
+
+                {% elif proyecto_oc.estado == 'aprobada' %}
+                    <form action="{{ url_for('enviar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
+                          data-confirm="¿Marcar esta OC como enviada al proveedor?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-info rounded-pill px-3 shadow-sm fw-bold text-white">
+                            <i class="bi bi-send me-1"></i> Marcar como Enviada
                         </button>
                     </form>
 
@@ -113,11 +152,39 @@
         </div>
         {% else %}
         <div class="timeline">
-            <!-- Creada -->
+            <!-- Borrador -->
             <div class="timeline-step">
                 <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
                 <div class="timeline-label done">Borrador</div>
                 <div class="timeline-date">{{ proyecto_oc.fecha_creacion.strftime('%d/%m/%Y') }}</div>
+            </div>
+            <!-- Pendiente Aprobación -->
+            <div class="timeline-step">
+                {% if proyecto_oc.estado in ['pendiente_aprobacion', 'aprobada', 'enviada', 'recibida'] %}
+                    <div class="timeline-dot {{ 'active' if proyecto_oc.estado == 'pendiente_aprobacion' else 'done' }}">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="timeline-label {{ 'active' if proyecto_oc.estado == 'pendiente_aprobacion' else 'done' }}">En revisión</div>
+                    <div class="timeline-date">—</div>
+                {% else %}
+                    <div class="timeline-dot"><i class="bi bi-shield"></i></div>
+                    <div class="timeline-label">En revisión</div>
+                    <div class="timeline-date"></div>
+                {% endif %}
+            </div>
+            <!-- Aprobada -->
+            <div class="timeline-step">
+                {% if proyecto_oc.estado in ['aprobada', 'enviada', 'recibida'] %}
+                    <div class="timeline-dot {{ 'active' if proyecto_oc.estado == 'aprobada' else 'done' }}">
+                        <i class="bi bi-check-lg"></i>
+                    </div>
+                    <div class="timeline-label {{ 'active' if proyecto_oc.estado == 'aprobada' else 'done' }}">Aprobada</div>
+                    <div class="timeline-date">—</div>
+                {% else %}
+                    <div class="timeline-dot"><i class="bi bi-check2"></i></div>
+                    <div class="timeline-label">Aprobada</div>
+                    <div class="timeline-date"></div>
+                {% endif %}
             </div>
             <!-- Enviada -->
             <div class="timeline-step">
@@ -246,4 +313,45 @@
     </div>
 
 </div>
+
+<!-- ── MODAL RECHAZO (solo admins, cuando estado = pendiente_aprobacion) ── -->
+{% if proyecto_oc.estado == 'pendiente_aprobacion' and current_user.rol in ['super_admin', 'admin'] and solicitud_pendiente %}
+<div class="modal fade" id="modalRechazar" tabindex="-1" aria-labelledby="modalRechazarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+                <h5 class="modal-title fw-bold text-body" id="modalRechazarLabel">
+                    <i class="bi bi-x-circle-fill text-danger me-2"></i>Rechazar Solicitud
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form action="{{ url_for('rechazar_solicitud', id=solicitud_pendiente.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">La OC volverá a estado <strong>Borrador</strong> y el solicitante recibirá una notificación.</p>
+                    <label for="comentario" class="form-label fw-bold small text-muted">Motivo del rechazo (opcional)</label>
+                    <textarea class="form-control rounded-3" id="comentario" name="comentario" rows="3"
+                              placeholder="Ej: Falta cotización de segundo proveedor, el presupuesto excede lo aprobado…"></textarea>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25 pt-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold" id="btnRechazarConfirm">
+                        <i class="bi bi-x-circle me-1"></i>Confirmar Rechazo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('btnRechazarConfirm')?.addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Rechazando…';
+});
+</script>
 {% endblock %}

@@ -202,6 +202,21 @@ def inject_vapid_key():
     return {'vapid_public_key': os.environ.get('VAPID_PUBLIC_KEY', '')}
 
 @app.context_processor
+def inject_aprobaciones_badge():
+    """Inyecta conteo de solicitudes de aprobación pendientes para admins."""
+    if (current_user.is_authenticated and current_user.organizacion_id
+            and current_user.rol in ['super_admin', 'admin']):
+        try:
+            count = SolicitudAprobacion.query.filter_by(
+                organizacion_id=current_user.organizacion_id,
+                estado='pendiente'
+            ).count()
+            return {'aprobaciones_badge': count}
+        except Exception:
+            return {'aprobaciones_badge': 0}
+    return {'aprobaciones_badge': 0}
+
+@app.context_processor
 def inject_servicios_badge():
     """Inyecta conteo de pagos de servicios urgentes/vencidos en todos los templates."""
     if current_user.is_authenticated and current_user.organizacion_id:
@@ -701,6 +716,22 @@ class Presupuesto(db.Model):
         if self.mes:
             return f"{MESES_ES[self.mes]} {self.anio}"
         return f"Anual {self.anio}"
+
+class SolicitudAprobacion(db.Model):
+    __tablename__ = 'solicitud_aprobacion'
+    id              = db.Column(db.Integer,    primary_key=True)
+    entidad_tipo    = db.Column(db.String(30), nullable=False)   # 'proyecto_oc'
+    entidad_id      = db.Column(db.Integer,    nullable=False)
+    solicitante_id  = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=False)
+    aprobador_id    = db.Column(db.Integer,    db.ForeignKey('user.id'), nullable=True)
+    estado          = db.Column(db.String(20), nullable=False, default='pendiente')  # pendiente|aprobado|rechazado
+    comentario      = db.Column(db.Text,       nullable=True)
+    creado_en       = db.Column(db.DateTime,   default=now_mx)
+    resuelto_en     = db.Column(db.DateTime,   nullable=True)
+    organizacion_id = db.Column(db.Integer,    db.ForeignKey('organizacion.id'), nullable=False)
+
+    solicitante = db.relationship('User', foreign_keys=[solicitante_id])
+    aprobador   = db.relationship('User', foreign_keys=[aprobador_id])
 
 # ==============================================================================
 # 5. CARGADOR DE USUARIO (FLASK-LOGIN)
@@ -3823,8 +3854,14 @@ def lista_proyectos_oc():
 @check_permission('perm_create_oc_proyecto')
 def ver_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
+    solicitud_pendiente = SolicitudAprobacion.query.filter_by(
+        entidad_tipo='proyecto_oc',
+        entidad_id=proyecto_oc.id,
+        estado='pendiente'
+    ).first()
     return render_template('proyecto_oc_detalle.html',
                            proyecto_oc=proyecto_oc,
+                           solicitud_pendiente=solicitud_pendiente,
                            titulo=f"OC Proyecto #{proyecto_oc.id} — {proyecto_oc.nombre_proyecto}")
 
 @app.route('/proyecto-oc/nueva', methods=['GET', 'POST'])
@@ -4025,21 +4062,70 @@ def editar_proyecto_oc(id):
                            detalles_json=detalles_json)
 
 
+@app.route('/proyecto-oc/<int:id>/solicitar-aprobacion', methods=['POST'])
+@login_required
+@check_permission('perm_create_oc_proyecto')
+def solicitar_aprobacion_oc(id):
+    """Envía la OC de Proyecto a revisión de un administrador."""
+    proyecto_oc = get_item_or_404(ProyectoOC, id)
+
+    if proyecto_oc.estado != 'borrador':
+        flash('Solo se puede solicitar aprobación desde estado Borrador.', 'danger')
+        return redirect(url_for('ver_proyecto_oc', id=id))
+
+    if not proyecto_oc.detalles:
+        flash('La OC debe tener al menos un ítem antes de solicitar aprobación.', 'warning')
+        return redirect(url_for('ver_proyecto_oc', id=id))
+
+    try:
+        proyecto_oc.estado = 'pendiente_aprobacion'
+        solicitud = SolicitudAprobacion(
+            entidad_tipo    = 'proyecto_oc',
+            entidad_id      = proyecto_oc.id,
+            solicitante_id  = current_user.id,
+            organizacion_id = proyecto_oc.organizacion_id,
+        )
+        db.session.add(solicitud)
+        log_actividad('solicitar_aprobacion', 'proyecto_oc',
+                      f'OC Proyecto #{proyecto_oc.id} enviada a aprobación por {current_user.username}.',
+                      entidad_id=proyecto_oc.id)
+        db.session.commit()
+        enviar_push_notificacion(
+            org_id=proyecto_oc.organizacion_id,
+            titulo='Aprobación requerida',
+            cuerpo=f'{current_user.username} solicita aprobar OC-PROY-{proyecto_oc.id}: {proyecto_oc.nombre_proyecto}',
+            url=f'/aprobaciones'
+        )
+        flash('Solicitud de aprobación enviada. Un administrador revisará la OC.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {e}', 'danger')
+
+    return redirect(url_for('ver_proyecto_oc', id=id))
+
+
 @app.route('/proyecto-oc/<int:id>/enviar', methods=['POST'])
 @login_required
 @check_permission('perm_create_oc_proyecto')
 def enviar_proyecto_oc(id):
-    """Marca la OC de Proyecto como enviada al proveedor."""
+    """Marca la OC de Proyecto como enviada al proveedor (requiere estado aprobada o admin en borrador)."""
     proyecto_oc = get_item_or_404(ProyectoOC, id)
+    es_admin = current_user.rol in ['super_admin', 'admin']
 
-    if proyecto_oc.estado != 'borrador':
-        flash('Solo se puede enviar una OC en estado Borrador.', 'danger')
+    estados_validos = ['aprobada']
+    if es_admin:
+        estados_validos.append('borrador')
+
+    if proyecto_oc.estado not in estados_validos:
+        flash('La OC debe estar aprobada antes de enviarse al proveedor.', 'danger')
         return redirect(url_for('ver_proyecto_oc', id=id))
 
     try:
         proyecto_oc.estado      = 'enviada'
         proyecto_oc.fecha_envio = now_mx()
-        log_actividad('enviar', 'proyecto_oc', f'OC de Proyecto #{proyecto_oc.id} "{proyecto_oc.nombre_proyecto}" marcada como enviada.', entidad_id=proyecto_oc.id)
+        log_actividad('enviar', 'proyecto_oc',
+                      f'OC de Proyecto #{proyecto_oc.id} "{proyecto_oc.nombre_proyecto}" marcada como enviada.',
+                      entidad_id=proyecto_oc.id)
         db.session.commit()
         flash(f'OC #{proyecto_oc.id} marcada como enviada al proveedor.', 'success')
     except Exception as e:
@@ -4047,6 +4133,137 @@ def enviar_proyecto_oc(id):
         flash(f'Error: {e}', 'danger')
 
     return redirect(url_for('ver_proyecto_oc', id=id))
+
+
+# ──────────────────────────────────────────────
+# FASE E — FLUJOS DE APROBACIÓN (INBOX)
+# ──────────────────────────────────────────────
+
+@app.route('/aprobaciones')
+@login_required
+@check_org_permission
+def lista_aprobaciones():
+    """Inbox de solicitudes de aprobación para administradores."""
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('No tienes permiso para ver las aprobaciones.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    org_id = current_user.organizacion_id
+    estado_filtro = request.args.get('estado', 'pendiente')
+
+    q = SolicitudAprobacion.query.filter_by(organizacion_id=org_id)
+    if estado_filtro:
+        q = q.filter_by(estado=estado_filtro)
+    solicitudes = q.order_by(SolicitudAprobacion.creado_en.desc()).all()
+
+    # Enriquecer con el objeto entidad
+    items = []
+    for s in solicitudes:
+        ent = None
+        ent_url = '#'
+        if s.entidad_tipo == 'proyecto_oc':
+            ent = ProyectoOC.query.get(s.entidad_id)
+            ent_url = url_for('ver_proyecto_oc', id=s.entidad_id)
+        items.append({'s': s, 'ent': ent, 'ent_url': ent_url})
+
+    pendientes = SolicitudAprobacion.query.filter_by(
+        organizacion_id=org_id, estado='pendiente').count()
+
+    return render_template('aprobaciones_inbox.html',
+        titulo='Aprobaciones',
+        items=items,
+        estado_filtro=estado_filtro,
+        pendientes=pendientes,
+        now=now_mx(),
+    )
+
+
+@app.route('/aprobacion/<int:id>/aprobar', methods=['POST'])
+@login_required
+@check_org_permission
+def aprobar_solicitud(id):
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('No tienes permiso.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    s = SolicitudAprobacion.query.filter_by(
+        id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+
+    if s.estado != 'pendiente':
+        flash('Esta solicitud ya fue resuelta.', 'warning')
+        return redirect(url_for('lista_aprobaciones'))
+
+    try:
+        s.estado       = 'aprobado'
+        s.aprobador_id = current_user.id
+        s.resuelto_en  = now_mx()
+
+        if s.entidad_tipo == 'proyecto_oc':
+            oc = ProyectoOC.query.get(s.entidad_id)
+            if oc:
+                oc.estado = 'aprobada'
+                log_actividad('aprobar', 'proyecto_oc',
+                              f'OC Proyecto #{oc.id} aprobada por {current_user.username}.',
+                              entidad_id=oc.id)
+
+        db.session.commit()
+        enviar_push_notificacion(
+            org_id=current_user.organizacion_id,
+            titulo='OC Aprobada',
+            cuerpo=f'{current_user.username} aprobó la solicitud. Ya puede enviarse al proveedor.',
+            url=f'/proyecto-oc/{s.entidad_id}' if s.entidad_tipo == 'proyecto_oc' else '/aprobaciones'
+        )
+        flash('Solicitud aprobada. La OC ya puede enviarse al proveedor.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {e}', 'danger')
+
+    return redirect(url_for('lista_aprobaciones'))
+
+
+@app.route('/aprobacion/<int:id>/rechazar', methods=['POST'])
+@login_required
+@check_org_permission
+def rechazar_solicitud(id):
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('No tienes permiso.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    s = SolicitudAprobacion.query.filter_by(
+        id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+
+    if s.estado != 'pendiente':
+        flash('Esta solicitud ya fue resuelta.', 'warning')
+        return redirect(url_for('lista_aprobaciones'))
+
+    try:
+        comentario     = request.form.get('comentario', '').strip()
+        s.estado       = 'rechazado'
+        s.aprobador_id = current_user.id
+        s.resuelto_en  = now_mx()
+        s.comentario   = comentario or None
+
+        if s.entidad_tipo == 'proyecto_oc':
+            oc = ProyectoOC.query.get(s.entidad_id)
+            if oc:
+                oc.estado = 'borrador'
+                log_actividad('rechazar', 'proyecto_oc',
+                              f'OC Proyecto #{oc.id} rechazada por {current_user.username}. Motivo: {comentario}',
+                              entidad_id=oc.id)
+
+        db.session.commit()
+        enviar_push_notificacion(
+            org_id=current_user.organizacion_id,
+            titulo='OC Rechazada',
+            cuerpo=f'Tu solicitud fue rechazada. {comentario[:80] if comentario else "Revisa los detalles."}',
+            url=f'/proyecto-oc/{s.entidad_id}' if s.entidad_tipo == 'proyecto_oc' else '/aprobaciones'
+        )
+        flash('Solicitud rechazada. La OC vuelve a estado Borrador.', 'warning')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {e}', 'danger')
+
+    return redirect(url_for('lista_aprobaciones'))
 
 
 @app.route('/proyecto-oc/<int:id>/recibir', methods=['GET', 'POST'])

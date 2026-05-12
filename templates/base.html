@@ -1232,6 +1232,16 @@
                                     </a>
                                 </li>
                                 {% endif %}
+                                {% if current_user.rol in ['super_admin', 'admin'] %}
+                                <li>
+                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="{{ url_for('lista_aprobaciones') }}">
+                                        <span><i class="bi bi-shield-check me-2 text-success"></i> Aprobaciones</span>
+                                        {% if aprobaciones_badge > 0 %}
+                                        <span class="badge rounded-pill bg-danger ms-2" style="font-size:.65rem;">{{ aprobaciones_badge }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
+                                {% endif %}
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('reportes') }}">
                                         <i class="bi bi-file-earmark-bar-graph me-2 text-info"></i> Reportes

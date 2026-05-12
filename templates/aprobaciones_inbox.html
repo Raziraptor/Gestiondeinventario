@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Aprobaciones{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">Aprobaciones</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title">
+                    <i class="bi bi-shield-check text-primary me-2"></i>Aprobaciones
+                    {% if pendientes > 0 %}
+                    <span class="badge bg-danger rounded-pill ms-1 fs-6">{{ pendientes }}</span>
+                    {% endif %}
+                </h1>
+                <p class="page-subtitle">Revisa y resuelve las solicitudes de autorización de tu equipo.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── FILTROS ── -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="small fw-bold text-muted me-1">Filtrar:</span>
+                <a href="{{ url_for('lista_aprobaciones', estado='pendiente') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-warning' if estado_filtro == 'pendiente' else 'btn-outline-secondary' }}">
+                    <i class="bi bi-hourglass-split me-1"></i>Pendientes
+                    {% if pendientes > 0 %}<span class="badge bg-danger ms-1 rounded-pill" style="font-size:.6rem;">{{ pendientes }}</span>{% endif %}
+                </a>
+                <a href="{{ url_for('lista_aprobaciones', estado='aprobado') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-success' if estado_filtro == 'aprobado' else 'btn-outline-secondary' }}">
+                    <i class="bi bi-check-circle me-1"></i>Aprobadas
+                </a>
+                <a href="{{ url_for('lista_aprobaciones', estado='rechazado') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-danger' if estado_filtro == 'rechazado' else 'btn-outline-secondary' }}">
+                    <i class="bi bi-x-circle me-1"></i>Rechazadas
+                </a>
+                <a href="{{ url_for('lista_aprobaciones', estado='') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-primary' if not estado_filtro else 'btn-outline-secondary' }}">
+                    Todas
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── LISTA ── -->
+    {% if items %}
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">#</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Solicitud</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Solicitante</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Fecha</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Estado</th>
+                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Comentario</th>
+                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        {% set s = item.s %}
+                        {% set ent = item.ent %}
+                        <tr>
+                            <td class="ps-4 py-3 small text-muted fw-bold">#{{ s.id }}</td>
+                            <td class="py-3">
+                                <div class="fw-semibold text-body">
+                                    {% if s.entidad_tipo == 'proyecto_oc' %}
+                                    <i class="bi bi-briefcase-fill me-1 text-primary"></i>
+                                    <a href="{{ item.ent_url }}" class="text-decoration-none text-body hover-primary">
+                                        OC-PROY-{{ s.entidad_id }}
+                                        {% if ent %} — {{ ent.nombre_proyecto }}{% endif %}
+                                    </a>
+                                    {% else %}
+                                    {{ s.entidad_tipo }} #{{ s.entidad_id }}
+                                    {% endif %}
+                                </div>
+                                {% if ent %}
+                                <div class="small text-muted mt-1">
+                                    ${{ "{:,.2f}".format(ent.costo_total) }} MXN
+                                    · {{ ent.detalles|length }} ítem{{ 's' if ent.detalles|length != 1 }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                                         style="width:30px;height:30px;font-size:.75rem;">
+                                        {{ s.solicitante.username[0].upper() }}
+                                    </div>
+                                    <span class="small fw-semibold text-body">{{ s.solicitante.username }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 small text-muted text-nowrap">
+                                {{ s.creado_en.strftime('%d/%m/%Y %H:%M') }}
+                            </td>
+                            <td class="py-3">
+                                {% if s.estado == 'pendiente' %}
+                                <span class="badge rounded-pill bg-warning text-dark px-3 py-2 fw-semibold">
+                                    <i class="bi bi-hourglass-split me-1"></i>Pendiente
+                                </span>
+                                {% elif s.estado == 'aprobado' %}
+                                <span class="badge rounded-pill bg-success px-3 py-2 fw-semibold">
+                                    <i class="bi bi-check-circle me-1"></i>Aprobado
+                                </span>
+                                {% else %}
+                                <span class="badge rounded-pill bg-danger px-3 py-2 fw-semibold">
+                                    <i class="bi bi-x-circle me-1"></i>Rechazado
+                                </span>
+                                {% endif %}
+                                {% if s.aprobador %}
+                                <div class="small text-muted mt-1">por {{ s.aprobador.username }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 small text-muted" style="max-width:200px;">
+                                {% if s.comentario %}
+                                <span class="text-truncate d-block" title="{{ s.comentario }}">{{ s.comentario }}</span>
+                                {% else %}
+                                <span class="opacity-50">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 py-3 text-end">
+                                {% if s.estado == 'pendiente' %}
+                                <form action="{{ url_for('aprobar_solicitud', id=s.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-success rounded-3 fw-semibold me-1 btn-aprobar">
+                                        <i class="bi bi-check-lg me-1"></i>Aprobar
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-3 fw-semibold"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalRechazar{{ s.id }}">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                                {% else %}
+                                <a href="{{ item.ent_url }}" class="btn btn-sm btn-outline-secondary rounded-3">
+                                    <i class="bi bi-eye me-1"></i>Ver
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-shield-check empty-state-icon text-success"></i>
+        <h5>
+            {% if estado_filtro == 'pendiente' %}Sin solicitudes pendientes{% else %}Sin solicitudes en este filtro{% endif %}
+        </h5>
+        <p>
+            {% if estado_filtro == 'pendiente' %}
+            Todo al día — no hay solicitudes esperando tu revisión.
+            {% else %}
+            Cambia el filtro para ver otras solicitudes.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- ── MODALES DE RECHAZO (uno por solicitud pendiente) ── -->
+{% for item in items %}
+{% set s = item.s %}
+{% if s.estado == 'pendiente' %}
+<div class="modal fade" id="modalRechazar{{ s.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 pb-3">
+                <h5 class="modal-title fw-bold text-body">
+                    <i class="bi bi-x-circle-fill text-danger me-2"></i>Rechazar Solicitud #{{ s.id }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form action="{{ url_for('rechazar_solicitud', id=s.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">
+                        La OC volverá a estado <strong>Borrador</strong> y
+                        <strong>{{ s.solicitante.username }}</strong> recibirá una notificación.
+                    </p>
+                    <label for="comentario{{ s.id }}" class="form-label fw-bold small text-muted">Motivo (opcional)</label>
+                    <textarea class="form-control rounded-3" id="comentario{{ s.id }}" name="comentario" rows="3"
+                              placeholder="Ej: Falta cotización, presupuesto excedido…"></textarea>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25 pt-3">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
+                        <i class="bi bi-x-circle me-1"></i>Confirmar Rechazo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Loading state en botones de aprobar */
+document.querySelectorAll('.btn-aprobar').forEach(function(btn) {
+    btn.closest('form').addEventListener('submit', function() {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Aprobando…';
+    });
+});
+</script>
+{% endblock %}
