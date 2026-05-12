@@ -1434,6 +1434,16 @@ def generar_etiqueta_personalizada(id):
 
 # --- Rutas Principales (Dashboard) ---
 
+@app.route('/sw.js')
+def service_worker():
+    """Sirve el SW desde la raíz con el header que permite scope '/'."""
+    from flask import send_from_directory
+    resp = make_response(send_from_directory('static', 'sw.js'))
+    resp.headers['Content-Type'] = 'application/javascript'
+    resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
 @app.route('/offline')
 def offline_page():
     return render_template('offline.html')

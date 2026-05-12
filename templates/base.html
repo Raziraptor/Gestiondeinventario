@@ -1703,7 +1703,7 @@
     {% endif %}
     <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then(reg => {
                 // Escuchar resultados de sync desde el SW
                 navigator.serviceWorker.addEventListener('message', e => {
