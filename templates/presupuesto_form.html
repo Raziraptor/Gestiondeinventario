@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('lista_presupuestos') }}">Presupuestos</a></li>
+            <li class="breadcrumb-item active">{{ titulo }}</li>
+        </ol>
+    </nav>
+
+    <div class="page-header">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="bi bi-bullseye text-primary me-2"></i>{{ titulo }}</h1>
+                <p class="page-subtitle">Define cuánto puedes gastar en una categoría durante un período.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25">
+                    <h4 class="mb-0 fw-bold text-body"><i class="bi bi-sliders text-primary me-2"></i>Datos del Presupuesto</h4>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" id="form-presupuesto"
+                          action="{{ url_for('editar_presupuesto', id=presupuesto.id) if presupuesto else url_for('nuevo_presupuesto') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="row g-4">
+
+                            <!-- Categoría — solo editable al crear -->
+                            <div class="col-12">
+                                <label for="categoria" class="form-label fw-bold small text-muted">Categoría de Gasto</label>
+                                {% if presupuesto %}
+                                <input type="text" class="form-control form-control-lg bg-body-secondary" value="{{ presupuesto.categoria }}" disabled>
+                                <input type="hidden" name="categoria" value="{{ presupuesto.categoria }}">
+                                <div class="form-text">La categoría no se puede cambiar. Elimina y crea uno nuevo si lo necesitas.</div>
+                                {% else %}
+                                <select class="form-select form-select-lg" id="categoria" name="categoria" required>
+                                    <option value="">Selecciona una categoría…</option>
+                                    {% for cat in categorias %}
+                                    <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% endif %}
+                            </div>
+
+                            <!-- Año -->
+                            <div class="col-md-6">
+                                <label for="anio" class="form-label fw-bold small text-muted">Año</label>
+                                {% if presupuesto %}
+                                <input type="text" class="form-control bg-body-secondary" value="{{ presupuesto.anio }}" disabled>
+                                <input type="hidden" name="anio" value="{{ presupuesto.anio }}">
+                                {% else %}
+                                <select class="form-select" id="anio" name="anio" required>
+                                    {% for a in range(anio_actual - 1, anio_actual + 3) %}
+                                    <option value="{{ a }}" {% if a == anio_actual %}selected{% endif %}>{{ a }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% endif %}
+                            </div>
+
+                            <!-- Mes (opcional) -->
+                            <div class="col-md-6">
+                                <label for="mes" class="form-label fw-bold small text-muted">Mes (opcional)</label>
+                                {% if presupuesto %}
+                                <input type="text" class="form-control bg-body-secondary"
+                                       value="{{ meses_es[presupuesto.mes] if presupuesto.mes else 'Anual (todo el año)' }}" disabled>
+                                {% else %}
+                                <select class="form-select" id="mes" name="mes">
+                                    <option value="">Anual (todo el año)</option>
+                                    {% for m in range(1,13) %}
+                                    <option value="{{ m }}">{{ meses_es[m] }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Déjalo en blanco para un presupuesto anual.</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Monto -->
+                            <div class="col-12">
+                                <label for="monto" class="form-label fw-bold small text-primary">Monto Presupuestado</label>
+                                <div class="input-group input-group-lg shadow-sm">
+                                    <span class="input-group-text bg-light border-primary text-primary fw-bold">MXN $</span>
+                                    <input type="number" class="form-control bg-light border-primary fw-bold text-dark fs-5"
+                                           id="monto" name="monto"
+                                           value="{{ presupuesto.monto if presupuesto else '' }}"
+                                           step="0.01" min="1" placeholder="0.00" required autofocus>
+                                </div>
+                                <div class="form-text">Límite de gasto para esta categoría en el período seleccionado.</div>
+                            </div>
+
+                            <!-- Botones -->
+                            <div class="col-12 mt-4">
+                                <hr class="border-secondary border-opacity-25 mb-4">
+                                <div class="d-flex gap-3 justify-content-end">
+                                    <a href="{{ url_for('lista_presupuestos') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
+                                        Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">
+                                        <i class="bi bi-save me-2"></i>Guardar Presupuesto
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const f = document.getElementById('form-presupuesto');
+    if (!f) return;
+    f.addEventListener('submit', function () {
+        const btn = f.querySelector('[type="submit"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando…'; }
+    });
+})();
+</script>
+{% endblock %}

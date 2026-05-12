@@ -85,6 +85,10 @@ def now_mx() -> datetime:
     """Hora actual en zona horaria de México (naive, lista para guardar en DB)."""
     return datetime.now(_TZ_MX).replace(tzinfo=None)
 
+CATEGORIAS_GASTO = ['Servicios', 'Nómina', 'Mantenimiento', 'Insumos', 'Inventario', 'Otros']
+MESES_ES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
 app = Flask(__name__)
 csrf = CSRFProtect(app)
 app.jinja_env.add_extension('jinja2.ext.do') # Para la lógica de 'set' en bucles
@@ -676,6 +680,27 @@ class CentroCosto(db.Model):
             return None
         return min(round(self.total_gastado / self.presupuesto * 100, 1), 100)
 
+
+class Presupuesto(db.Model):
+    __tablename__ = 'presupuesto'
+    id              = db.Column(db.Integer,    primary_key=True)
+    categoria       = db.Column(db.String(50), nullable=False)
+    anio            = db.Column(db.Integer,    nullable=False)
+    mes             = db.Column(db.Integer,    nullable=True)   # None = presupuesto anual
+    monto           = db.Column(db.Float,      nullable=False)
+    organizacion_id = db.Column(db.Integer,    db.ForeignKey('organizacion.id'), nullable=False)
+    creado_en       = db.Column(db.DateTime,   default=now_mx)
+
+    __table_args__ = (
+        db.UniqueConstraint('organizacion_id', 'categoria', 'anio', 'mes',
+                            name='uq_presupuesto_cat_periodo'),
+    )
+
+    @property
+    def periodo_label(self):
+        if self.mes:
+            return f"{MESES_ES[self.mes]} {self.anio}"
+        return f"Anual {self.anio}"
 
 # ==============================================================================
 # 5. CARGADOR DE USUARIO (FLASK-LOGIN)
@@ -5469,6 +5494,162 @@ def detalle_centro_costo(id):
         total=total, total_gastos=total_gastos,
         total_servicios=total_servicios, total_facturas=total_facturas,
         cat_items=cat_items, txs=txs, now=now_mx())
+
+
+# ──────────────────────────────────────────────
+# FASE D — PRESUPUESTOS POR CATEGORÍA
+# ──────────────────────────────────────────────
+
+def _semaforo(pct):
+    """Devuelve (clase_bootstrap, etiqueta) según porcentaje gastado."""
+    if pct >= 90:
+        return 'danger', 'Crítico'
+    if pct >= 70:
+        return 'warning', 'Alerta'
+    return 'success', 'OK'
+
+def _real_por_categoria(org_id, categoria, anio, mes):
+    """Suma de gastos reales de una categoría en un período dado."""
+    q = Gasto.query.filter_by(organizacion_id=org_id, categoria=categoria)
+    q = q.filter(extract('year', Gasto.fecha) == anio)
+    if mes:
+        q = q.filter(extract('month', Gasto.fecha) == mes)
+    return sum(g.monto for g in q.all())
+
+@app.route('/presupuestos')
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def lista_presupuestos():
+    org_id = current_user.organizacion_id
+    ahora  = now_mx()
+
+    anio = request.args.get('anio', ahora.year, type=int)
+    mes  = request.args.get('mes',  0,           type=int)   # 0 = anual
+
+    q = Presupuesto.query.filter_by(organizacion_id=org_id, anio=anio)
+    if mes:
+        presupuestos = q.filter_by(mes=mes).order_by(Presupuesto.categoria).all()
+    else:
+        presupuestos = q.filter(Presupuesto.mes.is_(None)).order_by(Presupuesto.categoria).all()
+
+    items = []
+    for p in presupuestos:
+        gastado = _real_por_categoria(org_id, p.categoria, anio, mes or None)
+        pct     = min(round(gastado / p.monto * 100, 1), 999) if p.monto > 0 else 0
+        cls, lbl = _semaforo(pct)
+        items.append({
+            'p': p,
+            'gastado': gastado,
+            'disponible': p.monto - gastado,
+            'pct': pct,
+            'pct_bar': min(pct, 100),
+            'cls': cls,
+            'label': lbl,
+        })
+
+    # Categorías que aún no tienen presupuesto en este período
+    cats_con = {i['p'].categoria for i in items}
+    cats_sin = [c for c in CATEGORIAS_GASTO if c not in cats_con]
+
+    total_presupuestado = sum(i['p'].monto for i in items)
+    total_gastado_real  = sum(i['gastado'] for i in items)
+    en_riesgo           = sum(1 for i in items if i['cls'] == 'danger')
+    pct_global          = min(round(total_gastado_real / total_presupuestado * 100, 1), 999) if total_presupuestado else 0
+
+    anios_disponibles = list(range(ahora.year - 1, ahora.year + 3))
+
+    return render_template('presupuestos_lista.html',
+        titulo='Presupuestos',
+        items=items,
+        cats_sin=cats_sin,
+        total_presupuestado=total_presupuestado,
+        total_gastado=total_gastado_real,
+        en_riesgo=en_riesgo,
+        pct_global=pct_global,
+        anio=anio, mes=mes,
+        anios_disponibles=anios_disponibles,
+        meses_es=MESES_ES,
+        now=ahora,
+    )
+
+
+@app.route('/presupuesto/nuevo', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def nuevo_presupuesto():
+    org_id = current_user.organizacion_id
+    ahora  = now_mx()
+
+    if request.method == 'POST':
+        categoria = request.form['categoria']
+        anio      = int(request.form['anio'])
+        mes_raw   = request.form.get('mes', '')
+        mes       = int(mes_raw) if mes_raw else None
+        monto     = float(request.form['monto'])
+
+        existente = Presupuesto.query.filter_by(
+            organizacion_id=org_id, categoria=categoria, anio=anio, mes=mes
+        ).first()
+        if existente:
+            flash(f'Ya existe un presupuesto para {categoria} en ese período.', 'warning')
+        else:
+            p = Presupuesto(categoria=categoria, anio=anio, mes=mes,
+                            monto=monto, organizacion_id=org_id)
+            db.session.add(p)
+            db.session.commit()
+            flash('Presupuesto creado.', 'success')
+            return redirect(url_for('lista_presupuestos',
+                                    anio=anio, mes=mes or 0))
+
+    return render_template('presupuesto_form.html',
+        titulo='Nuevo Presupuesto',
+        presupuesto=None,
+        categorias=CATEGORIAS_GASTO,
+        meses_es=MESES_ES,
+        anio_actual=ahora.year,
+        now=ahora,
+    )
+
+
+@app.route('/presupuesto/<int:id>/editar', methods=['GET', 'POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def editar_presupuesto(id):
+    org_id = current_user.organizacion_id
+    p = Presupuesto.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+
+    if request.method == 'POST':
+        p.monto = float(request.form['monto'])
+        db.session.commit()
+        flash('Presupuesto actualizado.', 'success')
+        return redirect(url_for('lista_presupuestos',
+                                anio=p.anio, mes=p.mes or 0))
+
+    return render_template('presupuesto_form.html',
+        titulo='Editar Presupuesto',
+        presupuesto=p,
+        categorias=CATEGORIAS_GASTO,
+        meses_es=MESES_ES,
+        anio_actual=p.anio,
+        now=now_mx(),
+    )
+
+
+@app.route('/presupuesto/<int:id>/eliminar', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_view_gastos')
+def eliminar_presupuesto(id):
+    org_id = current_user.organizacion_id
+    p = Presupuesto.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    anio, mes = p.anio, p.mes or 0
+    db.session.delete(p)
+    db.session.commit()
+    flash('Presupuesto eliminado.', 'success')
+    return redirect(url_for('lista_presupuestos', anio=anio, mes=mes))
 
 
 # ──────────────────────────────────────────────
