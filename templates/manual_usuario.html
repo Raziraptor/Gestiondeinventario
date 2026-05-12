@@ -160,36 +160,81 @@
 
 /* ── COVER (print only) ────────────────────────────────────────── */
 .manual-cover { display: none; }
+/* ── PRINT-ONLY TOC (hidden on screen) ────────────────────────── */
+.print-only-toc { display: none; }
 
 /* ── PRINT STYLES ──────────────────────────────────────────────── */
 @media print {
+  @page { margin: 2cm 2.2cm; size: A4 portrait; }
+
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
+  /* ── Hide UI elements ── */
   .glass-navbar, .manual-toc, .manual-toolbar, .skip-link,
-  footer, .no-print { display: none !important; }
+  footer, .no-print,
+  .fab-container, .fab-backdrop, .fab-main, .fab-items,
+  .toast-container-app, #confirmModal, .modal,
+  #flashData { display: none !important; }
 
+  /* ── Body ── */
   body {
     background: #fff !important;
-    color: #111 !important;
+    color: #1a1a1a !important;
     font-size: 10.5pt;
+    line-height: 1.65;
     font-family: 'DM Sans', sans-serif;
   }
+  p { orphans: 3; widows: 3; }
 
-  /* Cover page */
+  /* ── Cover page ── */
   .manual-cover {
     display: flex !important;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    min-height: 100vh;
-    page-break-after: always;
+    height: 100vh;        /* exact page height — avoids blank page 2 */
+    overflow: hidden;
+    break-after: page;
   }
   .manual-cover h1 { font-size: 26pt; color: #111; margin-bottom: 0.5rem; }
   .manual-cover h2 { font-size: 16pt; color: #4f46e5; font-weight: 600; margin-bottom: 1.5rem; }
   .manual-cover .cover-meta { font-size: 11pt; color: #555; }
 
-  /* Layout */
+  /* ── Print-only TOC page ── */
+  .print-only-toc {
+    display: block !important;
+    break-after: page;
+    padding: 0.5rem 0 3rem;
+  }
+  .print-only-toc h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    border-bottom: 2px solid #4f46e5;
+    padding-bottom: 0.6rem;
+    margin-bottom: 1.25rem;
+    color: #1a1a1a;
+  }
+  .ptoc-entry {
+    display: flex;
+    align-items: baseline;
+    padding: 0.22rem 0;
+    font-size: 10pt;
+    color: #1a1a1a;
+  }
+  .ptoc-entry-label { flex-shrink: 0; }
+  .ptoc-dots {
+    flex: 1;
+    border-bottom: 1px dotted #bbb;
+    margin: 0 0.5rem;
+    position: relative;
+    bottom: 0.2em;
+  }
+  .ptoc-num { flex-shrink: 0; color: #555; font-size: 9pt; }
+  .ptoc-group { font-weight: 700; padding-top: 0.5rem; }
+  .ptoc-sub   { padding-left: 1.5rem; font-size: 9.5pt; color: #444; }
+
+  /* ── Layout ── */
   .manual-layout {
     display: block;
     max-width: 100%;
@@ -198,52 +243,105 @@
   }
   .manual-content { width: 100%; }
 
-  /* Sections */
+  /* ── Sections ── */
   .manual-section {
     background: #fff !important;
     border: none !important;
     border-radius: 0 !important;
-    padding: 0 0 1.5rem 0 !important;
+    padding: 0 0 1.25rem 0 !important;
     box-shadow: none !important;
+    break-inside: auto;
   }
+
+  /* Force page breaks only before major chapters */
+  #compras, #aprobaciones, #finanzas, #servicios,
+  #reportes, #administracion, #roles, #especiales {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* ── Section heading ── */
   .section-heading {
     border-bottom: 2px solid #e5e7eb !important;
     padding-bottom: 0.6rem;
+    break-after: avoid;
+    page-break-after: avoid;
   }
-  .section-heading h2 { color: #111 !important; }
+  .section-heading h2 { color: #1a1a1a !important; }
   .section-number {
-    background: #e5e7eb !important;
+    background: #e8e7ff !important;
     color: #4f46e5 !important;
   }
-  .subsection { border-top: 1px solid #e5e7eb !important; }
-  .subsection h3 { color: #111 !important; }
 
-  /* Page breaks */
-  .page-break-before { page-break-before: always; break-before: page; }
-  .manual-section { break-inside: auto; }
+  /* ── Subsections ── */
+  .subsection {
+    border-top: 1px solid #e5e7eb !important;
+    break-inside: auto;
+  }
+  .subsection h3 {
+    color: #1a1a1a !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
 
-  /* Callouts */
+  /* ── Callouts — allow splitting to prevent orphan pages ── */
+  .callout {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
   .callout-info    { background: #f0f9ff !important; border-color: #06b6d4 !important; }
   .callout-warning { background: #fffbeb !important; border-color: #f59e0b !important; }
   .callout-success { background: #f0fdf4 !important; border-color: #10b981 !important; }
   .callout-tip     { background: #eef2ff !important; border-color: #4f46e5 !important; }
 
-  /* Tables */
+  /* ── Step list — block layout prevents flex column-split in print ── */
+  .step-list li {
+    display: block !important;
+    position: relative;
+    padding-left: 2.2rem;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .step-list li::before {
+    position: absolute;
+    left: 0;
+    top: 0.6rem;
+    display: inline-flex !important;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    line-height: 1.35rem;
+  }
+
+  /* ── Tables ── */
   .table { font-size: 9pt; }
   .table > :not(caption) > * > * {
     background-color: transparent !important;
-    color: #111 !important;
+    color: #1a1a1a !important;
+    border-color: #d1d5db !important;
   }
   thead th {
     background-color: #f3f4f6 !important;
     color: #374151 !important;
+    border-bottom: 1px solid #d1d5db !important;
   }
 
-  /* Links */
+  /* ── Badges & icons ── */
+  .badge { border: 1px solid rgba(0,0,0,0.15); }
+  .perm-check { color: #10b981 !important; }
+  .perm-cross { color: #ef4444 !important; }
+
+  /* ── Links ── */
   a { color: inherit !important; text-decoration: none !important; }
 
-  /* Manual footer */
-  .manual-footer { display: block !important; border-top: 1px solid #e5e7eb; margin-top: 2rem; padding-top: 1rem; }
+  /* ── Footer ── */
+  .manual-footer {
+    display: block !important;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+    margin-top: 1rem;
+  }
 }
 
 @media (max-width: 900px) {
@@ -274,6 +372,136 @@
   <p class="cover-meta" style="color:#888;font-size:0.85rem;">Documento confidencial &mdash; uso interno</p>
 </div>
 
+<!-- ── PRINT-ONLY TABLE OF CONTENTS ─────────────────────────────── -->
+<div class="print-only-toc">
+  <h2>Índice de Contenidos</h2>
+
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">1. Introducción</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">2. Acceso al Sistema</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">2.1 Inicio de Sesión</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">2.2 Roles de Usuario</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">2.3 Configuración de Cuenta</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">3. Navegación General</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">4. Módulo de Inventario</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">4.1 Dashboard de Inventario</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">4.2 Gestión de Productos</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">4.3 Salidas de Inventario</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">4.4 Transferencias entre Almacenes</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">5. Módulo de Compras</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">5.1 Órdenes de Compra Estándar</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">5.2 Órdenes de Compra por Proyecto</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">6. Flujo de Aprobaciones</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">7. Finanzas ERP</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">7.1 Dashboard Financiero</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">7.2 Gastos Operativos</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">7.3 Facturas (Cuentas por Pagar)</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">7.4 Centros de Costo</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">7.5 Presupuestos y Semáforo</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">8. Módulo de Servicios</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">9. Reportes y Exportaciones</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">10. Administración del Sistema</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">11. Matriz de Roles y Permisos</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-group">
+    <span class="ptoc-entry-label">12. Funciones Especiales</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">12.1 Modo Offline (PWA)</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">12.2 Notificaciones Push</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">12.3 Etiquetas y Códigos QR</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">12.4 Historial de Actividad</span>
+    <span class="ptoc-dots"></span>
+  </div>
+  <div class="ptoc-entry ptoc-sub">
+    <span class="ptoc-entry-label">12.5 Atajos de Teclado</span>
+    <span class="ptoc-dots"></span>
+  </div>
+</div>
+
 <!-- ── TOOLBAR ───────────────────────────────────────────────────── -->
 <div class="manual-toolbar no-print">
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);flex-shrink:0" aria-hidden="true">
@@ -282,6 +510,9 @@
   </svg>
   <span class="fw-semibold" style="font-size:.875rem;">Manual de Usuario &mdash; Sistema ERP</span>
   <span class="text-muted" style="font-size:.78rem;">v2.0 &middot; {{ now.strftime('%d/%m/%Y') if now else '2025' }}</span>
+  <span class="text-muted d-none d-md-inline" style="font-size:.73rem;">
+    <i class="bi bi-info-circle me-1"></i>En Chrome: desactiva "Encabezados y pies de página" en el diálogo de impresión
+  </span>
   <div class="ms-auto d-flex gap-2">
     <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Inicio
@@ -361,7 +592,7 @@
     </section>
 
     <!-- 2. Acceso -->
-    <section class="manual-section page-break-before" id="acceso">
+    <section class="manual-section" id="acceso">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">2</span>
         <h2>Acceso al Sistema</h2>
@@ -450,7 +681,7 @@
     </section>
 
     <!-- 4. Inventario -->
-    <section class="manual-section page-break-before" id="inventario">
+    <section class="manual-section" id="inventario">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">4</span>
         <h2>Módulo de Inventario</h2>
@@ -516,7 +747,7 @@
     </section>
 
     <!-- 5. Compras -->
-    <section class="manual-section page-break-before" id="compras">
+    <section class="manual-section" id="compras">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">5</span>
         <h2>Módulo de Compras</h2>
@@ -551,7 +782,7 @@
     </section>
 
     <!-- 6. Aprobaciones -->
-    <section class="manual-section page-break-before" id="aprobaciones">
+    <section class="manual-section" id="aprobaciones">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">6</span>
         <h2>Flujo de Aprobaciones</h2>
@@ -619,7 +850,7 @@
     </section>
 
     <!-- 7. Finanzas ERP -->
-    <section class="manual-section page-break-before" id="finanzas">
+    <section class="manual-section" id="finanzas">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">7</span>
         <h2>Finanzas ERP</h2>
@@ -716,7 +947,7 @@
     </section>
 
     <!-- 8. Servicios -->
-    <section class="manual-section page-break-before" id="servicios">
+    <section class="manual-section" id="servicios">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">8</span>
         <h2>Módulo de Servicios</h2>
@@ -750,7 +981,7 @@
     </section>
 
     <!-- 9. Reportes -->
-    <section class="manual-section page-break-before" id="reportes">
+    <section class="manual-section" id="reportes">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">9</span>
         <h2>Reportes y Exportaciones</h2>
@@ -793,7 +1024,7 @@
     </section>
 
     <!-- 10. Administración -->
-    <section class="manual-section page-break-before" id="administracion">
+    <section class="manual-section" id="administracion">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">10</span>
         <h2>Administración del Sistema</h2>
@@ -847,7 +1078,7 @@
     </section>
 
     <!-- 11. Roles y Permisos -->
-    <section class="manual-section page-break-before" id="roles">
+    <section class="manual-section" id="roles">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">11</span>
         <h2>Matriz de Roles y Permisos</h2>
@@ -992,7 +1223,7 @@
     </section>
 
     <!-- 12. Funciones Especiales -->
-    <section class="manual-section page-break-before" id="especiales">
+    <section class="manual-section" id="especiales">
       <div class="section-heading">
         <span class="section-number" aria-hidden="true">12</span>
         <h2>Funciones Especiales</h2>
