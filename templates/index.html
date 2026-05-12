@@ -20,11 +20,21 @@
 .qa-proyecto { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.3); color: #8b5cf6; }
 .qa-inv      { background: rgba(6,182,212,.12);  border-color: rgba(6,182,212,.3);  color: #06b6d4; }
 
-.qa-salida:hover   { background: #ef4444; color: #fff !important; border-color: #ef4444; box-shadow: 0 0 18px rgba(239,68,68,.45), 0 6px 16px rgba(239,68,68,.2); }
-.qa-gasto:hover    { background: #10b981; color: #fff !important; border-color: #10b981; box-shadow: 0 0 18px rgba(16,185,129,.45), 0 6px 16px rgba(16,185,129,.2); }
-.qa-oc:hover       { background: var(--primary); color: #fff !important; border-color: var(--primary); box-shadow: 0 0 18px rgba(var(--primary-rgb),.45), 0 6px 16px rgba(var(--primary-rgb),.2); }
-.qa-proyecto:hover { background: #8b5cf6; color: #fff !important; border-color: #8b5cf6; box-shadow: 0 0 18px rgba(139,92,246,.45), 0 6px 16px rgba(139,92,246,.2); }
-.qa-inv:hover      { background: #06b6d4; color: #fff !important; border-color: #06b6d4; box-shadow: 0 0 18px rgba(6,182,212,.40), 0 6px 16px rgba(6,182,212,.2); }
+.qa-salida:hover    { background: #ef4444; color: #fff !important; border-color: #ef4444; box-shadow: 0 0 18px rgba(239,68,68,.45), 0 6px 16px rgba(239,68,68,.2); }
+.qa-gasto:hover     { background: #10b981; color: #fff !important; border-color: #10b981; box-shadow: 0 0 18px rgba(16,185,129,.45), 0 6px 16px rgba(16,185,129,.2); }
+.qa-oc:hover        { background: var(--primary); color: #fff !important; border-color: var(--primary); box-shadow: 0 0 18px rgba(var(--primary-rgb),.45), 0 6px 16px rgba(var(--primary-rgb),.2); }
+.qa-proyecto:hover  { background: #8b5cf6; color: #fff !important; border-color: #8b5cf6; box-shadow: 0 0 18px rgba(139,92,246,.45), 0 6px 16px rgba(139,92,246,.2); }
+.qa-inv:hover       { background: #06b6d4; color: #fff !important; border-color: #06b6d4; box-shadow: 0 0 18px rgba(6,182,212,.40), 0 6px 16px rgba(6,182,212,.2); }
+
+.qa-factura      { background: rgba(249,115,22,.12); border-color: rgba(249,115,22,.3);  color: #f97316; }
+.qa-presupuesto  { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.3);  color: #f59e0b; }
+.qa-aprobaciones { background: rgba(99,102,241,.12); border-color: rgba(99,102,241,.3);  color: #6366f1; }
+
+.qa-factura:hover      { background: #f97316; color: #fff !important; border-color: #f97316; box-shadow: 0 0 18px rgba(249,115,22,.45), 0 6px 16px rgba(249,115,22,.2); }
+.qa-presupuesto:hover  { background: #f59e0b; color: #fff !important; border-color: #f59e0b; box-shadow: 0 0 18px rgba(245,158,11,.45), 0 6px 16px rgba(245,158,11,.2); }
+.qa-aprobaciones:hover { background: #6366f1; color: #fff !important; border-color: #6366f1; box-shadow: 0 0 18px rgba(99,102,241,.45), 0 6px 16px rgba(99,102,241,.2); }
+
+.mod-card-urgente { border-color: rgba(239,68,68,.4) !important; }
 
 /* ── Tarjetas de módulos ────────────────────────────── */
 .mod-card {
@@ -161,6 +171,29 @@
                 </a>
                 {% endif %}
 
+                {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_gastos %}
+                <a href="{{ url_for('nueva_factura') }}" class="qa-btn qa-factura">
+                    <i class="bi bi-receipt-cutoff"></i>
+                    Nueva Factura
+                </a>
+                {% endif %}
+
+                {% if current_user.rol in ['super_admin','admin'] %}
+                <a href="{{ url_for('nuevo_presupuesto') }}" class="qa-btn qa-presupuesto">
+                    <i class="bi bi-bullseye"></i>
+                    Presupuesto
+                </a>
+                <a href="{{ url_for('lista_aprobaciones', estado='pendiente') }}"
+                   class="qa-btn qa-aprobaciones position-relative">
+                    <i class="bi bi-shield-check"></i>
+                    {% if aprobaciones_badge > 0 %}
+                    <span class="position-absolute badge rounded-pill bg-danger"
+                          style="font-size:.55rem;min-width:16px;top:6px;right:6px;">{{ aprobaciones_badge }}</span>
+                    {% endif %}
+                    Aprobaciones
+                </a>
+                {% endif %}
+
             </div>
         </div>
     </div>
@@ -294,6 +327,95 @@
                         </a>
                     </div>
                     {% endif %}
+
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- FINANZAS ERP -->
+            {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_gastos %}
+            <div class="col-12 mt-2">
+                <p class="section-label">Finanzas ERP</p>
+                <div class="row g-2 animate-cards">
+
+                    {% if current_user.rol in ['super_admin','admin'] %}
+                    {# Dashboard Financiero — tarjeta ancha (2x1) #}
+                    <div class="col-12 col-sm-8">
+                        <a href="{{ url_for('finanzas_dashboard') }}" class="mod-card h-100"
+                           style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.02));">
+                            <div class="mod-icon" style="background:rgba(99,102,241,.15);">
+                                <i class="bi bi-graph-up-arrow" style="color:#6366f1;"></i>
+                            </div>
+                            <div class="mod-text">
+                                <div class="mod-name">Dashboard Financiero</div>
+                                <div class="mod-desc">KPIs de gastos, facturas y flujo de caja</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    {# Aprobaciones con badge de urgencia (1x1) #}
+                    <div class="col-12 col-sm-4">
+                        <a href="{{ url_for('lista_aprobaciones') }}"
+                           class="mod-card h-100{% if aprobaciones_badge > 0 %} mod-card-urgente{% endif %}">
+                            <div class="mod-icon position-relative" style="background:rgba(16,185,129,.12);">
+                                <i class="bi bi-shield-check" style="color:#10b981;"></i>
+                                {% if aprobaciones_badge > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                      style="font-size:.55rem;min-width:16px;">{{ aprobaciones_badge }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="mod-text">
+                                <div class="mod-name">
+                                    Aprobaciones
+                                    {% if aprobaciones_badge > 0 %}
+                                    <span class="badge bg-danger rounded-pill ms-1"
+                                          style="font-size:.6rem;vertical-align:middle;">{{ aprobaciones_badge }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="mod-desc">Solicitudes pendientes de OC</div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {# Cuentas por Pagar #}
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{{ url_for('lista_facturas') }}" class="mod-card h-100">
+                            <div class="mod-icon" style="background:rgba(249,115,22,.12);">
+                                <i class="bi bi-receipt-cutoff" style="color:#f97316;"></i>
+                            </div>
+                            <div class="mod-text">
+                                <div class="mod-name">Cuentas por Pagar</div>
+                                <div class="mod-desc">Facturas y pagos de servicios</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    {# Centros de Costo #}
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{{ url_for('lista_centros_costo') }}" class="mod-card h-100">
+                            <div class="mod-icon" style="background:rgba(20,184,166,.12);">
+                                <i class="bi bi-diagram-3-fill" style="color:#14b8a6;"></i>
+                            </div>
+                            <div class="mod-text">
+                                <div class="mod-name">Centros de Costo</div>
+                                <div class="mod-desc">Gasto por área o proyecto</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    {# Presupuestos #}
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{{ url_for('lista_presupuestos') }}" class="mod-card h-100">
+                            <div class="mod-icon" style="background:rgba(245,158,11,.12);">
+                                <i class="bi bi-bullseye" style="color:#f59e0b;"></i>
+                            </div>
+                            <div class="mod-text">
+                                <div class="mod-name">Presupuestos</div>
+                                <div class="mod-desc">Control por categoría con semáforos</div>
+                            </div>
+                        </a>
+                    </div>
 
                 </div>
             </div>
