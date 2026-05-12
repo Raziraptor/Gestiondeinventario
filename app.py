@@ -6596,6 +6596,24 @@ def update_user_permissions(user_id):
     return redirect(url_for('admin_panel'))
 
 
+# ========================
+# MANUAL DE USUARIO
+# ========================
+
+@app.route('/admin/manual')
+@login_required
+@admin_required
+def manual_usuario():
+    """Manual de uso del sistema, descargable como PDF por admins."""
+    return render_template(
+        'manual_usuario.html',
+        org=current_user.organizacion,
+        now=now_mx(),
+    )
+
+    return redirect(url_for('admin_panel'))
+
+
 # ==============================================================================
 # SYNC OFFLINE — procesa la cola de operaciones realizadas sin conexión
 # ==============================================================================

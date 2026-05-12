@@ -566,6 +566,16 @@
                     </div>
                 </a>
 
+                <a href="{{ url_for('manual_usuario') }}" class="mod-card">
+                    <div class="mod-icon" style="background:rgba(16,185,129,.12);">
+                        <i class="bi bi-file-earmark-text-fill" style="color:#10b981;"></i>
+                    </div>
+                    <div class="mod-text">
+                        <div class="mod-name">Manual de Usuario</div>
+                        <div class="mod-desc">Guía completa · Descargar PDF</div>
+                    </div>
+                </a>
+
                 {% if current_user.rol == 'super_admin' %}
                 <a href="{{ url_for('super_admin') }}" class="mod-card">
                     <div class="mod-icon" style="background:rgba(239,68,68,.12);">

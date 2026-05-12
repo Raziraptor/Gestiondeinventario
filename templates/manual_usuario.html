@@ -1,0 +1,1092 @@
+{% extends "base.html" %}
+{% block title %}Manual de Usuario — Sistema ERP{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── MANUAL LAYOUT ─────────────────────────────────────────────── */
+.manual-toolbar {
+  position: sticky;
+  top: 64px;
+  z-index: 40;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.manual-layout {
+  display: grid;
+  grid-template-columns: 256px 1fr;
+  gap: 1.75rem;
+  max-width: 1180px;
+  margin: 1.5rem auto 4rem;
+  padding: 0 1.25rem;
+  align-items: start;
+}
+.manual-toc {
+  position: sticky;
+  top: 120px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1rem;
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+}
+.manual-toc-title {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.toc-link {
+  display: block;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.toc-link:hover, .toc-link.active {
+  background: var(--hover-bg);
+  color: var(--primary);
+}
+.toc-link.active { font-weight: 600; }
+.toc-link.sub    { padding-left: 1.4rem; font-size: 0.76rem; }
+.toc-group-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: 0.5rem 0.6rem 0.15rem;
+}
+
+/* ── SECTION CARDS ─────────────────────────────────────────────── */
+.manual-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.25rem;
+  scroll-margin-top: 118px;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: rgba(var(--primary-rgb), 0.14);
+  color: var(--primary);
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.section-heading h2 { margin: 0; font-size: 1.2rem; }
+
+.subsection {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 118px;
+}
+.subsection h3 { font-size: 0.975rem; margin-bottom: 0.75rem; }
+
+/* ── CALLOUTS ──────────────────────────────────────────────────── */
+.callout {
+  padding: 0.875rem 1.1rem;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid;
+  margin: 0.875rem 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.callout-info    { background: rgba(6,182,212,.08);   border-color: #06b6d4; }
+.callout-warning { background: rgba(245,158,11,.08);  border-color: #f59e0b; }
+.callout-success { background: rgba(16,185,129,.08);  border-color: #10b981; }
+.callout-tip     { background: rgba(var(--primary-rgb),.08); border-color: var(--primary); }
+
+/* ── STEP LIST ─────────────────────────────────────────────────── */
+.step-list { list-style: none; padding: 0; counter-reset: steps; margin: 0.5rem 0; }
+.step-list li {
+  counter-increment: steps;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  align-items: flex-start;
+  line-height: 1.55;
+}
+.step-list li:last-child { border-bottom: none; }
+.step-list li::before {
+  content: counter(steps);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* ── PERM TABLE ────────────────────────────────────────────────── */
+.perm-table th, .perm-table td { font-size: 0.8rem; vertical-align: middle; }
+.perm-check { color: #10b981; }
+.perm-cross { color: #ef4444; }
+
+/* ── COVER (print only) ────────────────────────────────────────── */
+.manual-cover { display: none; }
+
+/* ── PRINT STYLES ──────────────────────────────────────────────── */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  .glass-navbar, .manual-toc, .manual-toolbar, .skip-link,
+  footer, .no-print { display: none !important; }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 10.5pt;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Cover page */
+  .manual-cover {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 100vh;
+    page-break-after: always;
+  }
+  .manual-cover h1 { font-size: 26pt; color: #111; margin-bottom: 0.5rem; }
+  .manual-cover h2 { font-size: 16pt; color: #4f46e5; font-weight: 600; margin-bottom: 1.5rem; }
+  .manual-cover .cover-meta { font-size: 11pt; color: #555; }
+
+  /* Layout */
+  .manual-layout {
+    display: block;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  .manual-content { width: 100%; }
+
+  /* Sections */
+  .manual-section {
+    background: #fff !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 0 1.5rem 0 !important;
+    box-shadow: none !important;
+  }
+  .section-heading {
+    border-bottom: 2px solid #e5e7eb !important;
+    padding-bottom: 0.6rem;
+  }
+  .section-heading h2 { color: #111 !important; }
+  .section-number {
+    background: #e5e7eb !important;
+    color: #4f46e5 !important;
+  }
+  .subsection { border-top: 1px solid #e5e7eb !important; }
+  .subsection h3 { color: #111 !important; }
+
+  /* Page breaks */
+  .page-break-before { page-break-before: always; break-before: page; }
+  .manual-section { break-inside: auto; }
+
+  /* Callouts */
+  .callout-info    { background: #f0f9ff !important; border-color: #06b6d4 !important; }
+  .callout-warning { background: #fffbeb !important; border-color: #f59e0b !important; }
+  .callout-success { background: #f0fdf4 !important; border-color: #10b981 !important; }
+  .callout-tip     { background: #eef2ff !important; border-color: #4f46e5 !important; }
+
+  /* Tables */
+  .table { font-size: 9pt; }
+  .table > :not(caption) > * > * {
+    background-color: transparent !important;
+    color: #111 !important;
+  }
+  thead th {
+    background-color: #f3f4f6 !important;
+    color: #374151 !important;
+  }
+
+  /* Links */
+  a { color: inherit !important; text-decoration: none !important; }
+
+  /* Manual footer */
+  .manual-footer { display: block !important; border-top: 1px solid #e5e7eb; margin-top: 2rem; padding-top: 1rem; }
+}
+
+@media (max-width: 900px) {
+  .manual-layout { grid-template-columns: 1fr; padding: 0 1rem; }
+  .manual-toc { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── COVER PAGE (print only) ───────────────────────────────────── -->
+<div class="manual-cover">
+  <div style="width:80px;height:80px;background:#4f46e5;border-radius:20px;margin:0 auto 1.5rem;display:flex;align-items:center;justify-content:center;">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  </div>
+  <h1>Manual de Usuario</h1>
+  <h2>Sistema de Gestión de Inventario ERP</h2>
+  {% if org %}<p class="cover-meta fw-semibold">{{ org.nombre }}</p>{% endif %}
+  <p class="cover-meta">Versión 2.0 &nbsp;&middot;&nbsp; {{ now.strftime('%B %Y') if now else '2025' }}</p>
+  <hr style="margin:2rem auto;width:100px;border-top:2px solid #4f46e5;">
+  <p class="cover-meta" style="color:#888;font-size:0.85rem;">Documento confidencial &mdash; uso interno</p>
+</div>
+
+<!-- ── TOOLBAR ───────────────────────────────────────────────────── -->
+<div class="manual-toolbar no-print">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);flex-shrink:0" aria-hidden="true">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+  </svg>
+  <span class="fw-semibold" style="font-size:.875rem;">Manual de Usuario &mdash; Sistema ERP</span>
+  <span class="text-muted" style="font-size:.78rem;">v2.0 &middot; {{ now.strftime('%d/%m/%Y') if now else '2025' }}</span>
+  <div class="ms-auto d-flex gap-2">
+    <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Inicio
+    </a>
+    <button onclick="window.print()" class="btn btn-sm btn-primary" aria-label="Descargar o imprimir manual como PDF">
+      <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar PDF
+    </button>
+  </div>
+</div>
+
+<!-- ── MAIN LAYOUT ───────────────────────────────────────────────── -->
+<div class="manual-layout">
+
+  <!-- TOC Sidebar -->
+  <aside class="manual-toc no-print" aria-label="Tabla de contenidos">
+    <p class="manual-toc-title">Contenido</p>
+
+    <a href="#intro"       class="toc-link toc-group-label">1. Introducción</a>
+    <a href="#acceso"      class="toc-link toc-group-label">2. Acceso al Sistema</a>
+    <a href="#navegacion"  class="toc-link toc-group-label">3. Navegación General</a>
+    <a href="#inventario"  class="toc-link toc-group-label">4. Inventario</a>
+    <a href="#inv-productos"    class="toc-link sub">4.1 Productos</a>
+    <a href="#inv-salidas"      class="toc-link sub">4.2 Salidas</a>
+    <a href="#inv-transferencias" class="toc-link sub">4.3 Transferencias</a>
+    <a href="#compras"     class="toc-link toc-group-label">5. Compras</a>
+    <a href="#comp-estandar"   class="toc-link sub">5.1 OC Estándar</a>
+    <a href="#comp-proyectos"  class="toc-link sub">5.2 OC por Proyecto</a>
+    <a href="#aprobaciones" class="toc-link toc-group-label">6. Aprobaciones</a>
+    <a href="#finanzas"    class="toc-link toc-group-label">7. Finanzas ERP</a>
+    <a href="#fin-gastos"       class="toc-link sub">7.1 Gastos</a>
+    <a href="#fin-facturas"     class="toc-link sub">7.2 Facturas</a>
+    <a href="#fin-centros"      class="toc-link sub">7.3 Centros de Costo</a>
+    <a href="#fin-presupuestos" class="toc-link sub">7.4 Presupuestos</a>
+    <a href="#servicios"   class="toc-link toc-group-label">8. Servicios</a>
+    <a href="#reportes"    class="toc-link toc-group-label">9. Reportes</a>
+    <a href="#administracion" class="toc-link toc-group-label">10. Administración</a>
+    <a href="#roles"       class="toc-link toc-group-label">11. Roles y Permisos</a>
+    <a href="#especiales"  class="toc-link toc-group-label">12. Funciones Especiales</a>
+  </aside>
+
+  <!-- ── CONTENT ──────────────────────────────────────────────────── -->
+  <main class="manual-content" id="main-content" tabindex="-1">
+
+    <!-- 1. Introducción -->
+    <section class="manual-section" id="intro">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">1</span>
+        <h2>Introducción</h2>
+      </div>
+      <p>El <strong>Sistema de Gestión de Inventario ERP</strong> es una plataforma web integral diseñada para administrar el flujo completo de materiales y recursos de la organización, desde la solicitud de compra hasta el control financiero.</p>
+      <p class="mt-2">El sistema integra los siguientes módulos principales:</p>
+      <div class="row g-2 mt-1">
+        <div class="col-sm-6">
+          <div class="callout callout-tip">
+            <strong>Inventario</strong><br>Control de productos, almacenes, entradas, salidas y transferencias de materiales.
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="callout callout-info">
+            <strong>Compras</strong><br>Órdenes de compra estándar y por proyecto con flujo completo de aprobaciones.
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="callout callout-success">
+            <strong>Finanzas ERP</strong><br>Gastos, cuentas por pagar, centros de costo y presupuestos con semáforo.
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="callout callout-warning">
+            <strong>Operaciones</strong><br>Servicios externos, aprobaciones y reportes de análisis.
+          </div>
+        </div>
+      </div>
+      <div class="callout callout-info mt-3">
+        <strong>Nota técnica:</strong> El sistema funciona como una Progressive Web App (PWA). Puedes instalarlo en tu dispositivo y acceder a funciones básicas sin conexión a internet. Los cambios realizados offline se sincronizan automáticamente al recuperar la conexión.
+      </div>
+    </section>
+
+    <!-- 2. Acceso -->
+    <section class="manual-section page-break-before" id="acceso">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">2</span>
+        <h2>Acceso al Sistema</h2>
+      </div>
+
+      <div class="subsection">
+        <h3>2.1 Inicio de Sesión</h3>
+        <ol class="step-list">
+          <li>Abre el navegador e ingresa la dirección del sistema (proporcionada por tu administrador).</li>
+          <li>Escribe tu <strong>nombre de usuario</strong> y <strong>contraseña</strong> en el formulario de acceso.</li>
+          <li>Haz clic en <strong>Iniciar Sesión</strong>. Serás redirigido a la página principal según tu rol.</li>
+        </ol>
+        <div class="callout callout-warning mt-2">
+          <strong>Contraseña olvidada:</strong> En la pantalla de acceso, haz clic en "¿Olvidaste tu contraseña?" e ingresa tu correo electrónico registrado. Recibirás un enlace de restablecimiento válido por 30 minutos.
+        </div>
+      </div>
+
+      <div class="subsection" id="acceso-roles">
+        <h3>2.2 Roles de Usuario</h3>
+        <p>Cada usuario tiene un rol que determina su nivel de acceso al sistema:</p>
+        <table class="table table-bordered table-sm mt-2">
+          <thead>
+            <tr>
+              <th>Rol</th>
+              <th>Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge bg-danger">super_admin</span></td>
+              <td>Acceso total al sistema y a todas las organizaciones registradas.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-primary">admin</span></td>
+              <td>Gestiona usuarios y permisos dentro de su organización. Acceso completo a todos los módulos.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-secondary">usuario</span></td>
+              <td>Acceso limitado según los permisos asignados individualmente por el administrador.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <h3>2.3 Configuración de Cuenta</h3>
+        <p>Desde el menú de tu perfil (esquina superior derecha) puedes:</p>
+        <ul>
+          <li>Cambiar tu nombre, correo electrónico o contraseña.</li>
+          <li>Subir una foto de perfil.</li>
+          <li>Activar o desactivar notificaciones push.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3. Navegación -->
+    <section class="manual-section" id="navegacion">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">3</span>
+        <h2>Navegación General</h2>
+      </div>
+      <p>La <strong>barra de navegación</strong> (navbar) está siempre visible en la parte superior de la pantalla y permite acceder a todos los módulos del sistema.</p>
+
+      <div class="subsection">
+        <h3>Página de Inicio</h3>
+        <p>La página principal organiza los módulos en <strong>grupos de tarjetas</strong>:</p>
+        <ul class="list-unstyled mt-2">
+          <li class="py-1 d-flex align-items-center gap-2"><i class="bi bi-box-seam" style="color:var(--primary);width:16px"></i><strong>INVENTARIO</strong> — Dashboard, productos, almacenes, salidas.</li>
+          <li class="py-1 d-flex align-items-center gap-2"><i class="bi bi-cart" style="color:#10b981;width:16px"></i><strong>COMPRAS</strong> — Órdenes de compra estándar y por proyecto.</li>
+          <li class="py-1 d-flex align-items-center gap-2"><i class="bi bi-graph-up" style="color:#f59e0b;width:16px"></i><strong>FINANZAS ERP</strong> — Gastos, facturas, centros de costo, presupuestos.</li>
+          <li class="py-1 d-flex align-items-center gap-2"><i class="bi bi-tools" style="color:#06b6d4;width:16px"></i><strong>OPERACIONES</strong> — Servicios, aprobaciones pendientes.</li>
+          <li class="py-1 d-flex align-items-center gap-2"><i class="bi bi-bar-chart" style="color:#8b5cf6;width:16px"></i><strong>ANÁLISIS</strong> — Reportes y exportaciones.</li>
+          <li class="py-1 d-flex align-items-center gap-2"><i class="bi bi-shield-lock" style="color:#ef4444;width:16px"></i><strong>ADMINISTRACIÓN</strong> — Usuarios, permisos y personalización (solo admins).</li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <h3>Acciones Rápidas</h3>
+        <p>En la parte inferior de la página de inicio encontrarás botones de <strong>Acciones Rápidas</strong> para las tareas más frecuentes: Nueva Salida, Nueva OC, Nueva Factura, Nuevo Presupuesto y Aprobaciones pendientes.</p>
+      </div>
+
+      <div class="subsection">
+        <h3>Cambio de Tema (Claro / Oscuro)</h3>
+        <p>El sistema soporta <strong>modo claro y modo oscuro</strong>. Haz clic en el ícono de sol o luna en la barra superior para alternar. Tu preferencia se guarda automáticamente en el dispositivo.</p>
+      </div>
+    </section>
+
+    <!-- 4. Inventario -->
+    <section class="manual-section page-break-before" id="inventario">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">4</span>
+        <h2>Módulo de Inventario</h2>
+      </div>
+      <p>El módulo de inventario permite controlar todos los materiales y productos de la organización, organizados en almacenes físicos o virtuales.</p>
+
+      <div class="subsection">
+        <h3>4.1 Dashboard de Inventario</h3>
+        <p>Ve a <strong>Inventario &rsaquo; Dashboard</strong>. Muestra indicadores clave:</p>
+        <ul>
+          <li>Valor total del inventario y número de productos activos.</li>
+          <li>Alertas de <strong>stock mínimo</strong> (productos en rojo están por debajo del nivel mínimo definido).</li>
+          <li>Gráficas de movimientos recientes (entradas, salidas, transferencias).</li>
+          <li>Últimas transacciones registradas con fecha y responsable.</li>
+        </ul>
+      </div>
+
+      <div class="subsection" id="inv-productos">
+        <h3>4.2 Gestión de Productos</h3>
+        <p>Ve a <strong>Inventario &rsaquo; Productos</strong>.</p>
+        <p><strong>Crear un producto nuevo:</strong></p>
+        <ol class="step-list">
+          <li>Haz clic en <strong>Nuevo Producto</strong>.</li>
+          <li>Completa los campos obligatorios: nombre, categoría, unidad de medida y stock mínimo.</li>
+          <li>Agrega el precio unitario referencial si aplica.</li>
+          <li>Asigna el almacén inicial y la cantidad de apertura.</li>
+          <li>Haz clic en <strong>Guardar</strong>. El producto quedará disponible en el inventario.</li>
+        </ol>
+        <div class="callout callout-info">
+          <strong>Etiquetas QR:</strong> Desde el listado de productos, cada registro tiene un botón para descargar su etiqueta QR en formato JPG, lista para imprimir. La etiqueta incluye nombre, código interno y unidad de medida.
+        </div>
+        <p class="mt-2"><strong>Editar o desactivar un producto:</strong> Haz clic en el ícono de edición en la fila del producto. Puedes modificar cualquier campo o marcar el producto como inactivo para que no aparezca en movimientos nuevos sin eliminarlo del historial.</p>
+      </div>
+
+      <div class="subsection" id="inv-salidas">
+        <h3>4.3 Salidas de Inventario</h3>
+        <p>Una salida registra el consumo o retiro de materiales del almacén para uso interno o entrega a obra.</p>
+        <ol class="step-list">
+          <li>Ve a <strong>Inventario &rsaquo; Salidas</strong> y haz clic en <strong>Nueva Salida</strong>.</li>
+          <li>Selecciona el <strong>almacén de origen</strong> y el solicitante o responsable.</li>
+          <li>Agrega los productos con sus cantidades requeridas.</li>
+          <li>Opcionalmente vincula la salida a un proyecto u orden de compra.</li>
+          <li>Confirma la salida. El stock se actualiza automáticamente.</li>
+        </ol>
+        <div class="callout callout-warning">
+          No es posible registrar una salida si el stock disponible es insuficiente. El sistema mostrará un mensaje de error indicando cuántas unidades hay disponibles.
+        </div>
+      </div>
+
+      <div class="subsection" id="inv-transferencias">
+        <h3>4.4 Transferencias entre Almacenes</h3>
+        <p>Permite mover stock de un almacén a otro dentro de la misma organización.</p>
+        <ol class="step-list">
+          <li>Ve a <strong>Inventario &rsaquo; Transferencias</strong> y haz clic en <strong>Nueva Transferencia</strong>.</li>
+          <li>Selecciona el almacén de <strong>origen</strong> y el almacén de <strong>destino</strong>.</li>
+          <li>Indica los productos y cantidades a mover.</li>
+          <li>Confirma. El sistema rebaja el origen y suma al destino en un solo movimiento.</li>
+        </ol>
+        <div class="callout callout-success">
+          Las transferencias quedan registradas en el historial de ambos almacenes, con fecha, responsable y cantidad transferida.
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Compras -->
+    <section class="manual-section page-break-before" id="compras">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">5</span>
+        <h2>Módulo de Compras</h2>
+      </div>
+      <p>Gestiona las órdenes de compra (OC) dirigidas a proveedores. Existen dos tipos de OC: estándar y por proyecto.</p>
+
+      <div class="subsection" id="comp-estandar">
+        <h3>5.1 Órdenes de Compra Estándar</h3>
+        <p>Una OC estándar es una solicitud de compra de materiales o insumos generales, sin vinculación obligatoria a un proyecto específico.</p>
+        <ol class="step-list">
+          <li>Ve a <strong>Compras &rsaquo; Nueva OC Estándar</strong>.</li>
+          <li>Completa la información del proveedor, la fecha requerida y las condiciones de pago.</li>
+          <li>Agrega los productos o servicios solicitados con cantidad y precio unitario.</li>
+          <li>Guarda como <em>Borrador</em> para revisarla después, o envíala directamente a <em>Pendiente de Aprobación</em>.</li>
+        </ol>
+        <div class="callout callout-tip">
+          Puedes guardar una OC como borrador y editarla cuantas veces necesites antes de enviarla a aprobación. Una vez enviada no puede editarse.
+        </div>
+      </div>
+
+      <div class="subsection" id="comp-proyectos">
+        <h3>5.2 Órdenes de Compra por Proyecto</h3>
+        <p>Las OC de proyecto vinculan la compra a una obra o proyecto específico, permitiendo control granular de costos por proyecto.</p>
+        <ol class="step-list">
+          <li>Ve a <strong>Compras &rsaquo; OC por Proyecto</strong>.</li>
+          <li>Selecciona el proyecto existente o crea uno nuevo.</li>
+          <li>Agrega los conceptos, proveedores y montos estimados por partida.</li>
+          <li>Envía la OC a aprobación cuando esté completa.</li>
+        </ol>
+        <p class="mt-2">Las OC de proyecto incluyen seguimiento de <strong>gasto real vs. presupuesto por partida</strong>, visible desde el detalle del proyecto.</p>
+      </div>
+    </section>
+
+    <!-- 6. Aprobaciones -->
+    <section class="manual-section page-break-before" id="aprobaciones">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">6</span>
+        <h2>Flujo de Aprobaciones</h2>
+      </div>
+      <p>Todas las órdenes de compra pasan por un flujo de estados que garantiza revisión y autorización antes de ser enviadas al proveedor.</p>
+
+      <h4 class="mt-3 mb-2" style="font-size:.95rem;">Estados de una Orden de Compra</h4>
+      <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+          <thead>
+            <tr>
+              <th>Estado</th>
+              <th>Descripción</th>
+              <th>¿Quién puede actuar?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge bg-secondary">Borrador</span></td>
+              <td>OC creada pero no enviada. Se puede editar libremente.</td>
+              <td>Creador</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-warning text-dark">Pendiente</span></td>
+              <td>Enviada para revisión. No se puede editar.</td>
+              <td>Aprobador</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-success">Aprobada</span></td>
+              <td>Autorizada. Lista para enviarse al proveedor.</td>
+              <td>Área de compras</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-danger">Rechazada</span></td>
+              <td>No autorizada. Regresa al creador con comentarios.</td>
+              <td>Creador (puede corregir y reenviar)</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-info text-dark">Enviada</span></td>
+              <td>Comunicada al proveedor. En espera de recepción de materiales.</td>
+              <td>Almacén / Compras</td>
+            </tr>
+            <tr>
+              <td><span class="badge" style="background:#7c3aed;">Recibida</span></td>
+              <td>Materiales recibidos. Entrada de inventario generada automáticamente.</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subsection">
+        <h3>Proceso paso a paso</h3>
+        <ol class="step-list">
+          <li>El <strong>creador</strong> elabora la OC y la envía a estado "Pendiente".</li>
+          <li>El <strong>aprobador</strong> recibe una notificación y revisa la OC en <em>Compras &rsaquo; Aprobaciones</em>.</li>
+          <li>El aprobador puede <strong>Aprobar</strong> (con comentarios opcionales) o <strong>Rechazar</strong> con justificación obligatoria.</li>
+          <li>Si es aprobada, el área de compras la marca como "Enviada" al proveedor.</li>
+          <li>Al recibir los materiales, se registra la recepción; el sistema actualiza el inventario automáticamente y cierra el ciclo.</li>
+        </ol>
+        <div class="callout callout-info">
+          El sistema envía notificaciones automáticas por correo y/o push en cada cambio de estado. También puedes consultar el <strong>historial de movimientos</strong> completo desde el detalle de cualquier OC.
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Finanzas ERP -->
+    <section class="manual-section page-break-before" id="finanzas">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">7</span>
+        <h2>Finanzas ERP</h2>
+      </div>
+      <p>El módulo de Finanzas ERP centraliza el control financiero: gastos operativos, cuentas por pagar, centros de costo y presupuestos con semáforo visual.</p>
+
+      <div class="subsection">
+        <h3>7.1 Dashboard Financiero</h3>
+        <p>Ve a <strong>Finanzas &rsaquo; Dashboard</strong>. Muestra en tiempo real:</p>
+        <ul>
+          <li>Gasto total del mes vs. presupuesto asignado.</li>
+          <li>Número de facturas pendientes de pago y su valor total.</li>
+          <li>Distribución de gastos por centro de costo (gráfica de dona).</li>
+          <li>Semáforo de presupuestos: verde / amarillo / rojo según porcentaje ejecutado.</li>
+          <li>Tendencia de gastos en los últimos 6 meses.</li>
+        </ul>
+      </div>
+
+      <div class="subsection" id="fin-gastos">
+        <h3>7.2 Gastos Operativos</h3>
+        <p>Registra cualquier erogación operativa que no corresponda a una OC formal (servicios, viáticos, consumibles menores, etc.).</p>
+        <ol class="step-list">
+          <li>Ve a <strong>Finanzas &rsaquo; Gastos</strong> y haz clic en <strong>Nuevo Gasto</strong>.</li>
+          <li>Selecciona la categoría, el beneficiario o proveedor, y la fecha del gasto.</li>
+          <li>Ingresa el monto y asigna el centro de costo correspondiente.</li>
+          <li>Adjunta el comprobante (PDF o imagen) si aplica.</li>
+          <li>Guarda. El gasto queda registrado y afecta el semáforo del presupuesto asignado.</li>
+        </ol>
+      </div>
+
+      <div class="subsection" id="fin-facturas">
+        <h3>7.3 Facturas (Cuentas por Pagar)</h3>
+        <p>Gestiona las facturas recibidas de proveedores y da seguimiento a su estado de pago.</p>
+        <ol class="step-list">
+          <li>Ve a <strong>Finanzas &rsaquo; Facturas</strong> y haz clic en <strong>Nueva Factura</strong>.</li>
+          <li>Ingresa número de factura, proveedor, fecha de emisión y fecha de vencimiento.</li>
+          <li>Indica el subtotal, impuestos (IVA/ISR) y total.</li>
+          <li>Opcionalmente vincula la factura a una OC existente para trazabilidad.</li>
+          <li>Cuando se realice el pago, marca la factura como <strong>Pagada</strong> e indica la fecha y método de pago.</li>
+        </ol>
+        <div class="callout callout-warning">
+          Las facturas vencidas sin pagar se resaltan automáticamente en <strong>rojo</strong> en el listado. Revisa este módulo regularmente para evitar penalizaciones por retrasos.
+        </div>
+      </div>
+
+      <div class="subsection" id="fin-centros">
+        <h3>7.4 Centros de Costo</h3>
+        <p>Los centros de costo agrupan gastos por área, departamento, proyecto o cualquier unidad organizacional.</p>
+        <ol class="step-list">
+          <li>Ve a <strong>Finanzas &rsaquo; Centros de Costo</strong> y haz clic en <strong>Nuevo Centro</strong>.</li>
+          <li>Asigna un nombre descriptivo y un código identificador único.</li>
+          <li>Define el responsable del centro (opcional).</li>
+          <li>Guarda. A partir de ese momento podrás asignar gastos y facturas a este centro.</li>
+        </ol>
+        <p class="mt-2">Desde el detalle de cada centro de costo puedes ver el <strong>histórico de gastos</strong> y la ejecución presupuestal del período.</p>
+      </div>
+
+      <div class="subsection" id="fin-presupuestos">
+        <h3>7.5 Presupuestos y Semáforo</h3>
+        <p>Define presupuestos por período y centro de costo. El sistema calcula automáticamente el porcentaje ejecutado y muestra un semáforo visual.</p>
+        <table class="table table-bordered table-sm mt-2">
+          <thead>
+            <tr>
+              <th>Semáforo</th>
+              <th>% Ejecutado</th>
+              <th>Acción recomendada</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge bg-success">Verde</span></td>
+              <td>0% – 70%</td>
+              <td>Gasto dentro del rango esperado. Sin acciones urgentes.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-warning text-dark">Amarillo</span></td>
+              <td>71% – 90%</td>
+              <td>Atención: gasto elevado. Revisar compromisos pendientes.</td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-danger">Rojo</span></td>
+              <td>91% – 100%+</td>
+              <td>Presupuesto agotado o excedido. Requiere autorización superior.</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="mt-2"><strong>Crear un presupuesto:</strong></p>
+        <ol class="step-list">
+          <li>Ve a <strong>Finanzas &rsaquo; Presupuestos</strong> y haz clic en <strong>Nuevo Presupuesto</strong>.</li>
+          <li>Selecciona el centro de costo, período (mes y año) y el monto aprobado.</li>
+          <li>Guarda. El sistema acumulará automáticamente el gasto registrado en ese centro y período.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 8. Servicios -->
+    <section class="manual-section page-break-before" id="servicios">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">8</span>
+        <h2>Módulo de Servicios</h2>
+      </div>
+      <p>El módulo de servicios permite registrar y dar seguimiento a contratos de servicio externos o internos (mantenimiento, consultoría, transporte, etc.).</p>
+
+      <div class="subsection">
+        <h3>Registrar un Servicio</h3>
+        <ol class="step-list">
+          <li>Ve a <strong>Operaciones &rsaquo; Servicios</strong> y haz clic en <strong>Nuevo Servicio</strong>.</li>
+          <li>Ingresa el nombre del servicio, proveedor, fecha de inicio y fecha de término.</li>
+          <li>Agrega el monto contratado y las condiciones de pago.</li>
+          <li>Asigna el centro de costo o proyecto correspondiente.</li>
+          <li>Guarda. El servicio quedará activo y monitoreable desde el listado.</li>
+        </ol>
+        <div class="callout callout-info">
+          Los servicios <strong>próximos a vencer</strong> (en los próximos 30 días) y los ya <strong>vencidos</strong> se resaltan en el listado con colores de alerta, facilitando su renovación o cierre oportuno.
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>Seguimiento y Cierre</h3>
+        <p>Desde el detalle de un servicio puedes:</p>
+        <ul>
+          <li>Registrar pagos parciales o finales.</li>
+          <li>Adjuntar documentos del contrato.</li>
+          <li>Marcar el servicio como completado cuando finalice.</li>
+          <li>Renovar automáticamente el período si el contrato continúa.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 9. Reportes -->
+    <section class="manual-section page-break-before" id="reportes">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">9</span>
+        <h2>Reportes y Exportaciones</h2>
+      </div>
+      <p>Ve a <strong>Análisis &rsaquo; Reportes</strong>. El sistema ofrece reportes en múltiples formatos para facilitar el análisis y la toma de decisiones.</p>
+
+      <div class="subsection">
+        <h3>Reportes Disponibles</h3>
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm">
+            <thead>
+              <tr>
+                <th>Reporte</th>
+                <th>Descripción</th>
+                <th>Formato</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Inventario Actual</td><td>Stock vigente por producto y almacén, con valorización.</td><td>Excel / PDF</td></tr>
+              <tr><td>Movimientos de Inventario</td><td>Historial de entradas, salidas y transferencias con fecha y responsable.</td><td>Excel / PDF</td></tr>
+              <tr><td>Valorización de Inventario</td><td>Valor total del inventario calculado con precio unitario.</td><td>Excel / PDF</td></tr>
+              <tr><td>Órdenes de Compra</td><td>OCs filtradas por estado, proveedor, período o tipo.</td><td>Excel / PDF</td></tr>
+              <tr><td>Gastos por Centro de Costo</td><td>Gastos agrupados y subtotalizados por centro.</td><td>Excel / PDF</td></tr>
+              <tr><td>Ejecución Presupuestal</td><td>Comparativo detallado presupuesto aprobado vs. gasto real.</td><td>Excel / PDF</td></tr>
+              <tr><td>Facturas por Período</td><td>Cuentas por pagar con estado y fecha de vencimiento.</td><td>Excel / PDF</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>Exportar a Excel</h3>
+        <p>Desde la mayoría de los listados del sistema encontrarás un botón <strong>Exportar Excel</strong>. El archivo descargado incluye todos los registros actualmente filtrados en la pantalla. Puedes aplicar filtros primero (por fecha, estado, etc.) y luego exportar el resultado.</p>
+      </div>
+
+      <div class="subsection">
+        <h3>Imprimir / Descargar PDF</h3>
+        <p>Para documentos individuales (OC, facturas, recibos de salida, etiquetas), usa el botón <strong>Imprimir</strong> o <strong>Descargar PDF</strong> disponible en el detalle de cada registro. El sistema genera el documento con el membrete de tu organización.</p>
+      </div>
+    </section>
+
+    <!-- 10. Administración -->
+    <section class="manual-section page-break-before" id="administracion">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">10</span>
+        <h2>Administración del Sistema</h2>
+      </div>
+      <div class="callout callout-warning">
+        Esta sección es exclusiva para usuarios con rol <strong>admin</strong> o <strong>super_admin</strong>.
+      </div>
+
+      <div class="subsection">
+        <h3>10.1 Gestión de Usuarios</h3>
+        <ol class="step-list">
+          <li>Ve al <strong>Panel de Admin</strong> desde el menú de tu perfil (esquina superior derecha).</li>
+          <li>Verás la lista completa de usuarios activos en tu organización.</li>
+          <li>Para invitar a un usuario nuevo: haz clic en <strong>Invitar Usuario</strong>, ingresa su correo electrónico y asigna su rol inicial.</li>
+          <li>Para editar permisos: haz clic en <strong>Editar</strong> junto al nombre del usuario.</li>
+          <li>Para desactivar un usuario: usa el toggle de estado en la fila correspondiente. Un usuario desactivado no puede iniciar sesión pero su historial se conserva.</li>
+        </ol>
+      </div>
+
+      <div class="subsection">
+        <h3>10.2 Permisos Granulares</h3>
+        <p>Además del rol general, puedes asignar permisos específicos a cada usuario para controlar su acceso a módulos individuales:</p>
+        <table class="table table-bordered table-sm mt-2">
+          <thead>
+            <tr><th>Permiso</th><th>¿Qué permite?</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Ver Dashboard</td><td>Acceso al dashboard de inventario con métricas y gráficas.</td></tr>
+            <tr><td>Ver Gestión</td><td>Consultar el listado de productos, almacenes y transferencias.</td></tr>
+            <tr><td>Editar Gestión</td><td>Crear y modificar productos, almacenes y categorías.</td></tr>
+            <tr><td>Crear OC Estándar</td><td>Generar y enviar órdenes de compra estándar.</td></tr>
+            <tr><td>Crear OC Proyecto</td><td>Generar y gestionar órdenes de compra vinculadas a proyectos.</td></tr>
+            <tr><td>Hacer Salidas</td><td>Registrar salidas de materiales del inventario.</td></tr>
+            <tr><td>Ver Gastos</td><td>Acceso al módulo financiero (gastos, facturas, presupuestos).</td></tr>
+          </tbody>
+        </table>
+        <div class="callout callout-tip mt-2">
+          Los usuarios con rol <strong>admin</strong> o <strong>super_admin</strong> tienen todos los permisos habilitados automáticamente, sin necesidad de configuración adicional.
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>10.3 Personalización de Marca</h3>
+        <p>Ve a <strong>Personalizar Marca</strong> desde el menú de perfil para configurar la identidad visual de tu organización:</p>
+        <ul>
+          <li><strong>Logo:</strong> imagen que aparece en el encabezado de documentos PDF (OC, facturas, reportes).</li>
+          <li><strong>Nombre legal y datos fiscales:</strong> razón social, RFC y dirección fiscal para documentos oficiales.</li>
+          <li><strong>Color primario:</strong> color de acento de la interfaz (botones, íconos, badges).</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 11. Roles y Permisos -->
+    <section class="manual-section page-break-before" id="roles">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">11</span>
+        <h2>Matriz de Roles y Permisos</h2>
+      </div>
+      <p>La siguiente tabla resume las acciones disponibles para cada rol en el sistema:</p>
+      <div class="table-responsive mt-3">
+        <table class="table table-bordered perm-table">
+          <thead>
+            <tr>
+              <th>Acción</th>
+              <th class="text-center">super_admin</th>
+              <th class="text-center">admin</th>
+              <th class="text-center">usuario</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="table-active fw-bold" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);">
+                Inventario
+              </td>
+            </tr>
+            <tr>
+              <td>Ver dashboard e indicadores</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td>Consultar productos y almacenes</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td>Crear y editar productos</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td>Registrar salidas de inventario</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td>Registrar transferencias</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="table-active fw-bold" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);">
+                Compras y Aprobaciones
+              </td>
+            </tr>
+            <tr>
+              <td>Crear OC Estándar</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td>Crear OC por Proyecto</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td>Aprobar o rechazar OC</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td>Marcar OC como recibida</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td colspan="4" class="table-active fw-bold" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);">
+                Finanzas y Servicios
+              </td>
+            </tr>
+            <tr>
+              <td>Ver gastos y facturas</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center text-muted" style="font-size:.75rem;">Con permiso</td>
+            </tr>
+            <tr>
+              <td>Registrar gastos y facturas</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td>Gestionar centros de costo</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td>Crear y editar presupuestos</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td>Gestionar servicios</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td colspan="4" class="table-active fw-bold" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-secondary);">
+                Administración
+              </td>
+            </tr>
+            <tr>
+              <td>Gestionar usuarios y permisos</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td>Personalizar marca de la organización</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+            <tr>
+              <td>Acceso multi-organización</td>
+              <td class="text-center perm-check"><i class="bi bi-check-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+              <td class="text-center perm-cross"><i class="bi bi-x-circle-fill"></i></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 12. Funciones Especiales -->
+    <section class="manual-section page-break-before" id="especiales">
+      <div class="section-heading">
+        <span class="section-number" aria-hidden="true">12</span>
+        <h2>Funciones Especiales</h2>
+      </div>
+
+      <div class="subsection">
+        <h3>12.1 Modo Offline (PWA)</h3>
+        <p>El sistema está diseñado como una <strong>Progressive Web App (PWA)</strong>, lo que permite instalarlo en cualquier dispositivo y continuar trabajando sin conexión a internet.</p>
+        <p><strong>Instalar el sistema:</strong></p>
+        <ul>
+          <li><strong>Android / Windows / Mac:</strong> Haz clic en el ícono de instalación que aparece en la barra de dirección del navegador (Chrome o Edge) y sigue las instrucciones.</li>
+          <li><strong>iOS / iPhone:</strong> Abre el sistema en Safari, toca el ícono de compartir <i class="bi bi-box-arrow-up"></i> y selecciona "Agregar a inicio".</li>
+        </ul>
+        <div class="callout callout-info">
+          Cuando recuperes la conexión a internet, los cambios realizados offline se sincronizan automáticamente con el servidor. Un ícono en la barra de herramientas indica si hay operaciones pendientes de sincronizar.
+        </div>
+      </div>
+
+      <div class="subsection">
+        <h3>12.2 Notificaciones Push</h3>
+        <p>El sistema puede enviarte <strong>alertas en tiempo real</strong> para eventos importantes como:</p>
+        <ul>
+          <li>Nueva OC asignada para tu aprobación.</li>
+          <li>Tu OC fue aprobada o rechazada.</li>
+          <li>Producto con stock por debajo del mínimo.</li>
+          <li>Facturas próximas a vencer.</li>
+        </ul>
+        <p><strong>Activar notificaciones:</strong> Haz clic en el ícono de campana en la barra superior y acepta el permiso cuando el navegador te lo solicite. Puedes desactivarlas en cualquier momento desde la configuración de tu cuenta.</p>
+      </div>
+
+      <div class="subsection">
+        <h3>12.3 Etiquetas y Códigos QR</h3>
+        <p>Desde el catálogo de productos, cada artículo tiene disponible la descarga de una <strong>etiqueta con código QR</strong>:</p>
+        <ul>
+          <li>La etiqueta se descarga en formato JPG, lista para imprimir en diferentes tamaños.</li>
+          <li>Incluye nombre del producto, código interno y unidad de medida.</li>
+          <li>El código QR puede escanearse desde cualquier cámara de teléfono para identificar rápidamente el producto.</li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <h3>12.4 Historial de Actividad</h3>
+        <p>El sistema registra automáticamente todas las acciones realizadas por cada usuario. Los administradores pueden consultar el historial desde <strong>Mi Perfil &rsaquo; Historial de Actividad</strong>.</p>
+        <p>El historial incluye: usuario que realizó la acción, módulo afectado, descripción de la acción, dirección IP y fecha/hora exacta.</p>
+      </div>
+
+      <div class="subsection">
+        <h3>12.5 Atajos de Teclado</h3>
+        <table class="table table-bordered table-sm mt-2">
+          <thead>
+            <tr><th>Atajo</th><th>Acción</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><kbd>/</kbd></td><td>Enfocar la barra de búsqueda (en listados)</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Cerrar modal o panel abierto</td></tr>
+            <tr><td><kbd>Tab</kbd></td><td>Navegar entre campos de un formulario</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Confirmar formulario o acción activa</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <div class="text-center py-4 manual-footer" style="font-size:.8rem;color:var(--text-secondary);">
+      <hr class="mb-3">
+      <p class="mb-1">Sistema de Gestión de Inventario ERP &nbsp;&middot;&nbsp; Versión 2.0 &nbsp;&middot;&nbsp; {{ now.strftime('%Y') if now else '2025' }}</p>
+      {% if org %}<p class="mb-1">{{ org.nombre }}</p>{% endif %}
+      <p>Documento de uso interno &mdash; confidencial</p>
+    </div>
+
+  </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // Highlight active TOC link on scroll
+  const sections = document.querySelectorAll('.manual-section[id], .subsection[id]');
+  const tocLinks  = document.querySelectorAll('.toc-link');
+
+  if (!sections.length || !tocLinks.length) return;
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const link = document.querySelector(`.toc-link[href="#${entry.target.id}"]`);
+        if (link) link.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -78% 0px', threshold: 0 });
+
+  sections.forEach(s => observer.observe(s));
+})();
+</script>
+{% endblock %}
