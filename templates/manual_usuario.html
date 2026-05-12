@@ -176,10 +176,17 @@
   .toast-container-app, #confirmModal, .modal,
   #flashData { display: none !important; }
 
-  /* ── Body ── */
-  body {
+  /* ── Reset dark theme — elimina el fondo negro del html/body ── */
+  html,
+  body,
+  [data-bs-theme],
+  [data-bs-theme="dark"],
+  [data-bs-theme="dark"] body {
     background: #fff !important;
+    background-color: #fff !important;
     color: #1a1a1a !important;
+  }
+  body {
     font-size: 10.5pt;
     line-height: 1.65;
     font-family: 'DM Sans', sans-serif;
@@ -251,13 +258,6 @@
     padding: 0 0 1.25rem 0 !important;
     box-shadow: none !important;
     break-inside: auto;
-  }
-
-  /* Force page breaks only before major chapters */
-  #compras, #aprobaciones, #finanzas, #servicios,
-  #reportes, #administracion, #roles, #especiales {
-    break-before: page;
-    page-break-before: always;
   }
 
   /* ── Section heading ── */
