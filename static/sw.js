@@ -37,12 +37,14 @@ self.addEventListener('fetch', e => {
   // Ignorar extensiones de Chrome u otros esquemas no-http
   if (!url.protocol.startsWith('http')) return;
 
-  const isStatic = url.pathname.startsWith('/static/') ||
-                   url.hostname.includes('jsdelivr.net') ||
-                   url.hostname.includes('fonts.googleapis.com') ||
-                   url.hostname.includes('fonts.gstatic.com');
+  // CDN externo (Bootstrap, Fonts) — siempre red directa, nunca caché SW
+  const isExternalCDN = !url.hostname.includes(self.location.hostname) &&
+                        !url.pathname.startsWith('/static/');
+  if (isExternalCDN) return;
 
-  // ── Cache-first para estáticos y CDN ──
+  const isStatic = url.pathname.startsWith('/static/');
+
+  // ── Cache-first para archivos estáticos propios ──
   if (isStatic) {
     e.respondWith(
       caches.match(request).then(cached => {
