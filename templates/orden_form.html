@@ -126,7 +126,7 @@
             {% if orden %}
                 {% for detalle in orden.detalles %}
                     {% set p_match = productos | selectattr("id", "equalto", detalle.producto_id) | first %}
-                    {% set factor = p_match.unidades_por_caja if p_match and 'unidades_por_caja' in p_match else 1 %}
+                    {% set factor = (p_match.unidades_por_caja if (p_match and p_match.unidades_por_caja and p_match.unidades_por_caja > 0) else 1) %}
                     {% set enlace_actual = detalle.enlace_proveedor if detalle.enlace_proveedor else (p_match.get('enlace', '') if p_match else '') %}
                     
                     <div class="producto-linea surface-panel p-4 rounded-4 shadow-sm mb-3">
