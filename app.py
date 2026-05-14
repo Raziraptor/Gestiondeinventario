@@ -157,6 +157,27 @@ def fix_db_proyectos():
                 print(f"Omitido: {e}")
     print("fix-db-proyectos completado.")
 
+@app.cli.command("fix-enlace-text")
+@with_appcontext
+def fix_enlace_text():
+    """Amplía enlace_proveedor a TEXT en producto, orden_compra_detalle y proyecto_oc_detalle."""
+    from sqlalchemy import text
+    stmts = [
+        "ALTER TABLE producto ALTER COLUMN enlace_proveedor TYPE TEXT",
+        "ALTER TABLE orden_compra_detalle ALTER COLUMN enlace_proveedor TYPE TEXT",
+        "ALTER TABLE proyecto_oc_detalle ALTER COLUMN enlace_proveedor TYPE TEXT",
+    ]
+    with db.engine.connect() as conn:
+        for stmt in stmts:
+            try:
+                conn.execute(text(stmt))
+                conn.commit()
+                print(f"OK: {stmt}")
+            except Exception as e:
+                conn.rollback()
+                print(f"Omitido: {e}")
+    print("fix-enlace-text completado.")
+
 @app.cli.command("migrate-fase-c")
 @with_appcontext
 def migrate_fase_c():
@@ -365,7 +386,7 @@ class Producto(db.Model):
     imagen_url = db.Column(db.String(255), nullable=True)
     
     # --- NUEVO CAMPO ---
-    enlace_proveedor = db.Column(db.String(500), nullable=True)
+    enlace_proveedor = db.Column(db.Text, nullable=True)
     
     categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=True)
     categoria = db.relationship('Categoria', backref='productos', lazy=True)
@@ -454,7 +475,7 @@ class OrdenCompraDetalle(db.Model):
     cantidad_solicitada = db.Column(db.Integer, nullable=False, default=1)
     cajas = db.Column(db.Float, nullable=True, default=0.0)
     costo_unitario_estimado = db.Column(db.Float, nullable=True, default=0.0)
-    enlace_proveedor = db.Column(db.String(500), nullable=True)
+    enlace_proveedor = db.Column(db.Text, nullable=True)
 
     @property
     def subtotal(self):
@@ -583,7 +604,7 @@ class ProyectoOCDetalle(db.Model):
     costo_unitario = db.Column(db.Float, nullable=False, default=0.0)
 
     # --- NUEVOS CAMPOS AÑADIDOS ---
-    enlace_proveedor = db.Column(db.String(500), nullable=True)
+    enlace_proveedor = db.Column(db.Text, nullable=True)
     comentarios_detalle = db.Column(db.Text, nullable=True)
 
     @property
