@@ -30,6 +30,8 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # --- Formularios (WTForms) ---
 from wtforms import StringField, PasswordField, SubmitField, BooleanField
@@ -94,7 +96,12 @@ csrf = CSRFProtect(app)
 app.jinja_env.add_extension('jinja2.ext.do') # Para la lógica de 'set' en bucles
 
 # --- Configuración de Variables de Entorno ---
-app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key:
+    print("ADVERTENCIA: SECRET_KEY no está definida en el entorno. "
+          "Las sesiones se invalidarán en cada reinicio del servidor.")
+    _secret_key = secrets.token_hex(32)
+app.secret_key = _secret_key
 
 db_url = os.environ.get('DATABASE_URL')
 if db_url:
@@ -108,6 +115,13 @@ app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
+# --- Seguridad de Cookies de Sesión ---
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') != 'development'
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') != 'development'
+
 # TWA (Play Store): completar con package_name y sha256 tras correr bubblewrap
 # Ver instrucciones en twa/README.md
 app.config['ASSETLINKS'] = []
@@ -115,12 +129,36 @@ app.config['ASSETLINKS'] = []
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 mail = Mail(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=[],
+    storage_uri="memory://",
+)
 
 login_manager.login_view = 'login'
 login_manager.login_message = 'Por favor, inicia sesión para acceder a esta página.'
 login_manager.login_message_category = 'info'
 
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+# --- Headers de Seguridad HTTP ---
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    if os.environ.get('FLASK_ENV') != 'development':
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
+def _flash_err(user_msg: str, exc: Exception | None = None) -> None:
+    """Muestra un mensaje de error seguro al usuario y loguea la excepción real al servidor."""
+    if exc is not None:
+        app.logger.error("%s: %s", user_msg, exc, exc_info=True)
+    flash(user_msg, 'danger')
 
 # ==============================================================================
 # 3. COMANDOS CLI (Para Despliegue)
@@ -995,8 +1033,8 @@ def admin_reset_password(id):
     # 3. Obtener nueva contraseña del form
     nueva_password = request.form.get('new_password')
     
-    if not nueva_password or len(nueva_password) < 4:
-        flash('La contraseña es muy corta (mínimo 4 caracteres).', 'warning')
+    if not nueva_password or len(nueva_password) < 8:
+        flash('La contraseña es muy corta (mínimo 8 caracteres).', 'warning')
         return redirect(url_for('lista_usuarios'))
 
     try:
@@ -2073,7 +2111,7 @@ def nuevo_producto():
                 return repoblar_formulario_con_error()
 
         if not imagen_filename:
-            ai_fn = request.form.get('ai_imagen_filename', '').strip()
+            ai_fn = secure_filename(request.form.get('ai_imagen_filename', '').strip())
             if ai_fn:
                 ai_path = os.path.join(app.config['UPLOAD_FOLDER'], ai_fn)
                 if os.path.isfile(ai_path):
@@ -2142,7 +2180,7 @@ def nuevo_producto():
             if "producto_codigo_key" in str(e) or "UNIQUE constraint failed" in str(e):
                 flash('Error: El Código (SKU) ya existe.', 'danger')
             else:
-                flash(f'Error de base de datos: {e}', 'danger')
+                _flash_err('Error de base de datos al guardar el producto.', e)
             return repoblar_formulario_con_error()
         
         except Exception as e:
@@ -2185,7 +2223,7 @@ def editar_producto(id):
                     producto.imagen_url = filename
 
             if not producto.imagen_url or request.files.get('imagen', '').filename == '':
-                ai_fn = request.form.get('ai_imagen_filename', '').strip()
+                ai_fn = secure_filename(request.form.get('ai_imagen_filename', '').strip())
                 if ai_fn:
                     ai_path = os.path.join(app.config['UPLOAD_FOLDER'], ai_fn)
                     if os.path.isfile(ai_path):
@@ -2215,7 +2253,7 @@ def editar_producto(id):
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar producto: {e}', 'danger')
+            _flash_err('Error al actualizar producto. Intenta de nuevo.', e)
 
     # Preparar visualización del costo para el template
     producto.costo_estandar = producto.precio_unitario
@@ -3986,7 +4024,7 @@ def nuevo_proyecto_oc():
         except Exception as e:
             db.session.rollback()
             print(f"ERROR OC PROYECTO: {e}")
-            flash(f'Error al guardar la OC de proyecto: {e}', 'danger')
+            _flash_err('Error al guardar la OC de proyecto. Intenta de nuevo.', e)
     
     return render_template('proyecto_oc_form.html', 
                            titulo="Crear OC de Proyecto",
@@ -4054,7 +4092,7 @@ def editar_proyecto_oc(id):
         except Exception as e:
             db.session.rollback()
             print(f"ERROR EDITAR OC PROYECTO: {e}")
-            flash(f'Error al actualizar la OC de Proyecto: {e}', 'danger')
+            _flash_err('Error al actualizar la OC de Proyecto. Intenta de nuevo.', e)
             return redirect(url_for('editar_proyecto_oc', id=id))
     
     # --- GET: Preparar datos ---
@@ -6121,7 +6159,7 @@ def register():
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear la cuenta: {e}', 'danger')
+            _flash_err('Error al crear la cuenta. Intenta de nuevo.', e)
 
     return render_template('register.html', titulo="Registro", form=form)
 
@@ -6144,6 +6182,7 @@ def delete_picture():
     return redirect(url_for('account'))
 
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute; 50 per hour")
 def login():
     """ Página de Inicio de Sesión. """
     if current_user.is_authenticated:
@@ -7371,7 +7410,7 @@ def nuevo_pago_servicio(id):
         # Guardar comprobante si se subió
         comp = request.files.get('comprobante')
         if comp and comp.filename:
-            ext = comp.filename.rsplit('.', 1)[-1].lower()
+            ext = secure_filename(comp.filename).rsplit('.', 1)[-1].lower()
             if ext in ('jpg', 'jpeg', 'png', 'pdf', 'webp'):
                 carpeta = os.path.join(app.config['UPLOAD_FOLDER'], 'comprobantes')
                 os.makedirs(carpeta, exist_ok=True)
