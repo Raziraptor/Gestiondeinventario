@@ -5298,6 +5298,14 @@ def nuevo_gasto():
 
     if request.method == 'POST':
         try:
+            monto_val = float(request.form['monto'])
+            if monto_val <= 0:
+                flash('El monto debe ser mayor a cero.', 'danger')
+                return redirect(url_for('nuevo_gasto'))
+            categoria_val = request.form['categoria']
+            if categoria_val not in CATEGORIAS_GASTO:
+                flash('Categoría no válida.', 'danger')
+                return redirect(url_for('nuevo_gasto'))
             fecha_gasto = datetime.strptime(request.form['fecha'], '%Y-%m-%d')
             oc_id = request.form.get('orden_compra_id')
             if oc_id == "": oc_id = None
@@ -5305,8 +5313,8 @@ def nuevo_gasto():
 
             nuevo_gasto = Gasto(
                 descripcion=request.form['descripcion'],
-                monto=float(request.form['monto']),
-                categoria=request.form['categoria'],
+                monto=monto_val,
+                categoria=categoria_val,
                 fecha=fecha_gasto,
                 orden_compra_id=oc_id,
                 centro_costo_id=cc_id,
@@ -5320,7 +5328,7 @@ def nuevo_gasto():
             return redirect(url_for('lista_gastos'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al registrar el gasto: {e}', 'danger')
+            _flash_err('Error al registrar el gasto.', e)
 
     return render_template('gasto_form.html',
                            titulo="Registrar Nuevo Gasto",
@@ -5340,27 +5348,38 @@ def editar_gasto(id):
 
     if request.method == 'POST':
         try:
+            monto_val = float(request.form['monto'])
+            if monto_val <= 0:
+                flash('El monto debe ser mayor a cero.', 'danger')
+                return redirect(url_for('editar_gasto', id=id))
+            categoria_val = request.form['categoria']
+            if categoria_val not in CATEGORIAS_GASTO:
+                flash('Categoría no válida.', 'danger')
+                return redirect(url_for('editar_gasto', id=id))
             fecha_gasto = datetime.strptime(request.form['fecha'], '%Y-%m-%d')
             oc_id = request.form.get('orden_compra_id')
             if oc_id == "" or oc_id == "None":
                 oc_id = None
             cc_id = request.form.get('centro_costo_id') or None
 
+            monto_anterior = gasto.monto
             gasto.descripcion = request.form['descripcion']
-            gasto.monto = float(request.form['monto'])
-            gasto.categoria = request.form['categoria']
+            gasto.monto = monto_val
+            gasto.categoria = categoria_val
             gasto.fecha = fecha_gasto
             gasto.orden_compra_id = oc_id
             gasto.centro_costo_id = cc_id
 
-            log_actividad('editar', 'gasto', f'Gasto editado: {gasto.descripcion} — ${gasto.monto:,.2f}', entidad_id=gasto.id)
+            log_actividad('editar', 'gasto',
+                f'Gasto editado: {gasto.descripcion} — antes ${monto_anterior:,.2f} → ahora ${gasto.monto:,.2f} ({gasto.categoria})',
+                entidad_id=gasto.id)
             db.session.commit()
             flash('Gasto actualizado exitosamente', 'success')
             return redirect(url_for('lista_gastos'))
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar el gasto: {e}', 'danger')
+            _flash_err('Error al actualizar el gasto.', e)
 
     return render_template('gasto_form.html',
                            titulo="Editar Gasto",
@@ -6004,12 +6023,16 @@ def nueva_factura():
 
     if request.method == 'POST':
         try:
+            monto_val = float(request.form['monto'])
+            if monto_val <= 0:
+                flash('El monto debe ser mayor a cero.', 'danger')
+                return redirect(url_for('nueva_factura'))
             factura = FacturaProveedor(
                 numero_factura    = request.form['numero_factura'].strip(),
                 proveedor_id      = int(request.form['proveedor_id']),
                 orden_compra_id   = int(request.form['orden_compra_id']) if request.form.get('orden_compra_id') else None,
                 centro_costo_id   = int(request.form['centro_costo_id']) if request.form.get('centro_costo_id') else None,
-                monto             = float(request.form['monto']),
+                monto             = monto_val,
                 fecha_emision     = date.fromisoformat(request.form['fecha_emision']),
                 fecha_vencimiento = date.fromisoformat(request.form['fecha_vencimiento']),
                 notas             = request.form.get('notas', '').strip() or None,
@@ -6017,12 +6040,16 @@ def nueva_factura():
                 organizacion_id   = org_id,
             )
             db.session.add(factura)
+            db.session.flush()
+            log_actividad('crear', 'factura',
+                f'Factura registrada: #{factura.numero_factura} — ${factura.monto:,.2f}',
+                entidad_id=factura.id)
             db.session.commit()
             flash('Factura registrada correctamente.', 'success')
             return redirect(url_for('lista_facturas'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al registrar la factura: {e}', 'danger')
+            _flash_err('Error al registrar la factura.', e)
 
     return render_template('factura_form.html',
         titulo='Nueva Factura',
@@ -6047,20 +6074,28 @@ def editar_factura(id):
 
     if request.method == 'POST':
         try:
+            monto_val = float(request.form['monto'])
+            if monto_val <= 0:
+                flash('El monto debe ser mayor a cero.', 'danger')
+                return redirect(url_for('editar_factura', id=id))
+            monto_anterior = factura.monto
             factura.numero_factura    = request.form['numero_factura'].strip()
             factura.proveedor_id      = int(request.form['proveedor_id'])
             factura.orden_compra_id   = int(request.form['orden_compra_id']) if request.form.get('orden_compra_id') else None
             factura.centro_costo_id   = int(request.form['centro_costo_id']) if request.form.get('centro_costo_id') else None
-            factura.monto             = float(request.form['monto'])
+            factura.monto             = monto_val
             factura.fecha_emision     = date.fromisoformat(request.form['fecha_emision'])
             factura.fecha_vencimiento = date.fromisoformat(request.form['fecha_vencimiento'])
             factura.notas             = request.form.get('notas', '').strip() or None
+            log_actividad('editar', 'factura',
+                f'Factura editada: #{factura.numero_factura} — antes ${monto_anterior:,.2f} → ahora ${factura.monto:,.2f}',
+                entidad_id=factura.id)
             db.session.commit()
             flash('Factura actualizada.', 'success')
             return redirect(url_for('lista_facturas'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar: {e}', 'danger')
+            _flash_err('Error al actualizar la factura.', e)
 
     return render_template('factura_form.html',
         titulo='Editar Factura',
@@ -6080,6 +6115,9 @@ def marcar_factura_pagada(id):
     org_id  = current_user.organizacion_id
     factura = FacturaProveedor.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
     factura.estado = 'pagado'
+    log_actividad('pagar', 'factura',
+        f'Factura marcada como pagada: #{factura.numero_factura} — ${factura.monto:,.2f}',
+        entidad_id=factura.id)
     db.session.commit()
     flash(f'Factura #{factura.numero_factura} marcada como pagada.', 'success')
     return redirect(url_for('lista_facturas'))
@@ -6092,15 +6130,23 @@ def marcar_factura_pagada(id):
 def eliminar_factura(id):
     org_id  = current_user.organizacion_id
     factura = FacturaProveedor.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
-    db.session.delete(factura)
-    db.session.commit()
-    flash('Factura eliminada.', 'success')
+    try:
+        log_actividad('eliminar', 'factura',
+            f'Factura eliminada: #{factura.numero_factura} — ${factura.monto:,.2f} (estado: {factura.estado})',
+            entidad_id=factura.id)
+        db.session.delete(factura)
+        db.session.commit()
+        flash('Factura eliminada.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        _flash_err('Error al eliminar la factura.', e)
     return redirect(url_for('lista_facturas'))
 
 
 # --- RUTAS DE AUTENTICACIÓN ---
 
 @app.route('/register', methods=['GET', 'POST'])
+@limiter.limit("10 per minute; 30 per hour")
 def register():
     """ Página de Registro de nuevos usuarios (MODIFICADA para códigos). """
     if current_user.is_authenticated:
@@ -6200,6 +6246,7 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit("5 per minute; 20 per hour")
 def forgot_password():
     """ Página para solicitar el reseteo de contraseña. """
     if current_user.is_authenticated:
@@ -7381,9 +7428,13 @@ def nuevo_pago_servicio(id):
     s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
     centros = CentroCosto.query.filter_by(organizacion_id=current_user.organizacion_id).order_by(CentroCosto.nombre).all()
     if request.method == 'POST':
+        monto_val = float(request.form['monto'])
+        if monto_val <= 0:
+            flash('El monto debe ser mayor a cero.', 'danger')
+            return redirect(url_for('nuevo_pago_servicio', id=id))
         p = PagoServicio(
             servicio_id       = s.id,
-            monto             = float(request.form['monto']),
+            monto             = monto_val,
             fecha_vencimiento = datetime.strptime(request.form['fecha_vencimiento'], '%Y-%m-%d').date(),
             notas             = request.form.get('notas', '').strip() or None,
             centro_costo_id   = int(request.form['centro_costo_id']) if request.form.get('centro_costo_id') else None,
@@ -7394,6 +7445,9 @@ def nuevo_pago_servicio(id):
             p.estado = 'pagado'
         db.session.add(p)
         db.session.flush()  # para obtener p.id antes del commit
+        log_actividad('crear', 'pago_servicio',
+            f'Pago registrado — {s.nombre}: ${p.monto:,.2f} (estado: {p.estado})',
+            entidad_id=p.id)
         if p.estado == 'pagado':
             _registrar_gasto_servicio(p)
         # Guardar comprobante si se subió
@@ -7436,6 +7490,9 @@ def marcar_pago_pagado(id):
     fecha_str  = request.form.get('fecha_pago')
     p.fecha_pago = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else now_mx().date()
     p.estado = 'pagado'
+    log_actividad('pagar', 'pago_servicio',
+        f'Pago marcado como pagado — {p.servicio.nombre}: ${p.monto:,.2f}',
+        entidad_id=p.id)
     _registrar_gasto_servicio(p)
     db.session.commit()
     enviar_push_notificacion(
@@ -7456,15 +7513,22 @@ def eliminar_pago_servicio(id):
         Servicio.organizacion_id == current_user.organizacion_id
     ).first_or_404()
     serv_id = p.servicio_id
-    # Borrar comprobante si existe
-    if p.comprobante_url:
-        try:
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], 'comprobantes', p.comprobante_url))
-        except OSError:
-            pass
-    db.session.delete(p)
-    db.session.commit()
-    flash('Registro de pago eliminado.', 'success')
+    try:
+        log_actividad('eliminar', 'pago_servicio',
+            f'Pago eliminado — {p.servicio.nombre}: ${p.monto:,.2f} (estado: {p.estado})',
+            entidad_id=p.id)
+        # Borrar comprobante si existe
+        if p.comprobante_url:
+            try:
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], 'comprobantes', p.comprobante_url))
+            except OSError:
+                pass
+        db.session.delete(p)
+        db.session.commit()
+        flash('Registro de pago eliminado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        _flash_err('Error al eliminar el pago.', e)
     return redirect(url_for('detalle_servicio', id=serv_id))
 
 
