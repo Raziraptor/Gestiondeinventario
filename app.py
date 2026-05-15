@@ -142,18 +142,6 @@ login_manager.login_message_category = 'info'
 
 s = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 
-# --- Headers de Seguridad HTTP ---
-@app.after_request
-def set_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
-    if os.environ.get('FLASK_ENV') != 'development':
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    return response
-
 def _flash_err(user_msg: str, exc: Exception | None = None) -> None:
     """Muestra un mensaje de error seguro al usuario y loguea la excepción real al servidor."""
     if exc is not None:
@@ -982,8 +970,9 @@ def add_security_headers(response):
     # 4. Política de Referencia
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     
-    # 5. Desactivar hardware innecesario en el navegador
+    # 5. Desactivar hardware innecesario (cámara permitida para escáner QR)
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=()'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
     
     # 6. Content Security Policy (CSP)
     csp = (
