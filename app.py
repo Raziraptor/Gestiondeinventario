@@ -45,6 +45,7 @@ from itsdangerous.url_safe import URLSafeTimedSerializer
 # --- Base de Datos ---
 from sqlalchemy import extract, Date, text
 from sqlalchemy.exc import IntegrityError
+from decimal import Decimal
 
 # --- Imágenes y QR ---
 from PIL import Image, ImageDraw, ImageFont
@@ -92,6 +93,18 @@ MESES_ES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 app = Flask(__name__)
+
+# Serializador JSON que maneja Decimal (necesario tras migrar Float → Numeric)
+from flask.json.provider import DefaultJSONProvider
+class _JSONProvider(DefaultJSONProvider):
+    @staticmethod
+    def default(o):
+        if isinstance(o, Decimal):
+            return float(o)
+        return DefaultJSONProvider.default(o)
+app.json_provider_class = _JSONProvider
+app.json = _JSONProvider(app)
+
 csrf = CSRFProtect(app)
 app.jinja_env.add_extension('jinja2.ext.do') # Para la lógica de 'set' en bucles
 
@@ -203,6 +216,43 @@ def fix_enlace_text():
                 conn.rollback()
                 print(f"Omitido: {e}")
     print("fix-enlace-text completado.")
+
+@app.cli.command("fix-float-to-numeric")
+@with_appcontext
+def fix_float_to_numeric():
+    """Migra columnas de montos de DOUBLE PRECISION a NUMERIC(10,2). Idempotente y sin pérdida de datos."""
+    columnas = [
+        ("producto",             "precio_unitario"),
+        ("orden_compra_detalle", "costo_unitario_estimado"),
+        ("gasto",                "monto"),
+        ("pago_servicio",        "monto"),
+        ("factura_proveedor",    "monto"),
+        ("proyecto_oc_detalle",  "costo_unitario"),
+    ]
+    with db.engine.connect() as conn:
+        for tabla, columna in columnas:
+            chk = text("""
+                SELECT data_type FROM information_schema.columns
+                WHERE table_name = :t AND column_name = :c
+            """)
+            row = conn.execute(chk, {"t": tabla, "c": columna}).fetchone()
+            if not row:
+                print(f"OMITIDO: {tabla}.{columna} no encontrada")
+                continue
+            if row[0] != 'double precision':
+                print(f"OMITIDO: {tabla}.{columna} ya es {row[0]}")
+                continue
+            try:
+                conn.execute(text(
+                    f"ALTER TABLE {tabla} ALTER COLUMN {columna} "
+                    f"TYPE NUMERIC(10,2) USING ROUND({columna}::NUMERIC, 2)"
+                ))
+                conn.commit()
+                print(f"OK: {tabla}.{columna} → NUMERIC(10,2)")
+            except Exception as e:
+                conn.rollback()
+                print(f"ERROR {tabla}.{columna}: {e}")
+    print("fix-float-to-numeric completado.")
 
 @app.cli.command("migrate-fase-c")
 @with_appcontext
@@ -408,7 +458,7 @@ class Producto(db.Model):
     nombre = db.Column(db.String(255), nullable=False)
     codigo = db.Column(db.String(50), unique=True, nullable=False)
     # --- CAMPOS DE STOCK ELIMINADOS ---
-    precio_unitario = db.Column(db.Float, default=0.0)
+    precio_unitario = db.Column(db.Numeric(10, 2), default=0)
     imagen_url = db.Column(db.String(255), nullable=True)
     
     # --- NUEVO CAMPO ---
@@ -500,17 +550,17 @@ class OrdenCompraDetalle(db.Model):
     producto = db.relationship('Producto')
     cantidad_solicitada = db.Column(db.Integer, nullable=False, default=1)
     cajas = db.Column(db.Float, nullable=True, default=0.0)
-    costo_unitario_estimado = db.Column(db.Float, nullable=True, default=0.0)
+    costo_unitario_estimado = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     enlace_proveedor = db.Column(db.Text, nullable=True)
 
     @property
     def subtotal(self):
-        return self.cantidad_solicitada * (self.costo_unitario_estimado or 0.0)
+        return self.cantidad_solicitada * (self.costo_unitario_estimado or 0)
 
 class Gasto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     descripcion = db.Column(db.String(255), nullable=False)
-    monto = db.Column(db.Float, nullable=False, default=0.0)
+    monto = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     categoria = db.Column(db.String(50), nullable=True)
     fecha = db.Column(db.DateTime, nullable=False, default=now_mx)
     
@@ -627,7 +677,7 @@ class ProyectoOCDetalle(db.Model):
     proveedor_sugerido = db.Column(db.String(255), nullable=True)
     
     cantidad = db.Column(db.Integer, nullable=False, default=1)
-    costo_unitario = db.Column(db.Float, nullable=False, default=0.0)
+    costo_unitario = db.Column(db.Numeric(10, 2), nullable=False, default=0)
 
     # --- NUEVOS CAMPOS AÑADIDOS ---
     enlace_proveedor = db.Column(db.Text, nullable=True)
@@ -659,7 +709,7 @@ class PagoServicio(db.Model):
     __tablename__ = 'pago_servicio'
     id                = db.Column(db.Integer,    primary_key=True)
     servicio_id       = db.Column(db.Integer,    db.ForeignKey('servicio.id'), nullable=False)
-    monto             = db.Column(db.Float,      nullable=False)
+    monto             = db.Column(db.Numeric(10, 2), nullable=False)
     fecha_vencimiento = db.Column(db.Date,       nullable=False)
     fecha_pago        = db.Column(db.Date,       nullable=True)
     estado            = db.Column(db.String(20), default='pendiente')  # pendiente | pagado | vencido
@@ -680,7 +730,7 @@ class FacturaProveedor(db.Model):
     proveedor         = db.relationship('Proveedor', backref='facturas')
     orden_compra_id   = db.Column(db.Integer,    db.ForeignKey('orden_compra.id'), nullable=True)
     orden_compra      = db.relationship('OrdenCompra', backref='facturas')
-    monto             = db.Column(db.Float,      nullable=False)
+    monto             = db.Column(db.Numeric(10, 2), nullable=False)
     fecha_emision     = db.Column(db.Date,       nullable=False)
     fecha_vencimiento = db.Column(db.Date,       nullable=False)
     estado            = db.Column(db.String(20), nullable=False, default='pendiente')  # pendiente | pagado | vencido
