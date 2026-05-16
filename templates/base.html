@@ -197,12 +197,10 @@
             transform-origin: top right;
         }
 
-        /* Progress bars — usa transform: scaleX() (GPU, no repaint)
-           UI UX Pro Max: "Animate transform/opacity, not width/height" */
+        /* Progress bars — transition en width porque el HTML usa width:% inline.
+           No usar transform:scaleX aquí porque el HTML no aplica ningún transform. */
         .progress-bar {
-            transform-origin: left center;
-            transition: transform 0.65s cubic-bezier(0.34, 1.05, 0.64, 1);
-            will-change: transform;
+            transition: width 0.65s cubic-bezier(0.34, 1.05, 0.64, 1);
         }
 
         /* Micro-bounce en badges interactivos */
