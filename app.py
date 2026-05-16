@@ -8,6 +8,7 @@ import io
 import csv
 import json
 import secrets
+import hashlib
 from functools import wraps
 from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
@@ -142,11 +143,12 @@ app.config['ASSETLINKS'] = []
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 mail = Mail(app)
+_limiter_storage = os.environ.get("REDIS_URL", "memory://")
 limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=[],
-    storage_uri="memory://",
+    storage_uri=_limiter_storage,
 )
 
 login_manager.login_view = 'login'
@@ -253,6 +255,34 @@ def fix_float_to_numeric():
                 conn.rollback()
                 print(f"ERROR {tabla}.{columna}: {e}")
     print("fix-float-to-numeric completado.")
+
+@app.cli.command("fix-add-token-usado")
+@with_appcontext
+def fix_add_token_usado():
+    """Crea la tabla token_usado para la blocklist de tokens de reset. Idempotente."""
+    with db.engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS token_usado (
+                id         SERIAL PRIMARY KEY,
+                token_hash VARCHAR(64) NOT NULL UNIQUE,
+                usado_en   TIMESTAMP NOT NULL DEFAULT NOW(),
+                expira_en  TIMESTAMP NOT NULL
+            )
+        """))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_token_usado_token_hash ON token_usado (token_hash)"
+        ))
+        conn.commit()
+    print("fix-add-token-usado completado.")
+
+@app.cli.command("limpiar-tokens-expirados")
+@with_appcontext
+def limpiar_tokens_expirados():
+    """Elimina registros de token_usado cuya fecha de expiración ya pasó."""
+    with db.engine.connect() as conn:
+        result = conn.execute(text("DELETE FROM token_usado WHERE expira_en < NOW()"))
+        conn.commit()
+        print(f"limpiar-tokens-expirados: {result.rowcount} registros eliminados.")
 
 @app.cli.command("migrate-fase-c")
 @with_appcontext
@@ -829,6 +859,14 @@ class SolicitudAprobacion(db.Model):
 
     solicitante = db.relationship('User', foreign_keys=[solicitante_id])
     aprobador   = db.relationship('User', foreign_keys=[aprobador_id])
+
+class TokenUsado(db.Model):
+    """Blocklist de tokens de reset de contraseña ya utilizados (SHA-256)."""
+    __tablename__ = 'token_usado'
+    id          = db.Column(db.Integer,     primary_key=True)
+    token_hash  = db.Column(db.String(64),  unique=True, nullable=False, index=True)
+    usado_en    = db.Column(db.DateTime,    nullable=False, default=datetime.utcnow)
+    expira_en   = db.Column(db.DateTime,    nullable=False)
 
 # ==============================================================================
 # 5. CARGADOR DE USUARIO (FLASK-LOGIN)
@@ -6318,16 +6356,22 @@ def reset_password(token):
     """ Página para ingresar la nueva contraseña (accedida desde el e-mail). """
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-    
-    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    
+
+    _s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+
     try:
-        # Intentamos decodificar el token con un máximo de 30 minutos (1800 segundos) de validez
-        email = s.loads(token, salt='password-reset-salt', max_age=1800)
+        email = _s.loads(token, salt='password-reset-salt', max_age=1800)
     except Exception:
         flash('El enlace de reseteo no es válido o ha expirado.', 'danger')
         return redirect(url_for('forgot_password'))
-        
+
+    # AUTH-02: rechazar tokens ya utilizados (single-use)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    ya_usado = TokenUsado.query.filter_by(token_hash=token_hash).first()
+    if ya_usado:
+        flash('Este enlace de reseteo ya fue utilizado. Solicita uno nuevo.', 'danger')
+        return redirect(url_for('forgot_password'))
+
     user = User.query.filter_by(email=email).first()
     if user is None:
         flash('Usuario no encontrado.', 'danger')
@@ -6336,14 +6380,16 @@ def reset_password(token):
     form = ResetPasswordForm()
     if form.validate_on_submit():
         try:
-            # Usar set_password si lo tienes en el modelo, o generate_password_hash directo
             user.password_hash = generate_password_hash(form.password.data)
+            # Marcar token como usado antes de commit para que sean atómicos
+            expira_en = datetime.utcnow() + timedelta(seconds=1800)
+            db.session.add(TokenUsado(token_hash=token_hash, expira_en=expira_en))
             db.session.commit()
             flash('¡Tu contraseña ha sido actualizada! Ya puedes iniciar sesión.', 'success')
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar la contraseña: {e}', 'danger')
+            _flash_err('Error al actualizar la contraseña.', e)
 
     return render_template('reset_password.html', titulo="Restablecer Contraseña", form=form, token=token)
   
