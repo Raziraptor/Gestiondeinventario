@@ -3446,9 +3446,9 @@ def lista_ordenes():
 @check_permission('perm_create_oc_standard')
 def nueva_orden():
     try:
-        ids_productos_a_ordenar = request.form.getlist('producto_id')
+        ids_productos_a_ordenar = [int(i) for i in request.form.getlist('producto_id') if i.isdigit()]
         almacen_id = request.form.get('almacen_id', type=int)
-        
+
         if not ids_productos_a_ordenar or not almacen_id:
             flash('Error en la solicitud de alerta.', 'danger')
             return redirect(url_for('index'))
