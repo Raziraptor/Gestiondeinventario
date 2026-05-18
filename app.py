@@ -1248,6 +1248,7 @@ def enviar_push_notificacion(org_id, titulo, cuerpo, url='/dashboard'):
     vapid_private = os.environ.get('VAPID_PRIVATE_KEY')
     vapid_email   = os.environ.get('VAPID_CLAIMS_EMAIL', 'notifications@inventario.app')
     if not vapid_private:
+        app.logger.debug('[Push] VAPID_PRIVATE_KEY no configurada — push omitido')
         return
     try:
         from pywebpush import webpush, WebPushException
@@ -1266,14 +1267,18 @@ def enviar_push_notificacion(org_id, titulo, cuerpo, url='/dashboard'):
                     vapid_claims={"sub": f"mailto:{vapid_email}"}
                 )
             except WebPushException as ex:
-                if ex.response and ex.response.status_code in [404, 410]:
+                code = ex.response.status_code if ex.response else None
+                app.logger.warning(f'[Push] WebPushException HTTP {code} sub_id={sub.id}: {ex}')
+                if code in [404, 410]:
                     to_delete.append(sub)
         for sub in to_delete:
             db.session.delete(sub)
         if to_delete:
             db.session.commit()
+    except ImportError:
+        app.logger.error('[Push] pywebpush no instalado')
     except Exception as e:
-        print(f"[Push] Error: {e}")
+        app.logger.error(f'[Push] Error inesperado: {e}')
 
 
 def check_and_alert_stock_bajo(org_id, almacen_id):
@@ -7353,6 +7358,48 @@ def api_push_unsubscribe():
         db.session.delete(sub)
         db.session.commit()
     return jsonify({'ok': True})
+
+
+@app.route('/api/push/test', methods=['POST'])
+@login_required
+def api_push_test():
+    """Envía una notificación de prueba al usuario actual para verificar la configuración."""
+    subs = PushSubscription.query.filter_by(user_id=current_user.id).all()
+    if not subs:
+        return jsonify({'ok': False, 'error': 'Sin suscripción activa — activa las notificaciones primero'}), 400
+    vapid_private = os.environ.get('VAPID_PRIVATE_KEY')
+    if not vapid_private:
+        return jsonify({'ok': False, 'error': 'VAPID_PRIVATE_KEY no configurada en el servidor'}), 503
+    try:
+        from pywebpush import webpush, WebPushException
+        vapid_email = os.environ.get('VAPID_CLAIMS_EMAIL', 'notifications@inventario.app')
+        payload = json.dumps({'title': 'Prueba de notificación', 'body': 'Las notificaciones push están funcionando.', 'url': '/dashboard'})
+        sent, errors, to_delete = 0, [], []
+        for sub in subs:
+            try:
+                webpush(
+                    subscription_info=json.loads(sub.subscription_json),
+                    data=payload,
+                    vapid_private_key=vapid_private,
+                    vapid_claims={"sub": f"mailto:{vapid_email}"}
+                )
+                sent += 1
+            except WebPushException as ex:
+                code = ex.response.status_code if ex.response else None
+                errors.append(f'HTTP {code}: {ex}')
+                if code in [404, 410]:
+                    to_delete.append(sub)
+        for sub in to_delete:
+            db.session.delete(sub)
+        if to_delete:
+            db.session.commit()
+        if sent > 0:
+            return jsonify({'ok': True, 'sent': sent})
+        return jsonify({'ok': False, 'error': '; '.join(errors) or 'Sin suscripciones válidas'}), 500
+    except ImportError:
+        return jsonify({'ok': False, 'error': 'pywebpush no instalado en el servidor'}), 503
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 # --- Manejadores de Error ---

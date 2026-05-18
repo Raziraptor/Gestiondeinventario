@@ -1281,9 +1281,12 @@
 
                     <!-- Botón Web Push Notifications -->
                     {% if current_user.is_authenticated and vapid_public_key %}
-                    <li class="nav-item" id="pushNavItem" style="display:none;">
+                    <li class="nav-item d-flex align-items-center gap-1" id="pushNavItem" style="display:none;">
                         <button id="pushToggleBtn" class="theme-btn" title="Activar notificaciones push" aria-label="Notificaciones push">
                             <i id="pushBellIcon" class="bi bi-bell-slash"></i>
+                        </button>
+                        <button id="pushTestBtn" class="theme-btn" title="Enviar notificación de prueba" aria-label="Probar notificación" style="display:none;font-size:.8rem;opacity:.6;">
+                            <i class="bi bi-send-check-fill"></i>
                         </button>
                     </li>
                     {% endif %}
@@ -1824,6 +1827,7 @@
         const pushNavItem  = document.getElementById('pushNavItem');
         const pushBtn      = document.getElementById('pushToggleBtn');
         const pushIcon     = document.getElementById('pushBellIcon');
+        const pushTestBtn  = document.getElementById('pushTestBtn');
 
         if (!('serviceWorker' in navigator) || !('PushManager' in window) || !pushBtn) return;
         pushNavItem.style.display = '';
@@ -1834,30 +1838,30 @@
             return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
         }
 
-        // Wrapper con timeout para evitar que navigator.serviceWorker.ready cuelgue
         function swReady(ms = 8000) {
             return Promise.race([
                 navigator.serviceWorker.ready,
-                new Promise((_, rej) =>
-                    setTimeout(() => rej(new Error('SW_TIMEOUT')), ms))
+                new Promise((_, rej) => setTimeout(() => rej(new Error('SW_TIMEOUT')), ms))
             ]);
         }
 
-        async function actualizarBoton() {
-            try {
-                const reg = await swReady(5000);
-                const sub = await reg.pushManager.getSubscription();
-                if (sub) {
-                    pushIcon.className   = 'bi bi-bell-fill';
-                    pushBtn.title        = 'Desactivar notificaciones push';
-                    pushBtn.style.color  = 'var(--primary)';
-                } else {
-                    pushIcon.className   = 'bi bi-bell-slash';
-                    pushBtn.title        = 'Activar notificaciones push';
-                    pushBtn.style.color  = '';
-                }
-            } catch(e) { /* SW aún no listo — no cambiar el ícono */ }
+        // Aplica el estado visual del botón e icono
+        function setIconState(active) {
+            if (active) {
+                pushIcon.className  = 'bi bi-bell-fill';
+                pushBtn.title       = 'Desactivar notificaciones push';
+                pushBtn.style.color = 'var(--primary)';
+                if (pushTestBtn) pushTestBtn.style.display = '';
+            } else {
+                pushIcon.className  = 'bi bi-bell-slash';
+                pushBtn.title       = 'Activar notificaciones push';
+                pushBtn.style.color = '';
+                if (pushTestBtn) pushTestBtn.style.display = 'none';
+            }
         }
+
+        // Estado inmediato desde localStorage (sin esperar al SW)
+        setIconState(!!localStorage.getItem('push_active'));
 
         async function suscribir(reg) {
             const sub = await reg.pushManager.subscribe({
@@ -1866,16 +1870,16 @@
             });
             const resp = await fetch('/api/push/subscribe', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json',
-                           'X-CSRFToken': '{{ csrf_token() }}' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
                 body: JSON.stringify(sub.toJSON())
             });
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({}));
                 throw new Error(err.error || `HTTP ${resp.status}`);
             }
+            localStorage.setItem('push_active', '1');
+            setIconState(true);
             showToast('Notificaciones activadas ✓', 'success');
-            actualizarBoton();
         }
 
         async function desuscribir(reg) {
@@ -1884,13 +1888,36 @@
                 await sub.unsubscribe();
                 await fetch('/api/push/unsubscribe', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json',
-                               'X-CSRFToken': '{{ csrf_token() }}' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
                     body: JSON.stringify({ endpoint: sub.endpoint })
                 });
             }
+            localStorage.removeItem('push_active');
+            setIconState(false);
             showToast('Notificaciones desactivadas', 'secondary');
-            actualizarBoton();
+        }
+
+        // Verifica el estado real del PushManager y reconcilia con localStorage
+        async function actualizarBoton() {
+            try {
+                const reg = await swReady(5000);
+                const sub = await reg.pushManager.getSubscription();
+                if (sub) {
+                    localStorage.setItem('push_active', '1');
+                    setIconState(true);
+                } else if (localStorage.getItem('push_active')) {
+                    // El navegador perdió la suscripción — reactivar automáticamente
+                    try {
+                        await suscribir(reg);
+                    } catch(e) {
+                        console.warn('[Push] Re-suscripción automática fallida:', e);
+                        localStorage.removeItem('push_active');
+                        setIconState(false);
+                    }
+                } else {
+                    setIconState(false);
+                }
+            } catch(e) { /* SW aún no listo — mantener estado de localStorage */ }
         }
 
         pushBtn.addEventListener('click', async function() {
@@ -1914,15 +1941,38 @@
                 }
             } catch(e) {
                 console.error('[Push]', e);
-                if (e.message === 'SW_TIMEOUT') {
-                    showToast('El service worker no responde. Recarga la página e intenta de nuevo.', 'warning', 6000);
-                } else {
-                    showToast('Error al gestionar notificaciones: ' + e.message, 'danger', 6000);
-                }
+                showToast(
+                    e.message === 'SW_TIMEOUT'
+                        ? 'El service worker no responde. Recarga la página e intenta de nuevo.'
+                        : 'Error al gestionar notificaciones: ' + e.message,
+                    'danger', 6000
+                );
             } finally {
                 pushBtn.disabled = false;
             }
         });
+
+        if (pushTestBtn) {
+            pushTestBtn.addEventListener('click', async function() {
+                pushTestBtn.disabled = true;
+                try {
+                    const resp = await fetch('/api/push/test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' }
+                    });
+                    const data = await resp.json();
+                    if (data.ok) {
+                        showToast('Notificación de prueba enviada ✓', 'success');
+                    } else {
+                        showToast('Error push: ' + (data.error || 'desconocido'), 'danger', 10000);
+                    }
+                } catch(e) {
+                    showToast('Error al enviar prueba: ' + e.message, 'danger', 6000);
+                } finally {
+                    pushTestBtn.disabled = false;
+                }
+            });
+        }
 
         navigator.serviceWorker.ready.then(actualizarBoton).catch(() => {});
     })();
