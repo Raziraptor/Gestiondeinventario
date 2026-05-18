@@ -3225,11 +3225,15 @@ def _pdf_estilos(org):
     c_sec = colors.HexColor(org.color_secundario) if org.color_secundario else colors.HexColor('#f1f5f9')
     return fuente, c_pri, c_sec
 
+def _pdf_bold(fuente):
+    # Times-Roman usa 'Times-Bold', no 'Times-Roman-Bold' (que no existe en ReportLab)
+    return 'Times-Bold' if fuente == 'Times-Roman' else _pdf_bold(fuente)
+
 def _pdf_header(story, org, styles):
     """Añade encabezado de marca (logo + nombre + RFC + correo) y barra de color."""
     fuente, c_pri, _ = _pdf_estilos(org)
 
-    s_brand = ParagraphStyle('_Brand', fontName=f'{fuente}-Bold', fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
+    s_brand = ParagraphStyle('_Brand', fontName=_pdf_bold(fuente), fontSize=20, leading=22, textColor=colors.black, spaceAfter=2)
     s_sub   = ParagraphStyle('_Sub',   fontName=fuente, fontSize=10, leading=12, textColor=colors.gray)
     s_meta  = ParagraphStyle('_Meta',  fontName=fuente, fontSize=8,  leading=10, textColor=colors.HexColor('#64748b'))
 
@@ -3330,9 +3334,9 @@ def generar_salida_pdf(id):
     fuente, c_pri, c_sec = _pdf_estilos(org)
 
     s_normal = ParagraphStyle('SNorm',  fontName=fuente, fontSize=10, leading=12)
-    s_bold   = ParagraphStyle('SBold',  fontName=f'{fuente}-Bold', fontSize=10, leading=12)
-    s_brand  = ParagraphStyle('SBrand', fontName=f'{fuente}-Bold', fontSize=18, leading=20, textColor=colors.black)
-    s_th     = ParagraphStyle('STH',    fontName=f'{fuente}-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)
+    s_bold   = ParagraphStyle('SBold',  fontName=_pdf_bold(fuente), fontSize=10, leading=12)
+    s_brand  = ParagraphStyle('SBrand', fontName=_pdf_bold(fuente), fontSize=18, leading=20, textColor=colors.black)
+    s_th     = ParagraphStyle('STH',    fontName=_pdf_bold(fuente), fontSize=9, textColor=colors.white, alignment=TA_CENTER)
     s_cell   = ParagraphStyle('SCell',  fontName=fuente, fontSize=9, leading=11)
     s_cellr  = ParagraphStyle('SCellR', fontName=fuente, fontSize=9, leading=11, alignment=TA_RIGHT)
 
@@ -3368,8 +3372,8 @@ def generar_salida_pdf(id):
             Paragraph(mov.motivo or '—', s_cell),
             Paragraph(str(cant), s_cellr),
         ])
-    data.append(['', '', Paragraph('TOTAL UNIDADES:', ParagraphStyle('STotL', fontName=f'{fuente}-Bold', fontSize=10, alignment=TA_RIGHT)),
-                 Paragraph(str(total_items), ParagraphStyle('STotV', fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=c_pri))])
+    data.append(['', '', Paragraph('TOTAL UNIDADES:', ParagraphStyle('STotL', fontName=_pdf_bold(fuente), fontSize=10, alignment=TA_RIGHT)),
+                 Paragraph(str(total_items), ParagraphStyle('STotV', fontName=_pdf_bold(fuente), fontSize=11, alignment=TA_RIGHT, textColor=c_pri))])
 
     t_mov = Table(data, colWidths=[2.8*inch, 1.2*inch, 1.4*inch, 0.8*inch], repeatRows=1)
     row_bgs = _pdf_row_styles(len(data) - 1, c_sec)
@@ -3637,11 +3641,11 @@ def generar_oc_pdf(id):
     fuente, c_pri, c_sec = _pdf_estilos(org)
 
     s_normal = ParagraphStyle('OCNorm',  fontName=fuente, fontSize=10, leading=12)
-    s_bold   = ParagraphStyle('OCBold',  fontName=f'{fuente}-Bold', fontSize=10, leading=12)
-    s_brand  = ParagraphStyle('OCBrand', fontName=f'{fuente}-Bold', fontSize=18, leading=20, textColor=colors.black)
-    s_th     = ParagraphStyle('OCTH',    fontName=f'{fuente}-Bold', fontSize=10, textColor=colors.white, alignment=TA_CENTER)
-    s_totlbl = ParagraphStyle('OCTotL',  fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT)
-    s_totval = ParagraphStyle('OCTotV',  fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT)
+    s_bold   = ParagraphStyle('OCBold',  fontName=_pdf_bold(fuente), fontSize=10, leading=12)
+    s_brand  = ParagraphStyle('OCBrand', fontName=_pdf_bold(fuente), fontSize=18, leading=20, textColor=colors.black)
+    s_th     = ParagraphStyle('OCTH',    fontName=_pdf_bold(fuente), fontSize=10, textColor=colors.white, alignment=TA_CENTER)
+    s_totlbl = ParagraphStyle('OCTotL',  fontName=_pdf_bold(fuente), fontSize=11, alignment=TA_RIGHT)
+    s_totval = ParagraphStyle('OCTotV',  fontName=_pdf_bold(fuente), fontSize=11, alignment=TA_RIGHT)
 
     _pdf_header(story, org, styles)
 
@@ -4546,13 +4550,13 @@ def generar_proyecto_oc_pdf(id):
     fuente, c_pri, c_sec = _pdf_estilos(org)
 
     s_normal = ParagraphStyle('PONorm',  fontName=fuente, fontSize=10, leading=12)
-    s_bold   = ParagraphStyle('POBold',  fontName=f'{fuente}-Bold', fontSize=10, leading=12)
-    s_brand  = ParagraphStyle('POBrand', fontName=f'{fuente}-Bold', fontSize=18, leading=20, textColor=colors.black)
-    s_th     = ParagraphStyle('POTH',    fontName=f'{fuente}-Bold', fontSize=9, textColor=colors.white, alignment=TA_CENTER)
+    s_bold   = ParagraphStyle('POBold',  fontName=_pdf_bold(fuente), fontSize=10, leading=12)
+    s_brand  = ParagraphStyle('POBrand', fontName=_pdf_bold(fuente), fontSize=18, leading=20, textColor=colors.black)
+    s_th     = ParagraphStyle('POTH',    fontName=_pdf_bold(fuente), fontSize=9, textColor=colors.white, alignment=TA_CENTER)
     s_cell   = ParagraphStyle('POCell',  fontName=fuente, fontSize=9, leading=11)
     s_cellr  = ParagraphStyle('POCellR', fontName=fuente, fontSize=9, leading=11, alignment=TA_RIGHT)
-    s_totlbl = ParagraphStyle('POTotL',  fontName=f'{fuente}-Bold', fontSize=10, alignment=TA_RIGHT)
-    s_totval = ParagraphStyle('POTotV',  fontName=f'{fuente}-Bold', fontSize=11, alignment=TA_RIGHT, textColor=c_pri)
+    s_totlbl = ParagraphStyle('POTotL',  fontName=_pdf_bold(fuente), fontSize=10, alignment=TA_RIGHT)
+    s_totval = ParagraphStyle('POTotV',  fontName=_pdf_bold(fuente), fontSize=11, alignment=TA_RIGHT, textColor=c_pri)
 
     _pdf_header(story, org, styles)
 
@@ -5250,13 +5254,13 @@ def exportar_valorizacion_pdf():
     light_gray = colors.HexColor('#F8F9FA')
     mid_gray   = colors.HexColor('#DEE2E6')
 
-    s_title  = ParagraphStyle('RPTitle',  fontName=f'{fuente}-Bold', fontSize=18, textColor=primary, spaceAfter=4)
+    s_title  = ParagraphStyle('RPTitle',  fontName=_pdf_bold(fuente), fontSize=18, textColor=primary, spaceAfter=4)
     s_sub    = ParagraphStyle('RPSub',    fontName=fuente,           fontSize=10, textColor=colors.HexColor('#6B7280'), spaceAfter=2)
     s_cell   = ParagraphStyle('RPCell',   fontName=fuente,           fontSize=8,  leading=10)
-    s_cellb  = ParagraphStyle('RPCellB',  fontName=f'{fuente}-Bold', fontSize=8,  leading=10)
+    s_cellb  = ParagraphStyle('RPCellB',  fontName=_pdf_bold(fuente), fontSize=8,  leading=10)
     s_cellr  = ParagraphStyle('RPCellR',  fontName=fuente,           fontSize=8,  leading=10, alignment=TA_RIGHT)
-    s_cellbr = ParagraphStyle('RPCellBR', fontName=f'{fuente}-Bold', fontSize=8,  leading=10, alignment=TA_RIGHT)
-    s_big    = ParagraphStyle('RPBig',    fontName=f'{fuente}-Bold', fontSize=14, textColor=primary)
+    s_cellbr = ParagraphStyle('RPCellBR', fontName=_pdf_bold(fuente), fontSize=8,  leading=10, alignment=TA_RIGHT)
+    s_big    = ParagraphStyle('RPBig',    fontName=_pdf_bold(fuente), fontSize=14, textColor=primary)
 
     _pdf_header(story, org, styles)
     story.append(Paragraph("Reporte de Valorización de Inventario", s_title))
@@ -5316,7 +5320,7 @@ def exportar_valorizacion_pdf():
         ('BACKGROUND',   (0,0),  (-1,0),  primary),
         ('TEXTCOLOR',    (0,0),  (-1,0),  colors.white),
         ('BACKGROUND',   (0,-1), (-1,-1), colors.HexColor('#EEEDFC')),
-        ('FONTNAME',     (0,-1), (-1,-1), f'{fuente}-Bold'),
+        ('FONTNAME',     (0,-1), (-1,-1), _pdf_bold(fuente)),
         ('GRID',         (0,0),  (-1,-1), 0.5, mid_gray),
         ('BOX',          (0,0),  (-1,-1), 1,   mid_gray),
         ('PADDING',      (0,0),  (-1,-1), 5),
