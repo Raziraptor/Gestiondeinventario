@@ -304,6 +304,14 @@ def migrate_fase_c():
                 conn.rollback()
                 print(f"Omitido (ya existe?): {e}")
 
+@app.cli.command("limpiar-push-subs")
+@with_appcontext
+def limpiar_push_subs():
+    """Elimina TODAS las suscripciones push de la BD (usar tras cambiar claves VAPID)."""
+    n = PushSubscription.query.delete()
+    db.session.commit()
+    print(f"limpiar-push-subs: {n} suscripciones eliminadas. Los usuarios deberán re-suscribirse.")
+
 @app.cli.command("gen-vapid")
 @with_appcontext
 def gen_vapid_command():
@@ -1243,6 +1251,18 @@ def _send_whatsapp_message(to_number, body):
         return False
 
 
+def _webpush_http_status(ex):
+    """Extrae el HTTP status de un WebPushException (ex.response puede ser None en pywebpush)."""
+    if ex.response is not None:
+        return ex.response.status_code
+    import re
+    m = re.search(r'(\d{3})', str(ex))
+    return int(m.group(1)) if m else None
+
+# Códigos HTTP del push service que indican suscripción inválida/caducada → borrar
+_PUSH_STALE_CODES = {400, 403, 404, 410}
+
+
 def enviar_push_notificacion(org_id, titulo, cuerpo, url='/dashboard'):
     """Envía una Web Push Notification a todos los suscriptores activos de la organización."""
     vapid_private = os.environ.get('VAPID_PRIVATE_KEY')
@@ -1267,9 +1287,9 @@ def enviar_push_notificacion(org_id, titulo, cuerpo, url='/dashboard'):
                     vapid_claims={"sub": f"mailto:{vapid_email}"}
                 )
             except WebPushException as ex:
-                code = ex.response.status_code if ex.response else None
+                code = _webpush_http_status(ex)
                 app.logger.warning(f'[Push] WebPushException HTTP {code} sub_id={sub.id}: {ex}')
-                if code in [404, 410]:
+                if code in _PUSH_STALE_CODES:
                     to_delete.append(sub)
         for sub in to_delete:
             db.session.delete(sub)
@@ -7385,9 +7405,9 @@ def api_push_test():
                 )
                 sent += 1
             except WebPushException as ex:
-                code = ex.response.status_code if ex.response else None
+                code = _webpush_http_status(ex)
                 errors.append(f'HTTP {code}: {ex}')
-                if code in [404, 410]:
+                if code in _PUSH_STALE_CODES:
                     to_delete.append(sub)
         for sub in to_delete:
             db.session.delete(sub)
