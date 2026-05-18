@@ -177,6 +177,9 @@
 
 </div>
 
+{% endblock %}
+
+{% block modals %}
 <!-- ── MODALES DE RECHAZO (uno por solicitud pendiente) ── -->
 {% for item in items %}
 {% set s = item.s %}
@@ -213,7 +216,6 @@
 </div>
 {% endif %}
 {% endfor %}
-
 {% endblock %}
 
 {% block scripts %}

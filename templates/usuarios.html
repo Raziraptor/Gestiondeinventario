@@ -86,70 +86,56 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- MODAL DE CAMBIO DE CONTRASEÑA -->
-    <!-- ========================================== -->
-    <div class="modal fade" id="modalResetPassword" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill"></i> Restablecer Contraseña</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                
-                <!-- El action del form se llena dinámicamente con JS -->
-                <form id="formResetPassword" method="POST" action="">
-                    <div class="modal-body p-4">
-                        <div class="text-center mb-4">
-                            <i class="bi bi-person-badge fs-1 text-muted"></i>
-                            <h5 class="mt-2">Usuario: <span id="lblUsuarioReset" class="text-primary fw-bold"></span></h5>
-                            <p class="text-muted small">Estás a punto de sobrescribir la contraseña de este usuario.</p>
-                        </div>
+{% endblock %}
 
-                        <div class="mb-3">
-                            <label for="new_password" class="form-label fw-bold small text-uppercase text-muted">Nueva Contraseña Temporal</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white"><i class="bi bi-key"></i></span>
-                                <input type="text" class="form-control form-control-lg fw-bold" id="new_password" name="new_password" 
-                                       placeholder="Ej: clave123" required minlength="4" autocomplete="off">
-                            </div>
-                            <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Comparte esta clave con el usuario para que pueda ingresar.</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
-                            <i class="bi bi-check-circle-fill"></i> Guardar Cambios
-                        </button>
-                    </div>
-                </form>
+{% block modals %}
+<div class="modal fade" id="modalResetPassword" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fw-bold"><i class="bi bi-shield-lock-fill"></i> Restablecer Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form id="formResetPassword" method="POST" action="">
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-person-badge fs-1 text-muted"></i>
+                        <h5 class="mt-2">Usuario: <span id="lblUsuarioReset" class="text-primary fw-bold"></span></h5>
+                        <p class="text-muted small">Estás a punto de sobrescribir la contraseña de este usuario.</p>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label fw-bold small text-uppercase text-muted">Nueva Contraseña Temporal</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-key"></i></span>
+                            <input type="text" class="form-control form-control-lg fw-bold" id="new_password" name="new_password"
+                                   placeholder="Ej: clave123" required minlength="4" autocomplete="off">
+                        </div>
+                        <div class="form-text mt-2"><i class="bi bi-info-circle"></i> Comparte esta clave con el usuario para que pueda ingresar.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark px-4">
+                        <i class="bi bi-check-circle-fill"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        function abrirModalPassword(userId, username) {
-            // 1. Mostrar nombre en el modal
-            document.getElementById('lblUsuarioReset').textContent = username;
-            
-            // 2. Construir la URL dinámicamente
-            // Usamos un ID dummy (0) en la plantilla y lo reemplazamos por el ID real
-            // Asegúrate de que 'admin_reset_password' coincida con el nombre de la función en tu app.py
-            var baseUrl = "{{ url_for('admin_reset_password', id=0) }}";
-            var finalUrl = baseUrl.replace('/0', '/' + userId);
-            
-            // 3. Configurar formulario
-            document.getElementById('formResetPassword').action = finalUrl;
-            document.getElementById('new_password').value = ''; // Limpiar campo anterior
-
-            // 4. Abrir Modal
-            var myModal = new bootstrap.Modal(document.getElementById('modalResetPassword'));
-            myModal.show();
-            
-            // 5. Enfocar input automáticamente después de que el modal se muestre
-            document.getElementById('modalResetPassword').addEventListener('shown.bs.modal', function () {
-                document.getElementById('new_password').focus();
-            });
-        }
-    </script>
+{% block scripts %}
+<script>
+function abrirModalPassword(userId, username) {
+    document.getElementById('lblUsuarioReset').textContent = username;
+    var baseUrl = "{{ url_for('admin_reset_password', id=0) }}";
+    document.getElementById('formResetPassword').action = baseUrl.replace('/0', '/' + userId);
+    document.getElementById('new_password').value = '';
+    new bootstrap.Modal(document.getElementById('modalResetPassword')).show();
+    document.getElementById('modalResetPassword').addEventListener('shown.bs.modal', function () {
+        document.getElementById('new_password').focus();
+    }, { once: true });
+}
+</script>
 {% endblock %}

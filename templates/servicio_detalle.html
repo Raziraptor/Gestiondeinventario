@@ -203,34 +203,6 @@
               </td>
             </tr>
 
-            {# Modal marcar pagado #}
-            {% if p.estado != 'pagado' %}
-            <div class="modal fade" id="modalPagar{{ p.id }}" tabindex="-1">
-              <div class="modal-dialog modal-sm modal-dialog-centered">
-                <div class="modal-content border-0 shadow rounded-4">
-                  <div class="modal-header border-0 pb-0">
-                    <h6 class="modal-title fw-bold">Confirmar pago</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-                  <form action="{{ url_for('marcar_pago_pagado', id=p.id) }}" method="POST">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="modal-body py-2">
-                      <div class="mb-3 text-muted small">Monto: <strong class="text-body">${{ "{:,.2f}".format(p.monto) }}</strong></div>
-                      <label class="form-label small fw-semibold">Fecha de pago</label>
-                      <input type="date" name="fecha_pago" class="form-control form-control-sm"
-                             value="{{ hoy.strftime('%Y-%m-%d') }}" required>
-                    </div>
-                    <div class="modal-footer border-0 pt-0 gap-2">
-                      <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
-                      <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
-                        <i class="bi bi-check2-circle me-1"></i>Confirmar
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-            {% endif %}
             {% endfor %}
           </tbody>
         </table>
@@ -271,4 +243,38 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block modals %}
+{% if servicio.pagos %}
+{% for p in servicio.pagos %}
+{% if p.estado != 'pagado' %}
+<div class="modal fade" id="modalPagar{{ p.id }}" tabindex="-1">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <h6 class="modal-title fw-bold">Confirmar pago</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('marcar_pago_pagado', id=p.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body py-2">
+          <div class="mb-3 text-muted small">Monto: <strong class="text-body">${{ "{:,.2f}".format(p.monto) }}</strong></div>
+          <label class="form-label small fw-semibold">Fecha de pago</label>
+          <input type="date" name="fecha_pago" class="form-control form-control-sm"
+                 value="{{ hoy.strftime('%Y-%m-%d') }}" required>
+        </div>
+        <div class="modal-footer border-0 pt-0 gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold">
+            <i class="bi bi-check2-circle me-1"></i>Confirmar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
 {% endblock %}
