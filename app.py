@@ -1638,7 +1638,8 @@ def index():
     
     alertas_agrupadas = {}
     pending_map = {}
-    
+    pending_map_tmpl = {}
+
     if current_user.rol == 'super_admin':
         # (El Super Admin ve todo, agrupado por organización)
         pass
@@ -1675,23 +1676,22 @@ def index():
                 'estado': estado
             }
             
-        # 4. Agrupar las alertas por (Almacén, Proveedor)
+        # 4. Agrupar las alertas por (Almacén, Proveedor) — incluye items con OC pendiente
         alertas_agrupadas = defaultdict(list)
         for item_stock in alertas_crudas:
-            if (item_stock.producto_id, item_stock.almacen_id) in pending_map:
-                continue
-                
             if item_stock.producto.proveedor:
-                key = (item_stock.almacen_id, item_stock.almacen.nombre, 
+                key = (item_stock.almacen_id, item_stock.almacen.nombre,
                        item_stock.producto.proveedor_id, item_stock.producto.proveedor.nombre)
                 alertas_agrupadas[key].append(item_stock)
             else:
                 key = (item_stock.almacen_id, item_stock.almacen.nombre, 0, "Proveedor no asignado")
                 alertas_agrupadas[key].append(item_stock)
 
+        pending_map_tmpl = {f"{k[0]}:{k[1]}": v for k, v in pending_map.items()}
+
     return render_template('index.html',
                            alertas_agrupadas=alertas_agrupadas,
-                           pending_map=pending_map,
+                           pending_map_tmpl=pending_map_tmpl,
                            now=now_mx())
 
 @app.route('/dashboard')
