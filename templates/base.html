@@ -156,17 +156,17 @@
 
         /* ── SISTEMA DE ANIMACIONES PREMIUM ─────────────────────────────────── */
 
-        /* Entrada de página */
+        /* Entrada de página — to sin transform para no crear stacking context permanente */
         @keyframes pageIn {
             from { opacity: 0; transform: translateY(12px) scale(0.995); }
-            to   { opacity: 1; transform: translateY(0)   scale(1);     }
+            to   { opacity: 1; }
         }
         main { animation: pageIn 0.3s cubic-bezier(0.34, 1.1, 0.64, 1) both; }
 
         /* Entrada escalonada de cards en grid */
         @keyframes cardIn {
             from { opacity: 0; transform: translateY(18px) scale(0.97); }
-            to   { opacity: 1; transform: translateY(0)    scale(1);    }
+            to   { opacity: 1; }
         }
         .animate-cards > .col,
         .animate-cards > [class*="col-"] {
@@ -183,7 +183,7 @@
         /* Entrada de sección (p.ej. filtros, cabeceras) */
         @keyframes sectionIn {
             from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; transform: translateY(0); }
+            to   { opacity: 1; }
         }
         .animate-section { animation: sectionIn 0.32s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
@@ -1053,30 +1053,6 @@
         .qa-qty-btn:active { transform:scale(.9); }
     </style>
 
-    <script>
-    /* ── Animación de progress bars: transform scaleX (GPU, sin repaint) ── */
-    (function () {
-        function animateBars() {
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-            document.querySelectorAll('.progress-bar').forEach(function (bar) {
-                if (!bar.style.width || bar.style.width === '0%') return;
-                bar.style.transition = 'none';
-                bar.style.transform = 'scaleX(0)';
-                requestAnimationFrame(function () {
-                    requestAnimationFrame(function () {
-                        bar.style.transition = '';
-                        bar.style.transform = 'scaleX(1)';
-                    });
-                });
-            });
-        }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', animateBars);
-        } else {
-            animateBars();
-        }
-    })();
-    </script>
 </head>
 <body>
 
@@ -1436,6 +1412,9 @@
 
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Modales de página — fuera de <main> para evitar conflictos de stacking context -->
+    {% block modals %}{% endblock %}
 
     <!-- =====================================================
          SCRIPTS

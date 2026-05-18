@@ -314,6 +314,9 @@
 
 </div>
 
+{% endblock %}
+
+{% block modals %}
 <!-- ── MODAL RECHAZO (solo admins, cuando estado = pendiente_aprobacion) ── -->
 {% if proyecto_oc.estado == 'pendiente_aprobacion' and current_user.rol in ['super_admin', 'admin'] and solicitud_pendiente %}
 <div class="modal fade" id="modalRechazar" tabindex="-1" aria-labelledby="modalRechazarLabel" aria-hidden="true">
@@ -344,7 +347,6 @@
     </div>
 </div>
 {% endif %}
-
 {% endblock %}
 
 {% block scripts %}
