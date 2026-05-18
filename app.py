@@ -323,12 +323,9 @@ def gen_vapid_command():
         from cryptography.hazmat.backends import default_backend
         private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
         public_key  = private_key.public_key()
+        # P-256 scalar: 32 bytes big-endian
         priv = base64.urlsafe_b64encode(
-            private_key.private_bytes(
-                serialization.Encoding.Raw,
-                serialization.PrivateFormat.Raw,
-                serialization.NoEncryption()
-            )
+            private_key.private_numbers().private_value.to_bytes(32, 'big')
         ).rstrip(b'=').decode()
         pub = base64.urlsafe_b64encode(
             public_key.public_bytes(
