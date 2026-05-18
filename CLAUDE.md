@@ -4,11 +4,26 @@
 Flask + SQLAlchemy + PostgreSQL + Bootstrap 5.3.3 + Gunicorn (servidor: /root/venv/)
 DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 
-## Skills activos en este proyecto
-- **andrej-karpathy**: Usar para análisis técnico profundo, decisiones de arquitectura y razonamiento sobre ML/AI.
-- **antigravity-skill-orchestrator**: Usar para coordinar múltiples skills en tareas complejas de varias etapas.
-- **ui-ux-pro-max**: Usar para cualquier trabajo de diseño UI/UX. Script en `.claude/skills/ui-ux-pro-max/scripts/search.py`.
-- **senior-frontend**: Referencias en `.claude/skills/senior-frontend/references/`.
+## Herramientas activas — SIEMPRE usar la herramienta adecuada según la tarea
+
+### Plugins oficiales (siempre disponibles)
+- **superpowers**: Tareas grandes, múltiples pasos, subagentes paralelos, worktrees.
+- **code-review**: Revisar código antes de commits importantes o PRs.
+- **frontend-design**: Consultar ANTES de implementar cualquier componente o página nueva.
+- **claude-md-management** (`/revise-claude-md`): Actualizar CLAUDE.md al final de cada sesión significativa.
+- **pr-review-toolkit**: Antes de abrir PRs — code-reviewer, test-analyzer, silent-failure-hunter.
+
+### Skills (invocar con Skill tool o `/nombre`)
+- **andrej-karpathy**: Análisis técnico profundo, arquitectura, decisiones de ML/AI.
+- **antigravity-skill-orchestrator**: Coordinar múltiples skills en tareas complejas multietapa.
+- **ui-ux-pro-max**: Todo diseño UI/UX. Script: `.claude/skills/ui-ux-pro-max/scripts/search.py`.
+- **update-config**: Cambios a `settings.json`, permisos, hooks de Claude Code.
+
+### MCP — ruflo (usar cuando esté conectado)
+- Inicio de sesión: `memory_retrieve` con tags del proyecto para recuperar contexto previo.
+- Fin de sesión importante: `memory_store` con resumen de cambios, patrones y decisiones.
+- Búsqueda de contexto: `memory_search` antes de implementar algo que ya pudo haberse resuelto.
+- Tareas largas automatizables: `workflow_*` y `agent_*`.
 
 ## Reglas generales
 - Siempre usar ruflo (MCP) cuando esté disponible para memoria persistente y contexto.
@@ -50,6 +65,11 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - Design system: tokens CSS en `base.html` (`--primary`, `--surface`, `--border`, etc.), dark/light mode.
 - Glassmorphism navbar, animaciones con `prefers-reduced-motion`, focus visible WCAG.
 - Skip link, `<main id="main-content">`, `font-display: swap`.
+- **GOTCHA CSS stacking context**: `animation-fill-mode: both` + `transform` en keyframe `to` crea stacking context
+  permanente en `<main>`, haciendo que el backdrop de Bootstrap (z-index 1040) bloquee modales dentro de `<main>`.
+  Fix: keyframe `to` solo con `opacity:1`, sin `transform`. Commit: `37426b4`.
+- **Patrón modales de página**: usar `{% block modals %}{% endblock %}` en `base.html` (después de `</main>`).
+  Los modales de plantillas hijas van en `{% block modals %}`, nunca dentro de `{% block content %}`.
 
 ### 9 mejoras UI/UX aplicadas en dashboard (commit 30278db)
 1. Emojis → Bootstrap Icons en leyenda de barra de salud.
