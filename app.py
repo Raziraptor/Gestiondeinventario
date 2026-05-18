@@ -317,20 +317,33 @@ def limpiar_push_subs():
 def gen_vapid_command():
     """Genera un par de claves VAPID para Web Push Notifications."""
     try:
-        from py_vapid import Vapid
-        v = Vapid()
-        v.generate_keys()
-        pub  = v.public_key_urlsafe_b64
-        priv = v.private_key_urlsafe_b64
-        if isinstance(pub,  bytes): pub  = pub.decode()
-        if isinstance(priv, bytes): priv = priv.decode()
+        import base64
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.backends import default_backend
+        private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+        public_key  = private_key.public_key()
+        priv = base64.urlsafe_b64encode(
+            private_key.private_bytes(
+                serialization.Encoding.Raw,
+                serialization.PrivateFormat.Raw,
+                serialization.NoEncryption()
+            )
+        ).rstrip(b'=').decode()
+        pub = base64.urlsafe_b64encode(
+            public_key.public_bytes(
+                serialization.Encoding.X962,
+                serialization.PublicFormat.UncompressedPoint
+            )
+        ).rstrip(b'=').decode()
         print("\n=== CLAVES VAPID GENERADAS ===")
         print(f"VAPID_PUBLIC_KEY={pub}")
         print(f"VAPID_PRIVATE_KEY={priv}")
         print(f"VAPID_CLAIMS_EMAIL=notifications@tudominio.com")
-        print("\nAgrega estas líneas a tu archivo .env en el servidor.")
+        print("\nAgrega estas líneas al [Service] en /etc/systemd/system/inventario.service")
+        print("Luego: flask limpiar-push-subs && sudo systemctl daemon-reload && sudo systemctl restart inventario")
     except ImportError:
-        print("Error: ejecuta 'pip install pywebpush' primero.")
+        print("Error: ejecuta 'pip install pywebpush cryptography' primero.")
 
 @app.context_processor
 def inject_vapid_key():
