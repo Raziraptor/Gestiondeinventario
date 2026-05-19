@@ -1897,14 +1897,37 @@
             showToast('Notificaciones desactivadas', 'secondary');
         }
 
+        // Convierte ArrayBuffer a base64url (para comparar claves VAPID)
+        function ab2b64u(ab) {
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(ab)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
         // Verifica el estado real del PushManager y reconcilia con localStorage
         async function actualizarBoton() {
             try {
                 const reg = await swReady(5000);
                 const sub = await reg.pushManager.getSubscription();
                 if (sub) {
-                    localStorage.setItem('push_active', '1');
-                    setIconState(true);
+                    // Verifica que la suscripción use la clave VAPID actual
+                    const subKey = sub.options && sub.options.applicationServerKey
+                        ? ab2b64u(sub.options.applicationServerKey) : null;
+                    const keyOk = !subKey || subKey === VAPID_PUBLIC.replace(/=+$/, '');
+                    if (!keyOk) {
+                        // Clave VAPID diferente — forzar nueva suscripción con la clave actual
+                        console.info('[Push] Clave VAPID desactualizada, re-suscribiendo…');
+                        await sub.unsubscribe();
+                        await suscribir(reg);
+                    } else {
+                        // Clave ok — re-sincronizar con el servidor por si se limpió la BD
+                        localStorage.setItem('push_active', '1');
+                        setIconState(true);
+                        fetch('/api/push/subscribe', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                            body: JSON.stringify(sub.toJSON())
+                        }).catch(() => {});
+                    }
                 } else if (localStorage.getItem('push_active')) {
                     // El navegador perdió la suscripción — reactivar automáticamente
                     try {
@@ -1963,6 +1986,27 @@
                     const data = await resp.json();
                     if (data.ok) {
                         showToast('Notificación de prueba enviada ✓', 'success');
+                    } else if (resp.status === 400) {
+                        // Servidor no tiene la suscripción — re-sincronizar automáticamente
+                        showToast('Re-sincronizando suscripción con el servidor…', 'secondary', 3000);
+                        try {
+                            const reg = await swReady(5000);
+                            const sub = await reg.pushManager.getSubscription();
+                            if (sub) {
+                                await fetch('/api/push/subscribe', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
+                                    body: JSON.stringify(sub.toJSON())
+                                });
+                                showToast('Suscripción re-sincronizada. Inténtalo de nuevo.', 'success', 5000);
+                            } else {
+                                showToast('Activa las notificaciones primero (botón de campana).', 'warning');
+                                localStorage.removeItem('push_active');
+                                setIconState(false);
+                            }
+                        } catch(e2) {
+                            showToast('Error al re-sincronizar: ' + e2.message, 'danger', 8000);
+                        }
                     } else {
                         showToast('Error push: ' + (data.error || 'desconocido'), 'danger', 10000);
                     }
