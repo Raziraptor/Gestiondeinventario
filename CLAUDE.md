@@ -24,6 +24,7 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - Fin de sesión importante: `memory_store` con resumen de cambios, patrones y decisiones.
 - Búsqueda de contexto: `memory_search` antes de implementar algo que ya pudo haberse resuelto.
 - Tareas largas automatizables: `workflow_*` y `agent_*`.
+- Si ruflo NO conecta en la sesión: usar `/revise-claude-md` al final como memoria persistente alternativa.
 
 ## Reglas generales
 - Siempre usar ruflo (MCP) cuando esté disponible para memoria persistente y contexto.
@@ -32,7 +33,12 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - La cámara NO debe bloquearse en Permissions-Policy (se usa para escáner QR).
 - Archivos Python: siempre abrir con `encoding='utf-8'` en Windows.
 
-## Seguridad — Todo implementado (commits 317ea9e, 5ca3759, aeef44c, 3988e87)
+## Seguridad — Todo implementado (commits 317ea9e, 5ca3759, aeef44c, 3988e87, 0db5e87, 4d63d06)
+
+### Multi-tenant isolation (commits 0db5e87, 4d63d06) ✅ COMPLETO
+- Audit con 4 agentes paralelos (superpowers) cubrió: listas, detalle, servicios, APIs.
+- Rutas con `@check_org_permission` añadido: `ver_orden`, `editar_orden`, `nueva_orden_manual`, `ver_proyecto_oc`, `lista_servicios`, `nuevo/editar/eliminar_servicio`, `detalle_servicio`, `nuevo/marcar/eliminar pago_servicio`, `api_productos_con_stock`.
+- Fugas corregidas: `historial_producto` (stocks sin filtro Almacen.org), `ver_proyecto_oc` (SolicitudAprobacion sin org_id), `api_toggle_permiso` (IDOR oracle en fetch pre-check).
 
 ### Rutas financieras (commit 317ea9e)
 - Montos siempre validados > 0 server-side en: gastos, facturas, pagos de servicio.
@@ -83,12 +89,17 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 9. Progress bar CSS: `transition: width` (los bars usan `width:%` inline, no transform).
 
 ## Helpers y patrones clave en app.py
-- `get_item_or_404(model, id)` — filtra por `organizacion_id` automáticamente (seguridad multi-tenant).
+- `get_item_or_404(model, id)` — SEGURO: filtra por `organizacion_id` automáticamente. Usar siempre en lugar de `Model.query.get_or_404(id)` (INSEGURO — sin filtro de org).
+- `Model.query.filter_by(id=x, organizacion_id=org_id).first_or_404()` — patrón correcto para rutas que no usan `get_item_or_404`.
+- `Stock` no tiene `organizacion_id` propio — filtrar siempre vía join: `Stock.query.filter_by(...).join(Almacen).filter(Almacen.organizacion_id == org_id)`.
+- `@check_org_permission` — NO filtra datos, solo bloquea usuarios sin org asignada. Debe estar en TODAS las rutas incluso si los queries ya filtran por org_id.
+- IDOR oracle: para rutas admin con `<user_id>`: hacer `filter_by(id=x, organizacion_id=org_id).first_or_404()` ANTES del org-check, no después.
+- `SolicitudAprobacion` tiene `organizacion_id` — siempre incluirlo en queries aunque el padre ya esté validado.
 - `log_actividad(accion, entidad, detalle, user_id, org_id)` — llamar ANTES de `db.session.commit()`.
 - `_flash_err(user_msg, exc)` — loguea excepción al servidor, muestra mensaje seguro al usuario.
 - `CATEGORIAS_GASTO` — whitelist: `['Servicios', 'Nómina', 'Mantenimiento', 'Insumos', 'Inventario', 'Otros']`.
 
 ## Estado actual — Fase 2 completa
-- FIN-01 ✅ — RATE-01 ✅ — AUTH-02 ✅
+- FIN-01 ✅ — RATE-01 ✅ — AUTH-02 ✅ — Multi-tenant isolation ✅ (commits 0db5e87, 4d63d06)
 - Pendiente en servidor: correr los 3 comandos CLI de migración mencionados arriba.
 - Sin tareas pendientes de seguridad en la hoja de ruta original.
