@@ -1124,7 +1124,11 @@ def admin_reset_password(id):
 
     # 2. Buscar usuario
     usuario_objetivo = User.query.get_or_404(id)
-    
+
+    if current_user.rol != 'super_admin' and usuario_objetivo.organizacion_id != current_user.organizacion_id:
+        flash('No tienes permisos para realizar esta acción.', 'danger')
+        return redirect(url_for('lista_usuarios'))
+
     # 3. Obtener nueva contraseña del form
     nueva_password = request.form.get('new_password')
     
@@ -2315,8 +2319,8 @@ def editar_producto(id):
     Edita un producto.
     CORREGIDO: Previene error 'could not convert string to float' en campos vacíos.
     """
-    producto = Producto.query.get_or_404(id)
-    org_id = producto.organizacion_id
+    producto = get_item_or_404(Producto, id)
+    org_id = current_user.organizacion_id if current_user.rol != 'super_admin' else producto.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     categorias = Categoria.query.filter_by(organizacion_id=org_id).all()
 
@@ -2671,7 +2675,7 @@ def eliminar_almacen(id):
         flash('No tienes permiso para eliminar almacenes.', 'danger')
         return redirect(url_for('lista_almacenes'))
 
-    almacen = Almacen.query.get_or_404(id)
+    almacen = Almacen.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
 
     # Opcional: Validar que esté vacío antes de borrar
     # stocks_activos = Stock.query.filter_by(almacen_id=id).filter(Stock.cantidad > 0).count()
@@ -2845,8 +2849,12 @@ def asignar_producto_rapido():
         if not producto_id or not almacen_id:
             raise Exception("Datos incompletos.")
 
-        producto = Producto.query.get_or_404(producto_id)
-        
+        producto = get_item_or_404(Producto, producto_id)
+        org_id = current_user.organizacion_id
+        if not Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first():
+            flash('Almacén no autorizado.', 'danger')
+            return redirect(url_for('lista_productos_sin_almacen'))
+
         # Verificar si ya existe (doble check de seguridad)
         existe = Stock.query.filter_by(producto_id=producto_id, almacen_id=almacen_id).first()
         if existe:
@@ -3520,11 +3528,10 @@ def recibir_orden(id):
     Recibe una OC y actualiza el Stock del Almacén correspondiente.
     Genera movimientos de entrada (Kardex).
     """
-    # Usamos la consulta estándar compatible con tu versión de Flask
-    orden = OrdenCompra.query.get_or_404(id)
-    
-    if orden.estado == 'recibida':
-        flash('Esta orden ya fue recibida anteriormente.', 'warning')
+    orden = OrdenCompra.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+
+    if orden.estado != 'enviada':
+        flash('Solo se pueden recibir órdenes en estado "Enviada".', 'warning')
         return redirect(url_for('lista_ordenes'))
 
     # Validación CRÍTICA: La orden debe tener un almacén destino
@@ -3965,14 +3972,14 @@ def eliminar_orden(id):
     - Si estaba Recibida: Funciona como 'Limpiar Historial'.
     """
     orden = OrdenCompra.query.filter_by(
-        id=id, 
+        id=id,
         organizacion_id=current_user.organizacion_id
     ).first_or_404()
-    
-    # Validaciones de seguridad opcionales
-    # (Por ejemplo, impedir borrar si ya tiene movimientos de stock complejos asociados, 
-    # aunque en este sistema simple asumimos que al borrar la OC no revertimos el stock histórico, solo borramos el papel).
-    
+
+    if orden.estado == 'recibida':
+        flash('No se pueden eliminar órdenes ya recibidas (el stock ya fue ingresado).', 'danger')
+        return redirect(url_for('lista_ordenes'))
+
     estado_anterior = orden.estado
     
     try:
@@ -6359,9 +6366,12 @@ def login():
         
         if user and user.check_password(form.password.data):
             login_user(user)
-            next_page = request.args.get('next') 
+            next_page = request.args.get('next')
             flash('Inicio de sesión exitoso.', 'success')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
+            from urllib.parse import urlparse
+            if next_page and urlparse(next_page).netloc == '':
+                return redirect(next_page)
+            return redirect(url_for('index'))
         else:
             flash('Inicio de sesión fallido. Verifica tu usuario y contraseña.', 'danger')
             
@@ -7071,6 +7081,10 @@ def nueva_transferencia():
             if origen_id == destino_id:
                 flash('El almacén de origen y destino no pueden ser el mismo.', 'danger')
                 return redirect(url_for('nueva_transferencia'))
+            if not Almacen.query.filter_by(id=origen_id, organizacion_id=org_id).first() or \
+               not Almacen.query.filter_by(id=destino_id, organizacion_id=org_id).first():
+                flash('Almacén no autorizado.', 'danger')
+                return redirect(url_for('nueva_transferencia'))
             if cantidad <= 0:
                 flash('La cantidad debe ser mayor a cero.', 'danger')
                 return redirect(url_for('nueva_transferencia'))
@@ -7173,6 +7187,10 @@ def nuevo_ajuste():
 
             if not motivo:
                 flash('El motivo del ajuste es obligatorio para la auditoría.', 'danger')
+                return redirect(url_for('nuevo_ajuste'))
+
+            if not Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first():
+                flash('Almacén no autorizado.', 'danger')
                 return redirect(url_for('nuevo_ajuste'))
 
             stock = Stock.query.filter_by(

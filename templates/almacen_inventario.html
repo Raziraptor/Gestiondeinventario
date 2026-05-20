@@ -325,17 +325,29 @@
                         item.href = '#';
                         item.classList.add('list-group-item', 'list-group-item-action', 'd-flex', 'justify-content-between', 'align-items-center', 'py-3');
                         
-                        const badgeCaja = (p.unidades_por_caja && p.unidades_por_caja > 1) 
-                            ? `<span class='badge bg-info text-dark rounded-pill ms-2 shadow-sm'><i class="bi bi-box"></i> x${p.unidades_por_caja}</span>` 
-                            : '';
-
-                        item.innerHTML = `
-                            <div>
-                                <strong class="text-body">${p.nombre}</strong> ${badgeCaja}<br>
-                                <small class="text-muted"><i class="bi bi-upc"></i> ${p.codigo}</small>
-                            </div>
-                            <i class="bi bi-plus-circle-fill text-primary fs-5 shadow-sm rounded-circle"></i>
-                        `;
+                        const infoDiv = document.createElement('div');
+                        const strongNombre = document.createElement('strong');
+                        strongNombre.className = 'text-body';
+                        strongNombre.textContent = p.nombre;
+                        infoDiv.append(strongNombre);
+                        if (p.unidades_por_caja && p.unidades_por_caja > 1) {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-info text-dark rounded-pill ms-2 shadow-sm';
+                            const bico = document.createElement('i');
+                            bico.className = 'bi bi-box';
+                            badge.append(bico, ' x' + p.unidades_por_caja);
+                            infoDiv.append(' ', badge);
+                        }
+                        infoDiv.append(document.createElement('br'));
+                        const small = document.createElement('small');
+                        small.className = 'text-muted';
+                        const upcIco = document.createElement('i');
+                        upcIco.className = 'bi bi-upc';
+                        small.append(upcIco, ' ', p.codigo);
+                        infoDiv.append(small);
+                        const plusIco = document.createElement('i');
+                        plusIco.className = 'bi bi-plus-circle-fill text-primary fs-5 shadow-sm rounded-circle';
+                        item.append(infoDiv, plusIco);
                         
                         item.onclick = (e) => {
                             e.preventDefault();

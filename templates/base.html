@@ -1663,19 +1663,39 @@
         }
 
         function render(data, q) {
+            dropdown.innerHTML = '';
             if (!data.length) {
-                dropdown.innerHTML = '<div class="p-3 text-center text-muted" style="font-size:0.85rem;">' +
-                    '<i class="bi bi-search me-1"></i>Sin resultados para "' + q + '"</div>';
+                const msg = document.createElement('div');
+                msg.className = 'p-3 text-center text-muted';
+                msg.style.fontSize = '0.85rem';
+                const ico = document.createElement('i');
+                ico.className = 'bi bi-search me-1';
+                msg.append(ico, 'Sin resultados para "', q, '"');
+                dropdown.append(msg);
                 show(); return;
             }
-            dropdown.innerHTML = data.slice(0, 7).map(function(p) {
-                return '<a href="/producto/editar/' + p.id + '" class="search-item">' +
-                    '<div class="search-item-icon"><i class="bi bi-box-seam text-muted"></i></div>' +
-                    '<div>' +
-                        '<div class="fw-semibold" style="line-height:1.3;">' + p.nombre + '</div>' +
-                        '<div class="text-muted" style="font-size:0.75rem;">SKU: ' + p.codigo + ' &middot; $' + parseFloat(p.precio).toFixed(2) + '</div>' +
-                    '</div></a>';
-            }).join('');
+            data.slice(0, 7).forEach(function(p) {
+                const a = document.createElement('a');
+                a.href = '/producto/editar/' + p.id;
+                a.className = 'search-item';
+                const icoDiv = document.createElement('div');
+                icoDiv.className = 'search-item-icon';
+                const ico = document.createElement('i');
+                ico.className = 'bi bi-box-seam text-muted';
+                icoDiv.append(ico);
+                const infoDiv = document.createElement('div');
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'fw-semibold';
+                nameDiv.style.lineHeight = '1.3';
+                nameDiv.textContent = p.nombre;
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'text-muted';
+                metaDiv.style.fontSize = '0.75rem';
+                metaDiv.textContent = 'SKU: ' + p.codigo + ' · $' + parseFloat(p.precio).toFixed(2);
+                infoDiv.append(nameDiv, metaDiv);
+                a.append(icoDiv, infoDiv);
+                dropdown.append(a);
+            });
             show();
         }
 
@@ -2210,28 +2230,37 @@
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         if (!data.length) { qaList.style.display = 'none'; return; }
-                        qaList.innerHTML = data.map(function (s) {
-                            return '<div class="qa-item"' +
-                                ' data-id="' + s.stock_id + '"' +
-                                ' data-nombre="' + s.nombre.replace(/"/g, '&quot;') + '"' +
-                                ' data-almacen="' + s.almacen.replace(/"/g, '&quot;') + '"' +
-                                ' data-cantidad="' + s.cantidad + '">' +
-                                '<strong>' + s.nombre + '</strong>' +
-                                ' <span class="text-muted">· ' + s.almacen + '</span>' +
-                                '<span class="float-end badge rounded-pill" style="background:var(--hover-bg);color:var(--bs-secondary);font-size:.7rem;">' +
-                                s.cantidad + ' uds</span></div>';
-                        }).join('');
-                        qaList.style.display = 'block';
-                        qaList.querySelectorAll('.qa-item').forEach(function (el) {
-                            el.addEventListener('click', function () {
+                        qaList.innerHTML = '';
+                        data.forEach(function (s) {
+                            const item = document.createElement('div');
+                            item.className = 'qa-item';
+                            item.dataset.id = s.stock_id;
+                            item.dataset.nombre = s.nombre;
+                            item.dataset.almacen = s.almacen;
+                            item.dataset.cantidad = s.cantidad;
+                            const strong = document.createElement('strong');
+                            strong.textContent = s.nombre;
+                            const muted = document.createElement('span');
+                            muted.className = 'text-muted';
+                            muted.textContent = '· ' + s.almacen;
+                            const badge = document.createElement('span');
+                            badge.className = 'float-end badge rounded-pill';
+                            badge.style.cssText = 'background:var(--hover-bg);color:var(--bs-secondary);font-size:.7rem;';
+                            badge.textContent = s.cantidad + ' uds';
+                            item.append(strong, ' ', muted, badge);
+                            item.addEventListener('click', function () {
                                 qaStockId.value = this.dataset.id;
                                 qaSearch.value  = this.dataset.nombre;
-                                qaSelectedInfo.innerHTML =
-                                    '<i class="bi bi-shop me-1"></i>' + this.dataset.almacen +
-                                    ' &nbsp;·&nbsp; Stock actual: <strong>' + this.dataset.cantidad + '</strong> uds';
+                                qaSelectedInfo.innerHTML = '';
+                                const shopIco = document.createElement('i');
+                                shopIco.className = 'bi bi-shop me-1';
+                                const strongStock = document.createElement('strong');
+                                strongStock.textContent = this.dataset.cantidad;
+                                qaSelectedInfo.append(shopIco, this.dataset.almacen, '  ·  Stock actual: ', strongStock, ' uds');
                                 qaSelectedInfo.style.display = 'block';
                                 qaList.style.display = 'none';
                             });
+                            qaList.append(item);
                         });
                     })
                     .catch(function () {});
@@ -2276,7 +2305,7 @@
 
             fetch('/api/ajuste/rapido', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' },
                 body: JSON.stringify({ stock_id: stockId, tipo: tipo, cantidad: cantidad, motivo: motivo })
             })
             .then(function (r) { return r.json(); })

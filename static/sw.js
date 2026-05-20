@@ -137,8 +137,7 @@ async function _syncWithServer() {
     const ops = await _swGetAll(db);
     if (!ops.length) return;
 
-    // Obtener CSRF desde las cookies (Flask lo pone en 'csrf_token' cookie)
-    const csrf = _getCookieCSRF();
+    const csrf = await _getCookieCSRF();
 
     const resp = await fetch('/api/sync', {
         method:  'POST',
@@ -177,10 +176,13 @@ async function _syncWithServer() {
     }
 }
 
-function _getCookieCSRF() {
-    const match = self.cookie && self.cookie.match(/csrf_token=([^;]+)/);
-    if (match) return decodeURIComponent(match[1]);
-    // fallback: vacío (Flask-WTF también acepta X-CSRFToken vacío para rutas con @login_required)
+async function _getCookieCSRF() {
+    try {
+        if (typeof cookieStore !== 'undefined') {
+            const c = await cookieStore.get('csrf_token');
+            return c ? decodeURIComponent(c.value) : '';
+        }
+    } catch (_) {}
     return '';
 }
 

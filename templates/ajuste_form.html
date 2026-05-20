@@ -222,10 +222,15 @@ document.addEventListener('DOMContentLoaded', function () {
         productos.forEach(p => {
             const div = document.createElement('div');
             div.className = 'item-producto';
-            div.innerHTML = `
-                <div class="nombre">${p.nombre}</div>
-                <div class="meta">SKU: ${p.codigo} &nbsp;·&nbsp; Stock: <strong>${p.cantidad}</strong> uds</div>
-            `;
+            const nombreDiv = document.createElement('div');
+            nombreDiv.className = 'nombre';
+            nombreDiv.textContent = p.nombre;
+            const metaDiv = document.createElement('div');
+            metaDiv.className = 'meta';
+            const strong = document.createElement('strong');
+            strong.textContent = p.cantidad;
+            metaDiv.append('SKU: ', p.codigo, '  ·  Stock: ', strong, ' uds');
+            div.append(nombreDiv, metaDiv);
             div.addEventListener('mousedown', () => seleccionarProducto(p));
             lista.appendChild(div);
         });
