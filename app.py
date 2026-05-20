@@ -3734,19 +3734,27 @@ def generar_oc_pdf(id):
 def nueva_orden_manual():
     """ Crea una nueva Orden de Compra manualmente. """
     
+    org_id = current_user.organizacion_id
+
     if request.method == 'POST':
         try:
-            proveedor_id = request.form.get('proveedor_id')
-            almacen_id = request.form.get('almacen_id') # Nuevo campo Multi-Almacén
-            
+            proveedor_id = request.form.get('proveedor_id', type=int)
+            almacen_id = request.form.get('almacen_id', type=int)
+
             if not proveedor_id:
                 flash("Debes seleccionar un proveedor.", "warning")
+                return redirect(request.url)
+            if not Proveedor.query.filter_by(id=proveedor_id, organizacion_id=org_id).first():
+                flash("Proveedor no autorizado.", "danger")
+                return redirect(request.url)
+            if almacen_id and not Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first():
+                flash("Almacén no autorizado.", "danger")
                 return redirect(request.url)
 
             # 1. Crear la Cabecera de la Orden
             nueva_orden = OrdenCompra(
                 proveedor_id=proveedor_id,
-                organizacion_id=current_user.organizacion_id,
+                organizacion_id=org_id,
                 creador_id=current_user.id,
                 estado='borrador', # <-- CORRECCIÓN: Debe nacer como borrador
                 almacen_id=almacen_id if almacen_id else None # Guardamos el almacén destino
@@ -3762,29 +3770,37 @@ def nueva_orden_manual():
             enlaces_lista = request.form.getlist('enlace[]') # <-- NUEVO: Capturamos los enlaces
 
             for i in range(len(productos_ids)):
-                if productos_ids[i] and float(cantidades[i]) > 0:
-                    
-                    # Extraer el valor de las cajas de forma segura
-                    try:
-                        cajas_val = float(cajas_lista[i])
-                    except (IndexError, ValueError, TypeError):
-                        cajas_val = 0.0
-                        
-                    # NUEVO: Extraer el enlace de forma segura
-                    try:
-                        enlace_val = enlaces_lista[i]
-                    except IndexError:
-                        enlace_val = ''
-                    
-                    detalle = OrdenCompraDetalle( 
-                        orden_id=nueva_orden.id,
-                        producto_id=productos_ids[i],
-                        cantidad_solicitada=float(cantidades[i]),
-                        costo_unitario_estimado=float(costos[i]),
-                        cajas=cajas_val, # <-- Guardamos las cajas
-                        enlace_proveedor=enlace_val # <-- CORRECCIÓN: Guardamos en enlace_proveedor
-                    )
-                    db.session.add(detalle)
+                pid_raw = productos_ids[i]
+                if not pid_raw:
+                    continue
+                try:
+                    pid = int(pid_raw)
+                    cant = int(float(cantidades[i]))
+                except (ValueError, TypeError, IndexError):
+                    continue
+                if cant <= 0:
+                    continue
+                if not Producto.query.filter_by(id=pid, organizacion_id=org_id).first():
+                    continue  # omitir productos de otra org
+
+                try:
+                    cajas_val = float(cajas_lista[i])
+                except (IndexError, ValueError, TypeError):
+                    cajas_val = 0.0
+                try:
+                    enlace_val = enlaces_lista[i]
+                except IndexError:
+                    enlace_val = ''
+
+                detalle = OrdenCompraDetalle(
+                    orden_id=nueva_orden.id,
+                    producto_id=pid,
+                    cantidad_solicitada=cant,
+                    costo_unitario_estimado=float(costos[i]) if i < len(costos) else 0,
+                    cajas=cajas_val,
+                    enlace_proveedor=enlace_val
+                )
+                db.session.add(detalle)
 
             db.session.commit()
             flash(f"Orden #{nueva_orden.id} creada exitosamente en estado borrador.", "success")
@@ -3792,11 +3808,10 @@ def nueva_orden_manual():
 
         except Exception as e:
             db.session.rollback()
-            flash(f"Error al crear orden: {e}", "danger")
+            _flash_err('Error al crear la orden.', e)
             return redirect(request.url)
 
     # --- MÉTODO GET: Renderizar el formulario ---
-    org_id = current_user.organizacion_id
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).all()
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).all()
 
