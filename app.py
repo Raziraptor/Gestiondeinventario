@@ -1108,7 +1108,12 @@ def lista_usuarios():
         flash('Acceso restringido a administradores.', 'danger')
         return redirect(url_for('dashboard'))
     
-    usuarios = User.query.order_by(User.username).all()
+    if current_user.rol == 'super_admin':
+        usuarios = User.query.order_by(User.username).all()
+    else:
+        usuarios = User.query.filter_by(
+            organizacion_id=current_user.organizacion_id
+        ).order_by(User.username).all()
     return render_template('usuarios.html', usuarios=usuarios)
 
 @app.route('/admin/usuario/<int:id>/reset_password', methods=['POST'])
@@ -1383,6 +1388,7 @@ def send_reset_email(user):
 
 @app.route('/configuracion/etiquetas', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_view_management')
 def configurar_etiqueta_diseno():
     org = Organizacion.query.get_or_404(current_user.organizacion_id)
@@ -1405,6 +1411,7 @@ def configurar_etiqueta_diseno():
 
 @app.route('/configuracion/excel', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_view_management')
 def configurar_excel_diseno():
     org = Organizacion.query.get_or_404(current_user.organizacion_id)
@@ -1839,6 +1846,7 @@ def dashboard():
 
 @app.route('/api/alertas/stock-bajo')
 @login_required
+@check_org_permission
 def api_alertas_stock_bajo():
     org_id = current_user.organizacion_id
     items = db.session.query(Stock).join(
@@ -1864,6 +1872,7 @@ def api_alertas_stock_bajo():
 
 @app.route('/api/productos/buscar')
 @login_required
+@check_org_permission
 def api_buscar_productos():
     """
     API para buscar productos por Nombre o SKU dinámicamente.
@@ -1896,6 +1905,7 @@ def api_buscar_productos():
 
 @app.route('/api/stock/buscar')
 @login_required
+@check_org_permission
 def api_stock_buscar():
     """Busca ítems de stock por nombre o SKU, devuelve contexto de almacén."""
     q = request.args.get('q', '').strip()
@@ -1926,6 +1936,7 @@ def api_stock_buscar():
 
 @app.route('/api/ajuste/rapido', methods=['POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_edit_management')
 def api_ajuste_rapido():
     """Aplica un ajuste rápido (+/-) a un ítem de stock via AJAX."""
@@ -2695,7 +2706,8 @@ def eliminar_almacen(id):
 
 @app.route('/almacen/<int:id>/inventario', methods=['GET', 'POST'])
 @login_required
-# @admin_required # (O usa @check_permission si es lo que usas en tu sistema)
+@check_org_permission
+@check_permission('perm_edit_management')
 def gestionar_inventario_almacen(id):
     almacen = get_item_or_404(Almacen, id)
     org_id = almacen.organizacion_id
@@ -2784,12 +2796,11 @@ def eliminar_producto_de_almacen(id):
     Elimina un producto de un almacén específico (borra el registro de Stock).
     El producto sigue existiendo en el catálogo global.
     """
-    stock_item = Stock.query.get_or_404(id)
+    stock_item = db.session.query(Stock).join(Almacen).filter(
+        Stock.id == id,
+        Almacen.organizacion_id == current_user.organizacion_id
+    ).first_or_404()
     almacen_id = stock_item.almacen_id
-    
-    if stock_item.almacen.organizacion_id != current_user.organizacion_id:
-        flash('No tienes permiso para realizar esta acción.', 'danger')
-        return redirect(url_for('lista_almacenes'))
 
     try:
         nombre_prod = stock_item.producto.nombre
@@ -3523,6 +3534,8 @@ def nueva_orden():
         
 @app.route('/ordenes/recibir/<int:id>', methods=['POST'])
 @login_required
+@check_org_permission
+@check_permission('perm_create_oc_standard')
 def recibir_orden(id):
     """
     Recibe una OC y actualiza el Stock del Almacén correspondiente.
@@ -3911,7 +3924,9 @@ def editar_orden(id):
                 cost = costos[i]
 
                 if not prod_id or not cant or not cost:
-                    continue 
+                    continue
+                if not Producto.query.filter_by(id=int(prod_id), organizacion_id=org_id).first():
+                    continue  # omitir productos de otra org
                 
                 # Extraer el valor de cajas protegiendo contra listas vacías
                 try:
@@ -5541,6 +5556,7 @@ def editar_gasto(id):
 
 @app.route('/gastos/exportar_excel')
 @login_required
+@check_org_permission
 @check_permission('perm_view_gastos')
 def exportar_gastos_excel():
     ahora = now_mx()
@@ -6982,6 +6998,8 @@ def _sync_salida(payload, org_id):
 
         if not stock_item:
             return {'ok': False, 'error': f'Salida: producto {prod_id} sin stock en este almacén'}
+        if stock_item.producto.organizacion_id != org_id:
+            return {'ok': False, 'error': f'Salida: producto {prod_id} no autorizado'}
 
         if stock_item.cantidad < cantidad:
             return {
@@ -7422,7 +7440,7 @@ def api_push_unsubscribe():
     data = request.get_json(silent=True)
     if not data or 'endpoint' not in data:
         return jsonify({'error': 'datos inválidos'}), 400
-    sub = PushSubscription.query.filter_by(endpoint=data['endpoint']).first()
+    sub = PushSubscription.query.filter_by(endpoint=data['endpoint'], user_id=current_user.id).first()
     if sub:
         db.session.delete(sub)
         db.session.commit()
