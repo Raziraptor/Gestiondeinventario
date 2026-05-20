@@ -838,7 +838,7 @@ class CentroCosto(db.Model):
     def pct_presupuesto(self):
         if not self.presupuesto or self.presupuesto <= 0:
             return None
-        return min(round(self.total_gastado / self.presupuesto * 100, 1), 100)
+        return min(round(float(self.total_gastado) / self.presupuesto * 100, 1), 100)
 
 
 class Presupuesto(db.Model):
@@ -4828,31 +4828,34 @@ def finanzas_dashboard():
     ano_ant = ano_actual if mes_actual > 1 else ano_actual - 1
 
     def _sum_gastos(mes, ano):
-        return db.session.query(db.func.coalesce(db.func.sum(Gasto.monto), 0.0)).filter(
+        val = db.session.query(db.func.sum(Gasto.monto)).filter(
             Gasto.organizacion_id == org_id,
             db.extract('month', Gasto.fecha) == mes,
             db.extract('year',  Gasto.fecha) == ano
         ).scalar()
+        return val or Decimal(0)
 
     def _sum_ocs(mes, ano):
-        return db.session.query(
-            db.func.coalesce(db.func.sum(
+        val = db.session.query(
+            db.func.sum(
                 OrdenCompraDetalle.cantidad_solicitada * OrdenCompraDetalle.costo_unitario_estimado
-            ), 0.0)
+            )
         ).join(OrdenCompra).filter(
             OrdenCompra.organizacion_id == org_id,
             OrdenCompra.estado == 'recibida',
             db.extract('month', OrdenCompra.fecha_recepcion) == mes,
             db.extract('year',  OrdenCompra.fecha_recepcion) == ano
         ).scalar()
+        return val or Decimal(0)
 
     def _sum_servicios(mes, ano):
-        return db.session.query(db.func.coalesce(db.func.sum(PagoServicio.monto), 0.0)).join(Servicio).filter(
+        val = db.session.query(db.func.sum(PagoServicio.monto)).join(Servicio).filter(
             Servicio.organizacion_id == org_id,
             PagoServicio.estado == 'pagado',
             db.extract('month', PagoServicio.fecha_pago) == mes,
             db.extract('year',  PagoServicio.fecha_pago) == ano
         ).scalar()
+        return val or Decimal(0)
 
     # KPIs mes actual
     gastos_mes      = _sum_gastos(mes_actual, ano_actual)
@@ -6116,7 +6119,7 @@ def lista_facturas():
     )
 
     # Aging buckets
-    aging = {'vigente': 0.0, '1-30': 0.0, '31-60': 0.0, '61-90': 0.0, '90+': 0.0}
+    aging = {'vigente': Decimal(0), '1-30': Decimal(0), '31-60': Decimal(0), '61-90': Decimal(0), '90+': Decimal(0)}
     for f in todas:
         if f.estado != 'pagado':
             aging[f.bucket_aging] = aging.get(f.bucket_aging, 0.0) + f.monto
@@ -6912,7 +6915,6 @@ def _sync_gasto(payload, org_id):
         categoria       = categoria,
         orden_compra_id = int(oc_id) if oc_id else None,
         organizacion_id = org_id,
-        creador_id      = current_user.id,
     )
     db.session.add(gasto)
     db.session.commit()
