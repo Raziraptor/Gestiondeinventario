@@ -2451,7 +2451,9 @@ def historial_producto(id):
     
     # --- 1. OBTENER STOCK ACTUAL ---
     # Buscamos dónde está este producto (en qué almacenes y qué cantidad)
-    stocks_actuales = Stock.query.filter_by(producto_id=id).join(Almacen).order_by(Almacen.nombre).all()
+    stocks_actuales = Stock.query.filter_by(producto_id=id).join(Almacen).filter(
+        Almacen.organizacion_id == current_user.organizacion_id
+    ).order_by(Almacen.nombre).all()
     
     # Calcular el total global para mostrarlo en grande
     total_global = sum(s.cantidad for s in stocks_actuales)
@@ -3743,6 +3745,7 @@ def generar_oc_pdf(id):
 
 @app.route('/orden/nueva/manual', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_create_oc_standard')
 def nueva_orden_manual():
     """ Crea una nueva Orden de Compra manualmente. """
@@ -3851,6 +3854,7 @@ def nueva_orden_manual():
 
 @app.route('/orden/<int:id>')
 @login_required
+@check_org_permission
 @check_permission('perm_view_dashboard')
 def ver_orden(id):
     """ Muestra el detalle de una Orden de Compra (Solo lectura). """
@@ -3864,6 +3868,7 @@ def ver_orden(id):
 
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_create_oc_standard')
 def editar_orden(id):
     orden = OrdenCompra.query.filter_by(
@@ -4073,13 +4078,15 @@ def lista_proyectos_oc():
 
 @app.route('/proyecto-oc/<int:id>')
 @login_required
+@check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def ver_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     solicitud_pendiente = SolicitudAprobacion.query.filter_by(
         entidad_tipo='proyecto_oc',
         entidad_id=proyecto_oc.id,
-        estado='pendiente'
+        estado='pendiente',
+        organizacion_id=proyecto_oc.organizacion_id
     ).first()
     return render_template('proyecto_oc_detalle.html',
                            proyecto_oc=proyecto_oc,
@@ -7060,7 +7067,13 @@ def api_toggle_permiso(user_id):
         'perm_create_oc_standard', 'perm_create_oc_proyecto',
         'perm_do_salidas', 'perm_view_gastos',
     }
-    user_to_update = User.query.get_or_404(user_id)
+    if current_user.rol == 'super_admin':
+        user_to_update = User.query.get_or_404(user_id)
+    else:
+        user_to_update = User.query.filter_by(
+            id=user_id,
+            organizacion_id=current_user.organizacion_id
+        ).first_or_404()
 
     if current_user.rol == 'admin' and user_to_update.organizacion_id != current_user.organizacion_id:
         return jsonify(ok=False, error='Sin permiso'), 403
@@ -7180,6 +7193,7 @@ def nueva_transferencia():
 
 @app.route('/api/almacen/<int:almacen_id>/productos-con-stock')
 @login_required
+@check_org_permission
 def api_productos_con_stock(almacen_id):
     """Retorna los productos con stock > 0 en un almacén dado (para el select dinámico)."""
     org_id = current_user.organizacion_id
@@ -7556,6 +7570,7 @@ def _actualizar_estados_pagos(org_id):
 
 @app.route('/servicios')
 @login_required
+@check_org_permission
 def lista_servicios():
     _actualizar_estados_pagos(current_user.organizacion_id)
     hoy = now_mx().date()
@@ -7587,6 +7602,7 @@ def lista_servicios():
 
 @app.route('/servicios/nuevo', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 def nuevo_servicio():
     if request.method == 'POST':
         s = Servicio(
@@ -7608,6 +7624,7 @@ def nuevo_servicio():
 
 @app.route('/servicios/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 def editar_servicio(id):
     s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
     if request.method == 'POST':
@@ -7626,6 +7643,7 @@ def editar_servicio(id):
 
 @app.route('/servicios/<int:id>/eliminar', methods=['POST'])
 @login_required
+@check_org_permission
 def eliminar_servicio(id):
     if current_user.rol not in ['super_admin', 'admin']:
         flash('Sin permiso para eliminar servicios.', 'danger')
@@ -7640,6 +7658,7 @@ def eliminar_servicio(id):
 
 @app.route('/servicios/<int:id>')
 @login_required
+@check_org_permission
 def detalle_servicio(id):
     _actualizar_estados_pagos(current_user.organizacion_id)
     s    = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
@@ -7653,6 +7672,7 @@ def detalle_servicio(id):
 
 @app.route('/servicios/<int:id>/pago/nuevo', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 def nuevo_pago_servicio(id):
     import calendar
     s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
@@ -7712,6 +7732,7 @@ def nuevo_pago_servicio(id):
 
 @app.route('/servicios/pago/<int:id>/marcar-pagado', methods=['POST'])
 @login_required
+@check_org_permission
 def marcar_pago_pagado(id):
     p = PagoServicio.query.join(Servicio).filter(
         PagoServicio.id == id,
@@ -7737,6 +7758,7 @@ def marcar_pago_pagado(id):
 
 @app.route('/servicios/pago/<int:id>/eliminar', methods=['POST'])
 @login_required
+@check_org_permission
 def eliminar_pago_servicio(id):
     p = PagoServicio.query.join(Servicio).filter(
         PagoServicio.id == id,
