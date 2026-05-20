@@ -3227,7 +3227,7 @@ def _pdf_estilos(org):
 
 def _pdf_bold(fuente):
     # Times-Roman usa 'Times-Bold', no 'Times-Roman-Bold' (que no existe en ReportLab)
-    return 'Times-Bold' if fuente == 'Times-Roman' else _pdf_bold(fuente)
+    return 'Times-Bold' if fuente == 'Times-Roman' else f'{fuente}-Bold'
 
 def _pdf_header(story, org, styles):
     """Añade encabezado de marca (logo + nombre + RFC + correo) y barra de color."""
