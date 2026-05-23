@@ -1720,9 +1720,9 @@ def dashboard():
     """
     
     if current_user.rol == 'super_admin':
-        almacenes = Almacen.query.all()
+        almacenes = Almacen.query.order_by(Almacen.id).all()
     else:
-        almacenes = Almacen.query.filter_by(organizacion_id=current_user.organizacion_id).order_by(Almacen.nombre).all()
+        almacenes = Almacen.query.filter_by(organizacion_id=current_user.organizacion_id).order_by(Almacen.id).all()
 
     almacen_id_solicitado = request.args.get('almacen_id', type=int)
     almacen_seleccionado = None
@@ -2630,11 +2630,11 @@ def editar_proveedor(id):
 def lista_almacenes():
     """ Muestra la lista de almacenes de la organización. """
     if current_user.rol == 'super_admin':
-        almacenes = Almacen.query.all()
+        almacenes = Almacen.query.order_by(Almacen.id).all()
     else:
-        almacenes = Almacen.query.filter_by(organizacion_id=current_user.organizacion_id).all()
-        
-    return render_template('almacenes.html', 
+        almacenes = Almacen.query.filter_by(organizacion_id=current_user.organizacion_id).order_by(Almacen.id).all()
+
+    return render_template('almacenes.html',
                            almacenes=almacenes,
                            titulo="Gestionar Almacenes")
 
