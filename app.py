@@ -3560,73 +3560,75 @@ def recibir_orden(id):
 
     try:
         org_id = orden.organizacion_id
-        
-        # Iteramos sobre los detalles (Variables originales del código que me diste)
-        for detalle in orden.detalles:
-            producto = detalle.producto
-            cantidad = detalle.cantidad_solicitada
-            
-            # 1. ACTUALIZAR STOCK DEL ALMACÉN
-            # Buscamos si el producto ya existe en ESTE almacén específico
-            stock_item = Stock.query.filter_by(
-                producto_id=producto.id,
-                almacen_id=orden.almacen_id
-            ).first()
+        procesados = 0
+        omitidos = []
 
-            if stock_item:
-                # Si existe, sumamos
-                stock_item.cantidad += cantidad
-                db.session.add(stock_item) # Aseguramos persistencia
-            else:
-                # Si no existe, lo creamos en este almacén
-                nuevo_stock = Stock(
+        with db.session.no_autoflush:
+            for detalle in orden.detalles:
+                producto = detalle.producto
+                cantidad = detalle.cantidad_solicitada
+
+                if not producto:
+                    omitidos.append(f'detalle #{detalle.id} (producto eliminado)')
+                    continue
+
+                if not cantidad or cantidad <= 0:
+                    omitidos.append(f'{producto.nombre} (cantidad inválida: {cantidad})')
+                    continue
+
+                stock_item = Stock.query.filter_by(
                     producto_id=producto.id,
-                    almacen_id=orden.almacen_id,
-                    cantidad=cantidad,
-                    stock_minimo=5,  # Valores por defecto
-                    stock_maximo=100
-                )
-                db.session.add(nuevo_stock)
+                    almacen_id=orden.almacen_id
+                ).first()
 
-            # 2. REGISTRAR MOVIMIENTO
-            # CORRECCIÓN: Se agrega 'almacen_id' obligatorio para evitar NotNullViolation
-            movimiento = Movimiento(
-                producto_id=producto.id,
-                cantidad=cantidad,
-                tipo='entrada',
-                fecha=now_mx(),
-                motivo=f'Recepción de OC #{orden.id}',
-                orden_compra_id=orden.id,
-                organizacion_id=org_id,
-                almacen_id=orden.almacen_id  # <--- ¡ESTA LÍNEA ES LA SOLUCIÓN!
-            )
-            db.session.add(movimiento)
-            
-            # Opcional: Si aún usas el contador global en Producto, lo actualizamos también
-            if hasattr(producto, 'cantidad_stock'):
-                producto.cantidad_stock = (producto.cantidad_stock or 0) + cantidad
-                db.session.add(producto)
-        
-        # 3. Finalizar Orden
+                if stock_item:
+                    stock_item.cantidad += cantidad
+                else:
+                    db.session.add(Stock(
+                        producto_id=producto.id,
+                        almacen_id=orden.almacen_id,
+                        cantidad=cantidad,
+                        stock_minimo=5,
+                        stock_maximo=100
+                    ))
+
+                db.session.add(Movimiento(
+                    producto_id=producto.id,
+                    cantidad=cantidad,
+                    tipo='entrada',
+                    fecha=now_mx(),
+                    motivo=f'Recepción de OC #{orden.id}',
+                    orden_compra_id=orden.id,
+                    organizacion_id=org_id,
+                    almacen_id=orden.almacen_id
+                ))
+
+                if hasattr(producto, 'cantidad_stock'):
+                    producto.cantidad_stock = (producto.cantidad_stock or 0) + cantidad
+
+                procesados += 1
+
         orden.estado = 'recibida'
         orden.fecha_recepcion = now_mx()
-        db.session.add(orden)
 
-        log_actividad('recibir_oc', 'orden_compra', f'OC #{orden.id} recibida — {len(orden.detalles)} producto(s) ingresados al almacén {orden.almacen.nombre}', entidad_id=orden.id)
+        resumen = f'{procesados} producto(s) ingresados al almacén {orden.almacen.nombre}'
+        log_actividad('recibir_oc', 'orden_compra', f'OC #{orden.id} recibida — {resumen}', entidad_id=orden.id)
         db.session.commit()
-        flash(f'¡Orden recibida! Stock ingresado correctamente al almacén: {orden.almacen.nombre}', 'success')
+
+        flash(f'¡Orden recibida! {resumen}.', 'success')
+        if omitidos:
+            flash(f'Ítems omitidos por datos inválidos: {", ".join(omitidos)}.', 'warning')
+
         enviar_push_notificacion(
             org_id=org_id,
             titulo='📦 OC Recibida',
-            cuerpo=f'OC #{orden.id} de {orden.proveedor.nombre} — {len(orden.detalles)} producto(s) ingresados a {orden.almacen.nombre}.',
+            cuerpo=f'OC #{orden.id} de {orden.proveedor.nombre} — {resumen}.',
             url=url_for('ver_orden', id=orden.id)
         )
-        
+
     except Exception as e:
         db.session.rollback()
-        # Mejoramos el mensaje de error para que sea más legible si vuelve a pasar
-        flash(f'Error al recibir la orden: {str(e)}', 'danger')
-        print(f"DEBUG ERROR RECIBIR: {e}") 
+        _flash_err('Error al recibir la orden. Verifica los datos e intenta de nuevo.', e)
     
     return redirect(url_for('lista_ordenes'))
 
