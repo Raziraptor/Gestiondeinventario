@@ -127,7 +127,8 @@
   </div>
   {% else %}
 
-  {# ── KPIs ─────────────────────────────────────────────────────────────── #}
+  {# ── KPIs — solo admin/super_admin ───────────────────────────────────── #}
+  {% if current_user.rol in ['super_admin','admin'] %}
   <div class="row g-3 mb-4 animate-cards">
 
     {# Tarjeta de salud del almacén (ancho) #}
@@ -276,7 +277,7 @@
       <div class="card border-0 shadow-sm rounded-4 h-100
         {% if ds is not none and ds < 7 %}" style="border-left:3px solid #ef4444!important;"
         {% elif ds is not none and ds < 30 %}" style="border-left:3px solid #f59e0b!important;"
-        {% else %}">{% endif %}>
+        {% else %}"{% endif %}>
         <div class="card-body p-3 d-flex align-items-center gap-3">
           <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
                style="width:48px;height:48px;{% if ds is not none and ds < 7 %}background:rgba(239,68,68,.12);{% elif ds is not none and ds < 30 %}background:rgba(245,158,11,.12);{% else %}background:rgba(16,185,129,.12);{% endif %}">
@@ -378,6 +379,7 @@
     </div>
 
   </div>{# /row KPIs #}
+  {% endif %}{# /admin KPIs #}
 
   {# ── PANEL DE ALERTAS ACCIONABLE ─────────────────────────────────────── #}
   <div id="panelAlertas" class="mb-4" style="display:none;">
