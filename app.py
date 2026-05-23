@@ -124,6 +124,10 @@ else:
     print("ADVERTENCIA: No se encontró DATABASE_URL. Usando SQLite local.")
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'inventario.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,   # descarta conexiones muertas antes de usarlas
+    'pool_recycle': 300,     # renueva conexiones cada 5 min (evita timeout SSL)
+}
 
 app.config['UPLOAD_FOLDER'] = os.path.join(basedir, 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
