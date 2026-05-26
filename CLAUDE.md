@@ -88,6 +88,12 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 8. Font-size floor: `.68rem`/`.7rem`/`.72rem` → `.75rem` (12px mínimo legible).
 9. Progress bar CSS: `transition: width` (los bars usan `width:%` inline, no transform).
 
+## Knowledge Graph (graphify)
+- Grafo generado en `graphify-out/` (785 nodos, 1293 edges, 114 comunidades).
+- God nodes: `base.html` (58 edges), `now_mx()` (53), `Index template` (45), `log_actividad()` (27), `get_item_or_404()` (25).
+- Actualizar tras cambios grandes: `/graphify . --update` (usa caché, solo re-extrae archivos modificados).
+- Ver grafo interactivo: abrir `graphify-out/graph.html` en browser.
+
 ## Helpers y patrones clave en app.py
 - `get_item_or_404(model, id)` — SEGURO: filtra por `organizacion_id` automáticamente. Usar siempre en lugar de `Model.query.get_or_404(id)` (INSEGURO — sin filtro de org).
 - `Model.query.filter_by(id=x, organizacion_id=org_id).first_or_404()` — patrón correcto para rutas que no usan `get_item_or_404`.
@@ -98,8 +104,17 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - `log_actividad(accion, entidad, detalle, user_id, org_id)` — llamar ANTES de `db.session.commit()`.
 - `_flash_err(user_msg, exc)` — loguea excepción al servidor, muestra mensaje seguro al usuario.
 - `CATEGORIAS_GASTO` — whitelist: `['Servicios', 'Nómina', 'Mantenimiento', 'Insumos', 'Inventario', 'Otros']`.
+- `with db.session.no_autoflush:` — envolver loops que mezclan queries + mutaciones del mismo modelo (evita flush intermedio que propaga excepciones entre ítems).
+- En loops de recepción/procesamiento: `omitidos = []` + `if not obj: omitidos.append(...); continue` para no revertir toda la operación por un ítem inválido.
+
+## GOTCHAs
+- **PowerShell BOM**: `Out-File -Encoding utf8` en PS 5.1 escribe BOM; Python falla con `json.JSONDecodeError: Unexpected UTF-8 BOM`. Fix: `$noBom = [System.Text.UTF8Encoding]::new($false); [System.IO.File]::WriteAllText($path, $content, $noBom)`. El flag `-NoBom` no existe en PS 5.1.
+- **Jinja2 doble `>`**: `{% else %}">{% endif %}>` produce `">>` (el `>` visible en pantalla). Patrón correcto: `{% else %}"{% endif %}>`.
 
 ## Estado actual — Fase 2 completa
 - FIN-01 ✅ — RATE-01 ✅ — AUTH-02 ✅ — Multi-tenant isolation ✅ (commits 0db5e87, 4d63d06)
+- Dashboard KPIs (tarjetas + gráficas) restringidos a `super_admin` y `admin` (commit db05095).
+- `recibir_orden` con guards para producto=None, cantidad≤0, y `no_autoflush` (commit 20ba5b4).
+- Almacenes ordenados por `.order_by(Almacen.id)` en dashboard y lista_almacenes (commit 72a8afd).
 - Pendiente en servidor: correr los 3 comandos CLI de migración mencionados arriba.
 - Sin tareas pendientes de seguridad en la hoja de ruta original.
