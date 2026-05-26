@@ -32,7 +32,47 @@
                 </button>
             </form>
             {% endif %}
-            
+
+            {% if current_user.rol in ['super_admin','admin']
+                  and orden.proveedor.integracion
+                  and orden.proveedor.integracion.activo
+                  and orden.estado in ['aprobada', 'borrador'] %}
+            <!-- Botón Home Depot Pro -->
+            <button id="btn-enviar-hd" type="button"
+                    class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark"
+                    onclick="enviarAHomedepot({{ orden.id }})"
+                    {% if orden.integracion_status == 'procesando' %}disabled{% endif %}>
+                <i class="bi bi-cart-plus me-1"></i>
+                {% if orden.integracion_status == 'procesando' %}
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span> Procesando...
+                {% else %}
+                    Enviar a Home Depot Pro
+                {% endif %}
+            </button>
+
+            <span id="hd-status-badge" class="
+                {% if orden.integracion_status == 'listo' %}badge bg-success text-white
+                {% elif orden.integracion_status == 'error' %}badge bg-danger text-white
+                {% elif orden.integracion_status == 'procesando' %}badge bg-warning text-dark
+                {% else %}d-none{% endif %}
+                rounded-pill px-3 py-2 shadow-sm">
+                {% if orden.integracion_status == 'listo' %}
+                    <i class="bi bi-check-circle me-1"></i>
+                    {% if orden.integracion_resultado %}
+                        {% set r = orden.integracion_resultado | fromjson %}
+                        {{ r.agregados }} art. en carrito
+                        {% if r.omitidos %} — {{ r.omitidos|length }} omitidos{% endif %}
+                    {% else %}
+                        Carrito listo
+                    {% endif %}
+                {% elif orden.integracion_status == 'error' %}
+                    <i class="bi bi-exclamation-triangle me-1"></i> Error — revisar consola
+                {% elif orden.integracion_status == 'procesando' %}
+                    <i class="bi bi-hourglass-split me-1"></i> Llenando carrito...
+                {% endif %}
+            </span>
+            {% endif %}
+
             <!-- Botón Volver -->
             <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
                 <i class="bi bi-arrow-left me-1"></i> Volver
@@ -168,4 +208,59 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+function enviarAHomedepot(ordenId) {
+    const btn   = document.getElementById('btn-enviar-hd');
+    const badge = document.getElementById('hd-status-badge');
+    if (!btn || btn.disabled) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Procesando...';
+    badge.className = 'badge bg-warning text-dark rounded-pill px-3 py-2 shadow-sm';
+    badge.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Llenando carrito...';
+
+    fetch(`/api/ordenes/${ordenId}/enviar-hd`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+    }).then(r => {
+        if (!r.ok) return r.json().then(d => { throw new Error(d.error || 'Error al iniciar'); });
+        _pollHdStatus(ordenId);
+    }).catch(err => {
+        badge.className = 'badge bg-danger text-white rounded-pill px-3 py-2 shadow-sm';
+        badge.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> ${err.message}`;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Enviar a Home Depot Pro';
+    });
+}
+
+function _pollHdStatus(ordenId) {
+    const badge = document.getElementById('hd-status-badge');
+    const btn   = document.getElementById('btn-enviar-hd');
+    const iv = setInterval(() => {
+        fetch(`/api/ordenes/${ordenId}/integracion-status`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.status === 'procesando') return;
+            clearInterval(iv);
+            const r = data.resultado || {};
+            if (data.status === 'listo') {
+                let msg = `<i class="bi bi-check-circle me-1"></i> ${r.agregados || 0} art. en carrito`;
+                if (r.cart_url) msg += ` — <a href="${r.cart_url}" target="_blank" class="text-white fw-bold">Ver carrito</a>`;
+                if (r.omitidos && r.omitidos.length) msg += ` — ${r.omitidos.length} omitidos`;
+                badge.className = 'badge bg-success text-white rounded-pill px-3 py-2 shadow-sm';
+                badge.innerHTML = msg;
+                btn.innerHTML = '<i class="bi bi-cart-check me-1"></i> Enviado';
+            } else {
+                badge.className = 'badge bg-danger text-white rounded-pill px-3 py-2 shadow-sm';
+                badge.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Error: ${r.error || 'desconocido'}`;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Reintentar';
+            }
+        });
+    }, 3000);
+}
+</script>
 {% endblock %}

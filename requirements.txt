@@ -17,3 +17,5 @@ google-genai
 pywebpush
 Flask-Limiter
 redis
+playwright
+playwright-stealth

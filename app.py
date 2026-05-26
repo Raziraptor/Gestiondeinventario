@@ -108,6 +108,7 @@ app.json = _JSONProvider(app)
 
 csrf = CSRFProtect(app)
 app.jinja_env.add_extension('jinja2.ext.do') # Para la lógica de 'set' en bucles
+app.jinja_env.filters['fromjson'] = lambda s: json.loads(s) if s else {}
 
 # --- Configuración de Variables de Entorno ---
 _secret_key = os.environ.get('SECRET_KEY')
@@ -316,6 +317,72 @@ def limpiar_push_subs():
     db.session.commit()
     print(f"limpiar-push-subs: {n} suscripciones eliminadas. Los usuarios deberán re-suscribirse.")
 
+@app.cli.command("add-hd-integration")
+@with_appcontext
+def add_hd_integration():
+    """Migración idempotente: crea tabla proveedor_integracion y añade columnas HD a productos/ordenes."""
+    from sqlalchemy import text, inspect
+    conn = db.engine.connect()
+    inspector = inspect(db.engine)
+
+    existing_tables = inspector.get_table_names()
+    if 'proveedor_integracion' not in existing_tables:
+        conn.execute(text("""
+            CREATE TABLE proveedor_integracion (
+                id SERIAL PRIMARY KEY,
+                proveedor_id INTEGER NOT NULL REFERENCES proveedor(id),
+                organizacion_id INTEGER NOT NULL REFERENCES organizacion(id),
+                tipo VARCHAR(30) NOT NULL DEFAULT 'homedepot',
+                credenciales TEXT,
+                activo BOOLEAN NOT NULL DEFAULT TRUE
+            )
+        """))
+        conn.commit()
+        print("add-hd-integration: tabla proveedor_integracion creada.")
+    else:
+        print("add-hd-integration: tabla proveedor_integracion ya existe.")
+
+    def col_exists(table, col):
+        return col in [c['name'] for c in inspector.get_columns(table)]
+
+    if not col_exists('producto', 'hd_sku'):
+        conn.execute(text("ALTER TABLE producto ADD COLUMN hd_sku VARCHAR(30)"))
+        conn.commit()
+        print("add-hd-integration: columna producto.hd_sku añadida.")
+    else:
+        print("add-hd-integration: producto.hd_sku ya existe.")
+
+    if not col_exists('orden_compra', 'integracion_status'):
+        conn.execute(text("ALTER TABLE orden_compra ADD COLUMN integracion_status VARCHAR(20)"))
+        conn.commit()
+        print("add-hd-integration: columna orden_compra.integracion_status añadida.")
+    else:
+        print("add-hd-integration: orden_compra.integracion_status ya existe.")
+
+    if not col_exists('orden_compra', 'integracion_resultado'):
+        conn.execute(text("ALTER TABLE orden_compra ADD COLUMN integracion_resultado TEXT"))
+        conn.commit()
+        print("add-hd-integration: columna orden_compra.integracion_resultado añadida.")
+    else:
+        print("add-hd-integration: orden_compra.integracion_resultado ya existe.")
+
+    conn.close()
+    print("add-hd-integration: completado. Recuerda: sudo systemctl restart inventario")
+
+
+@app.cli.command("gen-hd-fernet-key")
+@with_appcontext
+def gen_hd_fernet_key():
+    """Genera una clave Fernet para cifrar credenciales de proveedores."""
+    from cryptography.fernet import Fernet
+    key = Fernet.generate_key().decode()
+    print("\n=== CLAVE FERNET GENERADA ===")
+    print(f"FERNET_KEY={key}")
+    print("\nAgrega esta línea al [Service] en /etc/systemd/system/inventario.service")
+    print("Luego: sudo systemctl daemon-reload && sudo systemctl restart inventario")
+    print("GUARDA ESTA CLAVE — si la pierdes, las credenciales cifradas son irrecuperables.")
+
+
 @app.cli.command("gen-vapid")
 @with_appcontext
 def gen_vapid_command():
@@ -498,6 +565,38 @@ class Proveedor(db.Model):
     contacto_telefono = db.Column(db.String(50), nullable=True)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
 
+class ProveedorIntegracion(db.Model):
+    """Credenciales cifradas para integraciones con proveedores externos (Home Depot Pro, etc.)."""
+    __tablename__ = 'proveedor_integracion'
+    id = db.Column(db.Integer, primary_key=True)
+    proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedor.id'), nullable=False)
+    proveedor = db.relationship('Proveedor', backref=db.backref('integracion', uselist=False))
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    tipo = db.Column(db.String(30), nullable=False, default='homedepot')
+    _credenciales = db.Column('credenciales', db.Text, nullable=True)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
+
+    @property
+    def credenciales(self):
+        if not self._credenciales:
+            return {}
+        from cryptography.fernet import Fernet, InvalidToken
+        key = os.environ.get('FERNET_KEY', '').encode()
+        if not key:
+            return {}
+        try:
+            return json.loads(Fernet(key).decrypt(self._credenciales.encode()).decode())
+        except (InvalidToken, Exception):
+            return {}
+
+    @credenciales.setter
+    def credenciales(self, value):
+        from cryptography.fernet import Fernet
+        key = os.environ.get('FERNET_KEY', '').encode()
+        if not key:
+            raise ValueError('FERNET_KEY no configurada en variables de entorno')
+        self._credenciales = Fernet(key).encrypt(json.dumps(value).encode()).decode()
+
 class Categoria(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False, unique=True)
@@ -515,7 +614,8 @@ class Producto(db.Model):
     
     # --- NUEVO CAMPO ---
     enlace_proveedor = db.Column(db.Text, nullable=True)
-    
+    hd_sku = db.Column(db.String(30), nullable=True)
+
     categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=True)
     categoria = db.relationship('Categoria', backref='productos', lazy=True)
     
@@ -590,7 +690,9 @@ class OrdenCompra(db.Model):
     creador_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     cancelado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
-    
+    integracion_status = db.Column(db.String(20), nullable=True)
+    integracion_resultado = db.Column(db.Text, nullable=True)
+
     @property
     def costo_total(self):
         return sum(detalle.subtotal for detalle in self.detalles)
@@ -3871,6 +3973,87 @@ def ver_orden(id):
     return render_template('orden_detalle.html', 
                            orden=orden, 
                            titulo=f"Detalle de Orden #{orden.id}")
+
+@app.route('/api/ordenes/<int:orden_id>/enviar-hd', methods=['POST'])
+@login_required
+@check_org_permission
+def enviar_oc_homedepot(orden_id):
+    """Lanza automatización Playwright para llenar carrito en Home Depot Pro."""
+    org_id = current_user.organizacion_id
+    orden = OrdenCompra.query.filter_by(id=orden_id, organizacion_id=org_id).first_or_404()
+
+    if current_user.rol not in ('super_admin', 'admin'):
+        return jsonify({'error': 'Sin permiso'}), 403
+
+    if orden.integracion_status == 'procesando':
+        return jsonify({'error': 'Ya hay un envío en proceso'}), 409
+
+    integracion = ProveedorIntegracion.query.filter_by(
+        proveedor_id=orden.proveedor_id,
+        organizacion_id=org_id,
+        tipo='homedepot',
+        activo=True
+    ).first()
+    if not integracion:
+        return jsonify({'error': 'Este proveedor no tiene integración con Home Depot configurada'}), 400
+
+    creds = integracion.credenciales
+    if not creds.get('usuario') or not creds.get('password'):
+        return jsonify({'error': 'Credenciales de Home Depot incompletas'}), 400
+
+    items = []
+    for d in orden.detalles:
+        if d.producto:
+            items.append({
+                'sku': d.producto.hd_sku or '',
+                'nombre': d.producto.nombre,
+                'cantidad': d.cantidad_solicitada or 1,
+            })
+
+    if not items:
+        return jsonify({'error': 'La orden no tiene productos con datos válidos'}), 400
+
+    orden.integracion_status = 'procesando'
+    orden.integracion_resultado = None
+    db.session.commit()
+
+    app_ref = current_app._get_current_object()
+
+    def _worker(app, oc_id, credenciales, items_list):
+        with app.app_context():
+            from integrations.homedepot import fill_cart
+            try:
+                resultado = fill_cart(credenciales, items_list)
+            except Exception as exc:
+                resultado = {'error': str(exc), 'agregados': 0, 'omitidos': items_list}
+            oc = OrdenCompra.query.get(oc_id)
+            if oc:
+                oc.integracion_status = 'error' if resultado.get('error') else 'listo'
+                oc.integracion_resultado = json.dumps(resultado, ensure_ascii=False)
+                db.session.commit()
+
+    Thread(target=_worker, args=(app_ref, orden_id, creds, items), daemon=True).start()
+    return jsonify({'status': 'procesando'}), 202
+
+
+@app.route('/api/ordenes/<int:orden_id>/integracion-status', methods=['GET'])
+@login_required
+@check_org_permission
+def integracion_status_oc(orden_id):
+    """Polling: retorna el estado actual de la integración con Home Depot."""
+    org_id = current_user.organizacion_id
+    orden = OrdenCompra.query.filter_by(id=orden_id, organizacion_id=org_id).first_or_404()
+    resultado = {}
+    if orden.integracion_resultado:
+        try:
+            resultado = json.loads(orden.integracion_resultado)
+        except ValueError:
+            pass
+    return jsonify({
+        'status': orden.integracion_status,
+        'resultado': resultado,
+    })
+
 
 @app.route('/orden/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
