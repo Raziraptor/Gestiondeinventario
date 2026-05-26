@@ -2720,9 +2720,75 @@ def editar_proveedor(id):
             db.session.rollback()
             flash(f'Error al actualizar el proveedor: {e}', 'danger')
 
-    return render_template('proveedor_form.html', 
-                           titulo="Editar Proveedor", 
-                           proveedor=proveedor)
+    integracion = ProveedorIntegracion.query.filter_by(
+        proveedor_id=proveedor.id,
+        organizacion_id=proveedor.organizacion_id
+    ).first()
+    return render_template('proveedor_form.html',
+                           titulo="Editar Proveedor",
+                           proveedor=proveedor,
+                           integracion=integracion)
+
+
+@app.route('/proveedor/<int:id>/integracion-hd', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def guardar_integracion_hd(id):
+    """Guarda o actualiza las credenciales de Home Depot Pro para un proveedor."""
+    proveedor = get_item_or_404(Proveedor, id)
+    org_id = proveedor.organizacion_id
+
+    if current_user.rol not in ('super_admin', 'admin'):
+        flash('Solo administradores pueden configurar integraciones.', 'danger')
+        return redirect(url_for('editar_proveedor', id=id))
+
+    if not os.environ.get('FERNET_KEY'):
+        flash('FERNET_KEY no configurada en el servidor. Contacta al administrador del sistema.', 'danger')
+        return redirect(url_for('editar_proveedor', id=id))
+
+    activo = request.form.get('hd_activo') == '1'
+    usuario = request.form.get('hd_usuario', '').strip()
+    password = request.form.get('hd_password', '').strip()
+
+    integracion = ProveedorIntegracion.query.filter_by(
+        proveedor_id=proveedor.id,
+        organizacion_id=org_id
+    ).first()
+
+    try:
+        if integracion is None:
+            if not usuario or not password:
+                flash('Usuario y contraseña requeridos para activar la integración.', 'warning')
+                return redirect(url_for('editar_proveedor', id=id))
+            integracion = ProveedorIntegracion(
+                proveedor_id=proveedor.id,
+                organizacion_id=org_id,
+                tipo='homedepot',
+                activo=activo,
+            )
+            integracion.credenciales = {'usuario': usuario, 'password': password}
+            db.session.add(integracion)
+        else:
+            integracion.activo = activo
+            if usuario or password:
+                creds_actuales = integracion.credenciales
+                integracion.credenciales = {
+                    'usuario': usuario or creds_actuales.get('usuario', ''),
+                    'password': password or creds_actuales.get('password', ''),
+                }
+
+        db.session.commit()
+        flash('Integración con Home Depot Pro guardada.', 'success')
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+    except Exception as e:
+        db.session.rollback()
+        _flash_err('Error al guardar la integración.', e)
+
+    return redirect(url_for('editar_proveedor', id=id))
+
 
 # --- Rutas de Almacenes ---
 
