@@ -38,23 +38,18 @@
                   and orden.proveedor.integracion.activo
                   and orden.estado in ['aprobada', 'borrador'] %}
 
-            {% if orden.proveedor.integracion.punchout_url %}
-            <!-- Botón PunchOut (canal oficial cXML) -->
-            <a id="btn-punchout"
-               href="{{ url_for('punchout_iniciar', orden_id=orden.id) }}"
-               target="_blank"
-               class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark"
-               onclick="iniciarPollPunchOut({{ orden.id }})">
-                <i class="bi bi-cart-plus me-1"></i> Comprar en Home Depot
+            <!-- Botón Exportar CSV para HD Pro Quick Order -->
+            {% if orden.detalles %}
+            <a href="{{ url_for('exportar_hd_csv', id=orden.id) }}"
+               class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar para HD Pro
             </a>
-            <span id="punchout-badge" class="d-none badge rounded-pill px-3 py-2 shadow-sm"></span>
+            {% endif %}
 
-            {% else %}
-            <!-- Botón Playwright (fallback si no hay PunchOut configurado) -->
+            <!-- Botón Playwright (envío automático) -->
             <button id="btn-enviar-hd" type="button"
-                    class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark"
+                    class="btn btn-outline-warning shadow-sm rounded-pill px-4 fw-bold"
                     onclick="enviarAHomedepot({{ orden.id }})"
-                    title="Modo automático (requiere configurar PunchOut para mejor integración)"
                     {% if orden.integracion_status == 'procesando' %}disabled{% endif %}>
                 <i class="bi bi-cart-plus me-1"></i>
                 {% if orden.integracion_status == 'procesando' %}
@@ -82,7 +77,6 @@
                     <i class="bi bi-hourglass-split me-1"></i> Llenando carrito...
                 {% endif %}
             </span>
-            {% endif %}
 
             {% endif %}
 
@@ -247,30 +241,6 @@ function enviarAHomedepot(ordenId) {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Enviar a Home Depot Pro';
     });
-}
-
-function iniciarPollPunchOut(ordenId) {
-    const badge = document.getElementById('punchout-badge');
-    if (!badge) return;
-    badge.className = 'badge bg-warning text-dark rounded-pill px-3 py-2 shadow-sm';
-    badge.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Esperando retorno del catálogo...';
-
-    const iv = setInterval(() => {
-        fetch(`/api/ordenes/${ordenId}/punchout-status`)
-          .then(r => r.json())
-          .then(data => {
-            if (data.status === 'completada') {
-                clearInterval(iv);
-                badge.className = 'badge bg-success text-white rounded-pill px-3 py-2 shadow-sm';
-                badge.innerHTML = '<i class="bi bi-check-circle me-1"></i> Ítems importados — recargando...';
-                setTimeout(() => location.reload(), 1500);
-            } else if (data.status === 'error') {
-                clearInterval(iv);
-                badge.className = 'badge bg-danger text-white rounded-pill px-3 py-2 shadow-sm';
-                badge.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Error en PunchOut';
-            }
-        });
-    }, 4000);
 }
 
 function _pollHdStatus(ordenId) {
