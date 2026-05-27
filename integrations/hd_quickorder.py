@@ -47,6 +47,55 @@ def generar_csv(orden) -> tuple[bytes, list[str]]:
     return buf.getvalue().encode('utf-8'), omitidos
 
 
+def generar_csv_proyecto(proyecto_oc) -> tuple[bytes, list[str], int]:
+    """
+    Genera el CSV para HD Pro Quick Order desde una OC de Proyecto.
+
+    Prioridad de Item Number:
+      - Detalle de catálogo: usa producto.hd_sku si existe, sino producto.codigo
+      - Detalle externo: usa descripcion_nuevo (el usuario puede editar el CSV)
+
+    Filtra a ítems donde proveedor_sugerido contiene "home depot" (case-insensitive)
+    O donde producto.hd_sku está definido. Si no hay ítems calificados, exporta todos.
+
+    Returns:
+        (csv_bytes, omitidos, total_exportados)
+    """
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(['Item Number', 'Quantity'])
+
+    def _es_hd(detalle) -> bool:
+        if detalle.producto and detalle.producto.hd_sku:
+            return True
+        prov = (detalle.proveedor_sugerido or '').lower()
+        return 'home depot' in prov or 'homedepot' in prov or 'hd pro' in prov
+
+    hd_detalles = [d for d in proyecto_oc.detalles if _es_hd(d)]
+    # Si no hay ítems identificados como HD, exportar todos
+    detalles_export = hd_detalles if hd_detalles else list(proyecto_oc.detalles)
+
+    omitidos = []
+    exportados = 0
+    for detalle in detalles_export:
+        cantidad = detalle.cantidad or 0
+        if cantidad <= 0:
+            nombre = detalle.producto.nombre if detalle.producto else detalle.descripcion_nuevo
+            omitidos.append(nombre or f'Detalle #{detalle.id}')
+            continue
+        if detalle.producto:
+            sku = detalle.producto.hd_sku or detalle.producto.codigo
+        else:
+            sku = (detalle.descripcion_nuevo or '').strip()
+        if not sku:
+            omitidos.append(f'Detalle #{detalle.id} sin nombre/SKU')
+            continue
+        writer.writerow([sku, int(cantidad)])
+        exportados += 1
+
+    return buf.getvalue().encode('utf-8'), omitidos, exportados
+
+
 def subir_csv_auto(credenciales: dict, csv_bytes: bytes, sesion=None, db=None,
                    HDSesion=None, org_id: int = None, proveedor_id: int = None) -> dict:
     """

@@ -33,29 +33,36 @@
             </form>
             {% endif %}
 
-            {% if current_user.rol in ['super_admin','admin']
-                  and orden.proveedor.integracion
-                  and orden.proveedor.integracion.activo
-                  and orden.estado in ['aprobada', 'borrador'] %}
+            {# ── Detectar si hay SKUs de HD en esta OC ── #}
+            {% set tiene_hd_sku = namespace(value=false) %}
+            {% for d in orden.detalles %}{% if d.producto and d.producto.hd_sku %}{% set tiene_hd_sku.value = true %}{% endif %}{% endfor %}
+            {% set tiene_integracion = orden.proveedor.integracion is not none %}
+            {% set integracion_activa = tiene_integracion and orden.proveedor.integracion.activo %}
+            {% set es_orden_hd = tiene_integracion or tiene_hd_sku.value %}
 
+            {% if current_user.rol in ['super_admin','admin']
+                  and orden.estado in ['aprobada', 'borrador']
+                  and orden.detalles %}
+
+            {% if es_orden_hd %}
             <!-- Fase 1: Exportar CSV para subida manual en HD Pro Quick Order -->
-            {% if orden.detalles %}
             <a href="{{ url_for('exportar_hd_csv', id=orden.id) }}"
                class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark"
-               title="Descarga el CSV y súbelo en HD Pro → Quick Order">
+               aria-label="Exportar lista de productos como CSV para HD Pro Quick Order">
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar para HD Pro
             </a>
             {% endif %}
 
+            {% if integracion_activa %}
             <!-- Fase 2: Subida automática con sesión persistente -->
             <button id="btn-subir-hd-auto" type="button"
                     class="btn btn-outline-warning shadow-sm rounded-pill px-4 fw-bold"
                     onclick="subirHdAuto({{ orden.id }})"
-                    title="Sube el CSV automáticamente al carrito de HD Pro"
+                    aria-label="Subir pedido automáticamente al carrito de HD Pro"
                     {% if orden.integracion_status == 'procesando' %}disabled{% endif %}>
                 <i class="bi bi-cloud-upload me-1"></i>
                 {% if orden.integracion_status == 'procesando' %}
-                    <span class="spinner-border spinner-border-sm me-1" role="status"></span> Procesando...
+                    <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...
                 {% else %}
                     Enviar automáticamente
                 {% endif %}
@@ -67,7 +74,7 @@
                 {% else %}d-none{% endif %}
                 rounded-pill px-3 py-2 shadow-sm">
                 {% if orden.integracion_status == 'listo' %}
-                    <i class="bi bi-check-circle me-1"></i>
+                    <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
                     {% if orden.integracion_resultado %}
                         {% set r = orden.integracion_resultado | fromjson %}
                         {{ r.items_agregados if r.items_agregados is defined else r.agregados }} art. en carrito
@@ -75,11 +82,20 @@
                         {% if r.omitidos %} — {{ r.omitidos|length }} omitidos{% endif %}
                     {% else %}Carrito listo{% endif %}
                 {% elif orden.integracion_status == 'error' %}
-                    <i class="bi bi-exclamation-triangle me-1"></i> Error — revisar consola
+                    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i> Error — revisar consola
                 {% elif orden.integracion_status == 'procesando' %}
-                    <i class="bi bi-hourglass-split me-1"></i> Llenando carrito...
+                    <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i> Llenando carrito...
                 {% endif %}
             </span>
+
+            {% elif es_orden_hd %}
+            <!-- Integración no activa — enlace para configurar -->
+            <a href="{{ url_for('editar_proveedor', id=orden.proveedor.id) }}"
+               class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold"
+               title="Activa la integración con HD Pro para habilitar el envío automático">
+                <i class="bi bi-gear me-1"></i> Configurar HD Pro
+            </a>
+            {% endif %}
 
             {% endif %}
 

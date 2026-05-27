@@ -4111,6 +4111,33 @@ def exportar_hd_csv(id):
     return response
 
 
+@app.route('/proyecto-oc/<int:id>/exportar-hd-csv')
+@login_required
+@check_org_permission
+@check_permission('perm_create_oc_proyecto')
+def exportar_proyecto_hd_csv(id):
+    """Genera y descarga el CSV de HD Pro Quick Order para una OC de Proyecto."""
+    if current_user.rol not in ('super_admin', 'admin'):
+        flash('Solo administradores pueden exportar órdenes.', 'danger')
+        return redirect(url_for('ver_proyecto_oc', id=id))
+
+    proyecto_oc = get_item_or_404(ProyectoOC, id)
+
+    from integrations.hd_quickorder import generar_csv_proyecto
+    csv_bytes, omitidos, exportados = generar_csv_proyecto(proyecto_oc)
+
+    if exportados == 0:
+        flash('No hay ítems válidos para exportar a HD Pro Quick Order.', 'warning')
+        return redirect(url_for('ver_proyecto_oc', id=id))
+
+    response = make_response(csv_bytes)
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename="hd-quickorder-proy{id}.csv"'
+    if omitidos:
+        response.headers['X-HD-Omitidos'] = ', '.join(omitidos[:10])
+    return response
+
+
 @app.route('/ordenes/<int:id>/subir-hd-auto', methods=['POST'])
 @login_required
 @check_org_permission
