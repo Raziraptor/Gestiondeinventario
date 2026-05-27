@@ -38,24 +38,26 @@
                   and orden.proveedor.integracion.activo
                   and orden.estado in ['aprobada', 'borrador'] %}
 
-            <!-- Botón Exportar CSV para HD Pro Quick Order -->
+            <!-- Fase 1: Exportar CSV para subida manual en HD Pro Quick Order -->
             {% if orden.detalles %}
             <a href="{{ url_for('exportar_hd_csv', id=orden.id) }}"
-               class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark">
+               class="btn btn-warning shadow-sm rounded-pill px-4 fw-bold text-dark"
+               title="Descarga el CSV y súbelo en HD Pro → Quick Order">
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar para HD Pro
             </a>
             {% endif %}
 
-            <!-- Botón Playwright (envío automático) -->
-            <button id="btn-enviar-hd" type="button"
+            <!-- Fase 2: Subida automática con sesión persistente -->
+            <button id="btn-subir-hd-auto" type="button"
                     class="btn btn-outline-warning shadow-sm rounded-pill px-4 fw-bold"
-                    onclick="enviarAHomedepot({{ orden.id }})"
+                    onclick="subirHdAuto({{ orden.id }})"
+                    title="Sube el CSV automáticamente al carrito de HD Pro"
                     {% if orden.integracion_status == 'procesando' %}disabled{% endif %}>
-                <i class="bi bi-cart-plus me-1"></i>
+                <i class="bi bi-cloud-upload me-1"></i>
                 {% if orden.integracion_status == 'procesando' %}
                     <span class="spinner-border spinner-border-sm me-1" role="status"></span> Procesando...
                 {% else %}
-                    Enviar a Home Depot Pro
+                    Enviar automáticamente
                 {% endif %}
             </button>
             <span id="hd-status-badge" class="
@@ -68,7 +70,8 @@
                     <i class="bi bi-check-circle me-1"></i>
                     {% if orden.integracion_resultado %}
                         {% set r = orden.integracion_resultado | fromjson %}
-                        {{ r.agregados }} art. en carrito
+                        {{ r.items_agregados if r.items_agregados is defined else r.agregados }} art. en carrito
+                        {% if r.cart_url %} — <a href="{{ r.cart_url }}" target="_blank" class="text-white fw-bold">Ver carrito</a>{% endif %}
                         {% if r.omitidos %} — {{ r.omitidos|length }} omitidos{% endif %}
                     {% else %}Carrito listo{% endif %}
                 {% elif orden.integracion_status == 'error' %}
@@ -219,8 +222,8 @@
 
 {% block scripts %}
 <script>
-function enviarAHomedepot(ordenId) {
-    const btn   = document.getElementById('btn-enviar-hd');
+function subirHdAuto(ordenId) {
+    const btn   = document.getElementById('btn-subir-hd-auto');
     const badge = document.getElementById('hd-status-badge');
     if (!btn || btn.disabled) return;
 
@@ -229,7 +232,7 @@ function enviarAHomedepot(ordenId) {
     badge.className = 'badge bg-warning text-dark rounded-pill px-3 py-2 shadow-sm';
     badge.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Llenando carrito...';
 
-    fetch(`/api/ordenes/${ordenId}/enviar-hd`, {
+    fetch(`/ordenes/${ordenId}/subir-hd-auto`, {
         method: 'POST',
         headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
     }).then(r => {
@@ -239,13 +242,13 @@ function enviarAHomedepot(ordenId) {
         badge.className = 'badge bg-danger text-white rounded-pill px-3 py-2 shadow-sm';
         badge.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> ${err.message}`;
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Enviar a Home Depot Pro';
+        btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i> Enviar automáticamente';
     });
 }
 
 function _pollHdStatus(ordenId) {
     const badge = document.getElementById('hd-status-badge');
-    const btn   = document.getElementById('btn-enviar-hd');
+    const btn   = document.getElementById('btn-subir-hd-auto');
     const iv = setInterval(() => {
         fetch(`/api/ordenes/${ordenId}/integracion-status`)
           .then(r => r.json())
@@ -254,17 +257,17 @@ function _pollHdStatus(ordenId) {
             clearInterval(iv);
             const r = data.resultado || {};
             if (data.status === 'listo') {
-                let msg = `<i class="bi bi-check-circle me-1"></i> ${r.agregados || 0} art. en carrito`;
+                const n = r.items_agregados ?? r.agregados ?? 0;
+                let msg = `<i class="bi bi-check-circle me-1"></i> ${n} art. en carrito`;
                 if (r.cart_url) msg += ` — <a href="${r.cart_url}" target="_blank" class="text-white fw-bold">Ver carrito</a>`;
                 if (r.omitidos && r.omitidos.length) msg += ` — ${r.omitidos.length} omitidos`;
                 badge.className = 'badge bg-success text-white rounded-pill px-3 py-2 shadow-sm';
                 badge.innerHTML = msg;
-                btn.innerHTML = '<i class="bi bi-cart-check me-1"></i> Enviado';
+                if (btn) btn.innerHTML = '<i class="bi bi-cart-check me-1"></i> Enviado';
             } else {
                 badge.className = 'badge bg-danger text-white rounded-pill px-3 py-2 shadow-sm';
                 badge.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Error: ${r.error || 'desconocido'}`;
-                btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Reintentar';
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i> Reintentar'; }
             }
         });
     }, 3000);

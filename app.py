@@ -371,6 +371,34 @@ def add_hd_integration():
 
 
 
+@app.cli.command("add-hd-session-table")
+@with_appcontext
+def add_hd_session_table():
+    """Migración idempotente: crea tabla hd_sesion para cookies persistentes de HD Pro."""
+    from sqlalchemy import text, inspect
+    conn = db.engine.connect()
+    inspector = inspect(db.engine)
+    existing_tables = inspector.get_table_names()
+    if 'hd_sesion' not in existing_tables:
+        conn.execute(text("""
+            CREATE TABLE hd_sesion (
+                id SERIAL PRIMARY KEY,
+                org_id INTEGER NOT NULL REFERENCES organizacion(id),
+                proveedor_id INTEGER NOT NULL REFERENCES proveedor(id),
+                cookies_json_cifrado TEXT,
+                expira_en TIMESTAMP NOT NULL,
+                creada_en TIMESTAMP NOT NULL DEFAULT NOW(),
+                UNIQUE(org_id, proveedor_id)
+            )
+        """))
+        conn.commit()
+        print("add-hd-session-table: tabla hd_sesion creada.")
+    else:
+        print("add-hd-session-table: hd_sesion ya existe.")
+    conn.close()
+    print("add-hd-session-table: completado.")
+
+
 @app.cli.command("gen-hd-fernet-key")
 @with_appcontext
 def gen_hd_fernet_key():
@@ -597,6 +625,18 @@ class ProveedorIntegracion(db.Model):
         if not key:
             raise ValueError('FERNET_KEY no configurada en variables de entorno')
         self._credenciales = Fernet(key).encrypt(json.dumps(value).encode()).decode()
+
+
+class HDSesion(db.Model):
+    """Sesión persistente de HD Pro: cookies cifradas para evitar re-login en cada OC."""
+    __tablename__ = 'hd_sesion'
+    id = db.Column(db.Integer, primary_key=True)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedor.id'), nullable=False)
+    _cookies = db.Column('cookies_json_cifrado', db.Text, nullable=True)
+    expira_en = db.Column(db.DateTime, nullable=False)
+    creada_en = db.Column(db.DateTime, nullable=False, default=now_mx)
+
 
 class Categoria(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -4069,6 +4109,87 @@ def exportar_hd_csv(id):
     if omitidos:
         response.headers['X-HD-Omitidos'] = ', '.join(omitidos[:10])
     return response
+
+
+@app.route('/ordenes/<int:id>/subir-hd-auto', methods=['POST'])
+@login_required
+@check_org_permission
+def subir_hd_auto(id):
+    """Lanza upload automático del CSV a HD Pro Quick Order con sesión persistente."""
+    if current_user.rol not in ('super_admin', 'admin'):
+        return jsonify({'error': 'Sin permiso'}), 403
+
+    org_id = current_user.organizacion_id
+    orden = OrdenCompra.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+
+    if orden.integracion_status == 'procesando':
+        return jsonify({'error': 'Ya hay un envío en proceso'}), 409
+
+    integracion = ProveedorIntegracion.query.filter_by(
+        proveedor_id=orden.proveedor_id,
+        organizacion_id=org_id,
+        activo=True,
+    ).first()
+    if not integracion:
+        return jsonify({'error': 'Este proveedor no tiene integración activa'}), 400
+
+    creds = integracion.credenciales
+    if not creds.get('usuario') or not creds.get('password'):
+        return jsonify({'error': 'Credenciales de HD Pro incompletas'}), 400
+
+    from integrations.hd_quickorder import generar_csv
+    csv_bytes, omitidos_csv = generar_csv(orden)
+
+    # Verificar que hay al menos un ítem
+    lineas = [l for l in csv_bytes.decode().splitlines() if l.strip()][1:]
+    if not lineas:
+        return jsonify({'error': 'La orden no tiene ítems válidos para subir'}), 400
+
+    orden.integracion_status = 'procesando'
+    orden.integracion_resultado = None
+    db.session.commit()
+
+    sesion = HDSesion.query.filter_by(
+        org_id=org_id, proveedor_id=orden.proveedor_id
+    ).first()
+
+    app_ref = current_app._get_current_object()
+
+    def _worker(app, oc_id, credenciales, csv_b, sesion_obj, org, prov_id):
+        with app.app_context():
+            from integrations.hd_quickorder import subir_csv_auto
+            try:
+                resultado = subir_csv_auto(
+                    credenciales=credenciales,
+                    csv_bytes=csv_b,
+                    sesion=sesion_obj,
+                    db=db,
+                    HDSesion=HDSesion,
+                    org_id=org,
+                    proveedor_id=prov_id,
+                )
+            except Exception as exc:
+                resultado = {'ok': False, 'error': str(exc), 'items_agregados': 0, 'items_omitidos': []}
+            oc = OrdenCompra.query.get(oc_id)
+            if oc:
+                if resultado.get('ok'):
+                    oc.integracion_status = 'listo'
+                    oc.integracion_resultado = json.dumps({
+                        'agregados': resultado.get('items_agregados', 0),
+                        'omitidos': resultado.get('items_omitidos', []),
+                        'cart_url': resultado.get('carrito_url', ''),
+                    }, ensure_ascii=False)
+                else:
+                    oc.integracion_status = 'error'
+                    oc.integracion_resultado = json.dumps({'error': resultado.get('error', 'desconocido')})
+                db.session.commit()
+
+    Thread(
+        target=_worker,
+        args=(app_ref, id, creds, csv_bytes, sesion, org_id, orden.proveedor_id),
+        daemon=True,
+    ).start()
+    return jsonify({'status': 'procesando'}), 202
 
 
 @app.route('/api/ordenes/<int:orden_id>/enviar-hd', methods=['POST'])
