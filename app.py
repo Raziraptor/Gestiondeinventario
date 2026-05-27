@@ -370,6 +370,47 @@ def add_hd_integration():
     print("add-hd-integration: completado. Recuerda: sudo systemctl restart inventario")
 
 
+@app.cli.command("add-punchout-tables")
+@with_appcontext
+def add_punchout_tables():
+    """Migración idempotente: crea tabla punchout_session y añade punchout_url a proveedor_integracion."""
+    from sqlalchemy import text, inspect
+    conn = db.engine.connect()
+    inspector = inspect(db.engine)
+
+    existing_tables = inspector.get_table_names()
+    if 'punchout_session' not in existing_tables:
+        conn.execute(text("""
+            CREATE TABLE punchout_session (
+                id SERIAL PRIMARY KEY,
+                buyer_cookie VARCHAR(64) NOT NULL UNIQUE,
+                orden_id INTEGER REFERENCES orden_compra(id),
+                user_id INTEGER NOT NULL REFERENCES "user"(id),
+                org_id INTEGER NOT NULL REFERENCES organizacion(id),
+                status VARCHAR(20) NOT NULL DEFAULT 'iniciada',
+                cart_xml TEXT,
+                creado_en TIMESTAMP NOT NULL DEFAULT NOW()
+            )
+        """))
+        conn.execute(text("CREATE INDEX idx_punchout_buyer_cookie ON punchout_session(buyer_cookie)"))
+        conn.commit()
+        print("add-punchout-tables: tabla punchout_session creada.")
+    else:
+        print("add-punchout-tables: punchout_session ya existe.")
+
+    if 'proveedor_integracion' in existing_tables:
+        cols = [c['name'] for c in inspector.get_columns('proveedor_integracion')]
+        if 'punchout_url' not in cols:
+            conn.execute(text("ALTER TABLE proveedor_integracion ADD COLUMN punchout_url TEXT"))
+            conn.commit()
+            print("add-punchout-tables: columna punchout_url añadida a proveedor_integracion.")
+        else:
+            print("add-punchout-tables: punchout_url ya existe.")
+
+    conn.close()
+    print("add-punchout-tables: completado.")
+
+
 @app.cli.command("gen-hd-fernet-key")
 @with_appcontext
 def gen_hd_fernet_key():
@@ -572,7 +613,8 @@ class ProveedorIntegracion(db.Model):
     proveedor_id = db.Column(db.Integer, db.ForeignKey('proveedor.id'), nullable=False)
     proveedor = db.relationship('Proveedor', backref=db.backref('integracion', uselist=False))
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
-    tipo = db.Column(db.String(30), nullable=False, default='homedepot')
+    tipo = db.Column(db.String(30), nullable=False, default='punchout')
+    punchout_url = db.Column(db.Text, nullable=True)
     _credenciales = db.Column('credenciales', db.Text, nullable=True)
     activo = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -596,6 +638,18 @@ class ProveedorIntegracion(db.Model):
         if not key:
             raise ValueError('FERNET_KEY no configurada en variables de entorno')
         self._credenciales = Fernet(key).encrypt(json.dumps(value).encode()).decode()
+
+class PunchOutSession(db.Model):
+    """Sesión cXML PunchOut: rastrea el ciclo de vida comprador→proveedor→retorno."""
+    __tablename__ = 'punchout_session'
+    id = db.Column(db.Integer, primary_key=True)
+    buyer_cookie = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    orden_id = db.Column(db.Integer, db.ForeignKey('orden_compra.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    org_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='iniciada')
+    cart_xml = db.Column(db.Text, nullable=True)
+    creado_en = db.Column(db.DateTime, nullable=False, default=now_mx)
 
 class Categoria(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -2748,8 +2802,9 @@ def guardar_integracion_hd(id):
         return redirect(url_for('editar_proveedor', id=id))
 
     activo = request.form.get('hd_activo') == '1'
-    usuario = request.form.get('hd_usuario', '').strip()
-    password = request.form.get('hd_password', '').strip()
+    punchout_url = request.form.get('hd_punchout_url', '').strip()
+    network_id = request.form.get('hd_network_id', '').strip()
+    shared_secret = request.form.get('hd_shared_secret', '').strip()
 
     integracion = ProveedorIntegracion.query.filter_by(
         proveedor_id=proveedor.id,
@@ -2758,24 +2813,27 @@ def guardar_integracion_hd(id):
 
     try:
         if integracion is None:
-            if not usuario or not password:
-                flash('Usuario y contraseña requeridos para activar la integración.', 'warning')
+            if not network_id or not shared_secret:
+                flash('Network ID y Shared Secret son requeridos para activar la integración.', 'warning')
                 return redirect(url_for('editar_proveedor', id=id))
             integracion = ProveedorIntegracion(
                 proveedor_id=proveedor.id,
                 organizacion_id=org_id,
-                tipo='homedepot',
+                tipo='punchout',
                 activo=activo,
+                punchout_url=punchout_url or None,
             )
-            integracion.credenciales = {'usuario': usuario, 'password': password}
+            integracion.credenciales = {'network_id': network_id, 'shared_secret': shared_secret}
             db.session.add(integracion)
         else:
             integracion.activo = activo
-            if usuario or password:
+            if punchout_url:
+                integracion.punchout_url = punchout_url
+            if network_id or shared_secret:
                 creds_actuales = integracion.credenciales
                 integracion.credenciales = {
-                    'usuario': usuario or creds_actuales.get('usuario', ''),
-                    'password': password or creds_actuales.get('password', ''),
+                    'network_id': network_id or creds_actuales.get('network_id', ''),
+                    'shared_secret': shared_secret or creds_actuales.get('shared_secret', ''),
                 }
 
         db.session.commit()
@@ -4039,6 +4097,156 @@ def ver_orden(id):
     return render_template('orden_detalle.html', 
                            orden=orden, 
                            titulo=f"Detalle de Orden #{orden.id}")
+
+# ── PunchOut cXML ──────────────────────────────────────────────────────────────
+
+@app.route('/ordenes/<int:orden_id>/punchout/iniciar')
+@login_required
+@check_org_permission
+def punchout_iniciar(orden_id):
+    """Inicia sesión PunchOut: envía SetupRequest y redirige al catálogo del proveedor."""
+    org_id = current_user.organizacion_id
+    orden = OrdenCompra.query.filter_by(id=orden_id, organizacion_id=org_id).first_or_404()
+
+    if current_user.rol not in ('super_admin', 'admin'):
+        flash('Solo administradores pueden iniciar PunchOut.', 'danger')
+        return redirect(url_for('ver_orden', id=orden_id))
+
+    integracion = ProveedorIntegracion.query.filter_by(
+        proveedor_id=orden.proveedor_id,
+        organizacion_id=org_id,
+        activo=True,
+    ).first()
+    if not integracion or not integracion.punchout_url:
+        flash('Este proveedor no tiene PunchOut configurado.', 'warning')
+        return redirect(url_for('ver_orden', id=orden_id))
+
+    creds = integracion.credenciales
+    network_id = creds.get('network_id', '')
+    shared_secret = creds.get('shared_secret', '')
+    if not network_id or not shared_secret:
+        flash('Credenciales PunchOut incompletas (Network ID / Shared Secret).', 'danger')
+        return redirect(url_for('ver_orden', id=orden_id))
+
+    buyer_cookie = secrets.token_hex(32)
+    return_url = url_for('punchout_retorno', _external=True)
+
+    from integrations.punchout_cxml import build_setup_request, send_setup_request
+    try:
+        xml_body = build_setup_request(
+            network_id=network_id,
+            shared_secret=shared_secret,
+            buyer_cookie=buyer_cookie,
+            return_url=return_url,
+            user_email=current_user.email or '',
+            user_name=current_user.username,
+            domain=request.host,
+        )
+        session_url = send_setup_request(integracion.punchout_url, xml_body)
+    except Exception as exc:
+        _flash_err('Error al iniciar sesión PunchOut con el proveedor.', exc)
+        return redirect(url_for('ver_orden', id=orden_id))
+
+    ps = PunchOutSession(
+        buyer_cookie=buyer_cookie,
+        orden_id=orden_id,
+        user_id=current_user.id,
+        org_id=org_id,
+        status='iniciada',
+    )
+    db.session.add(ps)
+    db.session.commit()
+
+    return redirect(session_url)
+
+
+@app.route('/api/punchout/retorno', methods=['POST'])
+def punchout_retorno():
+    """
+    Endpoint público: recibe PunchOutOrderMessage del proveedor.
+    HD/TradeCentric hace POST aquí cuando el usuario termina de seleccionar.
+    """
+    # cXML puede llegar como body XML directo o como campo 'cxml-urlencoded'
+    content_type = request.content_type or ''
+    if 'urlencoded' in content_type or 'form' in content_type:
+        xml_body = request.form.get('cxml-urlencoded') or request.form.get('cXML-urlencoded', '')
+    else:
+        xml_body = request.get_data(as_text=True)
+
+    if not xml_body:
+        return '<html><body>No XML recibido</body></html>', 400
+
+    from integrations.punchout_cxml import extract_buyer_cookie, parse_order_message
+
+    buyer_cookie = extract_buyer_cookie(xml_body)
+    if not buyer_cookie:
+        return '<html><body>BuyerCookie faltante</body></html>', 400
+
+    ps = PunchOutSession.query.filter_by(buyer_cookie=buyer_cookie).first()
+    if not ps:
+        return '<html><body>Sesión no encontrada</body></html>', 404
+
+    try:
+        items = parse_order_message(xml_body)
+    except ValueError as exc:
+        ps.status = 'error'
+        db.session.commit()
+        return f'<html><body>XML inválido: {exc}</body></html>', 400
+
+    ps.cart_xml = xml_body
+    ps.status = 'completada'
+
+    if ps.orden_id and items:
+        orden = OrdenCompra.query.get(ps.orden_id)
+        if orden and orden.organizacion_id == ps.org_id:
+            for it in items:
+                prod = None
+                if it['sku']:
+                    prod = Producto.query.filter_by(
+                        hd_sku=it['sku'], organizacion_id=ps.org_id
+                    ).first()
+                detalle = OrdenCompraDetalle(
+                    orden_id=orden.id,
+                    producto_id=prod.id if prod else None,
+                    cantidad_solicitada=it['cantidad'],
+                    costo_unitario_estimado=it['precio_unitario'],
+                )
+                db.session.add(detalle)
+
+    db.session.commit()
+
+    # HTML de retorno: cierra la ventana/pestaña del proveedor y redirige al sistema
+    orden_url = url_for('ver_orden', id=ps.orden_id, _external=True) if ps.orden_id else url_for('dashboard', _external=True)
+    return f'''<!DOCTYPE html>
+<html><head><title>Retornando...</title></head>
+<body>
+<p>Carrito importado. Redirigiendo...</p>
+<script>
+  if (window.opener) {{
+    window.opener.location.href = "{orden_url}";
+    window.close();
+  }} else {{
+    window.location.href = "{orden_url}";
+  }}
+</script>
+</body></html>''', 200
+
+
+@app.route('/api/ordenes/<int:orden_id>/punchout-status', methods=['GET'])
+@login_required
+@check_org_permission
+def punchout_status(orden_id):
+    """Polling: estado de la sesión PunchOut más reciente para esta OC."""
+    org_id = current_user.organizacion_id
+    ps = PunchOutSession.query.filter_by(
+        orden_id=orden_id, org_id=org_id
+    ).order_by(PunchOutSession.id.desc()).first()
+    if not ps:
+        return jsonify({'status': None})
+    return jsonify({'status': ps.status})
+
+
+# ── Playwright (fallback legacy) ────────────────────────────────────────────────
 
 @app.route('/api/ordenes/<int:orden_id>/enviar-hd', methods=['POST'])
 @login_required

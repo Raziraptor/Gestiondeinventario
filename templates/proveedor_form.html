@@ -85,30 +85,39 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <label for="hd_usuario" class="form-label">
-                            Usuario / Email HD Pro
+                    <div class="col-12">
+                        <label for="hd_punchout_url" class="form-label fw-semibold">
+                            <i class="bi bi-link-45deg me-1 text-warning"></i>PunchOut URL
                         </label>
-                        <input type="email" class="form-control" id="hd_usuario" name="hd_usuario"
-                               placeholder="{{ '••••••••@••••.com (ya guardado)' if integracion else 'correo@empresa.com' }}"
+                        <input type="url" class="form-control font-monospace" id="hd_punchout_url" name="hd_punchout_url"
+                               value="{{ integracion.punchout_url if integracion and integracion.punchout_url else '' }}"
+                               placeholder="https://punchout.homedepot.com/... o gateway TradeCentric">
+                        <div class="form-text text-muted">
+                            URL proporcionada por Home Depot Pro o TradeCentric. Deja vacío si aún no tienes credenciales.
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="hd_network_id" class="form-label fw-semibold">Buyer Network ID</label>
+                        <input type="text" class="form-control font-monospace" id="hd_network_id" name="hd_network_id"
+                               placeholder="{{ '•••• (ya guardado)' if integracion else 'NetworkID otorgado por HD/TradeCentric' }}"
                                autocomplete="off">
                         {% if integracion %}
-                        <div class="form-text text-muted">Deja vacío para conservar el usuario actual.</div>
+                        <div class="form-text text-muted">Deja vacío para conservar el valor actual.</div>
                         {% endif %}
                     </div>
                     <div class="col-md-6">
-                        <label for="hd_password" class="form-label">Contraseña HD Pro</label>
+                        <label for="hd_shared_secret" class="form-label fw-semibold">Shared Secret</label>
                         <div class="input-group">
-                            <input type="password" class="form-control" id="hd_password" name="hd_password"
-                                   placeholder="{{ '•••••••• (ya guardada)' if integracion else 'Contraseña' }}"
+                            <input type="password" class="form-control font-monospace" id="hd_shared_secret" name="hd_shared_secret"
+                                   placeholder="{{ '•••••••• (ya guardado)' if integracion else 'Shared Secret' }}"
                                    autocomplete="new-password">
                             <button class="btn btn-outline-secondary" type="button" id="btn-toggle-pass"
-                                    aria-label="Mostrar contraseña">
+                                    aria-label="Mostrar secreto">
                                 <i class="bi bi-eye" id="ico-eye"></i>
                             </button>
                         </div>
                         {% if integracion %}
-                        <div class="form-text text-muted">Deja vacío para conservar la contraseña actual.</div>
+                        <div class="form-text text-muted">Deja vacío para conservar el valor actual.</div>
                         {% endif %}
                     </div>
                     <div class="col-12 mt-2">
