@@ -107,14 +107,31 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - `with db.session.no_autoflush:` — envolver loops que mezclan queries + mutaciones del mismo modelo (evita flush intermedio que propaga excepciones entre ítems).
 - En loops de recepción/procesamiento: `omitidos = []` + `if not obj: omitidos.append(...); continue` para no revertir toda la operación por un ítem inválido.
 
+## HD Pro Quick Order (commits 49ccf47, c83aa82, 89900fa) — reemplaza PunchOut cXML
+- PunchOut eliminado: no hay modelo PunchOutSession ni rutas punchout_* en el código.
+  La columna `punchout_url` puede seguir en la BD del servidor (inofensiva, ignorada).
+- `integrations/hd_quickorder.py`: `generar_csv(orden)` y `generar_csv_proyecto(proyecto_oc)` → `(bytes, omitidos)`
+- `integrations/hd_session.py`: `guardar_sesion()`, `restaurar_sesion()`, `sesion_valida()` — cookies Fernet, TTL 7 días.
+- Modelo `HDSesion` (tabla `hd_sesion`): unique(org_id, proveedor_id). CLI: `flask add-hd-session-table`.
+- **Correr en servidor**: `flask add-hd-session-table && sudo systemctl restart inventario`
+- Rutas HD: `GET /ordenes/<id>/exportar-hd-csv`, `POST /ordenes/<id>/subir-hd-auto`,
+  `GET /proyecto-oc/<id>/exportar-hd-csv` (requiere `perm_create_oc_proyecto`).
+- `ProveedorIntegracion.credenciales` = `{'usuario': str, 'password': str}` (no más network_id/shared_secret).
+- Visibilidad botones en `orden_detalle.html`: CSV cuando `tiene_hd_sku OR tiene_integracion`;
+  auto-upload solo cuando `integracion.activo`; link "Configurar HD Pro" cuando hd_sku sin integración activa.
+- `ProyectoOCDetalle` NO tiene hd_sku: usa `producto.hd_sku or producto.codigo` para catálogo,
+  `descripcion_nuevo` para externos. Filtra por `proveedor_sugerido` contiene "home depot".
+
 ## GOTCHAs
 - **PowerShell BOM**: `Out-File -Encoding utf8` en PS 5.1 escribe BOM; Python falla con `json.JSONDecodeError: Unexpected UTF-8 BOM`. Fix: `$noBom = [System.Text.UTF8Encoding]::new($false); [System.IO.File]::WriteAllText($path, $content, $noBom)`. El flag `-NoBom` no existe en PS 5.1.
 - **Jinja2 doble `>`**: `{% else %}">{% endif %}>` produce `">>` (el `>` visible en pantalla). Patrón correcto: `{% else %}"{% endif %}>`.
+- **`del` no existe en Bash/Linux**: en la Bash tool usar `rm -f archivo`, no `del archivo`.
 
-## Estado actual — Fase 2 completa
+## Estado actual
 - FIN-01 ✅ — RATE-01 ✅ — AUTH-02 ✅ — Multi-tenant isolation ✅ (commits 0db5e87, 4d63d06)
-- Dashboard KPIs (tarjetas + gráficas) restringidos a `super_admin` y `admin` (commit db05095).
+- HD Pro Quick Order ✅ Fase 1 (CSV) + Fase 2 (sesión persistente) — commits 49ccf47–89900fa.
+- Dashboard KPIs restringidos a `super_admin` y `admin` (commit db05095).
 - `recibir_orden` con guards para producto=None, cantidad≤0, y `no_autoflush` (commit 20ba5b4).
-- Almacenes ordenados por `.order_by(Almacen.id)` en dashboard y lista_almacenes (commit 72a8afd).
-- Pendiente en servidor: correr los 3 comandos CLI de migración mencionados arriba.
+- Almacenes ordenados por `.order_by(Almacen.id)` (commit 72a8afd).
+- **Pendiente en servidor**: `flask add-hd-session-table && sudo systemctl restart inventario`
 - Sin tareas pendientes de seguridad en la hoja de ruta original.
