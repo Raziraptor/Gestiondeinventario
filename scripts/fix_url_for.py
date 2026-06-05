@@ -6,6 +6,35 @@ import os
 import re
 
 MAPPING = {
+    # auth
+    'account':                        'auth.account',
+    'delete_picture':                 'auth.delete_picture',
+    # main
+    'health':                         'main.health',
+    'service_worker':                 'main.service_worker',
+    'offline_page':                   'main.offline_page',
+    'assetlinks':                     'main.assetlinks',
+    # api
+    'ai_generar_imagen_producto':     'api.ai_generar_imagen_producto',
+    'ai_mejorar_descripcion':         'api.ai_mejorar_descripcion',
+    'api_actividad_reciente':         'api.api_actividad_reciente',
+    'api_ajuste_rapido':              'api.api_ajuste_rapido',
+    'api_alertas_stock_bajo':         'api.api_alertas_stock_bajo',
+    'api_buscar_productos':           'api.api_buscar_productos',
+    'api_chart_estado_stock':         'api.api_chart_estado_stock',
+    'api_chart_movimientos_mes':      'api.api_chart_movimientos_mes',
+    'api_chart_top_productos':        'api.api_chart_top_productos',
+    'api_finanzas_mensual':           'api.api_finanzas_mensual',
+    'api_ocr_recibo':                 'api.api_ocr_recibo',
+    'api_productos_con_stock':        'api.api_productos_con_stock',
+    'api_push_subscribe':             'api.api_push_subscribe',
+    'api_push_test':                  'api.api_push_test',
+    'api_push_unsubscribe':           'api.api_push_unsubscribe',
+    'api_stock_buscar':               'api.api_stock_buscar',
+    'api_vapid_key':                  'api.api_vapid_key',
+    'enviar_oc_homedepot':            'api.enviar_oc_homedepot',
+    'integracion_status_oc':          'api.integracion_status_oc',
+    # admin
     'admin_panel':                   'admin.admin_panel',
     'admin_reset_password':          'admin.admin_reset_password',
     'aprobar_solicitud':             'purchasing.aprobar_solicitud',
@@ -109,6 +138,12 @@ MAPPING = {
     'solicitar_aprobacion_oc':       'purchasing.solicitar_aprobacion_oc',
     'subir_hd_auto':                 'purchasing.subir_hd_auto',
     'super_admin':                   'admin.super_admin',
+    'lista_usuarios':                'admin.lista_usuarios',
+    'update_user_permissions':       'admin.update_user_permissions',
+    'test_email':                    'admin.test_email',
+    'api_sync':                      'admin.api_sync',
+    'api_toggle_permiso':            'admin.api_toggle_permiso',
+    'generar_etiqueta':              'inventory.generar_etiqueta',
     'ver_orden':                     'purchasing.ver_orden',
     'ver_proyecto_oc':               'purchasing.ver_proyecto_oc',
     'ver_salida':                    'inventory.ver_salida',

@@ -255,7 +255,7 @@ async function procesarArchivo(archivo) {
   fd.append('archivo', archivo);
   fd.append('csrf_token', csrfToken);
   try {
-    const resp = await fetch('{{ url_for("api_ocr_recibo") }}', { method:'POST', body:fd });
+    const resp = await fetch('{{ url_for("api.api_ocr_recibo") }}', { method:'POST', body:fd });
     const data = await resp.json();
 
     if (!resp.ok || data.error) {

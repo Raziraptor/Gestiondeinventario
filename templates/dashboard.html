@@ -984,9 +984,9 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
   async function cargarGraficas() {
     try {
       const [r1,r2,r3] = await Promise.all([
-        fetch('{{ url_for("api_chart_movimientos_mes") }}').then(r=>r.json()),
-        fetch('{{ url_for("api_chart_estado_stock") }}').then(r=>r.json()),
-        fetch('{{ url_for("api_chart_top_productos") }}').then(r=>r.json()),
+        fetch('{{ url_for("api.api_chart_movimientos_mes") }}').then(r=>r.json()),
+        fetch('{{ url_for("api.api_chart_estado_stock") }}').then(r=>r.json()),
+        fetch('{{ url_for("api.api_chart_top_productos") }}').then(r=>r.json()),
       ]);
       renderMovimientos(r1); renderEstado(r2); renderTop(r3);
     } catch(e){ console.warn('Gráficas:',e); }
