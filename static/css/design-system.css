@@ -1,0 +1,606 @@
+/* ============================================================
+   DESIGN SYSTEM — "Precision Operations"
+   Industrial Minimal · Safety Orange · Slate Chrome
+   DFII 14/15 — Execute fully
+   ============================================================ */
+
+:root {
+  /* ── SIDEBAR CHROME (always dark, independent of page theme) ── */
+  --sidebar-bg:           #0F172A;
+  --sidebar-width:        248px;
+  --sidebar-collapsed:    64px;
+  --sidebar-accent:       #F97316;
+  --sidebar-text:         #94A3B8;
+  --sidebar-text-active:  #F8FAFC;
+  --sidebar-item-active:  rgba(249, 115, 22, 0.15);
+  --sidebar-item-hover:   rgba(255, 255, 255, 0.06);
+  --sidebar-border:       rgba(255, 255, 255, 0.06);
+  --sidebar-group-label:  #475569;
+
+  /* ── TOPBAR ── */
+  --topbar-height:        56px;
+  --topbar-bg:            var(--bs-body-bg);
+  --topbar-border:        var(--border);
+
+  /* ── STATUS SYSTEM — same classes across all modules ── */
+  --status-ok:            #10B981;
+  --status-ok-bg:         rgba(16, 185, 129, 0.12);
+  --status-warn:          #F59E0B;
+  --status-warn-bg:       rgba(245, 158, 11, 0.12);
+  --status-danger:        #EF4444;
+  --status-danger-bg:     rgba(239, 68, 68, 0.12);
+  --status-info:          #0EA5E9;
+  --status-info-bg:       rgba(14, 165, 233, 0.12);
+  --status-neutral:       #94A3B8;
+  --status-neutral-bg:    rgba(148, 163, 184, 0.12);
+
+  /* ── NAV BADGE ── */
+  --nav-badge-bg:         #EF4444;
+  --nav-badge-text:       #FFFFFF;
+}
+
+/* ============================================================
+   LAYOUT SHELL — CSS Grid sidebar + content
+   ============================================================ */
+.erp-shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+  transition: grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.erp-shell.sidebar-collapsed {
+  grid-template-columns: var(--sidebar-collapsed) 1fr;
+}
+
+.erp-content-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.erp-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1040;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+}
+
+.erp-shell.sidebar-collapsed .erp-sidebar {
+  width: var(--sidebar-collapsed);
+}
+
+/* Brand */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1.125rem 1rem 1rem;
+  border-bottom: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+  min-height: var(--topbar-height);
+}
+
+.sidebar-brand-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--sidebar-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sidebar-brand:hover .sidebar-brand-icon {
+  transform: rotate(-8deg) scale(1.08);
+}
+
+.sidebar-brand-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--sidebar-text-active);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.erp-shell.sidebar-collapsed .sidebar-brand-name,
+.erp-shell.sidebar-collapsed .sidebar-toggle-btn { opacity: 0; width: 0; overflow: hidden; }
+
+.sidebar-toggle-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s, transform 0.25s;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover { color: var(--sidebar-text-active); background: var(--sidebar-item-hover); }
+.erp-shell.sidebar-collapsed .sidebar-toggle-btn { transform: rotate(180deg); opacity: 1; width: auto; }
+
+/* Nav scroll area */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+/* Nav groups */
+.sidebar-group {
+  margin-bottom: 0.25rem;
+}
+
+.sidebar-group-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--sidebar-group-label);
+  padding: 0.75rem 0.625rem 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.erp-shell.sidebar-collapsed .sidebar-group-label { opacity: 0; }
+
+/* Nav items */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.55rem 0.625rem;
+  border-radius: 8px;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  background: var(--sidebar-item-hover);
+  color: var(--sidebar-text-active);
+  text-decoration: none;
+}
+
+.sidebar-item.active {
+  background: var(--sidebar-item-active);
+  color: var(--sidebar-accent);
+}
+
+.sidebar-item.active .sidebar-item-icon {
+  color: var(--sidebar-accent);
+}
+
+.sidebar-item-icon {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  transition: color 0.15s;
+}
+
+.sidebar-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.erp-shell.sidebar-collapsed .sidebar-item-label,
+.erp-shell.sidebar-collapsed .sidebar-item-badge { opacity: 0; width: 0; overflow: hidden; }
+
+/* Nav badge (contador) */
+.sidebar-item-badge {
+  background: var(--nav-badge-bg);
+  color: var(--nav-badge-text);
+  font-size: 0.6rem;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+/* Tooltip en modo colapsado */
+.erp-shell.sidebar-collapsed .sidebar-item {
+  justify-content: center;
+  padding: 0.625rem;
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  border-top: 1px solid var(--sidebar-border);
+  padding: 0.75rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: background 0.15s, color 0.15s;
+  overflow: hidden;
+}
+
+.sidebar-user:hover {
+  background: var(--sidebar-item-hover);
+  color: var(--sidebar-text-active);
+  text-decoration: none;
+}
+
+.sidebar-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.sidebar-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--sidebar-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sidebar-user-name {
+  font-weight: 600;
+  color: var(--sidebar-text-active);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+.sidebar-user-role {
+  font-size: 0.68rem;
+  color: var(--sidebar-text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.erp-shell.sidebar-collapsed .sidebar-user-name,
+.erp-shell.sidebar-collapsed .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; }
+
+/* ============================================================
+   TOPBAR
+   ============================================================ */
+.erp-topbar {
+  height: var(--topbar-height);
+  border-bottom: 1px solid var(--topbar-border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  flex-shrink: 0;
+}
+
+/* Mobile sidebar toggle in topbar */
+.topbar-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--bs-body-color);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.topbar-menu-btn:hover { background: var(--hover-bg); }
+
+/* Command bar trigger */
+.cmd-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--hover-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.875rem;
+  color: var(--text-muted, var(--bs-secondary));
+  font-size: 0.8375rem;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 200px;
+  max-width: 320px;
+  flex: 1;
+}
+
+.cmd-trigger:hover {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.cmd-trigger kbd {
+  background: var(--surface-raised, var(--hover-bg));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.7rem;
+  font-family: inherit;
+  color: var(--bs-secondary);
+  margin-left: auto;
+}
+
+/* Topbar right actions */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.erp-main {
+  flex: 1;
+  padding: 1.5rem 1.5rem 4rem;
+  min-width: 0;
+}
+
+/* ============================================================
+   COMMAND PALETTE MODAL
+   ============================================================ */
+.cmd-palette-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+}
+
+.cmd-palette-overlay.open {
+  display: flex;
+  animation: cmdFadeIn 0.15s ease both;
+}
+
+@keyframes cmdFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.cmd-palette-box {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  width: min(560px, calc(100vw - 2rem));
+  overflow: hidden;
+  animation: cmdSlideIn 0.18s cubic-bezier(0.34, 1.2, 0.64, 1) both;
+}
+
+@keyframes cmdSlideIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cmd-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cmd-search-icon { color: var(--bs-secondary); font-size: 1rem; flex-shrink: 0; }
+
+.cmd-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--bs-body-color);
+  font-size: 0.9375rem;
+  outline: none;
+  font-family: var(--bs-body-font-family);
+}
+
+.cmd-search-input::placeholder { color: var(--bs-secondary); }
+
+.cmd-results {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.cmd-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.125rem;
+  text-decoration: none;
+  color: var(--bs-body-color);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  transition: background 0.1s;
+  cursor: pointer;
+}
+
+.cmd-result-item:last-child { border-bottom: none; }
+.cmd-result-item:hover, .cmd-result-item.focused {
+  background: var(--hover-bg);
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.cmd-result-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--hover-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.cmd-result-type {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bs-secondary);
+}
+
+.cmd-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 0.6rem 1.125rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--bs-secondary);
+}
+
+.cmd-footer kbd {
+  background: var(--hover-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.7rem;
+  font-family: inherit;
+}
+
+/* ============================================================
+   STATUS PILLS — sistema unificado (mismo en todos los módulos)
+   ============================================================ */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.status-pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-ok      { background: var(--status-ok-bg);      color: var(--status-ok); }
+.status-ok::before      { background: var(--status-ok); }
+.status-warn    { background: var(--status-warn-bg);    color: var(--status-warn); }
+.status-warn::before    { background: var(--status-warn); }
+.status-danger  { background: var(--status-danger-bg);  color: var(--status-danger); }
+.status-danger::before  { background: var(--status-danger); }
+.status-info    { background: var(--status-info-bg);    color: var(--status-info); }
+.status-info::before    { background: var(--status-info); }
+.status-neutral { background: var(--status-neutral-bg); color: var(--status-neutral); }
+.status-neutral::before { background: var(--status-neutral); }
+
+/* ============================================================
+   MOBILE — sidebar off-canvas
+   ============================================================ */
+@media (max-width: 991px) {
+  .erp-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .erp-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width) !important;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1050;
+  }
+
+  .erp-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-mobile-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1049;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar-mobile-backdrop.active { display: block; }
+
+  .topbar-menu-btn { display: flex; }
+
+  .cmd-trigger { min-width: 120px; }
+
+  .erp-main { padding: 1rem 1rem 5rem; }
+}
