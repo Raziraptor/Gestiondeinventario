@@ -169,11 +169,11 @@
                             </td>
                             <td class="py-3">
                                 {% if f.estado == 'pagado' %}
-                                    <span class="badge-status badge-recibida"><i class="bi bi-check-circle-fill"></i> Pagado</span>
+                                    <span class="status-pill status-pill--ok"><i class="bi bi-check-circle-fill"></i> Pagado</span>
                                 {% elif f.estado == 'vencido' %}
-                                    <span class="badge-status badge-cancelada"><i class="bi bi-exclamation-circle-fill"></i> Vencido</span>
+                                    <span class="status-pill status-pill--neutral"><i class="bi bi-exclamation-circle-fill"></i> Vencido</span>
                                 {% else %}
-                                    <span class="badge-status badge-borrador"><i class="bi bi-hourglass-split"></i> Pendiente</span>
+                                    <span class="status-pill status-pill--neutral"><i class="bi bi-hourglass-split"></i> Pendiente</span>
                                 {% endif %}
                             </td>
                             <td class="py-3 text-end fw-bold text-body">${{ "{:,.2f}".format(f.monto) }}</td>

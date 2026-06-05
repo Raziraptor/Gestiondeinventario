@@ -258,7 +258,7 @@
                                 {{ tx.fecha.strftime('%d/%m/%Y') if tx.fecha else '—' }}
                             </td>
                             <td class="py-3">
-                                <span class="badge-status {{ tx.badge_class }} d-inline-flex align-items-center gap-1">
+                                <span class="status-pill {{ tx.badge_class }}">
                                     <i class="bi {{ tx.icon }}" style="font-size:.75rem;"></i>
                                     {{ tx.tipo }}
                                 </span>

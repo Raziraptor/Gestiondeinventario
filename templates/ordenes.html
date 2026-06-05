@@ -93,19 +93,19 @@
             {% if orden.estado == 'recibida' %}
                 {% set border_color = '#10b981' %}
                 {% set status_icon = 'bi-check-circle-fill' %}
-                {% set status_class = 'badge-recibida' %}
+                {% set status_class = 'status-pill--ok' %}
             {% elif orden.estado == 'enviada' %}
                 {% set border_color = '#06b6d4' %}
                 {% set status_icon = 'bi-truck' %}
-                {% set status_class = 'badge-enviada' %}
+                {% set status_class = 'status-pill--info' %}
             {% elif orden.estado == 'cancelada' %}
                 {% set border_color = '#64748b' %}
                 {% set status_icon = 'bi-x-circle-fill' %}
-                {% set status_class = 'badge-cancelada' %}
+                {% set status_class = 'status-pill--neutral' %}
             {% else %}
                 {% set border_color = '#f59e0b' %}
                 {% set status_icon = 'bi-pencil-square' %}
-                {% set status_class = 'badge-borrador' %}
+                {% set status_class = 'status-pill--neutral' %}
             {% endif %}
 
             <div class="col orden-item" data-estado="{{ orden.estado }}">
@@ -118,7 +118,7 @@
                                 <h5 class="fw-bold mb-0 text-body">OC #{{ orden.id }}</h5>
                                 <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ orden.fecha_creacion.strftime('%d/%m/%Y') }}</small>
                             </div>
-                            <span class="badge-status {{ status_class }}">
+                            <span class="status-pill {{ status_class }}">
                                 <i class="{{ status_icon }}"></i> {{ orden.estado }}
                             </span>
                         </div>

@@ -39,9 +39,9 @@
                                 <i class="bi bi-folder2-open fs-5" style="color:var(--primary);"></i>
                             </div>
                             {% if cc.estado == 'cerrado' %}
-                                <span class="badge-status badge-cancelada"><i class="bi bi-lock-fill"></i> Cerrado</span>
+                                <span class="status-pill status-pill--neutral"><i class="bi bi-lock-fill"></i> Cerrado</span>
                             {% else %}
-                                <span class="badge-status badge-recibida"><i class="bi bi-circle-fill" style="font-size:.45rem;"></i> Activo</span>
+                                <span class="status-pill status-pill--ok"><i class="bi bi-circle-fill" style="font-size:.45rem;"></i> Activo</span>
                             {% endif %}
                         </div>
 

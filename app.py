@@ -5400,7 +5400,7 @@ def finanzas_dashboard():
             'descripcion': g.descripcion,
             'categoria': g.categoria or 'Sin categoría',
             'monto': g.monto,
-            'badge_class': 'badge-borrador',
+            'badge_class': 'status-pill--neutral',
             'icon': 'bi-cash-coin',
         })
     for oc in ultimas_ocs:
@@ -5410,7 +5410,7 @@ def finanzas_dashboard():
             'descripcion': f'OC #{oc.id} — {oc.proveedor.nombre}',
             'categoria': 'Inventario',
             'monto': oc.costo_total,
-            'badge_class': 'badge-recibida',
+            'badge_class': 'status-pill--ok',
             'icon': 'bi-cart-check-fill',
         })
     for p in ultimos_pagos:
@@ -5420,7 +5420,7 @@ def finanzas_dashboard():
             'descripcion': p.servicio.nombre,
             'categoria': p.servicio.tipo.capitalize() if p.servicio.tipo else 'Servicio',
             'monto': p.monto,
-            'badge_class': 'badge-enviada',
+            'badge_class': 'status-pill--info',
             'icon': 'bi-lightning-charge-fill',
         })
     transacciones.sort(key=lambda x: x['fecha'] if x['fecha'] else date.min, reverse=True)
@@ -6381,15 +6381,15 @@ def detalle_centro_costo(id):
     for g in cc.gastos:
         txs.append({'fecha': g.fecha.date() if hasattr(g.fecha,'date') else g.fecha,
                     'tipo':'Gasto','desc':g.descripcion,'cat':g.categoria or '—',
-                    'monto':g.monto,'icon':'bi-cash-coin','cls':'badge-borrador'})
+                    'monto':g.monto,'icon':'bi-cash-coin','cls':'status-pill--neutral'})
     for p in cc.pagos_servicio:
         txs.append({'fecha': p.fecha_pago,
                     'tipo':'Servicio','desc':p.servicio.nombre,'cat':p.servicio.tipo or '—',
-                    'monto':p.monto,'icon':'bi-lightning-charge-fill','cls':'badge-enviada'})
+                    'monto':p.monto,'icon':'bi-lightning-charge-fill','cls':'status-pill--info'})
     for f in cc.facturas:
         txs.append({'fecha': f.fecha_emision,
                     'tipo':'Factura','desc':f.numero_factura + ' — ' + f.proveedor.nombre,'cat':'Proveedor',
-                    'monto':f.monto,'icon':'bi-file-earmark-text','cls':'badge-recibida'})
+                    'monto':f.monto,'icon':'bi-file-earmark-text','cls':'status-pill--ok'})
     txs.sort(key=lambda x: x['fecha'] if x['fecha'] else date.min, reverse=True)
 
     return render_template('centro_costo_detalle.html',

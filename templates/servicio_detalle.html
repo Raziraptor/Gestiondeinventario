@@ -152,15 +152,15 @@
               <td class="fw-bold" style="font-size:.95rem;">${{ "{:,.2f}".format(p.monto) }}</td>
               <td>
                 {% if p.estado == 'pagado' %}
-                <span class="badge badge-status badge-recibida rounded-pill px-2 py-1">
+                <span class="status-pill status-pill--ok">
                   <i class="bi bi-check-circle-fill me-1"></i>Pagado
                 </span>
                 {% elif p.estado == 'vencido' %}
-                <span class="badge badge-status badge-cancelada rounded-pill px-2 py-1">
+                <span class="status-pill status-pill--neutral">
                   <i class="bi bi-exclamation-triangle-fill me-1"></i>Vencido
                 </span>
                 {% else %}
-                <span class="badge badge-status badge-enviada rounded-pill px-2 py-1">
+                <span class="status-pill status-pill--info">
                   <i class="bi bi-clock-fill me-1"></i>Pendiente
                 </span>
                 {% endif %}

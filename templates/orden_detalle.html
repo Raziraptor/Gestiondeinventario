@@ -113,7 +113,8 @@
         <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
             <div class="d-flex align-items-center gap-3">
                 <h5 class="mb-0 fw-bold text-body">Estado Actual:</h5>
-                <span class="badge-status badge-{{ orden.estado }} rounded-pill px-3 py-2 shadow-sm fs-6">
+                {% set _pill = {'borrador':'status-pill--neutral','enviada':'status-pill--info','recibida':'status-pill--ok','cancelada':'status-pill--neutral','aprobada':'status-pill--ok'} %}
+                <span class="status-pill {{ _pill.get(orden.estado, 'status-pill--neutral') }} fs-6">
                     {{ orden.estado|capitalize }}
                 </span>
             </div>

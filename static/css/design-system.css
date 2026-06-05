@@ -616,6 +616,16 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
 .status-neutral { background: var(--status-neutral-bg); color: var(--status-neutral); }
 .status-neutral::before { background: var(--status-neutral); }
 
+/* ═══════════════════════════════════════════════════════════
+   STATUS PILL — sistema unificado de estado
+   Uso: <span class="status-pill status-pill--ok">Texto</span>
+   ═══════════════════════════════════════════════════════════ */
+.status-pill--ok      { background: var(--status-ok-bg);      color: var(--status-ok); }
+.status-pill--warn    { background: var(--status-warn-bg);     color: var(--status-warn); }
+.status-pill--danger  { background: var(--status-danger-bg);   color: var(--status-danger); }
+.status-pill--info    { background: var(--status-info-bg);     color: var(--status-info); }
+.status-pill--neutral { background: var(--status-neutral-bg);  color: var(--status-neutral); }
+
 /* ============================================================
    MOBILE — sidebar off-canvas
    ============================================================ */

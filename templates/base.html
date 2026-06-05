@@ -393,20 +393,16 @@
         }
         [data-bs-theme="dark"] .badge.text-dark { color: var(--bs-body-color) !important; }
 
-        /* ── STATUS BADGES (legacy, sigue funcionando) ── */
-        .badge-status {
-            font-size: .72rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .5px; padding: .3em .8em; border-radius: 50rem;
-            display: inline-flex; align-items: center; gap: .3em;
-        }
-        .badge-borrador  { background: rgba(245,158,11,.15); color: #f59e0b; }
-        .badge-enviada   { background: rgba(14,165,233,.15);  color: #0ea5e9; }
-        .badge-recibida  { background: rgba(16,185,129,.15);  color: #10b981; }
-        .badge-aprobada  { background: rgba(16,185,129,.15);  color: #10b981; }
-        .badge-cancelada { background: rgba(100,116,139,.15); color: var(--bs-secondary); }
-        .badge-activo    { background: rgba(16,185,129,.15);  color: #10b981; }
-        .badge-pendiente { background: rgba(249,115,22,.15);  color: #f97316; }
-        .badge-rechazada { background: rgba(239,68,68,.15);   color: #ef4444; }
+        /* ── STATUS BADGES — legacy aliases, usar status-pill en templates nuevos ── */
+        .badge-status    { display:inline-flex;align-items:center;gap:.3em;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:.28em .7em;border-radius:50rem;white-space:nowrap; }
+        .badge-borrador  { background: rgba(148,163,184,.12); color: #94a3b8; }
+        .badge-enviada   { background: rgba(14,165,233,.12);  color: #0ea5e9; }
+        .badge-recibida  { background: rgba(16,185,129,.12);  color: #10b981; }
+        .badge-aprobada  { background: rgba(16,185,129,.12);  color: #10b981; }
+        .badge-cancelada { background: rgba(148,163,184,.12); color: #94a3b8; }
+        .badge-activo    { background: rgba(16,185,129,.12);  color: #10b981; }
+        .badge-pendiente { background: rgba(245,158,11,.12);  color: #f59e0b; }
+        .badge-rechazada { background: rgba(239,68,68,.12);   color: #ef4444; }
 
         /* ============================================================
            UTILIDADES
