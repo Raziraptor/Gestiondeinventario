@@ -49,7 +49,7 @@
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label fw-bold small text-muted text-uppercase mb-0" style="letter-spacing: 0.5px;">Contraseña</label>
-                            <a href="{{ url_for('forgot_password') }}" class="small fw-bold text-decoration-none text-primary">¿La olvidaste?</a>
+                            <a href="{{ url_for('auth.forgot_password') }}" class="small fw-bold text-decoration-none text-primary">¿La olvidaste?</a>
                         </div>
                         <div class="input-group shadow-sm rounded-3 overflow-hidden">
                             <span class="input-group-text border-end-0"><i class="bi bi-lock"></i></span>
@@ -75,7 +75,7 @@
                 <div class="text-center mt-4 pt-4 border-top border-secondary border-opacity-10">
                     <p class="text-muted small mb-0">
                         ¿No tienes una cuenta aún? <br>
-                        <a href="{{ url_for('register') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Regístrate aquí</a>
+                        <a href="{{ url_for('auth.register') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Regístrate aquí</a>
                     </p>
                 </div>
             </div>

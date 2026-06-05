@@ -18,7 +18,7 @@
     <div class="page-header mb-4">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-1">
-                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
                 <li class="breadcrumb-item active">Reportes</li>
             </ol>
         </nav>
@@ -68,7 +68,7 @@
                         estado (óptimo/bajo/exceso) y valor total por producto en MXN.
                     </p>
                     <div class="d-grid">
-                        <a id="btn-inv-excel" href="{{ url_for('exportar_inventario_excel') }}"
+                        <a id="btn-inv-excel" href="{{ url_for('reports.exportar_inventario_excel') }}"
                            class="btn btn-success rounded-pill fw-bold shadow-sm">
                             <i class="bi bi-download me-2"></i>Descargar Excel
                         </a>
@@ -97,7 +97,7 @@
                         ordenados por valor, precio unitario, stock actual y porcentaje del inventario total.
                     </p>
                     <div class="d-grid">
-                        <a id="btn-val-pdf" href="{{ url_for('exportar_valorizacion_pdf') }}"
+                        <a id="btn-val-pdf" href="{{ url_for('reports.exportar_valorizacion_pdf') }}"
                            class="btn btn-primary rounded-pill fw-bold shadow-sm">
                             <i class="bi bi-download me-2"></i>Descargar PDF
                         </a>
@@ -183,9 +183,9 @@
     }
 
     function updateLinks() {
-        if (btnInvXls) btnInvXls.href = buildUrl("{{ url_for('exportar_inventario_excel') }}");
-        if (btnValPdf) btnValPdf.href = buildUrl("{{ url_for('exportar_valorizacion_pdf') }}");
-        if (btnMovXls) btnMovXls.href = buildUrl("{{ url_for('exportar_movimientos_excel') }}", {
+        if (btnInvXls) btnInvXls.href = buildUrl("{{ url_for('reports.exportar_inventario_excel') }}");
+        if (btnValPdf) btnValPdf.href = buildUrl("{{ url_for('reports.exportar_valorizacion_pdf') }}");
+        if (btnMovXls) btnMovXls.href = buildUrl("{{ url_for('reports.exportar_movimientos_excel') }}", {
             desde: movDesde ? movDesde.value : '',
             hasta: movHasta ? movHasta.value : '',
             tipo:  movTipo  ? movTipo.value  : '',

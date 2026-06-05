@@ -20,7 +20,7 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item"><a href="#">Operaciones</a></li>
             <li class="breadcrumb-item active">Órdenes de Compra</li>
         </ol>
@@ -33,7 +33,7 @@
                 <h1 class="page-title"><i class="bi bi-cart-check-fill text-primary me-2"></i>Órdenes de Compra</h1>
                 <p class="page-subtitle">Gestión de aprovisionamiento y recepción de mercancía.</p>
             </div>
-            <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold">
+            <a href="{{ url_for('purchasing.nueva_orden_manual') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold">
                 <i class="bi bi-plus-lg me-1"></i> Crear OC Manual
             </a>
         </div>
@@ -42,7 +42,7 @@
     <!-- SECCIÓN DE FILTROS -->
     <div class="card shadow-sm mb-4 border-0 rounded-4 overflow-hidden">
         <div class="card-body p-4" style="background:var(--surface-raised)">
-            <form method="GET" action="{{ url_for('lista_ordenes') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ url_for('purchasing.lista_ordenes') }}" class="row g-3 align-items-end">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
                 <div class="col-md-3">
@@ -180,16 +180,16 @@
                         <div class="d-grid gap-2">
                             {% if orden.estado == 'borrador' or (orden.estado not in ['recibida', 'enviada', 'cancelada']) %}
                                 <div class="d-flex gap-2 align-items-stretch">
-                                    <a href="{{ url_for('editar_orden', id=orden.id) }}" class="btn btn-warning btn-sm fw-bold text-dark flex-grow-1 rounded-3">
+                                    <a href="{{ url_for('purchasing.editar_orden', id=orden.id) }}" class="btn btn-warning btn-sm fw-bold text-dark flex-grow-1 rounded-3">
                                         <i class="bi bi-pencil me-1"></i>Editar
                                     </a>
-                                    <form action="{{ url_for('enviar_orden', id=orden.id) }}" method="POST" class="flex-grow-1">
+                                    <form action="{{ url_for('purchasing.enviar_orden', id=orden.id) }}" method="POST" class="flex-grow-1">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-info btn-sm fw-bold text-white w-100 rounded-3">
                                             <i class="bi bi-send me-1"></i>Enviar
                                         </button>
                                     </form>
-                                    <form action="{{ url_for('cancelar_orden', id=orden.id) }}" method="POST" data-confirm="¿Cancelar esta orden de compra?">
+                                    <form action="{{ url_for('purchasing.cancelar_orden', id=orden.id) }}" method="POST" data-confirm="¿Cancelar esta orden de compra?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 h-100 px-3" aria-label="Cancelar orden">
                                             <i class="bi bi-x-lg"></i>
@@ -197,7 +197,7 @@
                                     </form>
                                 </div>
                             {% elif orden.estado == 'enviada' %}
-                                <form action="{{ url_for('recibir_orden', id=orden.id) }}" method="POST" class="d-grid" data-confirm="¿Confirmar la recepción física de toda la mercancía de esta orden?">
+                                <form action="{{ url_for('purchasing.recibir_orden', id=orden.id) }}" method="POST" class="d-grid" data-confirm="¿Confirmar la recepción física de toda la mercancía de esta orden?">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-success fw-bold rounded-3">
                                         <i class="bi bi-box-seam me-1"></i> Registrar Recepción
@@ -210,10 +210,10 @@
                             {% endif %}
 
                             <div class="d-flex justify-content-between mt-2 px-1">
-                                <a href="{{ url_for('ver_orden', id=orden.id) }}" class="btn btn-link btn-sm text-decoration-none text-secondary p-0 fw-bold">
+                                <a href="{{ url_for('purchasing.ver_orden', id=orden.id) }}" class="btn btn-link btn-sm text-decoration-none text-secondary p-0 fw-bold">
                                     <i class="bi bi-eye"></i> Detalle Completo
                                 </a>
-                                <a href="{{ url_for('generar_oc_pdf', id=orden.id) }}" class="btn btn-link btn-sm text-decoration-none text-danger p-0 fw-bold" target="_blank">
+                                <a href="{{ url_for('purchasing.generar_oc_pdf', id=orden.id) }}" class="btn btn-link btn-sm text-decoration-none text-danger p-0 fw-bold" target="_blank">
                                     <i class="bi bi-file-earmark-pdf"></i> Descargar PDF
                                 </a>
                             </div>
@@ -228,7 +228,7 @@
                 <i class="bi bi-receipt empty-state-icon"></i>
                 <h5>Sin órdenes de compra</h5>
                 <p>No hay órdenes de compra para los filtros seleccionados. Crea una nueva para gestionar tus compras a proveedores.</p>
-                <a href="{{ url_for('nueva_orden_manual') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                <a href="{{ url_for('purchasing.nueva_orden_manual') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
                     <i class="bi bi-plus-circle me-1"></i> Nueva Orden
                 </a>
             </div>

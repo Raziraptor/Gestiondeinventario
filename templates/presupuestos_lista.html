@@ -7,7 +7,7 @@
 
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item active">Presupuestos</li>
         </ol>
     </nav>
@@ -19,7 +19,7 @@
                 <h1 class="page-title"><i class="bi bi-bullseye text-primary me-2"></i>Presupuestos</h1>
                 <p class="page-subtitle">Controla el gasto real vs. lo planeado por categoría. Semáforo automático de alertas.</p>
             </div>
-            <a href="{{ url_for('nuevo_presupuesto') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+            <a href="{{ url_for('finance.nuevo_presupuesto') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
                 <i class="bi bi-plus-lg me-1"></i>Nuevo Presupuesto
             </a>
         </div>
@@ -183,10 +183,10 @@
                                 ${{ "{:,.2f}".format(item.disponible) }}
                             </td>
                             <td class="pe-4 py-3 text-end">
-                                <a href="{{ url_for('editar_presupuesto', id=item.p.id) }}" class="btn btn-sm btn-outline-secondary rounded-3 me-1" title="Editar">
+                                <a href="{{ url_for('finance.editar_presupuesto', id=item.p.id) }}" class="btn btn-sm btn-outline-secondary rounded-3 me-1" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ url_for('eliminar_presupuesto', id=item.p.id) }}" method="POST" class="d-inline"
+                                <form action="{{ url_for('finance.eliminar_presupuesto', id=item.p.id) }}" method="POST" class="d-inline"
                                       data-confirm="¿Eliminar el presupuesto de {{ item.p.categoria }}?">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-3" title="Eliminar">
@@ -208,7 +208,7 @@
         <i class="bi bi-bullseye empty-state-icon"></i>
         <h5>Sin presupuestos para este período</h5>
         <p>Crea presupuestos por categoría para ver el semáforo de gastos vs. lo planeado.</p>
-        <a href="{{ url_for('nuevo_presupuesto') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+        <a href="{{ url_for('finance.nuevo_presupuesto') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
             <i class="bi bi-plus-circle me-1"></i>Crear presupuesto
         </a>
     </div>

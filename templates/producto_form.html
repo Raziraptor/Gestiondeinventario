@@ -6,7 +6,7 @@
 
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item active">{{ titulo }}</li>
         </ol>
     </nav>
@@ -20,7 +20,7 @@
     </div>
 
     <form id="formulario_producto" method="POST"
-          action="{{ url_for('editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('editar_producto', id=producto.id) if producto and producto.id else url_for('nuevo_producto')) }}"
+          action="{{ url_for('inventory.editar_producto', id=producto.id, almacen_id=stock_item.almacen_id) if stock_item else (url_for('inventory.editar_producto', id=producto.id) if producto and producto.id else url_for('inventory.nuevo_producto')) }}"
           enctype="multipart/form-data">
 
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -271,7 +271,7 @@
                 <div class="alert rounded-4 border-0 shadow-sm p-4" style="background:var(--surface-raised);">
                     <i class="bi bi-info-circle-fill text-primary me-2 fs-5"></i>
                     Este producto no tiene stock específico en esta vista. Para editar cantidades ve a
-                    <a href="{{ url_for('lista_almacenes') }}" class="fw-bold">Almacenes</a>.
+                    <a href="{{ url_for('inventory.lista_almacenes') }}" class="fw-bold">Almacenes</a>.
                 </div>
                 {% endif %}
 
@@ -357,7 +357,7 @@
                                     class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm">
                                 <i class="bi bi-save me-2"></i>Guardar Producto
                             </button>
-                            <a href="{{ url_for('gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('dashboard') }}"
+                            <a href="{{ url_for('inventory.gestionar_inventario_almacen', id=stock_item.almacen_id) if stock_item else url_for('main.dashboard') }}"
                                class="btn btn-outline-secondary rounded-pill fw-bold">
                                 Cancelar
                             </a>

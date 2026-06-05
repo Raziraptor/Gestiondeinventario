@@ -9,7 +9,7 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item active">Cuentas por Pagar</li>
         </ol>
     </nav>
@@ -21,7 +21,7 @@
                 <h1 class="page-title"><i class="bi bi-file-earmark-text text-primary me-2"></i>Cuentas por Pagar</h1>
                 <p class="page-subtitle">Facturas de proveedores, vencimientos y antigüedad de saldos.</p>
             </div>
-            <a href="{{ url_for('nueva_factura') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold">
+            <a href="{{ url_for('finance.nueva_factura') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold">
                 <i class="bi bi-plus-lg me-1"></i> Registrar Factura
             </a>
         </div>
@@ -111,7 +111,7 @@
                     <button type="submit" class="btn btn-secondary fw-bold flex-grow-1 rounded-3">
                         <i class="bi bi-filter me-1"></i>Filtrar
                     </button>
-                    <a href="{{ url_for('lista_facturas') }}" class="btn btn-outline-secondary rounded-3" title="Limpiar filtros">
+                    <a href="{{ url_for('finance.lista_facturas') }}" class="btn btn-outline-secondary rounded-3" title="Limpiar filtros">
                         <i class="bi bi-x-lg"></i>
                     </a>
                 </div>
@@ -147,7 +147,7 @@
                             <td class="py-3 small text-body">{{ f.proveedor.nombre }}</td>
                             <td class="py-3 small text-muted">
                                 {% if f.orden_compra %}
-                                    <a href="{{ url_for('ver_orden', id=f.orden_compra.id) }}" class="text-primary text-decoration-none fw-semibold">
+                                    <a href="{{ url_for('purchasing.ver_orden', id=f.orden_compra.id) }}" class="text-primary text-decoration-none fw-semibold">
                                         OC #{{ f.orden_compra.id }}
                                     </a>
                                 {% else %}
@@ -180,7 +180,7 @@
                             <td class="pe-4 py-3">
                                 <div class="d-flex gap-2 justify-content-end align-items-center">
                                     {% if f.estado != 'pagado' %}
-                                    <form action="{{ url_for('marcar_factura_pagada', id=f.id) }}" method="POST">
+                                    <form action="{{ url_for('finance.marcar_factura_pagada', id=f.id) }}" method="POST">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-success btn-sm rounded-3 fw-bold"
                                                 title="Marcar como pagada"
@@ -189,10 +189,10 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    <a href="{{ url_for('editar_factura', id=f.id) }}" class="btn btn-outline-secondary btn-sm rounded-3" title="Editar">
+                                    <a href="{{ url_for('finance.editar_factura', id=f.id) }}" class="btn btn-outline-secondary btn-sm rounded-3" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <form action="{{ url_for('eliminar_factura', id=f.id) }}" method="POST"
+                                    <form action="{{ url_for('finance.eliminar_factura', id=f.id) }}" method="POST"
                                           data-confirm="¿Eliminar esta factura? Esta acción no se puede deshacer.">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" aria-label="Eliminar factura">
@@ -211,7 +211,7 @@
                 <i class="bi bi-file-earmark-text empty-state-icon"></i>
                 <h5>Sin facturas registradas</h5>
                 <p>Registra las facturas de tus proveedores para controlar vencimientos y saldos pendientes.</p>
-                <a href="{{ url_for('nueva_factura') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                <a href="{{ url_for('finance.nueva_factura') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
                     <i class="bi bi-plus-circle me-1"></i> Registrar primera factura
                 </a>
             </div>

@@ -7,9 +7,9 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3 mt-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('lista_proyectos_oc') }}">OC de Proyectos</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('ver_proyecto_oc', id=proyecto_oc.id) }}">#{{ proyecto_oc.id }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('purchasing.lista_proyectos_oc') }}">OC de Proyectos</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('purchasing.ver_proyecto_oc', id=proyecto_oc.id) }}">#{{ proyecto_oc.id }}</a></li>
             <li class="breadcrumb-item active">Registrar Recepción</li>
         </ol>
     </nav>
@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('recibir_proyecto_oc', id=proyecto_oc.id) }}">
+    <form method="POST" action="{{ url_for('purchasing.recibir_proyecto_oc', id=proyecto_oc.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <!-- SELECTOR DE ALMACÉN -->
@@ -101,7 +101,7 @@
 
         <!-- ACCIONES -->
         <div class="d-flex gap-3 justify-content-end mb-5">
-            <a href="{{ url_for('ver_proyecto_oc', id=proyecto_oc.id) }}"
+            <a href="{{ url_for('purchasing.ver_proyecto_oc', id=proyecto_oc.id) }}"
                class="btn btn-outline-secondary rounded-pill px-4 fw-bold shadow-sm">
                 Cancelar
             </a>

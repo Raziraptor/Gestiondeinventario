@@ -9,8 +9,8 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('lista_productos_sin_almacen') }}">Inventario</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('inventory.lista_productos_sin_almacen') }}">Inventario</a></li>
             <li class="breadcrumb-item active">{{ producto.nombre }}</li>
         </ol>
     </nav>
@@ -22,7 +22,7 @@
                 <h1 class="page-title"><i class="bi bi-clock-history text-primary me-2"></i>{{ producto.nombre }}</h1>
                 <p class="page-subtitle">Kárdex de movimientos y distribución por almacén.</p>
             </div>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
                 <i class="bi bi-arrow-left me-1"></i> Volver
             </a>
         </div>
@@ -117,7 +117,7 @@
                                     </span>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <a href="{{ url_for('editar_producto', id=producto.id, almacen_id=stock.almacen_id) }}" 
+                                    <a href="{{ url_for('inventory.editar_producto', id=producto.id, almacen_id=stock.almacen_id) }}" 
                                        class="btn btn-sm btn-outline-primary rounded-pill shadow-sm" title="Ajustar Stock Físico">
                                         <i class="bi bi-pencil-square me-1"></i> Ajustar
                                     </a>
@@ -128,7 +128,7 @@
                                 <td colspan="4" class="text-center py-5 text-muted">
                                     <i class="bi bi-exclamation-circle fs-2 d-block mb-2 opacity-50"></i>
                                     Este producto no está asignado a ningún almacén físico.<br>
-                                    <a href="{{ url_for('lista_productos_sin_almacen') }}" class="btn btn-sm btn-primary mt-3 rounded-pill shadow-sm">Asignar ahora</a>
+                                    <a href="{{ url_for('inventory.lista_productos_sin_almacen') }}" class="btn btn-sm btn-primary mt-3 rounded-pill shadow-sm">Asignar ahora</a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -194,9 +194,9 @@
                                 <td class="text-end pe-4">
                                     <div class="text-body fw-bold">
                                         {% if mov.orden_compra_id %}
-                                            <a href="{{ url_for('ver_orden', id=mov.orden_compra_id) }}" class="text-decoration-none">OC #{{ mov.orden_compra_id }}</a>
+                                            <a href="{{ url_for('purchasing.ver_orden', id=mov.orden_compra_id) }}" class="text-decoration-none">OC #{{ mov.orden_compra_id }}</a>
                                         {% elif mov.salida_id %}
-                                            <a href="{{ url_for('ver_salida', id=mov.salida_id) }}" class="text-decoration-none">Salida #{{ mov.salida_id }}</a>
+                                            <a href="{{ url_for('inventory.ver_salida', id=mov.salida_id) }}" class="text-decoration-none">Salida #{{ mov.salida_id }}</a>
                                         {% else %}
                                             Ajuste Manual
                                         {% endif %}

@@ -12,8 +12,8 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('lista_almacenes') }}">Almacenes</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('inventory.lista_almacenes') }}">Almacenes</a></li>
             <li class="breadcrumb-item active">{{ almacen_seleccionado.nombre if almacen_seleccionado else titulo }}</li>
         </ol>
     </nav>
@@ -25,7 +25,7 @@
                 <h1 class="page-title"><i class="bi bi-shop-window text-primary me-2"></i>{{ titulo }}</h1>
                 <p class="page-subtitle">Gestiona los productos existentes en este almacén. Los nuevos iniciarán con stock 0.</p>
             </div>
-            <a href="{{ url_for('lista_almacenes') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <a href="{{ url_for('inventory.lista_almacenes') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
                 <i class="bi bi-arrow-left me-1"></i> Almacenes
             </a>
         </div>
@@ -91,7 +91,7 @@
                         </div>
 
                         <!-- 3. FORMULARIO DE ENVÍO -->
-                        <form method="POST" action="{{ url_for('gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod" class="surface-panel p-4 shadow-sm">
+                        <form method="POST" action="{{ url_for('inventory.gestionar_inventario_almacen', id=almacen.id) }}" id="form_anadir_prod" class="surface-panel p-4 shadow-sm">
                             
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="producto_id" id="producto_id_hidden" value="0">
@@ -194,15 +194,15 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group shadow-sm">
                                         <!-- Botón de Edición -->
-                                        <a href="{{ url_for('editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-primary btn-sm" title="Editar Cantidad/Ubicación">
+                                        <a href="{{ url_for('inventory.editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-primary btn-sm" title="Editar Cantidad/Ubicación">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         <!-- Botón de Etiqueta -->
-                                        <a href="{{ url_for('configurar_etiqueta', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-secondary btn-sm" title="Imprimir Etiqueta">
+                                        <a href="{{ url_for('inventory.configurar_etiqueta', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-secondary btn-sm" title="Imprimir Etiqueta">
                                             <i class="bi bi-upc-scan"></i>
                                         </a>
                                         <!-- Botón de Eliminar -->
-                                        <form action="{{ url_for('eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" data-confirm="¿Quitar este producto del almacén? Se perderá el historial de movimientos asociado a esta ubicación.">
+                                        <form action="{{ url_for('inventory.eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" data-confirm="¿Quitar este producto del almacén? Se perderá el historial de movimientos asociado a esta ubicación.">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="btn btn-outline-danger btn-sm" title="Quitar de Almacén"><i class="bi bi-trash"></i></button>
                                         </form>

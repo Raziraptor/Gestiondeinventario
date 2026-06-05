@@ -116,7 +116,7 @@
             </p>
         </div>
         {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard %}
-        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary rounded-pill px-4 fw-bold shadow-sm">
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary rounded-pill px-4 fw-bold shadow-sm">
             <i class="bi bi-graph-up me-1"></i> Ver Dashboard
         </a>
         {% endif %}
@@ -137,53 +137,53 @@
             <div class="d-flex flex-wrap gap-2 gap-md-3">
 
                 {% if current_user.rol in ['super_admin','admin'] or current_user.perm_do_salidas %}
-                <a href="{{ url_for('registrar_salida') }}" class="qa-btn qa-salida">
+                <a href="{{ url_for('inventory.registrar_salida') }}" class="qa-btn qa-salida">
                     <i class="bi bi-box-arrow-right"></i>
                     Nueva Salida
                 </a>
                 {% endif %}
 
                 {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_gastos %}
-                <a href="{{ url_for('nuevo_gasto') }}" class="qa-btn qa-gasto">
+                <a href="{{ url_for('finance.nuevo_gasto') }}" class="qa-btn qa-gasto">
                     <i class="bi bi-cash-coin"></i>
                     Nuevo Gasto
                 </a>
                 {% endif %}
 
                 {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
-                <a href="{{ url_for('nueva_orden_manual') }}" class="qa-btn qa-oc">
+                <a href="{{ url_for('purchasing.nueva_orden_manual') }}" class="qa-btn qa-oc">
                     <i class="bi bi-receipt"></i>
                     Nueva OC
                 </a>
                 {% endif %}
 
                 {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_proyecto %}
-                <a href="{{ url_for('nuevo_proyecto_oc') }}" class="qa-btn qa-proyecto">
+                <a href="{{ url_for('purchasing.nuevo_proyecto_oc') }}" class="qa-btn qa-proyecto">
                     <i class="bi bi-briefcase"></i>
                     OC Proyecto
                 </a>
                 {% endif %}
 
                 {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_dashboard %}
-                <a href="{{ url_for('lista_almacenes') }}" class="qa-btn qa-inv">
+                <a href="{{ url_for('inventory.lista_almacenes') }}" class="qa-btn qa-inv">
                     <i class="bi bi-boxes"></i>
                     Ver Inventario
                 </a>
                 {% endif %}
 
                 {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_gastos %}
-                <a href="{{ url_for('nueva_factura') }}" class="qa-btn qa-factura">
+                <a href="{{ url_for('finance.nueva_factura') }}" class="qa-btn qa-factura">
                     <i class="bi bi-receipt-cutoff"></i>
                     Nueva Factura
                 </a>
                 {% endif %}
 
                 {% if current_user.rol in ['super_admin','admin'] %}
-                <a href="{{ url_for('nuevo_presupuesto') }}" class="qa-btn qa-presupuesto">
+                <a href="{{ url_for('finance.nuevo_presupuesto') }}" class="qa-btn qa-presupuesto">
                     <i class="bi bi-bullseye"></i>
                     Presupuesto
                 </a>
-                <a href="{{ url_for('lista_aprobaciones', estado='pendiente') }}"
+                <a href="{{ url_for('purchasing.lista_aprobaciones', estado='pendiente') }}"
                    class="qa-btn qa-aprobaciones position-relative">
                     <i class="bi bi-shield-check"></i>
                     {% if aprobaciones_badge > 0 %}
@@ -214,7 +214,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_dashboard %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_almacenes') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.lista_almacenes') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(6,182,212,.12);">
                                 <i class="bi bi-boxes" style="color:#06b6d4;"></i>
                             </div>
@@ -228,7 +228,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_almacenes') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.lista_almacenes') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(102,16,242,.12);">
                                 <i class="bi bi-building" style="color:#6610f2;"></i>
                             </div>
@@ -242,7 +242,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_edit_management %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('nuevo_producto') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.nuevo_producto') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(16,185,129,.12);">
                                 <i class="bi bi-plus-circle-fill" style="color:#10b981;"></i>
                             </div>
@@ -256,7 +256,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_management %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_categorias') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.lista_categorias') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(100,116,139,.12);">
                                 <i class="bi bi-tags" style="color:#64748b;"></i>
                             </div>
@@ -267,7 +267,7 @@
                         </a>
                     </div>
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_proveedores') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.lista_proveedores') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(6,182,212,.12);">
                                 <i class="bi bi-truck" style="color:#06b6d4;"></i>
                             </div>
@@ -278,7 +278,7 @@
                         </a>
                     </div>
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_productos_sin_almacen') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.lista_productos_sin_almacen') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(245,158,11,.12);">
                                 <i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;"></i>
                             </div>
@@ -302,7 +302,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_ordenes') }}" class="mod-card h-100">
+                        <a href="{{ url_for('purchasing.lista_ordenes') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:var(--primary-tonal);">
                                 <i class="bi bi-receipt" style="color:var(--primary);"></i>
                             </div>
@@ -316,7 +316,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_proyecto %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_proyectos_oc') }}" class="mod-card h-100">
+                        <a href="{{ url_for('purchasing.lista_proyectos_oc') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(139,92,246,.12);">
                                 <i class="bi bi-briefcase-fill" style="color:#8b5cf6;"></i>
                             </div>
@@ -341,7 +341,7 @@
                     {% if current_user.rol in ['super_admin','admin'] %}
                     {# Dashboard Financiero — tarjeta ancha (2x1) #}
                     <div class="col-12 col-sm-8">
-                        <a href="{{ url_for('finanzas_dashboard') }}" class="mod-card h-100"
+                        <a href="{{ url_for('finance.finanzas_dashboard') }}" class="mod-card h-100"
                            style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(99,102,241,.02));">
                             <div class="mod-icon" style="background:rgba(99,102,241,.15);">
                                 <i class="bi bi-graph-up-arrow" style="color:#6366f1;"></i>
@@ -355,7 +355,7 @@
 
                     {# Aprobaciones con badge de urgencia (1x1) #}
                     <div class="col-12 col-sm-4">
-                        <a href="{{ url_for('lista_aprobaciones') }}"
+                        <a href="{{ url_for('purchasing.lista_aprobaciones') }}"
                            class="mod-card h-100{% if aprobaciones_badge > 0 %} mod-card-urgente{% endif %}">
                             <div class="mod-icon position-relative" style="background:rgba(16,185,129,.12);">
                                 <i class="bi bi-shield-check" style="color:#10b981;"></i>
@@ -380,7 +380,7 @@
 
                     {# Cuentas por Pagar #}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_facturas') }}" class="mod-card h-100">
+                        <a href="{{ url_for('finance.lista_facturas') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(249,115,22,.12);">
                                 <i class="bi bi-receipt-cutoff" style="color:#f97316;"></i>
                             </div>
@@ -393,7 +393,7 @@
 
                     {# Centros de Costo #}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_centros_costo') }}" class="mod-card h-100">
+                        <a href="{{ url_for('finance.lista_centros_costo') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(20,184,166,.12);">
                                 <i class="bi bi-diagram-3-fill" style="color:#14b8a6;"></i>
                             </div>
@@ -406,7 +406,7 @@
 
                     {# Presupuestos #}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_presupuestos') }}" class="mod-card h-100">
+                        <a href="{{ url_for('finance.lista_presupuestos') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(245,158,11,.12);">
                                 <i class="bi bi-bullseye" style="color:#f59e0b;"></i>
                             </div>
@@ -429,7 +429,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_do_salidas %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('historial_salidas') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.historial_salidas') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(239,68,68,.12);">
                                 <i class="bi bi-box-arrow-right" style="color:#ef4444;"></i>
                             </div>
@@ -440,7 +440,7 @@
                         </a>
                     </div>
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('nueva_transferencia') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.nueva_transferencia') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(245,158,11,.12);">
                                 <i class="bi bi-arrow-left-right" style="color:#f59e0b;"></i>
                             </div>
@@ -454,7 +454,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_gastos %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_gastos') }}" class="mod-card h-100">
+                        <a href="{{ url_for('finance.lista_gastos') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(16,185,129,.12);">
                                 <i class="bi bi-cash-coin" style="color:#10b981;"></i>
                             </div>
@@ -468,7 +468,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_dashboard %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('reportes') }}" class="mod-card h-100">
+                        <a href="{{ url_for('reports.reportes') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:var(--primary-tonal);">
                                 <i class="bi bi-bar-chart-fill" style="color:var(--primary);"></i>
                             </div>
@@ -482,7 +482,7 @@
 
                     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_view_dashboard %}
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('historial_salidas') }}" class="mod-card h-100">
+                        <a href="{{ url_for('inventory.historial_salidas') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(100,116,139,.12);">
                                 <i class="bi bi-clock-history" style="color:#64748b;"></i>
                             </div>
@@ -503,7 +503,7 @@
                 <p class="section-label">Servicios</p>
                 <div class="row g-2 animate-cards">
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('lista_servicios') }}" class="mod-card h-100">
+                        <a href="{{ url_for('finance.lista_servicios') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(245,158,11,.12);">
                                 <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;"></i>
                             </div>
@@ -522,7 +522,7 @@
                         </a>
                     </div>
                     <div class="col-sm-6 col-md-4">
-                        <a href="{{ url_for('nuevo_servicio') }}" class="mod-card h-100">
+                        <a href="{{ url_for('finance.nuevo_servicio') }}" class="mod-card h-100">
                             <div class="mod-icon" style="background:rgba(16,185,129,.12);">
                                 <i class="bi bi-plus-circle-fill" style="color:#10b981;"></i>
                             </div>
@@ -546,7 +546,7 @@
             <p class="section-label">Administración</p>
             <div class="d-flex flex-column gap-2 mb-4">
 
-                <a href="{{ url_for('admin_panel') }}" class="mod-card">
+                <a href="{{ url_for('admin.admin_panel') }}" class="mod-card">
                     <div class="mod-icon" style="background:var(--primary-tonal);">
                         <i class="bi bi-shield-lock-fill" style="color:var(--primary);"></i>
                     </div>
@@ -556,7 +556,7 @@
                     </div>
                 </a>
 
-                <a href="{{ url_for('configurar_plantilla') }}" class="mod-card">
+                <a href="{{ url_for('admin.configurar_plantilla') }}" class="mod-card">
                     <div class="mod-icon" style="background:rgba(6,182,212,.12);">
                         <i class="bi bi-palette-fill" style="color:#06b6d4;"></i>
                     </div>
@@ -566,7 +566,7 @@
                     </div>
                 </a>
 
-                <a href="{{ url_for('manual_usuario') }}" class="mod-card">
+                <a href="{{ url_for('admin.manual_usuario') }}" class="mod-card">
                     <div class="mod-icon" style="background:rgba(16,185,129,.12);">
                         <i class="bi bi-file-earmark-text-fill" style="color:#10b981;"></i>
                     </div>
@@ -577,7 +577,7 @@
                 </a>
 
                 {% if current_user.rol == 'super_admin' %}
-                <a href="{{ url_for('super_admin') }}" class="mod-card">
+                <a href="{{ url_for('admin.super_admin') }}" class="mod-card">
                     <div class="mod-icon" style="background:rgba(239,68,68,.12);">
                         <i class="bi bi-person-fill-gear" style="color:#ef4444;"></i>
                     </div>
@@ -620,7 +620,7 @@
                     {% endfor %}
                 </div>
                 <div class="card-footer bg-transparent py-2 px-3 text-center" style="border-top:1px solid var(--border)">
-                    <a href="{{ url_for('dashboard') }}#alertas" class="btn btn-sm btn-warning fw-bold rounded-pill px-3 shadow-sm">
+                    <a href="{{ url_for('main.dashboard') }}#alertas" class="btn btn-sm btn-warning fw-bold rounded-pill px-3 shadow-sm">
                         <i class="bi bi-eye me-1"></i> Ver todas y gestionar
                     </a>
                 </div>
@@ -678,7 +678,7 @@
                         <i class="bi bi-truck text-info"></i>
                         <span class="fw-bold small">{{ prov_nombre }}</span>
                     </div>
-                    <form action="{{ url_for('nueva_orden') }}" method="POST">
+                    <form action="{{ url_for('purchasing.nueva_orden') }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="almacen_id" value="{{ alm_id }}">
                         <div class="card-body p-0">
@@ -701,7 +701,7 @@
                                             <i class="bi bi-check2-circle text-success flex-shrink-0"></i>
                                             <span>{{ item.producto.nombre }} <span style="font-size:.7rem;">({{ item.producto.codigo }})</span></span>
                                         </span>
-                                        <a href="{{ url_for('ver_orden', id=pend.orden_id) }}"
+                                        <a href="{{ url_for('purchasing.ver_orden', id=pend.orden_id) }}"
                                            class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 text-decoration-none flex-shrink-0 ms-2"
                                            title="Creado por {{ pend.username }}">
                                             OC #{{ pend.orden_id }} · {{ pend.estado }}
@@ -726,7 +726,7 @@
                                 <i class="bi bi-cart-plus me-1"></i> Generar OC Rápida
                             </button>
                             {% elif prov_id != 0 %}
-                            <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-info btn-sm rounded-pill fw-semibold px-3">
+                            <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-info btn-sm rounded-pill fw-semibold px-3">
                                 <i class="bi bi-eye me-1"></i> Ver OC pendiente
                             </a>
                             {% else %}

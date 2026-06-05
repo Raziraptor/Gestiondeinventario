@@ -84,28 +84,28 @@
   {% if almacen_seleccionado %}
   <div class="d-flex flex-wrap gap-2 mb-4">
     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_do_salidas %}
-    <a href="{{ url_for('registrar_salida', almacen_id=almacen_seleccionado.id) }}"
+    <a href="{{ url_for('inventory.registrar_salida', almacen_id=almacen_seleccionado.id) }}"
        class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold shadow-sm">
       <i class="bi bi-box-arrow-right me-1"></i>Nueva Salida
     </a>
     {% endif %}
     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_edit_management %}
-    <a href="{{ url_for('nuevo_producto') }}"
+    <a href="{{ url_for('inventory.nuevo_producto') }}"
        class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold shadow-sm">
       <i class="bi bi-plus-lg me-1"></i>Nuevo Producto
     </a>
     {% endif %}
     {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
-    <a href="{{ url_for('nueva_orden_manual') }}"
+    <a href="{{ url_for('purchasing.nueva_orden_manual') }}"
        class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold shadow-sm">
       <i class="bi bi-cart-plus me-1"></i>Nueva OC
     </a>
     {% endif %}
-    <a href="{{ url_for('historial_salidas') }}"
+    <a href="{{ url_for('inventory.historial_salidas') }}"
        class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold shadow-sm">
       <i class="bi bi-clock-history me-1"></i>Historial
     </a>
-    <a href="{{ url_for('exportar_inventario_excel', almacen_id=almacen_seleccionado.id) }}"
+    <a href="{{ url_for('reports.exportar_inventario_excel', almacen_id=almacen_seleccionado.id) }}"
        class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold shadow-sm">
       <i class="bi bi-file-earmark-excel me-1"></i>Excel
     </a>
@@ -120,7 +120,7 @@
       <h5 class="fw-bold mb-1">No hay almacén seleccionado</h5>
       <p class="mb-0 small">
         {% if current_user.rol in ['super_admin','admin'] %}
-        <a href="{{ url_for('lista_almacenes') }}" class="alert-link">Crea un almacén</a> para empezar a operar.
+        <a href="{{ url_for('inventory.lista_almacenes') }}" class="alert-link">Crea un almacén</a> para empezar a operar.
         {% else %}Pide a un administrador que te asigne un almacén.{% endif %}
       </p>
     </div>
@@ -505,8 +505,8 @@
               role="link"
               tabindex="0"
               style="cursor:pointer;"
-              onclick="window.location='{{ url_for('historial_producto', id=item.producto.id) }}'"
-              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ url_for('historial_producto', id=item.producto.id) }}';}">
+              onclick="window.location='{{ url_for('inventory.historial_producto', id=item.producto.id) }}'"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ url_for('inventory.historial_producto', id=item.producto.id) }}';}">
 
             <td class="ps-4" onclick="event.stopPropagation()">
               {% if item.producto.imagen_url %}
@@ -588,17 +588,17 @@
 
             <td class="text-end pe-3" onclick="event.stopPropagation()">
               <div class="d-flex gap-1 justify-content-end">
-                <a href="{{ url_for('editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}"
+                <a href="{{ url_for('inventory.editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}"
                    class="btn btn-outline-primary btn-sm rounded-2 btn-accion"
                    title="Editar" aria-label="Editar {{ item.producto.nombre }}">
                   <i class="bi bi-pencil" style="font-size:.8rem;" aria-hidden="true"></i>
                 </a>
-                <a href="{{ url_for('historial_producto', id=item.producto.id) }}"
+                <a href="{{ url_for('inventory.historial_producto', id=item.producto.id) }}"
                    class="btn btn-outline-secondary btn-sm rounded-2 btn-accion"
                    title="Historial" aria-label="Ver historial de {{ item.producto.nombre }}">
                   <i class="bi bi-clock-history" style="font-size:.8rem;" aria-hidden="true"></i>
                 </a>
-                <a href="{{ url_for('configurar_etiqueta', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}"
+                <a href="{{ url_for('inventory.configurar_etiqueta', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}"
                    class="btn btn-outline-secondary btn-sm rounded-2 btn-accion"
                    title="Etiqueta" aria-label="Configurar etiqueta de {{ item.producto.nombre }}">
                   <i class="bi bi-upc-scan" style="font-size:.8rem;" aria-hidden="true"></i>
@@ -612,7 +612,7 @@
               <i class="bi bi-inbox fs-1 text-muted opacity-25 d-block mb-3"></i>
               <h5 class="text-body fw-bold">El almacén está vacío</h5>
               <p class="text-muted small">No hay productos en este almacén.</p>
-              <a href="{{ url_for('gestionar_inventario_almacen', id=almacen_seleccionado.id) }}"
+              <a href="{{ url_for('inventory.gestionar_inventario_almacen', id=almacen_seleccionado.id) }}"
                  class="btn btn-primary mt-2 shadow-sm rounded-pill">
                 <i class="bi bi-plus-circle me-1"></i>Gestionar Inventario
               </a>
@@ -669,7 +669,7 @@
             <tr>
               <td class="ps-4 text-muted fw-bold" style="width:40px;">{{ loop.index }}</td>
               <td>
-                <a href="{{ url_for('historial_producto', id=item.producto.id) }}"
+                <a href="{{ url_for('inventory.historial_producto', id=item.producto.id) }}"
                    class="text-decoration-none fw-semibold text-body">{{ item.producto.nombre }}</a>
                 <div class="text-muted font-monospace" style="font-size:.75rem;">{{ item.producto.codigo }}</div>
               </td>

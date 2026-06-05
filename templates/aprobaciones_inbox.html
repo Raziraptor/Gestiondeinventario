@@ -7,7 +7,7 @@
 
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item active">Aprobaciones</li>
         </ol>
     </nav>
@@ -32,20 +32,20 @@
         <div class="card-body p-3">
             <div class="d-flex flex-wrap gap-2 align-items-center">
                 <span class="small fw-bold text-muted me-1">Filtrar:</span>
-                <a href="{{ url_for('lista_aprobaciones', estado='pendiente') }}"
+                <a href="{{ url_for('purchasing.lista_aprobaciones', estado='pendiente') }}"
                    class="btn btn-sm rounded-pill fw-semibold {{ 'btn-warning' if estado_filtro == 'pendiente' else 'btn-outline-secondary' }}">
                     <i class="bi bi-hourglass-split me-1"></i>Pendientes
                     {% if pendientes > 0 %}<span class="badge bg-danger ms-1 rounded-pill" style="font-size:.6rem;">{{ pendientes }}</span>{% endif %}
                 </a>
-                <a href="{{ url_for('lista_aprobaciones', estado='aprobado') }}"
+                <a href="{{ url_for('purchasing.lista_aprobaciones', estado='aprobado') }}"
                    class="btn btn-sm rounded-pill fw-semibold {{ 'btn-success' if estado_filtro == 'aprobado' else 'btn-outline-secondary' }}">
                     <i class="bi bi-check-circle me-1"></i>Aprobadas
                 </a>
-                <a href="{{ url_for('lista_aprobaciones', estado='rechazado') }}"
+                <a href="{{ url_for('purchasing.lista_aprobaciones', estado='rechazado') }}"
                    class="btn btn-sm rounded-pill fw-semibold {{ 'btn-danger' if estado_filtro == 'rechazado' else 'btn-outline-secondary' }}">
                     <i class="bi bi-x-circle me-1"></i>Rechazadas
                 </a>
-                <a href="{{ url_for('lista_aprobaciones', estado='') }}"
+                <a href="{{ url_for('purchasing.lista_aprobaciones', estado='') }}"
                    class="btn btn-sm rounded-pill fw-semibold {{ 'btn-primary' if not estado_filtro else 'btn-outline-secondary' }}">
                     Todas
                 </a>
@@ -134,7 +134,7 @@
                             </td>
                             <td class="pe-4 py-3 text-end">
                                 {% if s.estado == 'pendiente' %}
-                                <form action="{{ url_for('aprobar_solicitud', id=s.id) }}" method="POST" class="d-inline">
+                                <form action="{{ url_for('purchasing.aprobar_solicitud', id=s.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-success rounded-3 fw-semibold me-1 btn-aprobar">
                                         <i class="bi bi-check-lg me-1"></i>Aprobar
@@ -193,7 +193,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form action="{{ url_for('rechazar_solicitud', id=s.id) }}" method="POST">
+            <form action="{{ url_for('purchasing.rechazar_solicitud', id=s.id) }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body p-4">
                     <p class="text-muted small mb-3">

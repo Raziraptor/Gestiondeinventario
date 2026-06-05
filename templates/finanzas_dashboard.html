@@ -32,7 +32,7 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item active">Dashboard Financiero</li>
         </ol>
     </nav>
@@ -234,8 +234,8 @@
         <div class="card-header bg-transparent border-bottom border-secondary border-opacity-10 pt-4 pb-3 px-4 d-flex align-items-center justify-content-between">
             <h6 class="fw-bold mb-0 text-body"><i class="bi bi-clock-history me-2 text-primary"></i>Últimas transacciones</h6>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('lista_gastos') }}" class="btn btn-outline-secondary btn-sm rounded-3">Ver gastos</a>
-                <a href="{{ url_for('lista_ordenes') }}" class="btn btn-outline-secondary btn-sm rounded-3">Ver OCs</a>
+                <a href="{{ url_for('finance.lista_gastos') }}" class="btn btn-outline-secondary btn-sm rounded-3">Ver gastos</a>
+                <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-secondary btn-sm rounded-3">Ver OCs</a>
             </div>
         </div>
         <div class="card-body p-0">

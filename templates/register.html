@@ -11,7 +11,7 @@
       <p class="mb-0 mt-1 opacity-75 small">Únete a tu organización</p>
     </div>
     <div class="card border-0 rounded-bottom-4 shadow-lg p-4 p-md-5">
-      <form method="POST" action="{{ url_for('register') }}" novalidate>
+      <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {{ form.hidden_tag() }}
 
@@ -77,7 +77,7 @@
       <div class="text-center mt-4 pt-4 border-top border-secondary border-opacity-10">
         <p class="text-muted small mb-0">
           ¿Ya tienes una cuenta?<br>
-          <a href="{{ url_for('login') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Inicia Sesión</a>
+          <a href="{{ url_for('auth.login') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Inicia Sesión</a>
         </p>
       </div>
     </div>

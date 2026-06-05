@@ -7,8 +7,8 @@
 
   <nav aria-label="breadcrumb" class="mt-3 mb-3">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-      <li class="breadcrumb-item"><a href="{{ url_for('lista_servicios') }}">Servicios</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('finance.lista_servicios') }}">Servicios</a></li>
       <li class="breadcrumb-item active">{{ servicio.nombre }}</li>
     </ol>
   </nav>
@@ -32,12 +32,12 @@
       </div>
       <div class="d-flex gap-2">
         {% if current_user.rol in ['super_admin','admin'] %}
-        <a href="{{ url_for('editar_servicio', id=servicio.id) }}"
+        <a href="{{ url_for('finance.editar_servicio', id=servicio.id) }}"
            class="btn btn-sm btn-outline-secondary rounded-pill px-3">
           <i class="bi bi-pencil me-1"></i>Editar
         </a>
         {% endif %}
-        <a href="{{ url_for('nuevo_pago_servicio', id=servicio.id) }}"
+        <a href="{{ url_for('finance.nuevo_pago_servicio', id=servicio.id) }}"
            class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold shadow-sm">
           <i class="bi bi-plus-lg me-1"></i>Registrar pago
         </a>
@@ -190,7 +190,7 @@
                   </button>
                   {% endif %}
                   {% if current_user.rol in ['super_admin','admin'] %}
-                  <form action="{{ url_for('eliminar_pago_servicio', id=p.id) }}" method="POST" class="d-inline">
+                  <form action="{{ url_for('finance.eliminar_pago_servicio', id=p.id) }}" method="POST" class="d-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-2 p-1"
                             style="width:30px;height:30px;" title="Eliminar"
@@ -211,7 +211,7 @@
       <div class="text-center py-5">
         <i class="bi bi-inbox fs-1 text-muted opacity-25 d-block mb-3"></i>
         <p class="text-muted small">Sin registros de pago aún.</p>
-        <a href="{{ url_for('nuevo_pago_servicio', id=servicio.id) }}"
+        <a href="{{ url_for('finance.nuevo_pago_servicio', id=servicio.id) }}"
            class="btn btn-primary rounded-pill px-4">
           <i class="bi bi-plus-lg me-1"></i>Registrar primer pago
         </a>
@@ -231,7 +231,7 @@
           Se eliminará el servicio y todo su historial de pagos. Esta acción es irreversible.
         </div>
       </div>
-      <form action="{{ url_for('eliminar_servicio', id=servicio.id) }}" method="POST">
+      <form action="{{ url_for('finance.eliminar_servicio', id=servicio.id) }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold flex-shrink-0"
                 onclick="return confirm('¿Eliminar \"{{ servicio.nombre }}\" y todo su historial?')">
@@ -256,7 +256,7 @@
         <h6 class="modal-title fw-bold">Confirmar pago</h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form action="{{ url_for('marcar_pago_pagado', id=p.id) }}" method="POST">
+      <form action="{{ url_for('finance.marcar_pago_pagado', id=p.id) }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body py-2">
           <div class="mb-3 text-muted small">Monto: <strong class="text-body">${{ "{:,.2f}".format(p.monto) }}</strong></div>

@@ -13,7 +13,7 @@
       <h1 class="h4 fw-bold mb-0">Personalizar Marca</h1>
       <p class="text-muted small mb-0">Identidad visual aplicada a todos los documentos PDF</p>
     </div>
-    <a href="{{ url_for('configurar_etiqueta_diseno') }}"
+    <a href="{{ url_for('inventory.configurar_etiqueta_diseno') }}"
        class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold">
       <i class="bi bi-tag-fill me-1"></i>Diseño de Etiquetas
     </a>
@@ -23,7 +23,7 @@
 
     <!-- ═══ COLUMNA IZQUIERDA: FORMULARIO ═══════════════════════════════════ -->
     <div class="col-lg-7">
-      <form action="{{ url_for('configurar_plantilla') }}" method="POST"
+      <form action="{{ url_for('admin.configurar_plantilla') }}" method="POST"
             enctype="multipart/form-data" id="formMarca">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="checkbox" name="eliminar_logo" id="chkEliminarLogo" class="d-none" value="1">

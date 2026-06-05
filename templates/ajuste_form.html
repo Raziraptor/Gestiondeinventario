@@ -7,8 +7,8 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3 mt-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('lista_productos_sin_almacen') }}">Inventario</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('inventory.lista_productos_sin_almacen') }}">Inventario</a></li>
             <li class="breadcrumb-item active">Ajuste de Stock</li>
         </ol>
     </nav>
@@ -23,7 +23,7 @@
 
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-4">
-            <form method="POST" action="{{ url_for('nuevo_ajuste') }}" id="form_ajuste">
+            <form method="POST" action="{{ url_for('inventory.nuevo_ajuste') }}" id="form_ajuste">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- ALMACÉN -->

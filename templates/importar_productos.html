@@ -8,7 +8,7 @@
     <div class="page-header mb-4">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-2">
-                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
                 <li class="breadcrumb-item active">Importar Productos</li>
             </ol>
         </nav>
@@ -61,10 +61,10 @@
 
             {% if resultados.importados > 0 %}
             <div class="d-flex gap-2 mt-3">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
                     <i class="bi bi-grid me-1"></i> Ver en Dashboard
                 </a>
-                <a href="{{ url_for('importar_productos') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                <a href="{{ url_for('inventory.importar_productos') }}" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
                     <i class="bi bi-arrow-clockwise me-1"></i> Importar otro archivo
                 </a>
             </div>
@@ -116,7 +116,7 @@
                 <h6 class="fw-bold mb-1"><i class="bi bi-file-earmark-excel text-success me-2"></i>¿Primera vez importando?</h6>
                 <p class="text-muted small mb-0">Descarga el template oficial con las columnas correctas y ejemplos incluidos.</p>
             </div>
-            <a href="{{ url_for('descargar_template_importacion') }}" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm flex-shrink-0">
+            <a href="{{ url_for('inventory.descargar_template_importacion') }}" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm flex-shrink-0">
                 <i class="bi bi-download me-1"></i> Descargar Template
             </a>
         </div>

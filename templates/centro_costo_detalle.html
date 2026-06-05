@@ -7,8 +7,8 @@
 
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('lista_centros_costo') }}">Centros de Costo</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('finance.lista_centros_costo') }}">Centros de Costo</a></li>
             <li class="breadcrumb-item active">{{ cc.nombre }}</li>
         </ol>
     </nav>
@@ -21,10 +21,10 @@
                 <p class="page-subtitle">{{ cc.descripcion or 'Desglose de costos del proyecto.' }}</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('editar_centro_costo', id=cc.id) }}" class="btn btn-outline-secondary rounded-3 fw-bold">
+                <a href="{{ url_for('finance.editar_centro_costo', id=cc.id) }}" class="btn btn-outline-secondary rounded-3 fw-bold">
                     <i class="bi bi-pencil me-1"></i>Editar
                 </a>
-                <form action="{{ url_for('cerrar_centro_costo', id=cc.id) }}" method="POST">
+                <form action="{{ url_for('finance.cerrar_centro_costo', id=cc.id) }}" method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn rounded-3 fw-bold {{ 'btn-outline-success' if cc.estado == 'cerrado' else 'btn-outline-danger' }}"
                             data-confirm="{{ '¿Reactivar este centro de costo?' if cc.estado == 'cerrado' else '¿Cerrar este centro de costo?' }}">

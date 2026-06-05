@@ -7,8 +7,8 @@
 
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('lista_presupuestos') }}">Presupuestos</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('finance.lista_presupuestos') }}">Presupuestos</a></li>
             <li class="breadcrumb-item active">{{ titulo }}</li>
         </ol>
     </nav>
@@ -30,7 +30,7 @@
                 </div>
                 <div class="card-body p-4 p-md-5">
                     <form method="POST" id="form-presupuesto"
-                          action="{{ url_for('editar_presupuesto', id=presupuesto.id) if presupuesto else url_for('nuevo_presupuesto') }}">
+                          action="{{ url_for('finance.editar_presupuesto', id=presupuesto.id) if presupuesto else url_for('finance.nuevo_presupuesto') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                         <div class="row g-4">
@@ -101,7 +101,7 @@
                             <div class="col-12 mt-4">
                                 <hr class="border-secondary border-opacity-25 mb-4">
                                 <div class="d-flex gap-3 justify-content-end">
-                                    <a href="{{ url_for('lista_presupuestos') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
+                                    <a href="{{ url_for('finance.lista_presupuestos') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
                                         Cancelar
                                     </a>
                                     <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">

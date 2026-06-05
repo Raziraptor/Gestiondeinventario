@@ -5,7 +5,7 @@
 {% block content %}
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item active">Usuarios</li>
         </ol>
     </nav>
@@ -17,7 +17,7 @@
                 <p class="page-subtitle">Administra accesos y restablece contraseñas.</p>
             </div>
             {% if 'register' in config or 'registro' in config %}
-            <a href="{{ url_for('register') }}" class="btn btn-primary shadow-sm">
+            <a href="{{ url_for('auth.register') }}" class="btn btn-primary shadow-sm">
                 <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
             </a>
             {% endif %}
@@ -129,7 +129,7 @@
 <script>
 function abrirModalPassword(userId, username) {
     document.getElementById('lblUsuarioReset').textContent = username;
-    var baseUrl = "{{ url_for('admin_reset_password', id=0) }}";
+    var baseUrl = "{{ url_for('admin.admin_reset_password', id=0) }}";
     document.getElementById('formResetPassword').action = baseUrl.replace('/0', '/' + userId);
     document.getElementById('new_password').value = '';
     new bootstrap.Modal(document.getElementById('modalResetPassword')).show();

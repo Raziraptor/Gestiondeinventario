@@ -61,7 +61,7 @@
     <div class="page-header mb-4">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-1">
-                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
                 <li class="breadcrumb-item active">Historial de Actividad</li>
             </ol>
         </nav>
@@ -99,7 +99,7 @@
                     {% endfor %}
                 </select>
                 {% if accion_filtro %}
-                <a href="{{ url_for('historial_actividad') }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+                <a href="{{ url_for('main.historial_actividad') }}" class="btn btn-sm btn-outline-secondary rounded-pill">
                     <i class="bi bi-x-circle me-1"></i>Limpiar
                 </a>
                 {% endif %}

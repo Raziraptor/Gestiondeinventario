@@ -7,7 +7,7 @@
 
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item active">Centros de Costo</li>
         </ol>
     </nav>
@@ -18,7 +18,7 @@
                 <h1 class="page-title"><i class="bi bi-diagram-3 text-primary me-2"></i>Centros de Costo</h1>
                 <p class="page-subtitle">Agrupa gastos, servicios y facturas por proyecto para ver su P&L real.</p>
             </div>
-            <a href="{{ url_for('nuevo_centro_costo') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+            <a href="{{ url_for('finance.nuevo_centro_costo') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
                 <i class="bi bi-plus-lg me-1"></i>Nuevo Centro
             </a>
         </div>
@@ -30,7 +30,7 @@
         {% set pct = cc.pct_presupuesto %}
         {% set total = cc.total_gastado %}
         <div class="col-md-6 col-xl-4">
-            <a href="{{ url_for('detalle_centro_costo', id=cc.id) }}" class="text-decoration-none">
+            <a href="{{ url_for('finance.detalle_centro_costo', id=cc.id) }}" class="text-decoration-none">
                 <div class="card h-100 border-0 shadow-sm rounded-4 content-card {{ 'opacity-75' if cc.estado == 'cerrado' }}">
                     <div class="card-body p-4">
                         <!-- Header -->
@@ -87,7 +87,7 @@
         <i class="bi bi-diagram-3 empty-state-icon"></i>
         <h5>Sin centros de costo</h5>
         <p>Crea tu primer centro de costo para agrupar gastos, facturas y servicios por proyecto y ver su P&L real.</p>
-        <a href="{{ url_for('nuevo_centro_costo') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+        <a href="{{ url_for('finance.nuevo_centro_costo') }}" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
             <i class="bi bi-plus-circle me-1"></i>Crear primer centro
         </a>
     </div>

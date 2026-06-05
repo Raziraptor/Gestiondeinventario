@@ -20,7 +20,7 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item"><a href="#">Finanzas</a></li>
             <li class="breadcrumb-item active">Control de Gastos</li>
         </ol>
@@ -35,7 +35,7 @@
             </div>
             <div class="d-flex gap-2">
                 <div class="btn-group shadow-sm">
-                    <a href="{{ url_for('exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}"
+                    <a href="{{ url_for('reports.exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}"
                        class="btn btn-success fw-bold text-nowrap"
                        style="border-radius:.5rem 0 0 .5rem;">
                         <i class="bi bi-file-earmark-excel me-1"></i> Excel
@@ -47,14 +47,14 @@
                             title="Exportar rango de meses">
                         <i class="bi bi-calendar-range"></i>
                     </button>
-                    <a href="{{ url_for('configurar_excel_diseno') }}"
+                    <a href="{{ url_for('inventory.configurar_excel_diseno') }}"
                        class="btn btn-success fw-bold"
                        style="border-radius:0 .5rem .5rem 0;border-left:1px solid rgba(255,255,255,.3);"
                        title="Personalizar diseño del Excel">
                         <i class="bi bi-gear"></i>
                     </a>
                 </div>
-                <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <a href="{{ url_for('finance.nuevo_gasto') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
                     <i class="bi bi-plus-lg me-1"></i> Registrar Gasto
                 </a>
             </div>
@@ -68,7 +68,7 @@
             <div class="card shadow-sm border-0 rounded-4 h-100" style="background-color: var(--card-bg);">
                 <div class="card-body p-4">
                     <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
-                    <form method="GET" action="{{ url_for('lista_gastos') }}" class="row g-3 align-items-end">
+                    <form method="GET" action="{{ url_for('finance.lista_gastos') }}" class="row g-3 align-items-end">
                         <div class="col-md-5">
                             <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
                             <select id="mes" name="mes" class="form-select shadow-sm border-secondary border-opacity-25">
@@ -133,7 +133,7 @@
                             <!-- Enlace a OC si existe -->
                             {% if gasto.orden_compra_id %}
                                 <div class="mb-3 text-start">
-                                    <a href="{{ url_for('ver_orden', id=gasto.orden_compra_id) }}" class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 text-decoration-none py-2 px-3 shadow-sm rounded-pill d-inline-block">
+                                    <a href="{{ url_for('purchasing.ver_orden', id=gasto.orden_compra_id) }}" class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 text-decoration-none py-2 px-3 shadow-sm rounded-pill d-inline-block">
                                         <i class="bi bi-link-45deg fs-6 align-middle"></i> OC #{{ gasto.orden_compra_id }} vinculada
                                     </a>
                                 </div>
@@ -150,7 +150,7 @@
                     <!-- PIE: Acciones -->
                     <div class="card-footer bg-transparent border-0 pb-4 pt-0 px-4">
                         <div class="d-grid">
-                            <a href="{{ url_for('editar_gasto', id=gasto.id) }}" class="btn btn-outline-primary rounded-pill fw-bold shadow-sm">
+                            <a href="{{ url_for('finance.editar_gasto', id=gasto.id) }}" class="btn btn-outline-primary rounded-pill fw-bold shadow-sm">
                                 <i class="bi bi-pencil-square me-1"></i> Editar Gasto
                             </a>
                         </div>
@@ -163,7 +163,7 @@
                 <i class="bi bi-cash-coin empty-state-icon"></i>
                 <h5>Sin gastos registrados</h5>
                 <p>No hay gastos para el período seleccionado. Registra uno para llevar el control financiero.</p>
-                <a href="{{ url_for('nuevo_gasto') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                <a href="{{ url_for('finance.nuevo_gasto') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
                     <i class="bi bi-plus-circle me-1"></i> Registrar Gasto
                 </a>
             </div>
@@ -184,7 +184,7 @@
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <form action="{{ url_for('exportar_gastos_excel') }}" method="GET">
+      <form action="{{ url_for('reports.exportar_gastos_excel') }}" method="GET">
         <div class="modal-body py-3">
           <p class="text-muted small mb-3">
             Ideal para auditorías trimestrales. Genera un Excel con una hoja por mes y una hoja de resumen.

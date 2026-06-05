@@ -8,8 +8,8 @@
 
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('lista_almacenes') }}">Almacenes</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('inventory.lista_almacenes') }}">Almacenes</a></li>
             <li class="breadcrumb-item active">{{ titulo }}</li>
         </ol>
     </nav>
@@ -33,7 +33,7 @@
                 </div>
                 
                 <div class="card-body p-4 p-md-5">
-                    <form id="formAlmacen" method="POST" action="{{ url_for('editar_almacen', id=almacen.id) if almacen else url_for('nuevo_almacen') }}">
+                    <form id="formAlmacen" method="POST" action="{{ url_for('inventory.editar_almacen', id=almacen.id) if almacen else url_for('inventory.nuevo_almacen') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
                         <div class="row g-4">
@@ -61,7 +61,7 @@
                             <div class="col-12 mt-5">
                                 <hr class="border-secondary border-opacity-25 mb-4">
                                 <div class="d-grid gap-3 d-md-flex justify-content-md-end">
-                                    <a href="{{ url_for('lista_almacenes') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
+                                    <a href="{{ url_for('inventory.lista_almacenes') }}" class="btn btn-outline-secondary rounded-pill fw-bold px-4 py-2">
                                         Cancelar
                                     </a>
                                     <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow-sm px-4 py-2">

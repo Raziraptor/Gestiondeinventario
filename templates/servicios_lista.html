@@ -6,7 +6,7 @@
 
   <nav aria-label="breadcrumb" class="mt-3 mb-3">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
       <li class="breadcrumb-item active">Servicios</li>
     </ol>
   </nav>
@@ -19,7 +19,7 @@
         <p class="page-subtitle">Gestiona pagos recurrentes: Luz, Agua, Gas, Internet y más.</p>
       </div>
       {% if current_user.rol in ['super_admin','admin'] %}
-      <a href="{{ url_for('nuevo_servicio') }}" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+      <a href="{{ url_for('finance.nuevo_servicio') }}" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
         <i class="bi bi-plus-lg me-1"></i>Nuevo Servicio
       </a>
       {% endif %}
@@ -134,7 +134,7 @@
                 <i class="bi bi-calendar3 me-1"></i>{{ proximo.fecha_vencimiento.strftime('%d %b %Y') }}
               </span>
               {# Acción rápida: marcar pagado #}
-              <form action="{{ url_for('marcar_pago_pagado', id=proximo.id) }}" method="POST" class="d-inline">
+              <form action="{{ url_for('finance.marcar_pago_pagado', id=proximo.id) }}" method="POST" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="fecha_pago" value="{{ hoy.strftime('%Y-%m-%d') }}">
                 <button type="submit" class="btn btn-sm rounded-pill px-2 fw-semibold"
@@ -164,11 +164,11 @@
 
           {# Acciones #}
           <div class="d-flex gap-2">
-            <a href="{{ url_for('detalle_servicio', id=s.id) }}"
+            <a href="{{ url_for('finance.detalle_servicio', id=s.id) }}"
                class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold flex-grow-1" style="font-size:.78rem;">
               <i class="bi bi-clock-history me-1"></i>Historial
             </a>
-            <a href="{{ url_for('nuevo_pago_servicio', id=s.id) }}"
+            <a href="{{ url_for('finance.nuevo_pago_servicio', id=s.id) }}"
                class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold flex-grow-1" style="font-size:.78rem;">
               <i class="bi bi-plus-lg me-1"></i>Registrar
             </a>
@@ -187,7 +187,7 @@
       <h5 class="fw-bold text-body">Sin servicios registrados</h5>
       <p class="text-muted small">Agrega tus servicios recurrentes para llevar el control de pagos.</p>
       {% if current_user.rol in ['super_admin','admin'] %}
-      <a href="{{ url_for('nuevo_servicio') }}" class="btn btn-primary rounded-pill px-4 mt-2">
+      <a href="{{ url_for('finance.nuevo_servicio') }}" class="btn btn-primary rounded-pill px-4 mt-2">
         <i class="bi bi-plus-lg me-1"></i>Registrar primer servicio
       </a>
       {% endif %}

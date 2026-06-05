@@ -8,7 +8,7 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item"><a href="#">Gestión</a></li>
             <li class="breadcrumb-item active">Proveedores</li>
         </ol>
@@ -22,7 +22,7 @@
                 <p class="page-subtitle">Gestiona los contactos de abastecimiento de tu organización.</p>
             </div>
             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-            <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <a href="{{ url_for('inventory.nuevo_proveedor') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
                 <i class="bi bi-plus-circle me-1"></i> Nuevo Proveedor
             </a>
             {% endif %}
@@ -91,7 +91,7 @@
                         </td>
                         <td class="text-end pe-4" style="width:1%;white-space:nowrap;">
                             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-                            <a href="{{ url_for('editar_proveedor', id=prov.id) }}"
+                            <a href="{{ url_for('inventory.editar_proveedor', id=prov.id) }}"
                                class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3">
                                 <i class="bi bi-pencil me-1"></i><span class="d-none d-md-inline fw-bold">Editar</span>
                             </a>
@@ -108,7 +108,7 @@
                                 <h5>Sin proveedores</h5>
                                 <p>No hay proveedores registrados. Agrega uno para poder asociarlo a productos y órdenes de compra.</p>
                                 {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-                                <a href="{{ url_for('nuevo_proveedor') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                                <a href="{{ url_for('inventory.nuevo_proveedor') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
                                     <i class="bi bi-plus-circle me-1"></i> Agregar Proveedor
                                 </a>
                                 {% endif %}

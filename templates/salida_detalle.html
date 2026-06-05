@@ -13,10 +13,10 @@
                 <p class="page-subtitle">Hoja de Salida Diaria &mdash; Almacén: <strong>{{ salida.almacen.nombre }}</strong> &middot; Creada por: {{ salida.creador.username }}</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('historial_salidas') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+                <a href="{{ url_for('inventory.historial_salidas') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
                     <i class="bi bi-arrow-left me-1"></i> Volver al Historial
                 </a>
-                <a href="{{ url_for('generar_salida_pdf', id=salida.id) }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold text-nowrap" target="_blank">
+                <a href="{{ url_for('inventory.generar_salida_pdf', id=salida.id) }}" class="btn btn-danger shadow-sm rounded-pill px-4 fw-bold text-nowrap" target="_blank">
                     <i class="bi bi-file-earmark-pdf-fill me-1"></i> Imprimir PDF
                 </a>
             </div>
@@ -40,7 +40,7 @@
             <h4 class="mb-0 fw-bold text-body"><i class="bi bi-list-check text-primary me-2"></i>Items Retirados</h4>
             
             {% if salida.estado != 'cancelada' %}
-            <a href="{{ url_for('registrar_salida', almacen_id=salida.almacen_id) }}" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm px-3 fw-bold">
+            <a href="{{ url_for('inventory.registrar_salida', almacen_id=salida.almacen_id) }}" class="btn btn-sm btn-outline-primary rounded-pill shadow-sm px-3 fw-bold">
                 <i class="bi bi-plus-circle me-1"></i> Añadir más items
             </a>
             {% endif %}
@@ -75,7 +75,7 @@
                         </td>
                         <td class="text-end pe-4">
                             {% if salida.estado != 'cancelada' %}
-                                <form action="{{ url_for('eliminar_movimiento_salida', id=mov.id) }}" method="POST"
+                                <form action="{{ url_for('inventory.eliminar_movimiento_salida', id=mov.id) }}" method="POST"
                                       data-confirm="¿Eliminar este item? El stock de este producto será revertido al almacén.">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill shadow-sm px-3" title="Eliminar Item y Revertir Stock">

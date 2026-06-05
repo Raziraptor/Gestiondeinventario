@@ -9,7 +9,7 @@
     <!-- BREADCRUMB -->
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
             <li class="breadcrumb-item"><a href="#">Gestión</a></li>
             <li class="breadcrumb-item active">Categorías</li>
         </ol>
@@ -22,7 +22,7 @@
                 <h1 class="page-title"><i class="bi bi-tags-fill text-primary me-2"></i>Categorías</h1>
                 <p class="page-subtitle">Administra las agrupaciones de tus productos para un mejor control.</p>
             </div>
-            <a href="{{ url_for('nueva_categoria') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <a href="{{ url_for('inventory.nueva_categoria') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
                 <i class="bi bi-plus-circle me-1"></i> Nueva Categoría
             </a>
         </div>
@@ -71,12 +71,12 @@
                             <!-- Grupo de Acciones -->
                             <div class="d-flex justify-content-end gap-2">
                                 <!-- Botón Editar -->
-                                <a href="{{ url_for('editar_categoria', id=cat.id) }}" class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3" title="Editar">
+                                <a href="{{ url_for('inventory.editar_categoria', id=cat.id) }}" class="btn btn-sm btn-outline-primary shadow-sm rounded-pill px-3" title="Editar">
                                     <i class="bi bi-pencil me-1"></i> <span class="d-none d-md-inline fw-bold">Editar</span>
                                 </a>
 
                                 <!-- BOTÓN ELIMINAR -->
-                                <form action="{{ url_for('eliminar_categoria', id=cat.id) }}" method="POST"
+                                <form action="{{ url_for('inventory.eliminar_categoria', id=cat.id) }}" method="POST"
                                       data-confirm="¿Eliminar la categoría '{{ cat.nombre }}'? Todos los productos que la usen quedarán sin categoría.">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm rounded-pill px-3" title="Eliminar">
@@ -94,7 +94,7 @@
                                 <i class="bi bi-tags empty-state-icon"></i>
                                 <h5>Sin categorías</h5>
                                 <p>No hay categorías registradas. Crea una para organizar tu catálogo de productos.</p>
-                                <a href="{{ url_for('nueva_categoria') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+                                <a href="{{ url_for('inventory.nueva_categoria') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
                                     <i class="bi bi-plus-circle me-1"></i> Crear Categoría
                                 </a>
                             </div>
