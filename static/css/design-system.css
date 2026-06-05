@@ -1,6 +1,6 @@
 /* ============================================================
    DESIGN SYSTEM — "Precision Operations"
-   Industrial Minimal · Safety Orange · Slate Chrome
+   Industrial Minimal · Indigo · Slate Chrome
    DFII 14/15 — Execute fully
    ============================================================ */
 
@@ -51,12 +51,19 @@ html.sidebar-collapsed-init .erp-sidebar {
   width: var(--sidebar-collapsed);
 }
 html.sidebar-collapsed-init .sidebar-brand {
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
   justify-content: center;
   gap: 0;
 }
+html.sidebar-collapsed-init .sidebar-brand-logo {
+  width: var(--sidebar-collapsed);
+  height: var(--topbar-height);
+  justify-content: center;
+  display: flex;
+  align-items: center;
+}
 html.sidebar-collapsed-init .sidebar-brand-name { opacity: 0; width: 0; overflow: hidden; }
+html.sidebar-collapsed-init .sidebar-toggle-btn { opacity: 0; width: 0; overflow: hidden; margin: 0; padding: 0; }
 html.sidebar-collapsed-init .sidebar-group-label { opacity: 0; }
 html.sidebar-collapsed-init .sidebar-item-label,
 html.sidebar-collapsed-init .sidebar-item-badge { opacity: 0; width: 0; overflow: hidden; }
@@ -108,10 +115,16 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
 }
 
 .erp-shell.sidebar-collapsed .sidebar-brand {
-  padding-left: 0;
-  padding-right: 0;
+  padding: 0;
   justify-content: center;
   gap: 0;
+}
+
+.erp-shell.sidebar-collapsed .sidebar-brand-logo {
+  width: var(--sidebar-collapsed);
+  height: var(--topbar-height);
+  justify-content: center;
+  cursor: pointer;
 }
 
 /* Brand */
@@ -139,7 +152,15 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.sidebar-brand:hover .sidebar-brand-icon {
+.sidebar-brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.sidebar-brand-logo:hover .sidebar-brand-icon {
   transform: rotate(-8deg) scale(1.08);
 }
 
@@ -155,8 +176,8 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
   transition: opacity 0.15s ease;
 }
 
-.erp-shell.sidebar-collapsed .sidebar-brand-name,
-.erp-shell.sidebar-collapsed .sidebar-toggle-btn { opacity: 0; width: 0; overflow: hidden; }
+.erp-shell.sidebar-collapsed .sidebar-brand-name { opacity: 0; width: 0; overflow: hidden; }
+.erp-shell.sidebar-collapsed .sidebar-toggle-btn { opacity: 0; width: 0; overflow: hidden; margin: 0; padding: 0; }
 
 .sidebar-toggle-btn {
   margin-left: auto;
@@ -173,7 +194,6 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
 }
 
 .sidebar-toggle-btn:hover { color: var(--sidebar-text-active); background: var(--sidebar-item-hover); }
-.erp-shell.sidebar-collapsed .sidebar-toggle-btn { transform: rotate(180deg); opacity: 1; width: auto; }
 
 /* Nav scroll area */
 .sidebar-nav {

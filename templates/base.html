@@ -725,9 +725,11 @@
 
             <!-- Brand -->
             <div class="sidebar-brand">
-                <div class="sidebar-brand-icon">
-                    <i class="bi bi-boxes" aria-hidden="true"></i>
-                </div>
+                <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand-logo" id="sidebarBrandLink" aria-label="Dashboard">
+                    <div class="sidebar-brand-icon">
+                        <i class="bi bi-boxes" aria-hidden="true"></i>
+                    </div>
+                </a>
                 <span class="sidebar-brand-name">
                     {% if current_user.is_authenticated and current_user.organizacion %}
                         {{ current_user.organizacion.nombre | truncate(20, True) }}
@@ -1227,16 +1229,39 @@
         const backdrop = document.getElementById('sidebarMobileBackdrop');
 
         // Desktop: collapse/expand
-        if (toggle && shell) {
+        if (shell) {
+            // Deshabilitar transiciones durante restauración inicial (evita animación "se cierra solo")
+            shell.style.transition = 'none';
+            if (sidebar) sidebar.style.transition = 'none';
+
             const stored = localStorage.getItem('sidebar_collapsed') === '1';
             if (stored) shell.classList.add('sidebar-collapsed');
-            // Remover clase FOUC — el estado real ya está aplicado
             document.documentElement.classList.remove('sidebar-collapsed-init');
 
-            toggle.addEventListener('click', function () {
-                const collapsed = shell.classList.toggle('sidebar-collapsed');
-                localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
-            });
+            // Forzar reflow y re-habilitar transiciones
+            void shell.offsetWidth;
+            shell.style.transition = '';
+            if (sidebar) sidebar.style.transition = '';
+
+            // Botón colapsar (solo visible en modo expandido)
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    const collapsed = shell.classList.toggle('sidebar-collapsed');
+                    localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
+                });
+            }
+
+            // Brand logo: expande el sidebar si está colapsado, navega al dashboard si está expandido
+            const brandLink = document.getElementById('sidebarBrandLink');
+            if (brandLink) {
+                brandLink.addEventListener('click', function (e) {
+                    if (shell.classList.contains('sidebar-collapsed')) {
+                        e.preventDefault();
+                        shell.classList.remove('sidebar-collapsed');
+                        localStorage.setItem('sidebar_collapsed', '0');
+                    }
+                });
+            }
         }
 
         // Mobile: off-canvas
