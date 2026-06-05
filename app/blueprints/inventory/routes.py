@@ -18,6 +18,7 @@ Rutas:
 import io
 import os
 import csv
+import uuid
 import calendar
 from collections import defaultdict
 
@@ -606,7 +607,8 @@ def nuevo_producto():
         if 'imagen' in request.files:
             file = request.files['imagen']
             if file.filename != '' and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
+                ext = secure_filename(file.filename).rsplit('.', 1)[-1].lower()
+                filename = f"{uuid.uuid4().hex}.{ext}"
                 file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
             elif file.filename != '' and not allowed_file(file.filename):
@@ -706,7 +708,8 @@ def editar_producto(id):
             if 'imagen' in request.files:
                 file = request.files['imagen']
                 if file.filename != '' and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
+                    ext = secure_filename(file.filename).rsplit('.', 1)[-1].lower()
+                    filename = f"{uuid.uuid4().hex}.{ext}"
                     file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
                     producto.imagen_url = filename
 
@@ -1353,7 +1356,7 @@ def registrar_salida():
         return render_template('seleccionar_almacen.html',
                                titulo="Seleccionar Almacén de Origen",
                                almacenes=almacenes_org,
-                               destino_ruta='registrar_salida')
+                               destino_ruta='inventory.registrar_salida')
 
     today         = now_mx().date()
     salida_del_dia = Salida.query.filter_by(
