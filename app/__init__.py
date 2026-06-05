@@ -75,21 +75,26 @@ def _register_blueprints(app):
     from .blueprints.main import main_bp
     app.register_blueprint(main_bp)
 
-    # Descomentar a medida que se migren en Fase 3:
-    # from .blueprints.auth import auth_bp
-    # app.register_blueprint(auth_bp)
-    # from .blueprints.inventory import inventory_bp
-    # app.register_blueprint(inventory_bp)
-    # from .blueprints.purchasing import purchasing_bp
-    # app.register_blueprint(purchasing_bp)
-    # from .blueprints.finance import finance_bp
-    # app.register_blueprint(finance_bp)
-    # from .blueprints.admin import admin_bp
-    # app.register_blueprint(admin_bp)
-    # from .blueprints.reports import reports_bp
-    # app.register_blueprint(reports_bp)
-    # from .blueprints.api import api_bp
-    # app.register_blueprint(api_bp)
+    from .blueprints.auth import auth_bp
+    app.register_blueprint(auth_bp)
+
+    from .blueprints.inventory import inventory_bp
+    app.register_blueprint(inventory_bp)
+
+    from .blueprints.purchasing import purchasing_bp
+    app.register_blueprint(purchasing_bp)
+
+    from .blueprints.finance import finance_bp
+    app.register_blueprint(finance_bp)
+
+    from .blueprints.admin import admin_bp
+    app.register_blueprint(admin_bp)
+
+    from .blueprints.reports import reports_bp
+    app.register_blueprint(reports_bp)
+
+    from .blueprints.api import api_bp
+    app.register_blueprint(api_bp)
 
 
 def _register_security_headers(app):
