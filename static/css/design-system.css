@@ -202,12 +202,10 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.75rem 0.5rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.08) transparent;
+  scrollbar-width: none; /* Firefox: oculta la barra, scroll con rueda sigue activo */
 }
 
-.sidebar-nav::-webkit-scrollbar { width: 4px; }
-.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar { width: 0; } /* Chrome/Safari */
 .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
 
 /* Nav groups */
