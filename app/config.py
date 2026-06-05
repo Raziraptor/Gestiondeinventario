@@ -77,6 +77,10 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False
     SESSION_COOKIE_SECURE = False
     REMEMBER_COOKIE_SECURE = False
+    # Flask-Login: sin esto TESTING=True desactiva @login_required automáticamente
+    LOGIN_DISABLED = False
+    # Flask-Limiter: deshabilitar rate limiting en tests para evitar contaminación
+    RATELIMIT_ENABLED = False
 
 
 config = {

@@ -19,3 +19,5 @@ Flask-Limiter
 redis
 playwright
 playwright-stealth
+pytest
+pytest-flask

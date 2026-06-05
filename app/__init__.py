@@ -124,7 +124,7 @@ def _register_context_processors(app):
     @app.context_processor
     def inject_nav_badges():
         if not current_user.is_authenticated or not current_user.organizacion_id:
-            return {'nav_badges': {}}
+            return {'nav_badges': {}, 'aprobaciones_badge': 0, 'servicios_badge': 0}
         try:
             from datetime import date
             from .models import OrdenCompra, PagoServicio, Servicio, Stock, Almacen, SolicitudAprobacion
