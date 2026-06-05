@@ -68,9 +68,11 @@ html.sidebar-collapsed-init .sidebar-group-label { opacity: 0; }
 html.sidebar-collapsed-init .sidebar-item-label,
 html.sidebar-collapsed-init .sidebar-item-badge { opacity: 0; width: 0; overflow: hidden; flex: none; }
 html.sidebar-collapsed-init .sidebar-item { justify-content: center; padding: 0.625rem; gap: 0; }
+html.sidebar-collapsed-init .sidebar-nav { padding-left: 0; padding-right: 0; }
+html.sidebar-collapsed-init .sidebar-footer { padding-left: 0; padding-right: 0; }
 html.sidebar-collapsed-init .sidebar-user { justify-content: center; gap: 0; }
 html.sidebar-collapsed-init .sidebar-user-name,
-html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; }
+html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; flex: none; }
 
 /* ============================================================
    LAYOUT SHELL — CSS Grid sidebar + content
@@ -369,9 +371,11 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
   overflow: hidden;
 }
 
+.erp-shell.sidebar-collapsed .sidebar-nav { padding-left: 0; padding-right: 0; }
+.erp-shell.sidebar-collapsed .sidebar-footer { padding-left: 0; padding-right: 0; }
 .erp-shell.sidebar-collapsed .sidebar-user { justify-content: center; gap: 0; }
 .erp-shell.sidebar-collapsed .sidebar-user-name,
-.erp-shell.sidebar-collapsed .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; }
+.erp-shell.sidebar-collapsed .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; flex: none; }
 
 /* ============================================================
    TOPBAR
