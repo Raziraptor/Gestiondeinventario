@@ -9,10 +9,10 @@
   --sidebar-bg:           #0F172A;
   --sidebar-width:        248px;
   --sidebar-collapsed:    64px;
-  --sidebar-accent:       #F97316;
+  --sidebar-accent:       #818cf8;
   --sidebar-text:         #94A3B8;
   --sidebar-text-active:  #F8FAFC;
-  --sidebar-item-active:  rgba(249, 115, 22, 0.15);
+  --sidebar-item-active:  rgba(129, 140, 248, 0.15);
   --sidebar-item-hover:   rgba(255, 255, 255, 0.06);
   --sidebar-border:       rgba(255, 255, 255, 0.06);
   --sidebar-group-label:  #475569;
@@ -38,6 +38,31 @@
   --nav-badge-bg:         #EF4444;
   --nav-badge-text:       #FFFFFF;
 }
+
+/* ============================================================
+   FOUC PREVENTION — sidebar colapsado sin flash al navegar
+   La clase sidebar-collapsed-init se agrega en <head> y el JS
+   la remueve al aplicar el estado real desde localStorage.
+   ============================================================ */
+html.sidebar-collapsed-init .erp-shell {
+  grid-template-columns: var(--sidebar-collapsed) 1fr;
+}
+html.sidebar-collapsed-init .erp-sidebar {
+  width: var(--sidebar-collapsed);
+}
+html.sidebar-collapsed-init .sidebar-brand {
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
+  gap: 0;
+}
+html.sidebar-collapsed-init .sidebar-brand-name { opacity: 0; width: 0; overflow: hidden; }
+html.sidebar-collapsed-init .sidebar-group-label { opacity: 0; }
+html.sidebar-collapsed-init .sidebar-item-label,
+html.sidebar-collapsed-init .sidebar-item-badge { opacity: 0; width: 0; overflow: hidden; }
+html.sidebar-collapsed-init .sidebar-item { justify-content: center; padding: 0.625rem; }
+html.sidebar-collapsed-init .sidebar-user-name,
+html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; }
 
 /* ============================================================
    LAYOUT SHELL — CSS Grid sidebar + content
@@ -80,6 +105,13 @@
 
 .erp-shell.sidebar-collapsed .erp-sidebar {
   width: var(--sidebar-collapsed);
+}
+
+.erp-shell.sidebar-collapsed .sidebar-brand {
+  padding-left: 0;
+  padding-right: 0;
+  justify-content: center;
+  gap: 0;
 }
 
 /* Brand */
@@ -191,7 +223,6 @@
   transition: background 0.15s ease, color 0.15s ease;
   position: relative;
   white-space: nowrap;
-  overflow: hidden;
   cursor: pointer;
 }
 

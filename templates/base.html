@@ -9,7 +9,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
-    <meta name="theme-color" content="#F97316">
+    <meta name="theme-color" content="#4f46e5">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Inventario">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,7 +24,7 @@
     <link rel="apple-touch-startup-image"
           media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
           href="{{ url_for('static', filename='icons/icon-512.png') }}">
-    <meta name="msapplication-TileColor" content="#F97316">
+    <meta name="msapplication-TileColor" content="#4f46e5">
     <meta name="msapplication-TileImage" content="{{ url_for('static', filename='icons/icon-192.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,13 +50,13 @@
     <style>
         /* ============================================================
            TOKENS DE DISEÑO — MODO CLARO
-           Primary: #F97316 (Safety Orange) — "Precision Operations"
+           Primary: #4f46e5 (Indigo) — ERP Inventario
         ============================================================ */
         :root {
-            --primary:          #F97316;
-            --primary-rgb:      249, 115, 22;
-            --primary-hover:    #EA6C0A;
-            --primary-tonal:    rgba(249, 115, 22, 0.10);
+            --primary:          #4f46e5;
+            --primary-rgb:      79, 70, 229;
+            --primary-hover:    #4338ca;
+            --primary-tonal:    rgba(79, 70, 229, 0.10);
             --bs-primary:       var(--primary);
             --bs-primary-rgb:   var(--primary-rgb);
             --bs-body-bg:       #F1F5F9;
@@ -74,7 +74,7 @@
             --shadow-sm:        0 1px 3px rgba(0,0,0,.05), 0 0 0 1px rgba(0,0,0,.03);
             --shadow-md:        0 4px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
             --shadow-lg:        0 8px 32px rgba(0,0,0,.09), 0 2px 8px rgba(0,0,0,.05);
-            --hover-bg:         rgba(249, 115, 22, 0.06);
+            --hover-bg:         rgba(79, 70, 229, 0.06);
             --glass-border:     rgba(0, 0, 0, 0.06);
 
             --radius-sm:        8px;
@@ -92,10 +92,10 @@
            TOKENS — MODO OSCURO
         ============================================================ */
         [data-bs-theme="dark"] {
-            --primary:          #FB923C;
-            --primary-rgb:      251, 146, 60;
-            --primary-hover:    #F97316;
-            --primary-tonal:    rgba(251, 146, 60, 0.15);
+            --primary:          #818cf8;
+            --primary-rgb:      129, 140, 248;
+            --primary-hover:    #6366f1;
+            --primary-tonal:    rgba(129, 140, 248, 0.15);
             --bs-primary:       var(--primary);
             --bs-primary-rgb:   var(--primary-rgb);
             --bs-body-bg:       #0F172A;
@@ -113,7 +113,7 @@
             --shadow-sm:        0 1px 3px rgba(0,0,0,.40);
             --shadow-md:        0 4px 16px rgba(0,0,0,.55), 0 1px 4px rgba(0,0,0,.35);
             --shadow-lg:        0 8px 32px rgba(0,0,0,.70), 0 2px 8px rgba(0,0,0,.45);
-            --hover-bg:         rgba(251, 146, 60, 0.10);
+            --hover-bg:         rgba(129, 140, 248, 0.10);
             --glass-border:     rgba(255, 255, 255, 0.08);
 
             --bs-card-bg:       var(--surface);
@@ -1230,6 +1230,8 @@
         if (toggle && shell) {
             const stored = localStorage.getItem('sidebar_collapsed') === '1';
             if (stored) shell.classList.add('sidebar-collapsed');
+            // Remover clase FOUC — el estado real ya está aplicado
+            document.documentElement.classList.remove('sidebar-collapsed-init');
 
             toggle.addEventListener('click', function () {
                 const collapsed = shell.classList.toggle('sidebar-collapsed');
@@ -1316,7 +1318,7 @@
             success: { icon: 'bi-check-circle-fill',       color: '#10b981' },
             danger:  { icon: 'bi-exclamation-octagon-fill', color: '#ef4444' },
             warning: { icon: 'bi-exclamation-triangle-fill',color: '#f59e0b' },
-            info:    { icon: 'bi-info-circle-fill',         color: '#f97316' },
+            info:    { icon: 'bi-info-circle-fill',         color: '#4f46e5' },
         };
 
         window.showToast = function(msg, cat, duration) {
