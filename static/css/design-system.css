@@ -8,7 +8,7 @@
   /* ── SIDEBAR CHROME (always dark, independent of page theme) ── */
   --sidebar-bg:           #0F172A;
   --sidebar-width:        248px;
-  --sidebar-collapsed:    64px;
+  --sidebar-collapsed:    72px;
   --sidebar-accent:       #818cf8;
   --sidebar-text:         #94A3B8;
   --sidebar-text-active:  #F8FAFC;
@@ -67,7 +67,8 @@ html.sidebar-collapsed-init .sidebar-toggle-btn { opacity: 0; width: 0; overflow
 html.sidebar-collapsed-init .sidebar-group-label { opacity: 0; }
 html.sidebar-collapsed-init .sidebar-item-label,
 html.sidebar-collapsed-init .sidebar-item-badge { opacity: 0; width: 0; overflow: hidden; }
-html.sidebar-collapsed-init .sidebar-item { justify-content: center; padding: 0.625rem; }
+html.sidebar-collapsed-init .sidebar-item { justify-content: center; padding: 0.625rem; gap: 0; }
+html.sidebar-collapsed-init .sidebar-user { justify-content: center; gap: 0; }
 html.sidebar-collapsed-init .sidebar-user-name,
 html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; }
 
@@ -301,6 +302,7 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
 .erp-shell.sidebar-collapsed .sidebar-item {
   justify-content: center;
   padding: 0.625rem;
+  gap: 0; /* label/badge tienen width:0 pero el gap persiste sin esto, empujando el ícono */
 }
 
 /* Sidebar footer */
@@ -369,6 +371,7 @@ html.sidebar-collapsed-init .sidebar-user-role { opacity: 0; width: 0; overflow:
   overflow: hidden;
 }
 
+.erp-shell.sidebar-collapsed .sidebar-user { justify-content: center; gap: 0; }
 .erp-shell.sidebar-collapsed .sidebar-user-name,
 .erp-shell.sidebar-collapsed .sidebar-user-role { opacity: 0; width: 0; overflow: hidden; }
 
