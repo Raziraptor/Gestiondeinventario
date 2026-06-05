@@ -127,21 +127,30 @@ def _register_context_processors(app):
             return {'nav_badges': {}}
         try:
             from datetime import date
-            from .models import OrdenCompra, PagoServicio, Servicio, Stock, Almacen
+            from .models import OrdenCompra, PagoServicio, Servicio, Stock, Almacen, SolicitudAprobacion
             org_id = current_user.organizacion_id
+            servicios_vencidos = PagoServicio.query.join(Servicio).filter(
+                Servicio.organizacion_id == org_id,
+                PagoServicio.estado.in_(['pendiente', 'vencido']),
+                PagoServicio.fecha_vencimiento <= date.today()
+            ).count()
+            aprobaciones = SolicitudAprobacion.query.filter_by(
+                organizacion_id=org_id, estado='pendiente'
+            ).count()
             return {'nav_badges': {
                 'oc_pendientes': OrdenCompra.query.filter_by(
                     organizacion_id=org_id, estado='aprobada').count(),
-                'servicios_vencidos': PagoServicio.query.join(Servicio).filter(
-                    Servicio.organizacion_id == org_id,
-                    PagoServicio.estado.in_(['pendiente', 'vencido']),
-                    PagoServicio.fecha_vencimiento <= date.today()
-                ).count(),
+                'servicios_vencidos': servicios_vencidos,
+                'aprobaciones_pendientes': aprobaciones,
                 'stock_critico': Stock.query.join(Almacen).filter(
                     Almacen.organizacion_id == org_id,
                     Stock.cantidad <= Stock.stock_minimo
                 ).count(),
-            }}
+            },
+            # Compatibilidad con templates que aún usan las variables planas
+            'aprobaciones_badge': aprobaciones,
+            'servicios_badge': servicios_vencidos,
+            }
         except Exception:
             return {'nav_badges': {}}
 
