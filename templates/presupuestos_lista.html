@@ -147,12 +147,12 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
-                            <th class="ps-4 py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Categoría</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Estado</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;min-width:180px;">Ejecución</th>
-                            <th class="py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Gastado</th>
-                            <th class="py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Presupuesto</th>
-                            <th class="py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Disponible</th>
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Categoría</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Estado</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;min-width:180px;">Ejecución</th>
+                            <th class="py-3 fw-bold text-end" style="font-size:.75rem;letter-spacing:.4px;">Gastado</th>
+                            <th class="py-3 fw-bold text-end" style="font-size:.75rem;letter-spacing:.4px;">Presupuesto</th>
+                            <th class="py-3 fw-bold text-end" style="font-size:.75rem;letter-spacing:.4px;">Disponible</th>
                             <th class="pe-4 py-3" style="width:90px;"></th>
                         </tr>
                     </thead>
@@ -184,13 +184,13 @@
                                 ${{ "{:,.2f}".format(item.disponible) }}
                             </td>
                             <td class="pe-4 py-3 text-end">
-                                <a href="{{ url_for('finance.editar_presupuesto', id=item.p.id) }}" class="btn btn-sm btn-outline-secondary rounded-3 me-1" title="Editar">
+                                <a href="{{ url_for('finance.editar_presupuesto', id=item.p.id) }}" class="btn btn-accion btn-sm btn-outline-secondary rounded-3 me-1" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 <form action="{{ url_for('finance.eliminar_presupuesto', id=item.p.id) }}" method="POST" class="d-inline"
                                       data-confirm="¿Eliminar el presupuesto de {{ item.p.categoria }}?">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-3" title="Eliminar">
+                                    <button type="submit" class="btn btn-accion btn-sm btn-outline-danger rounded-3" title="Eliminar">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>

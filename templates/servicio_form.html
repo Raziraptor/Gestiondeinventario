@@ -49,7 +49,7 @@
                      data-color="{{ color }}" data-key="{{ key }}"
                      style="border:2px solid var(--border,#e2e8f0);background:var(--surface-raised,#f8fafc);transition:.15s;">
                   <i class="bi {{ icon }} d-block mb-1" style="font-size:1.3rem;color:{{ color }};"></i>
-                  <div style="font-size:.72rem;font-weight:600;color:#64748b;">{{ label }}</div>
+                  <div style="font-size:.75rem;font-weight:600;color:#64748b;">{{ label }}</div>
                 </div>
               </label>
             </div>
@@ -63,7 +63,7 @@
           <input type="text" name="nombre" class="form-control" required
                  placeholder="Ej: Luz Oficina Principal"
                  value="{{ servicio.nombre if servicio else '' }}">
-          <div class="form-text" style="font-size:.72rem;">Un nombre descriptivo para identificarlo fácilmente.</div>
+          <div class="form-text" style="font-size:.75rem;">Un nombre descriptivo para identificarlo fácilmente.</div>
         </div>
 
         <div class="row g-3 mb-3">
@@ -93,7 +93,7 @@
                      min="1" max="31" placeholder="Ej: 15"
                      value="{{ servicio.dia_vencimiento or '' if servicio else '' }}">
             </div>
-            <div class="form-text" style="font-size:.72rem;">Día del mes en que suele vencer el recibo.</div>
+            <div class="form-text" style="font-size:.75rem;">Día del mes en que suele vencer el recibo.</div>
           </div>
           {# DÍAS DE AVISO #}
           <div class="col-sm-6">

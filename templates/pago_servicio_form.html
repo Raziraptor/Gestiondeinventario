@@ -32,7 +32,7 @@
           <label class="fw-semibold small text-muted text-uppercase d-block mb-2" style="letter-spacing:.4px;">
             <i class="bi bi-magic text-primary me-1"></i>Leer recibo automáticamente
             <span class="badge rounded-pill ms-1 px-2"
-                  style="background:rgba(var(--primary-rgb),.1);color:var(--primary,#4f46e5);font-size:.65rem;font-weight:600;">OCR</span>
+                  style="background:rgba(var(--primary-rgb),.1);color:var(--primary,#4f46e5);font-size:.75rem;font-weight:600;">OCR</span>
           </label>
 
           {# Drop zone #}
@@ -48,7 +48,7 @@
               <div class="fw-semibold text-body" style="font-size:.88rem;">
                 Arrastra tu recibo aquí o <span class="text-primary text-decoration-underline">selecciona un archivo</span>
               </div>
-              <div class="text-muted mt-1" style="font-size:.72rem;">
+              <div class="text-muted mt-1" style="font-size:.75rem;">
                 JPG, PNG, PDF · El sistema extraerá monto y fecha automáticamente
               </div>
             </div>
@@ -61,7 +61,7 @@
             <div id="dropResult" class="d-none">
               <div id="resultIcon" class="fs-2 mb-1"></div>
               <div id="resultMsg" class="fw-semibold" style="font-size:.88rem;"></div>
-              <div id="resultSub" class="text-muted" style="font-size:.72rem;"></div>
+              <div id="resultSub" class="text-muted" style="font-size:.75rem;"></div>
               <button type="button" class="btn btn-sm btn-link text-muted p-0 mt-2" onclick="resetDrop()">
                 <i class="bi bi-arrow-counterclockwise me-1"></i>Subir otro
               </button>
@@ -101,7 +101,7 @@
                    value="{{ fecha_sugerida }}">
           </div>
           {% if fecha_sugerida %}
-          <div class="form-text" style="font-size:.72rem;">
+          <div class="form-text" style="font-size:.75rem;">
             <i class="bi bi-magic text-primary me-1"></i>Calculada según el día de vencimiento configurado.
           </div>
           {% endif %}
@@ -116,7 +116,7 @@
             <span class="input-group-text"><i class="bi bi-check2-circle text-success"></i></span>
             <input type="date" name="fecha_pago" id="campoFechaPago" class="form-control">
           </div>
-          <div class="form-text" style="font-size:.72rem;">
+          <div class="form-text" style="font-size:.75rem;">
             Si ya lo pagaste, agrégala para registrarlo como <strong>Pagado</strong> de inmediato.
           </div>
         </div>
@@ -140,7 +140,7 @@
             <option value="{{ cc.id }}">{{ cc.nombre }}{% if cc.estado == 'cerrado' %} (Cerrado){% endif %}</option>
             {% endfor %}
           </select>
-          <div class="form-text" style="font-size:.72rem;">Asigna este pago a un proyecto para incluirlo en su P&L.</div>
+          <div class="form-text" style="font-size:.75rem;">Asigna este pago a un proyecto para incluirlo en su P&L.</div>
         </div>
         {% endif %}
 

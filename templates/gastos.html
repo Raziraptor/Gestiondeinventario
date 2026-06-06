@@ -33,7 +33,7 @@
                 <h1 class="page-title"><i class="bi bi-cash-coin text-success me-2"></i>Control de Gastos</h1>
                 <p class="page-subtitle">Registro, seguimiento y análisis de egresos.</p>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <div class="btn-group shadow-sm">
                     <a href="{{ url_for('reports.exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}"
                        class="btn btn-success fw-bold text-nowrap"
@@ -64,12 +64,12 @@
     <!-- SECCIÓN DE FILTROS Y TOTAL -->
     <div class="row g-4 mb-5">
         <!-- Tarjeta de Filtros -->
-        <div class="col-md-8">
+        <div class="col-12 col-md-8">
             <div class="card shadow-sm border-0 rounded-4 h-100" style="background-color: var(--card-bg);">
                 <div class="card-body p-4">
                     <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
                     <form method="GET" action="{{ url_for('finance.lista_gastos') }}" class="row g-3 align-items-end">
-                        <div class="col-md-5">
+                        <div class="col-12 col-md-5">
                             <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
                             <select id="mes" name="mes" class="form-select shadow-sm border-secondary border-opacity-25">
                                 {% for num, nombre in meses_lista %}
@@ -79,12 +79,12 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-12 col-md-4">
                             <label for="ano" class="form-label fw-bold small text-body mb-1">Año</label>
                             <input type="number" id="ano" name="ano" class="form-control shadow-sm border-secondary border-opacity-25" 
                                    value="{{ ano_seleccionado }}" min="2020" max="2050">
                         </div>
-                        <div class="col-md-3 d-grid">
+                        <div class="col-12 col-md-3 d-grid">
                             <button type="submit" class="btn btn-secondary shadow-sm fw-bold">
                                 <i class="bi bi-search me-1"></i> Filtrar
                             </button>
@@ -95,7 +95,7 @@
         </div>
         
         <!-- Tarjeta de Total Premium -->
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card total-card shadow-sm rounded-4 h-100 position-relative overflow-hidden">
                 <!-- Decoración de fondo (Círculo difuminado) -->
                 <div class="position-absolute opacity-25" style="top: -20px; right: -20px; width: 100px; height: 100px; background: white; border-radius: 50%; filter: blur(20px);"></div>

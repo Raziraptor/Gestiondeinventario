@@ -119,7 +119,7 @@
         {% set fecha_actual.valor = fecha_dia %}
         <div class="d-flex align-items-center gap-2 mb-3 {% if not loop.first %}mt-4{% endif %}">
             <span class="badge rounded-pill px-3 py-2 fw-semibold"
-                  style="background:var(--hover-bg);color:var(--text-muted);font-size:.72rem;border:1px solid var(--border);">
+                  style="background:var(--hover-bg);color:var(--text-muted);font-size:.75rem;border:1px solid var(--border);">
                 <i class="bi bi-calendar3 me-1"></i>
                 {{ entrada.fecha.strftime('%A %d de %B, %Y') | capitalize }}
             </span>
@@ -172,7 +172,7 @@
                         {% endif %}
 
                         <!-- Entidad badge -->
-                        <span class="text-muted small" style="font-size:.72rem;">
+                        <span class="text-muted small" style="font-size:.75rem;">
                             {{ entrada.entidad | replace('_', ' ') | capitalize }}
                             {% if entrada.entidad_id %}#{{ entrada.entidad_id }}{% endif %}
                         </span>
@@ -185,11 +185,11 @@
 
                     <!-- Meta: usuario y hora -->
                     <div class="text-end flex-shrink-0">
-                        <div class="text-muted" style="font-size:.72rem;">
+                        <div class="text-muted" style="font-size:.75rem;">
                             <i class="bi bi-clock me-1"></i>{{ entrada.fecha.strftime('%H:%M') }}
                         </div>
                         {% if entrada.usuario %}
-                        <div class="text-muted mt-1" style="font-size:.72rem;">
+                        <div class="text-muted mt-1" style="font-size:.75rem;">
                             <i class="bi bi-person me-1"></i>{{ entrada.usuario.username }}
                         </div>
                         {% endif %}

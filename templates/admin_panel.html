@@ -103,7 +103,8 @@
                         <td class="ps-4 py-3">
                             <div class="d-flex align-items-center gap-3">
                                 <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}"
-                                     class="rounded-circle shadow-sm border" style="width:38px;height:38px;object-fit:cover;">
+                                     class="rounded-circle shadow-sm border" style="width:38px;height:38px;object-fit:cover;"
+                                     loading="lazy" alt="{{ user.username }}">
                                 <div>
                                     <div class="fw-bold text-body">{{ user.username }}</div>
                                     <small class="text-muted">{{ user.email }}</small>
@@ -148,7 +149,8 @@
                         <td class="ps-4 py-3">
                             <div class="d-flex align-items-center gap-3">
                                 <img src="{{ url_for('static', filename='uploads/profile_pics/' + user.image_file) }}"
-                                     class="rounded-circle shadow-sm border border-primary" style="width:38px;height:38px;object-fit:cover;">
+                                     class="rounded-circle shadow-sm border border-primary" style="width:38px;height:38px;object-fit:cover;"
+                                     loading="lazy" alt="{{ user.username }}">
                                 <div>
                                     <div class="fw-bold text-body">{{ user.username }}</div>
                                     <small class="text-muted">{{ user.email }}</small>
@@ -157,7 +159,7 @@
                         </td>
                         <td class="py-3">
                             <span class="badge bg-primary rounded-pill px-2 py-1">
-                                <i class="bi bi-star-fill me-1 text-warning" style="font-size:.65rem;"></i>Admin
+                                <i class="bi bi-star-fill me-1 text-warning" style="font-size:.75rem;"></i>Admin
                             </span>
                         </td>
                         <td colspan="7" class="text-center text-muted small fw-semibold py-3 pe-4">

@@ -97,9 +97,9 @@
 
         {# Badge de estado #}
         {% if proximo and proximo.estado == 'vencido' %}
-        <span class="position-absolute top-0 end-0 m-2 badge rounded-pill bg-danger" style="font-size:.68rem;">Vencido</span>
+        <span class="position-absolute top-0 end-0 m-2 badge rounded-pill bg-danger" style="font-size:.75rem;">Vencido</span>
         {% elif dias_restantes is not none and dias_restantes <= 7 %}
-        <span class="position-absolute top-0 end-0 m-2 badge rounded-pill bg-warning text-dark" style="font-size:.68rem;">
+        <span class="position-absolute top-0 end-0 m-2 badge rounded-pill bg-warning text-dark" style="font-size:.75rem;">
           {{ dias_restantes }}d
         </span>
         {% endif %}
@@ -113,7 +113,7 @@
             </div>
             <div class="min-w-0 flex-grow-1">
               <div class="fw-bold text-body text-truncate" style="font-size:.95rem;">{{ s.nombre }}</div>
-              <div class="text-muted" style="font-size:.72rem;">
+              <div class="text-muted" style="font-size:.75rem;">
                 {{ label }}{% if s.proveedor_nombre %} · {{ s.proveedor_nombre }}{% endif %}
               </div>
             </div>
@@ -130,7 +130,7 @@
               </span>
             </div>
             <div class="d-flex justify-content-between align-items-center mt-1">
-              <span class="small" style="font-size:.72rem;color:#94a3b8;">
+              <span class="small" style="font-size:.75rem;color:#94a3b8;">
                 <i class="bi bi-calendar3 me-1"></i>{{ proximo.fecha_vencimiento.strftime('%d %b %Y') }}
               </span>
               {# Acción rápida: marcar pagado #}
@@ -138,7 +138,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="fecha_pago" value="{{ hoy.strftime('%Y-%m-%d') }}">
                 <button type="submit" class="btn btn-sm rounded-pill px-2 fw-semibold"
-                        style="font-size:.68rem;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25);"
+                        style="font-size:.75rem;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25);"
                         onclick="return confirm('¿Marcar como pagado hoy?')">
                   <i class="bi bi-check2 me-1"></i>Pagado
                 </button>
@@ -153,7 +153,7 @@
           {% endif %}
 
           {# Meta info #}
-          <div class="d-flex flex-wrap gap-2 mb-3" style="font-size:.7rem;color:#94a3b8;">
+          <div class="d-flex flex-wrap gap-2 mb-3" style="font-size:.75rem;color:#94a3b8;">
             {% if s.numero_contrato %}
             <span><i class="bi bi-hash me-1"></i>{{ s.numero_contrato }}</span>
             {% endif %}

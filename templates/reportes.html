@@ -51,7 +51,7 @@
     <div class="row g-4 animate-cards">
 
         <!-- REPORTE 1: Inventario Actual (Excel) -->
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 reporte-card content-card">
                 <div class="card-body p-4">
                     <div class="d-flex gap-3 mb-3">
@@ -79,7 +79,7 @@
 
         <!-- REPORTE 2: Valorización (PDF) — solo admins -->
         {% if current_user.rol in ['super_admin', 'admin'] %}
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="card border-0 shadow-sm rounded-4 h-100 reporte-card content-card">
                 <div class="card-body p-4">
                     <div class="d-flex gap-3 mb-3">

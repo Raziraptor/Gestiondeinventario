@@ -335,7 +335,7 @@
     </div>
 
     {# Top salidas + Dona + Actividad #}
-    <div class="col-md-5">
+    <div class="col-12 col-md-5">
       <div class="card border-0 shadow-sm rounded-4 h-100">
         <div class="card-header bg-transparent border-0 pt-3 pb-0">
           <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
@@ -348,7 +348,7 @@
       </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-12 col-md-3">
       <div class="card border-0 shadow-sm rounded-4 h-100">
         <div class="card-header bg-transparent border-0 pt-3 pb-0">
           <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
@@ -361,7 +361,7 @@
       </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-12 col-md-4">
       <div class="card border-0 shadow-sm rounded-4 h-100">
         <div class="card-header bg-transparent pt-3 pb-2 d-flex justify-content-between align-items-center"
              style="border-bottom:1px solid var(--border);">
@@ -406,7 +406,7 @@
   <div class="card shadow-sm mb-3 border-0 rounded-4">
     <div class="card-body p-3 p-md-4 rounded-4" style="background:var(--surface-raised,#f8fafc);">
       <div class="row g-3 align-items-end">
-        <div class="col-md-5 position-relative">
+        <div class="col-12 col-md-5 position-relative">
           <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Buscar</label>
           <div class="input-group shadow-sm">
             <span class="input-group-text"><i class="bi bi-search text-primary"></i></span>
@@ -419,21 +419,21 @@
           <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg border-0"
                style="z-index:1050;display:none;max-height:220px;overflow-y:auto;top:100%;margin-top:4px;"></div>
         </div>
-        <div class="col-md-3">
+        <div class="col-12 col-md-3">
           <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Categoría</label>
           <select class="form-select shadow-sm border-0" id="filtro_categoria">
             <option value="0">Todas</option>
             {% for cat in categorias %}<option value="{{ cat.id }}">{{ cat.nombre }}</option>{% endfor %}
           </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-12 col-md-2">
           <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Proveedor</label>
           <select class="form-select shadow-sm border-0" id="filtro_proveedor">
             <option value="0">Todos</option>
             {% for prov in proveedores %}<option value="{{ prov.id }}">{{ prov.nombre }}</option>{% endfor %}
           </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-12 col-md-2">
           <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Estado</label>
           <select class="form-select shadow-sm border-0" id="filtro_estado">
             <option value="">Todos</option>
@@ -550,9 +550,9 @@
               <span class="fw-bold {% if item.cantidad == 0 %}text-danger{% elif item.estado_stock == 'bajo' %}text-warning{% else %}text-success{% endif %}" style="font-size:.95rem;">
                 {{ item.cantidad }}
               </span>
-              <div class="text-muted" style="font-size:.65rem;">uds</div>
+              <div class="text-muted" style="font-size:.75rem;">uds</div>
               {% if item.producto.unidades_por_caja and item.producto.unidades_por_caja > 1 %}
-              <div class="text-muted" style="font-size:.65rem;">
+              <div class="text-muted" style="font-size:.75rem;">
                 {{ (item.cantidad / item.producto.unidades_por_caja)|round(1) }} cajas
               </div>
               {% endif %}
@@ -1010,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
             &middot; ${m.label} &middot; <i class="bi bi-shop"></i> ${m.almacen}
           </div>
         </div>
-        <div class="text-muted flex-shrink-0" style="font-size:.65rem;padding-top:2px;white-space:nowrap;">${m.fecha}</div>
+        <div class="text-muted flex-shrink-0" style="font-size:.75rem;padding-top:2px;white-space:nowrap;">${m.fecha}</div>
       </div>`
     ).join('');
   }

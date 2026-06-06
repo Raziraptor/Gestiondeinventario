@@ -67,7 +67,7 @@
         <div class="col-6 col-lg-3">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-4">
-                    <div class="small fw-bold text-muted text-uppercase mb-3" style="font-size:.7rem;letter-spacing:.5px;">Antigüedad de saldos</div>
+                    <div class="small fw-bold text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:.5px;">Antigüedad de saldos</div>
                     {% set aging_labels = [('vigente','Al corriente','text-success'), ('1-30','1–30 días','text-warning'), ('31-60','31–60 días','text-orange'), ('61-90','61–90 días','text-danger'), ('90+','+90 días','text-danger fw-bold')] %}
                     {% for key, label, cls in aging_labels %}
                     {% if aging[key] > 0 %}
@@ -89,7 +89,7 @@
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-4" style="background:var(--surface-raised)">
             <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="estado" class="form-label fw-bold small text-muted text-uppercase">Estado</label>
                     <select id="estado" name="estado" class="form-select border-0 shadow-sm">
                         <option value="" {% if not estado_filtro %}selected{% endif %}>Todos los estados</option>
@@ -98,7 +98,7 @@
                         <option value="pagado"    {% if estado_filtro == 'pagado'    %}selected{% endif %}>Pagado</option>
                     </select>
                 </div>
-                <div class="col-md-5">
+                <div class="col-12 col-md-5">
                     <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase">Proveedor</label>
                     <select id="proveedor_id" name="proveedor_id" class="form-select border-0 shadow-sm">
                         <option value="0">Todos los proveedores</option>
@@ -107,7 +107,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3 d-flex gap-2">
+                <div class="col-12 col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-secondary fw-bold flex-grow-1 rounded-3">
                         <i class="bi bi-filter me-1"></i>Filtrar
                     </button>
@@ -127,14 +127,14 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
-                            <th class="ps-4 py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;"># Factura</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Proveedor</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">OC Vinculada</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Emisión</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Vencimiento</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Estado</th>
-                            <th class="py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Monto</th>
-                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Acciones</th>
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;"># Factura</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Proveedor</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">OC Vinculada</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Emisión</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Vencimiento</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Estado</th>
+                            <th class="py-3 fw-bold text-end" style="font-size:.75rem;letter-spacing:.4px;">Monto</th>
+                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.75rem;letter-spacing:.4px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -161,9 +161,9 @@
                                 </span>
                                 {% if f.estado == 'pendiente' %}
                                     {% if dias < 0 %}
-                                        <span class="badge text-bg-danger ms-1" style="font-size:.65rem;">{{ dias|abs }}d vencida</span>
+                                        <span class="badge text-bg-danger ms-1" style="font-size:.75rem;">{{ dias|abs }}d vencida</span>
                                     {% elif dias <= 7 %}
-                                        <span class="badge text-bg-warning ms-1" style="font-size:.65rem;">{{ dias }}d</span>
+                                        <span class="badge text-bg-warning ms-1" style="font-size:.75rem;">{{ dias }}d</span>
                                     {% endif %}
                                 {% endif %}
                             </td>
@@ -178,7 +178,7 @@
                             </td>
                             <td class="py-3 text-end fw-bold text-body">${{ "{:,.2f}".format(f.monto) }}</td>
                             <td class="pe-4 py-3">
-                                <div class="d-flex gap-2 justify-content-end align-items-center">
+                                <div class="d-flex flex-wrap gap-2 justify-content-end align-items-center">
                                     {% if f.estado != 'pagado' %}
                                     <form action="{{ url_for('finance.marcar_factura_pagada', id=f.id) }}" method="POST">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -189,13 +189,13 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    <a href="{{ url_for('finance.editar_factura', id=f.id) }}" class="btn btn-outline-secondary btn-sm rounded-3" title="Editar">
+                                    <a href="{{ url_for('finance.editar_factura', id=f.id) }}" class="btn btn-accion btn-outline-secondary btn-sm rounded-3" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form action="{{ url_for('finance.eliminar_factura', id=f.id) }}" method="POST"
                                           data-confirm="¿Eliminar esta factura? Esta acción no se puede deshacer.">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" aria-label="Eliminar factura">
+                                        <button type="submit" class="btn btn-accion btn-outline-danger btn-sm rounded-3" aria-label="Eliminar factura">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
