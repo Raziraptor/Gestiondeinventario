@@ -4,7 +4,11 @@ create_app() inicializa Flask, extensiones, blueprints y CLI.
 """
 
 import json
+import time
 from decimal import Decimal
+
+_badge_cache: dict = {}   # {org_id: (expires_at, payload)}
+_BADGE_TTL = 30           # seconds
 
 from flask import Flask
 from flask.json.provider import DefaultJSONProvider
@@ -126,9 +130,13 @@ def _register_context_processors(app):
         if not current_user.is_authenticated or not current_user.organizacion_id:
             return {'nav_badges': {}, 'aprobaciones_badge': 0, 'servicios_badge': 0}
         try:
+            org_id = current_user.organizacion_id
+            cached = _badge_cache.get(org_id)
+            if cached and time.time() < cached[0]:
+                return cached[1]
+
             from datetime import date
             from .models import OrdenCompra, PagoServicio, Servicio, Stock, Almacen, SolicitudAprobacion
-            org_id = current_user.organizacion_id
             servicios_vencidos = PagoServicio.query.join(Servicio).filter(
                 Servicio.organizacion_id == org_id,
                 PagoServicio.estado.in_(['pendiente', 'vencido']),
@@ -137,7 +145,7 @@ def _register_context_processors(app):
             aprobaciones = SolicitudAprobacion.query.filter_by(
                 organizacion_id=org_id, estado='pendiente'
             ).count()
-            return {'nav_badges': {
+            payload = {'nav_badges': {
                 'oc_pendientes': OrdenCompra.query.filter_by(
                     organizacion_id=org_id, estado='aprobada').count(),
                 'servicios_vencidos': servicios_vencidos,
@@ -147,10 +155,11 @@ def _register_context_processors(app):
                     Stock.cantidad <= Stock.stock_minimo
                 ).count(),
             },
-            # Compatibilidad con templates que aún usan las variables planas
             'aprobaciones_badge': aprobaciones,
             'servicios_badge': servicios_vencidos,
             }
+            _badge_cache[org_id] = (time.time() + _BADGE_TTL, payload)
+            return payload
         except Exception:
             return {'nav_badges': {}}
 
