@@ -227,5 +227,12 @@ document.querySelectorAll('.btn-aprobar').forEach(function(btn) {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Aprobando…';
     });
 });
+/* Loading state en modales de rechazo */
+document.querySelectorAll('form[action*="rechazar"]').forEach(function(f) {
+    f.addEventListener('submit', function() {
+        const btn = f.querySelector('[type="submit"]');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Rechazando…'; }
+    });
+});
 </script>
 {% endblock %}

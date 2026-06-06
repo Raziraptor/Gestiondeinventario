@@ -73,6 +73,9 @@
                     <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
                         <i class="bi bi-filter"></i> Aplicar Filtros
                     </button>
+                    <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm" title="Limpiar filtros">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
                     <!-- FILTRO DINÁMICO: OCULTAR CANCELADAS -->
                     <div class="rounded px-3 d-flex align-items-center filter-switch"
                          style="background:var(--surface);border:1px solid var(--border);">
@@ -265,5 +268,19 @@
             });
         }
     });
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('form[method="POST"]').forEach(function(f) {
+    f.addEventListener('submit', function() {
+        const btn = f.querySelector('[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Procesando…';
+        }
+    });
+});
 </script>
 {% endblock %}
