@@ -41,7 +41,7 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="row g-3 mb-3">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="nombre" class="form-label fw-semibold small text-muted mb-1">Nombre del Producto <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-box text-secondary"></i></span>
@@ -50,7 +50,7 @@
                                            required placeholder="Ej: Tornillo hexagonal 1/2&quot;">
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="codigo" class="form-label fw-semibold small text-muted mb-1">Código (SKU) <span class="text-danger">*</span></label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-upc text-secondary"></i></span>
@@ -62,7 +62,7 @@
                         </div>
 
                         <div class="row g-3 mb-3">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="categoria_id" class="form-label fw-semibold small text-muted mb-1">Categoría</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-folder text-secondary"></i></span>
@@ -74,7 +74,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="proveedor_id" class="form-label fw-semibold small text-muted mb-1">Proveedor</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-truck text-secondary"></i></span>
@@ -112,7 +112,7 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4">
                                 <label for="unidades_por_caja" class="form-label fw-semibold small text-muted mb-1">Unidades por Caja</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-box-seam text-secondary"></i></span>
@@ -121,7 +121,7 @@
                                 </div>
                                 <div class="form-text">0 si se vende por pieza.</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4">
                                 <label for="costo_caja_virtual" class="form-label fw-semibold small text-muted mb-1">Costo por Caja</label>
                                 <div class="input-group">
                                     <span class="input-group-text text-secondary small fw-semibold">MXN</span>
@@ -129,7 +129,7 @@
                                 </div>
                                 <div class="form-text">Costo total del empaque.</div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-12 col-md-4">
                                 <label for="costo_estandar" class="form-label fw-semibold small text-success mb-1">Costo Unitario</label>
                                 <div class="input-group">
                                     <span class="input-group-text text-success fw-bold small">MXN</span>
@@ -157,11 +157,11 @@
                             Los niveles mínimo/máximo se usarán por defecto en nuevos almacenes.
                         </div>
                         <div class="row g-3 mb-4">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="stock_minimo" class="form-label fw-semibold small text-muted mb-1">Stock Mínimo</label>
                                 <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" value="5" min="0">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="stock_maximo" class="form-label fw-semibold small text-muted mb-1">Stock Máximo</label>
                                 <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="100" min="0">
                             </div>
@@ -175,7 +175,7 @@
                             <strong>Asignación Inmediata (opcional):</strong> ingresa existencias directamente al sistema.
                         </div>
                         <div class="row g-3 mb-4">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="almacen_inicial_id" class="form-label fw-semibold small text-muted mb-1">Almacén de Destino</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-shop text-secondary"></i></span>
@@ -187,7 +187,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="ubicacion_inicial" class="form-label fw-semibold small text-muted mb-1">Ubicación (Pasillo/Estante)</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-pin-map text-secondary"></i></span>
@@ -196,14 +196,14 @@
                             </div>
                         </div>
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="cajas_iniciales_virtual" class="form-label fw-semibold small text-muted mb-1">Cajas Iniciales</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-box text-secondary"></i></span>
                                     <input type="number" class="form-control" id="cajas_iniciales_virtual" min="0" step="0.01" placeholder="N/A">
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="cantidad_inicial" class="form-label fw-semibold small text-success mb-1">Unidades Totales a Ingresar</label>
                                 <div class="input-group">
                                     <span class="input-group-text text-success fw-bold">#</span>
@@ -224,18 +224,18 @@
                     </div>
                     <div class="card-body p-4">
                         <div class="row g-3 mb-4">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="stock_minimo" class="form-label fw-semibold small text-muted mb-1">Stock Mínimo</label>
                                 <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" value="{{ stock_item.stock_minimo }}" min="0">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="stock_maximo" class="form-label fw-semibold small text-muted mb-1">Stock Máximo</label>
                                 <input type="number" class="form-control" id="stock_maximo" name="stock_maximo" value="{{ stock_item.stock_maximo }}" min="0">
                             </div>
                         </div>
                         <hr style="border-color:var(--border);" class="mb-4">
                         <div class="row g-3 mb-4">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-semibold small text-muted mb-1">Ubicación Física</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-pin-map text-secondary"></i></span>
@@ -245,14 +245,14 @@
                             </div>
                         </div>
                         <div class="row g-3">
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label for="cajas_actuales_virtual" class="form-label fw-semibold small text-muted mb-1">Cajas Físicas</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="bi bi-box text-secondary"></i></span>
                                     <input type="number" class="form-control" id="cajas_actuales_virtual" min="0" step="0.01" placeholder="N/A">
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-semibold small text-warning mb-1">Total Unidades</label>
                                 <div class="input-group">
                                     <span class="input-group-text text-warning fw-bold">#</span>
@@ -318,7 +318,7 @@
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <i class="bi bi-stars text-primary" style="font-size:.95rem;"></i>
                                 <span class="fw-semibold small" style="color:var(--primary);">Generar con IA</span>
-                                <span class="badge rounded-pill ms-auto" style="background:rgba(var(--primary-rgb),.12);color:var(--primary);font-size:.65rem;">Gratis</span>
+                                <span class="badge rounded-pill ms-auto" style="background:rgba(var(--primary-rgb),.12);color:var(--primary);font-size:.75rem;">Gratis</span>
                             </div>
                             <div class="input-group input-group-sm mb-2">
                                 <input type="text" id="ai-prompt-input" class="form-control"

@@ -152,7 +152,7 @@
                     {%       set n_hd.count = n_hd.count + 1 %}
                     {%     endif %}
                     {%   endfor %}
-                    <span class="badge bg-dark text-white ms-1" style="font-size:.65rem;">{{ n_hd.count }}</span>
+                    <span class="badge bg-dark text-white ms-1" style="font-size:.75rem;">{{ n_hd.count }}</span>
                     {% endif %}
                 </a>
                 {% endif %}
@@ -250,13 +250,13 @@
         <div class="mt-3 pt-3 d-flex gap-4 flex-wrap" style="border-top:1px solid var(--border)">
             {% if proyecto_oc.almacen %}
             <div>
-                <small class="text-muted text-uppercase fw-bold" style="font-size:.65rem;letter-spacing:.5px;">Almacén destino</small>
+                <small class="text-muted text-uppercase fw-bold" style="font-size:.75rem;letter-spacing:.5px;">Almacén destino</small>
                 <div class="fw-bold text-body"><i class="bi bi-building me-1 text-primary"></i>{{ proyecto_oc.almacen.nombre }}</div>
             </div>
             {% endif %}
             {% if proyecto_oc.recibido_por %}
             <div>
-                <small class="text-muted text-uppercase fw-bold" style="font-size:.65rem;letter-spacing:.5px;">Recibido por</small>
+                <small class="text-muted text-uppercase fw-bold" style="font-size:.75rem;letter-spacing:.5px;">Recibido por</small>
                 <div class="fw-bold text-body"><i class="bi bi-person-check me-1 text-success"></i>{{ proyecto_oc.recibido_por.username }}</div>
             </div>
             {% endif %}
@@ -297,14 +297,14 @@
                                 {% if detalle.producto %}
                                 <small class="text-muted font-monospace">SKU: {{ detalle.producto.codigo }}</small>
                                 {% if detalle.producto.hd_sku %}
-                                <span class="badge ms-1" style="background:rgba(255,150,0,.15);color:#e07000;font-size:.65rem;font-weight:700;">
-                                    <i class="bi bi-house-fill me-1" style="font-size:.6rem;" aria-hidden="true"></i>HD: {{ detalle.producto.hd_sku }}
+                                <span class="badge ms-1" style="background:rgba(255,150,0,.15);color:#e07000;font-size:.75rem;font-weight:700;">
+                                    <i class="bi bi-house-fill me-1" style="font-size:.75rem;" aria-hidden="true"></i>HD: {{ detalle.producto.hd_sku }}
                                 </span>
                                 {% endif %}
                                 {% endif %}
                                 {% if not detalle.producto and ('home depot' in (detalle.proveedor_sugerido or '')|lower) %}
-                                <span class="badge ms-1" style="background:rgba(255,150,0,.15);color:#e07000;font-size:.65rem;font-weight:700;">
-                                    <i class="bi bi-house-fill me-1" style="font-size:.6rem;" aria-hidden="true"></i>HD Pro
+                                <span class="badge ms-1" style="background:rgba(255,150,0,.15);color:#e07000;font-size:.75rem;font-weight:700;">
+                                    <i class="bi bi-house-fill me-1" style="font-size:.75rem;" aria-hidden="true"></i>HD Pro
                                 </span>
                                 {% endif %}
                                 <div class="mt-2">
@@ -324,9 +324,9 @@
                             </td>
                             <td>
                                 {% if detalle.producto_id %}
-                                <span class="badge rounded-pill" style="background:rgba(6,182,212,.15);color:#06b6d4;font-size:.7rem;font-weight:700;">Catálogo</span>
+                                <span class="badge rounded-pill" style="background:rgba(6,182,212,.15);color:#06b6d4;font-size:.75rem;font-weight:700;">Catálogo</span>
                                 {% else %}
-                                <span class="badge rounded-pill" style="background:var(--hover-bg);color:var(--bs-secondary);font-size:.7rem;font-weight:700;">Externo</span>
+                                <span class="badge rounded-pill" style="background:var(--hover-bg);color:var(--bs-secondary);font-size:.75rem;font-weight:700;">Externo</span>
                                 {% endif %}
                             </td>
                             <td class="text-center fw-bold text-body">{{ detalle.cantidad }}</td>

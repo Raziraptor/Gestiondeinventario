@@ -33,7 +33,7 @@
 
     <div class="row g-4 animate-cards">
         <!-- COLUMNA IZQUIERDA: FORMULARIO DE AÑADIR -->
-        <div class="col-md-5">
+        <div class="col-12 col-md-5">
             <div class="card content-card shadow-sm border-0 rounded-4">
                 <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-primary border-opacity-25 d-flex align-items-center">
                     <h4 class="mb-0 fw-bold text-primary"><i class="bi bi-plus-circle-fill me-2"></i>Añadir Producto</h4>
@@ -81,7 +81,7 @@
                                 </div>
                             </div>
                             <div class="flex-grow-1">
-                                <small class="text-primary text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">Seleccionado</small><br>
+                                <small class="text-primary text-uppercase fw-bold" style="font-size: .75rem; letter-spacing: 0.5px;">Seleccionado</small><br>
                                 <strong id="lbl_nombre_prod" class="text-body d-block text-truncate fs-5" style="max-width: 200px;">---</strong>
                                 <span class="badge rounded-pill font-monospace mt-1"
                                       style="background:var(--hover-bg);color:var(--bs-secondary);border:1px solid var(--border);"
@@ -142,7 +142,7 @@
         </div>
 
         <!-- COLUMNA DERECHA: TABLA DE PRODUCTOS -->
-        <div class="col-md-7">
+        <div class="col-12 col-md-7">
             <div class="card content-card shadow-sm border-0 rounded-4 h-100">
                 <div class="card-header bg-transparent pt-4 pb-3 d-flex justify-content-between align-items-center"
                      style="border-bottom:1px solid var(--border);">
@@ -194,17 +194,17 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group shadow-sm">
                                         <!-- Botón de Edición -->
-                                        <a href="{{ url_for('inventory.editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-primary btn-sm" title="Editar Cantidad/Ubicación">
+                                        <a href="{{ url_for('inventory.editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-accion btn-outline-primary btn-sm" title="Editar Cantidad/Ubicación">
                                             <i class="bi bi-pencil"></i>
                                         </a>
                                         <!-- Botón de Etiqueta -->
-                                        <a href="{{ url_for('inventory.configurar_etiqueta', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-outline-secondary btn-sm" title="Imprimir Etiqueta">
+                                        <a href="{{ url_for('inventory.configurar_etiqueta', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-accion btn-outline-secondary btn-sm" title="Imprimir Etiqueta">
                                             <i class="bi bi-upc-scan"></i>
                                         </a>
                                         <!-- Botón de Eliminar -->
                                         <form action="{{ url_for('inventory.eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" data-confirm="¿Quitar este producto del almacén? Se perderá el historial de movimientos asociado a esta ubicación.">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Quitar de Almacén"><i class="bi bi-trash"></i></button>
+                                            <button type="submit" class="btn btn-accion btn-outline-danger btn-sm" title="Quitar de Almacén"><i class="bi bi-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>

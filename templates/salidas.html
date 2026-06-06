@@ -52,9 +52,9 @@
                         <i class="bi bi-file-earmark-minus fs-4 text-danger"></i>
                     </div>
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Hojas de Salida</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Hojas de Salida</div>
                         <div class="fw-bold fs-4">{{ pagination.total }}</div>
-                        <div class="text-muted" style="font-size:.7rem;">en el período</div>
+                        <div class="text-muted" style="font-size:.75rem;">en el período</div>
                     </div>
                 </div>
             </div>
@@ -69,9 +69,9 @@
                         <i class="bi bi-box-arrow-right fs-4 text-warning"></i>
                     </div>
                     <div>
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Unidades Despachadas</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Unidades Despachadas</div>
                         <div class="fw-bold fs-4">{{ total_unidades }}</div>
-                        <div class="text-muted" style="font-size:.7rem;">unidades totales</div>
+                        <div class="text-muted" style="font-size:.75rem;">unidades totales</div>
                     </div>
                 </div>
             </div>
@@ -86,10 +86,10 @@
                         <i class="bi bi-trophy fs-4" style="color:#8b5cf6;"></i>
                     </div>
                     <div class="min-w-0">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Más Despachado</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Más Despachado</div>
                         {% if top_productos %}
                         <div class="fw-bold text-truncate" style="font-size:.85rem;max-width:130px;">{{ top_productos[0].nombre }}</div>
-                        <div class="text-muted" style="font-size:.7rem;">{{ top_productos[0].uds }} uds</div>
+                        <div class="text-muted" style="font-size:.75rem;">{{ top_productos[0].uds }} uds</div>
                         {% else %}
                         <div class="text-muted small">—</div>
                         {% endif %}
@@ -107,10 +107,10 @@
                         <i class="bi bi-shop fs-4 text-success"></i>
                     </div>
                     <div class="min-w-0">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.68rem;letter-spacing:.5px;">Almacén más Activo</div>
+                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Almacén más Activo</div>
                         {% if almacen_top %}
                         <div class="fw-bold text-truncate" style="font-size:.85rem;max-width:130px;">{{ almacen_top.nombre }}</div>
-                        <div class="text-muted" style="font-size:.7rem;">{{ almacen_top.total }} salidas</div>
+                        <div class="text-muted" style="font-size:.75rem;">{{ almacen_top.total }} salidas</div>
                         {% else %}
                         <div class="text-muted small">—</div>
                         {% endif %}
@@ -120,7 +120,7 @@
         </div>
 
         <!-- Gráfica: unidades por día -->
-        <div class="col-md-8">
+        <div class="col-12 col-md-8">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-transparent border-0 pt-3 pb-0">
                     <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
@@ -135,7 +135,7 @@
         </div>
 
         <!-- Top 5 productos -->
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-transparent border-0 pt-3 pb-0">
                     <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
@@ -174,7 +174,7 @@
         <div class="card-body p-4 surface-panel rounded-4">
             <h6 class="text-uppercase fw-bold text-muted small mb-3"><i class="bi bi-funnel me-1"></i> Filtros de Búsqueda</h6>
             <form method="GET" action="{{ url_for('inventory.historial_salidas') }}" class="row g-3 align-items-end">
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label for="mes" class="form-label fw-bold small text-body mb-1">Mes</label>
                     <select id="mes" name="mes" class="form-select shadow-sm">
                         {% for num, nombre in meses_lista %}
@@ -184,12 +184,12 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label for="ano" class="form-label fw-bold small text-body mb-1">Año</label>
                     <input type="number" id="ano" name="ano" class="form-control shadow-sm"
                            value="{{ ano_seleccionado }}" min="2020" max="2050">
                 </div>
-                <div class="col-md-3 d-grid">
+                <div class="col-12 col-md-3 d-grid">
                     <button type="submit" class="btn btn-secondary shadow-sm fw-bold rounded-pill">
                         <i class="bi bi-search me-1"></i> Filtrar Resultados
                     </button>
@@ -264,7 +264,7 @@
                         <!-- Resumen de Items (Estilo Moderno) -->
                         <div class="mb-3 surface-panel rounded-3 p-3 flex-grow-1">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong class="text-muted text-uppercase" style="font-size: 0.7rem; letter-spacing: 1px;">Resumen de Items</strong>
+                                <strong class="text-muted text-uppercase" style="font-size: .75rem; letter-spacing: 1px;">Resumen de Items</strong>
                                 <span class="badge bg-secondary bg-opacity-10 text-muted border border-secondary border-opacity-25 rounded-pill">{{ salida.movimientos.count() }}</span>
                             </div>
                             

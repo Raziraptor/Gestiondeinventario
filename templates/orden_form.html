@@ -36,7 +36,7 @@
             </div>
             <div class="card-body p-4 p-md-5">
                 <div class="row g-4">
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Proveedor</label>
                         <div class="input-group input-group-lg shadow-sm">
                             <span class="input-group-text"><i class="bi bi-building text-secondary"></i></span>
@@ -55,7 +55,7 @@
                         {% endif %}
                     </div>
                     
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <label for="almacen_id" class="form-label fw-bold small text-muted text-uppercase mb-2">Almacén de Destino</label>
                         <div class="input-group input-group-lg shadow-sm">
                             <span class="input-group-text"><i class="bi bi-shop text-secondary"></i></span>
@@ -131,31 +131,31 @@
                     
                     <div class="producto-linea surface-panel p-4 rounded-4 shadow-sm mb-3">
                         <div class="row g-3 align-items-center">
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem;">Producto</label>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.75rem;">Producto</label>
                                 <div class="fw-bold fs-6 text-body">{{ p_match.nombre if p_match else 'ID: ' ~ detalle.producto_id }}</div>
                                 <div class="d-flex align-items-center gap-2 mt-1">
                                     <span class="badge bg-secondary bg-opacity-10 text-dark border border-secondary font-monospace">{{ p_match.codigo if p_match else 'N/A' }}</span>
-                                    <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.65rem;">Caja: {{ factor }} uds</span>
+                                    <span class="badge bg-info text-dark shadow-sm" style="font-size: 0.75rem;">Caja: {{ factor }} uds</span>
                                 </div>
                                 <input type="hidden" name="producto_id[]" value="{{ detalle.producto_id }}">
                                 <input type="hidden" class="factor-empaque" value="{{ factor }}">
                             </div>
                             
-                            <div class="col-md-2">
-                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Cajas</label>
+                            <div class="col-12 col-md-2">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Cajas</label>
                                 <input type="number" name="cajas[]" class="form-control bg-light border-secondary cajas-input text-center fw-bold" 
                                        value="{{ (detalle.cantidad_solicitada / factor) | round(2, 'floor') }}" step="0.01">
                             </div>
 
-                            <div class="col-md-2">
-                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Total Unid.</label>
+                            <div class="col-12 col-md-2">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Total Unid.</label>
                                 <input type="number" name="cantidad[]" class="form-control form-control-sm bg-light border-secondary unidades-input text-center fw-bold shadow-sm" 
                                        value="{{ detalle.cantidad_solicitada }}" min="1" required>
                             </div>
 
-                            <div class="col-md-3">
-                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Costo Unit.</label>
+                            <div class="col-12 col-md-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Costo Unit.</label>
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text bg-light text-success fw-bold">MXN $</span>
                                     <input type="number" name="costo[]" class="form-control bg-light border-secondary costo-input fw-bold" 
@@ -164,7 +164,7 @@
                                 <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
                             </div>
 
-                            <div class="col-md-2 text-end">
+                            <div class="col-12 col-md-2 text-end">
                                 <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">
                                     <i class="bi bi-trash"></i> Quitar
                                 </button>
@@ -335,8 +335,8 @@
         div.classList.add('producto-linea', 'surface-panel', 'p-4', 'rounded-4', 'shadow-sm', 'mb-3');
         div.innerHTML = `
             <div class="row g-3 align-items-center">
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.7rem;">Producto</label>
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-bold text-primary text-uppercase mb-1" style="font-size: 0.75rem;">Producto</label>
                     <div class="fw-bold fs-6 text-body">${producto.nombre}</div>
                     <div class="d-flex align-items-center gap-2 mt-1">
                         <span class="badge bg-secondary bg-opacity-10 text-dark border font-monospace">${producto.codigo}</span>
@@ -345,23 +345,23 @@
                     <input type="hidden" name="producto_id[]" value="${producto.id}">
                     <input type="hidden" class="factor-empaque" value="${factor}">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Cajas</label>
+                <div class="col-12 col-md-2">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Cajas</label>
                     <input type="number" name="cajas[]" class="form-control bg-light border-secondary cajas-input text-center fw-bold" value="1" step="0.01">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Total Unid.</label>
+                <div class="col-12 col-md-2">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Total Unid.</label>
                     <input type="number" name="cantidad[]" class="form-control bg-light border-secondary unidades-input text-center fw-bold" value="${factor}" min="1" required>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Costo Unit.</label>
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.75rem;">Costo Unit.</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-light text-success fw-bold">$</span>
                         <input type="number" name="costo[]" class="form-control bg-light border-secondary costo-input fw-bold" value="${costo}" step="0.01" required>
                     </div>
                     <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
                 </div>
-                <div class="col-md-2 text-end">
+                <div class="col-12 col-md-2 text-end">
                     <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">Quitar</button>
                 </div>
                 <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">

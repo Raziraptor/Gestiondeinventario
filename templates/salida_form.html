@@ -346,7 +346,7 @@
         div.classList.add('row', 'g-3', 'mb-3', 'p-3', 'rounded-4', 'shadow-sm', 'surface-panel', 'producto-linea', 'align-items-start');
 
         div.innerHTML = `
-            <div class="col-md-5">
+            <div class="col-12 col-md-5">
                 <label class="form-label fw-bold text-muted small mb-1">Producto</label>
                 <div class="input-group shadow-sm">
                     <span class="input-group-text"><i class="bi bi-box-seam text-secondary"></i></span>
@@ -359,17 +359,17 @@
                 <input type="hidden" name="producto_id[]" value="${producto.id}">
             </div>
 
-            <div class="col-md-2">
+            <div class="col-12 col-md-2">
                 <label class="form-label fw-bold text-muted small mb-1">Cantidad</label>
                 <input type="number" name="cantidad[]" class="form-control text-center fw-bold fs-5 text-danger shadow-sm" value="1" min="1" max="${producto.stock_actual}" required>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
                 <label class="form-label fw-bold text-muted small mb-1">Motivo</label>
                 <input type="text" name="motivo[]" class="form-control shadow-sm" placeholder="Ej: Venta, Merma, Traslado..." required>
             </div>
 
-            <div class="col-md-1 d-flex align-items-end" style="height: 68px;">
+            <div class="col-12 col-md-1 d-flex align-items-end" style="height: 68px;">
                 <button type="button" class="btn btn-outline-danger w-100 rounded-3 shadow-sm h-100" onclick="eliminarLinea(this)" title="Quitar">
                     <i class="bi bi-trash fs-5"></i>
                 </button>

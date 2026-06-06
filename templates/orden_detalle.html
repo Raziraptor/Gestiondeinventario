@@ -130,7 +130,7 @@
             
             <!-- CAJAS DE INFORMACIÓN (Proveedor y Almacén) -->
             <div class="row g-4 mb-5 animate-cards">
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <div class="p-4 rounded-4 border border-secondary border-opacity-25 h-100 info-box shadow-sm">
                         <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">
                             <i class="bi bi-building me-1 text-primary"></i> Proveedor
@@ -146,7 +146,7 @@
                     </div>
                 </div>
                 
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <div class="p-4 rounded-4 border border-secondary border-opacity-25 h-100 info-box shadow-sm">
                         <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">
                             <i class="bi bi-shop me-1 text-primary"></i> Almacén de Destino
@@ -198,7 +198,7 @@
                             <td class="text-center">
                                 <span class="fw-bold fs-6">{{ detalle.cantidad_solicitada }}</span>
                                 {% if detalle.cajas and detalle.cajas > 0 %}
-                                    <span class="badge bg-info text-dark ms-2 shadow-sm" style="font-size: 0.7rem;" title="Cajas Aproximadas">
+                                    <span class="badge bg-info text-dark ms-2 shadow-sm" style="font-size: 0.75rem;" title="Cajas Aproximadas">
                                         <i class="bi bi-box-seam me-1"></i> {{ detalle.cajas|round(2, 'floor') }}
                                     </span>
                                 {% endif %}

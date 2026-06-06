@@ -22,12 +22,12 @@
     <form id="formProveedor" method="POST" action="{{ url_for('inventory.editar_proveedor', id=proveedor.id) if proveedor else url_for('inventory.nuevo_proveedor') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
                 <label for="nombre" class="form-label">Nombre del Proveedor</label>
                 <input type="text" class="form-control" id="nombre" name="nombre" 
                        value="{{ proveedor.nombre if proveedor else '' }}" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
                 <label for="contacto_email" class="form-label">Email de Contacto</label>
                 <input type="email" class="form-control" id="contacto_email" name="contacto_email"
                        value="{{ proveedor.contacto_email if proveedor else '' }}">
@@ -36,7 +36,7 @@
             <!-- ======================== -->
             <!-- NUEVO CAMPO DE TELÉFONO -->
             <!-- ======================== -->
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
                 <label for="contacto_telefono" class="form-label">Número de Teléfono</label>
                 <input type="tel" class="form-control" id="contacto_telefono" name="contacto_telefono"
                        value="{{ proveedor.contacto_telefono if proveedor else '' }}"
@@ -85,7 +85,7 @@
                             </label>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <label for="hd_usuario" class="form-label fw-semibold">
                             <i class="bi bi-person me-1 text-warning"></i>Usuario (email HD Pro)
                         </label>
@@ -96,7 +96,7 @@
                         <div class="form-text text-muted">Deja vacío para conservar el valor actual.</div>
                         {% endif %}
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <label for="hd_password" class="form-label fw-semibold">Contraseña HD Pro</label>
                         <div class="input-group">
                             <input type="password" class="form-control" id="hd_password" name="hd_password"

@@ -35,7 +35,7 @@
                 <a href="{{ url_for('purchasing.lista_aprobaciones', estado='pendiente') }}"
                    class="btn btn-sm rounded-pill fw-semibold {{ 'btn-warning' if estado_filtro == 'pendiente' else 'btn-outline-secondary' }}">
                     <i class="bi bi-hourglass-split me-1"></i>Pendientes
-                    {% if pendientes > 0 %}<span class="badge bg-danger ms-1 rounded-pill" style="font-size:.6rem;">{{ pendientes }}</span>{% endif %}
+                    {% if pendientes > 0 %}<span class="badge bg-danger ms-1 rounded-pill" style="font-size:.75rem;">{{ pendientes }}</span>{% endif %}
                 </a>
                 <a href="{{ url_for('purchasing.lista_aprobaciones', estado='aprobado') }}"
                    class="btn btn-sm rounded-pill fw-semibold {{ 'btn-success' if estado_filtro == 'aprobado' else 'btn-outline-secondary' }}">
@@ -61,13 +61,13 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
-                            <th class="ps-4 py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">#</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Solicitud</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Solicitante</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Fecha</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Estado</th>
-                            <th class="py-3 fw-bold" style="font-size:.7rem;letter-spacing:.4px;">Comentario</th>
-                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.7rem;letter-spacing:.4px;">Acciones</th>
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">#</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Solicitud</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Solicitante</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Fecha</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Estado</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Comentario</th>
+                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.75rem;letter-spacing:.4px;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -140,7 +140,7 @@
                                         <i class="bi bi-check-lg me-1"></i>Aprobar
                                     </button>
                                 </form>
-                                <button type="button" class="btn btn-sm btn-outline-danger rounded-3 fw-semibold"
+                                <button type="button" class="btn btn-accion btn-sm btn-outline-danger rounded-3 fw-semibold"
                                         data-bs-toggle="modal"
                                         data-bs-target="#modalRechazar{{ s.id }}">
                                     <i class="bi bi-x-lg"></i>

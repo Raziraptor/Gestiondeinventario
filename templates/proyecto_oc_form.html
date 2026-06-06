@@ -148,7 +148,7 @@
     <div class="item-row card mb-3 border-0 bg-light shadow-sm item-linea">
         <div class="card-body p-3">
             <div class="row g-3 align-items-center">
-                <div class="col-md-5">
+                <div class="col-12 col-md-5">
                     <label class="form-label small fw-bold text-muted">Artículo / Descripción</label>
                     <div class="input-group">
                         <!-- VARIABLES OCULTAS EXACTAS PARA EL BACKEND -->
@@ -162,37 +162,37 @@
                             <i class="bi bi-magic"></i>
                         </button>
                     </div>
-                    <small class="text-primary fw-bold item-sku-label" style="font-size: 0.7rem;"></small>
+                    <small class="text-primary fw-bold item-sku-label" style="font-size: 0.75rem;"></small>
                 </div>
                 
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label class="form-label small fw-bold text-muted">Cantidad</label>
                     <!-- (Alineada al modelo: cantidad) -->
                     <input type="number" name="cantidad[]" class="form-control border-0 text-center bg-white item-cantidad" value="1" min="1" required>
                 </div>
                 
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label class="form-label small fw-bold text-muted">Costo Unit. ($)</label>
                     <!-- (Alineada al modelo: costo_unitario) -->
                     <input type="number" name="costo_unitario[]" class="form-control border-0 text-end bg-white item-costo" step="0.01" value="0.00" min="0" required>
                 </div>
                 
-                <div class="col-md-2 d-flex align-items-end justify-content-end">
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100 btn-eliminar-fila">
+                <div class="col-12 col-md-2 d-flex align-items-end justify-content-end">
+                    <button type="button" class="btn btn-accion btn-outline-danger btn-sm w-100 btn-eliminar-fila">
                         <i class="bi bi-trash3"></i>
                     </button>
                 </div>
                 
                 <!-- NUEVOS CAMPOS AÑADIDOS DEL MODELO -->
-                <div class="col-md-4 mt-2">
+                <div class="col-12 col-md-4 mt-2">
                     <label class="form-label small fw-bold text-muted mb-1">Proveedor Sugerido</label>
                     <input type="text" list="datalistProveedores" name="proveedor_sugerido[]" class="form-control form-control-sm border-0 bg-white item-proveedor" placeholder="Ej: Amazon, Home Depot...">
                 </div>
-                <div class="col-md-4 mt-2">
+                <div class="col-12 col-md-4 mt-2">
                     <label class="form-label small fw-bold text-muted mb-1">Enlace del Proveedor</label>
                     <input type="url" name="enlace_proveedor[]" class="form-control form-control-sm border-0 bg-white item-enlace" placeholder="https://...">
                 </div>
-                <div class="col-md-4 mt-2">
+                <div class="col-12 col-md-4 mt-2">
                     <label class="form-label small fw-bold text-muted mb-1">Comentarios / Specs (IA)</label>
                     <textarea name="comentarios_detalle[]" class="form-control form-control-sm border-0 bg-white item-comentarios" rows="1" placeholder="Especificaciones..."></textarea>
                 </div>

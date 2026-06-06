@@ -49,7 +49,7 @@
     <div class="card shadow-sm border-0 rounded-4 mb-4">
         <div class="card-body p-4 rounded-4" style="background:var(--surface-raised)">
             <form method="GET" action="{{ url_for('purchasing.lista_proyectos_oc') }}" class="row g-3 align-items-end">
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">Mes</label>
                     <select name="mes" class="form-select shadow-sm">
                         <option value="">Todos</option>
@@ -58,11 +58,11 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">Año</label>
                     <input type="number" name="ano" class="form-control shadow-sm" value="{{ ano_sel or '' }}" min="2020" max="2050" placeholder="Todos">
                 </div>
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">Estado</label>
                     <select name="estado" class="form-select shadow-sm">
                         <option value="">Todos los estados</option>
@@ -72,7 +72,7 @@
                         <option value="cancelada" {% if estado_sel == 'cancelada' %}selected{% endif %}>Cancelada</option>
                     </select>
                 </div>
-                <div class="col-md-5 d-flex gap-2">
+                <div class="col-12 col-md-5 d-flex gap-2">
                     <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
                         <i class="bi bi-filter me-1"></i> Aplicar
                     </button>
@@ -133,7 +133,7 @@
                             
                             <!-- Resumen de Items -->
                             <div class="mb-4 surface-panel p-3 flex-grow-1">
-                                <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.7rem; letter-spacing: 1px;">
+                                <h6 class="text-uppercase text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 1px;">
                                     Resumen de Artículos ({{ poc.detalles|length }})
                                 </h6>
                                 <ul class="list-unstyled mb-0 text-body small">
@@ -180,7 +180,7 @@
                             <!-- Acciones por estado -->
                             {% if poc.estado == 'borrador' %}
                             <div class="mb-2">
-                                <div class="d-flex gap-2 align-items-stretch">
+                                <div class="d-flex flex-wrap gap-2 align-items-stretch">
                                     <a href="{{ url_for('purchasing.editar_proyecto_oc', id=poc.id) }}"
                                        class="btn btn-warning btn-sm fw-bold text-dark flex-grow-1 rounded-3">
                                         <i class="bi bi-pencil me-1"></i>Editar
@@ -195,7 +195,7 @@
                                     <form action="{{ url_for('purchasing.cancelar_proyecto_oc', id=poc.id) }}" method="POST"
                                           data-confirm="¿Cancelar esta OC de Proyecto?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 h-100 px-3" aria-label="Cancelar OC">
+                                        <button type="submit" class="btn btn-accion btn-outline-danger btn-sm rounded-3 h-100 px-3" aria-label="Cancelar OC">
                                             <i class="bi bi-x-lg"></i>
                                         </button>
                                     </form>

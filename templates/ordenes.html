@@ -45,7 +45,7 @@
             <form method="GET" action="{{ url_for('purchasing.lista_ordenes') }}" class="row g-3 align-items-end">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label for="mes" class="form-label fw-bold small text-muted text-uppercase">Mes de Registro</label>
                     <select id="mes" name="mes" class="form-select border-0 shadow-sm">
                         {% for num, nombre in meses_lista %}
@@ -54,12 +54,12 @@
                     </select>
                 </div>
                 
-                <div class="col-md-2">
+                <div class="col-12 col-md-2">
                     <label for="ano" class="form-label fw-bold small text-muted text-uppercase">Año</label>
                     <input type="number" id="ano" name="ano" class="form-control border-0 shadow-sm" value="{{ ano_seleccionado }}" min="2020" max="2050">
                 </div>
                 
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label for="proveedor_id" class="form-label fw-bold small text-muted text-uppercase">Proveedor</label>
                     <select id="proveedor_id" name="proveedor_id" class="form-select border-0 shadow-sm">
                         <option value="0">-- Todos los proveedores --</option>
@@ -69,7 +69,7 @@
                     </select>
                 </div>
                 
-                <div class="col-md-4 d-flex gap-2">
+                <div class="col-12 col-md-4 d-flex gap-2">
                     <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
                         <i class="bi bi-filter"></i> Aplicar Filtros
                     </button>
@@ -179,7 +179,7 @@
                     <div class="card-footer bg-transparent border-top border-secondary border-opacity-10 p-3">
                         <div class="d-grid gap-2">
                             {% if orden.estado == 'borrador' or (orden.estado not in ['recibida', 'enviada', 'cancelada']) %}
-                                <div class="d-flex gap-2 align-items-stretch">
+                                <div class="d-flex flex-wrap gap-2 align-items-stretch">
                                     <a href="{{ url_for('purchasing.editar_orden', id=orden.id) }}" class="btn btn-warning btn-sm fw-bold text-dark flex-grow-1 rounded-3">
                                         <i class="bi bi-pencil me-1"></i>Editar
                                     </a>
@@ -191,7 +191,7 @@
                                     </form>
                                     <form action="{{ url_for('purchasing.cancelar_orden', id=orden.id) }}" method="POST" data-confirm="¿Cancelar esta orden de compra?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 h-100 px-3" aria-label="Cancelar orden">
+                                        <button type="submit" class="btn btn-accion btn-outline-danger btn-sm rounded-3 h-100 px-3" aria-label="Cancelar orden">
                                             <i class="bi bi-x-lg"></i>
                                         </button>
                                     </form>
