@@ -66,19 +66,27 @@
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">Estado</label>
                     <select name="estado" class="form-select shadow-sm">
                         <option value="">Todos los estados</option>
-                        <option value="borrador"  {% if estado_sel == 'borrador'  %}selected{% endif %}>Borrador</option>
-                        <option value="enviada"   {% if estado_sel == 'enviada'   %}selected{% endif %}>Enviada</option>
-                        <option value="recibida"  {% if estado_sel == 'recibida'  %}selected{% endif %}>Recibida</option>
-                        <option value="cancelada" {% if estado_sel == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                        <option value="borrador"             {% if estado_sel == 'borrador'             %}selected{% endif %}>Borrador</option>
+                        <option value="pendiente_aprobacion" {% if estado_sel == 'pendiente_aprobacion' %}selected{% endif %}>En aprobación</option>
+                        <option value="aprobada"             {% if estado_sel == 'aprobada'             %}selected{% endif %}>Aprobada</option>
+                        <option value="enviada"              {% if estado_sel == 'enviada'              %}selected{% endif %}>Enviada</option>
+                        <option value="recibida"             {% if estado_sel == 'recibida'             %}selected{% endif %}>Recibida</option>
+                        <option value="cancelada"            {% if estado_sel == 'cancelada'            %}selected{% endif %}>Cancelada</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-5 d-flex gap-2">
+                <div class="col-12 col-md-5 d-flex gap-2 flex-wrap align-items-center">
                     <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
                         <i class="bi bi-filter me-1"></i> Aplicar
                     </button>
-                    <a href="{{ url_for('purchasing.lista_proyectos_oc') }}" class="btn btn-outline-secondary shadow-sm fw-bold">
+                    <a href="{{ url_for('purchasing.lista_proyectos_oc') }}" class="btn btn-outline-secondary shadow-sm fw-bold" title="Limpiar filtros">
                         <i class="bi bi-x-lg"></i>
                     </a>
+                    <div class="rounded px-3 d-flex align-items-center" style="background:var(--surface);border:1px solid var(--border);height:38px;">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="toggleCanceladasPoc">
+                            <label class="form-check-label small fw-bold text-muted ms-1 text-nowrap" for="toggleCanceladasPoc">Ocultar canceladas</label>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -102,12 +110,18 @@
                 {% elif poc.estado == 'cancelada' %}
                     {% set color_theme = 'secondary' %}
                     {% set icon_state = 'bi-x-circle' %}
+                {% elif poc.estado == 'pendiente_aprobacion' %}
+                    {% set color_theme = 'warning' %}
+                    {% set icon_state = 'bi-hourglass-split' %}
+                {% elif poc.estado == 'aprobada' %}
+                    {% set color_theme = 'success' %}
+                    {% set icon_state = 'bi-check-circle-fill' %}
                 {% else %}
                     {% set color_theme = 'secondary' %}
                     {% set icon_state = 'bi-question-circle' %}
                 {% endif %}
 
-                <div class="col">
+                <div class="col poc-item" data-estado="{{ poc.estado }}">
                     <div class="card h-100 border-{{ color_theme }} border-opacity-50 shadow-sm rounded-4 oc-card">
                         
                         <!-- ENCABEZADO: Proyecto y Estado -->
@@ -118,8 +132,11 @@
                                 </h5>
                                 <small class="text-muted fw-bold font-monospace"><i class="bi bi-hash"></i>OC-PROY-{{ poc.id }}</small>
                             </div>
-                            <span class="status-pill {% if poc.estado == 'borrador' %}status-pill--neutral{% elif poc.estado == 'enviada' %}status-pill--info{% elif poc.estado == 'recibida' %}status-pill--ok{% else %}status-pill--neutral{% endif %}">
-                                <i class="bi {{ icon_state }} me-1"></i> {{ poc.estado.capitalize() }}
+                            <span class="status-pill {% if poc.estado == 'borrador' %}status-pill--neutral{% elif poc.estado == 'enviada' %}status-pill--info{% elif poc.estado in ['recibida', 'aprobada'] %}status-pill--ok{% elif poc.estado == 'pendiente_aprobacion' %}status-pill--neutral{% else %}status-pill--neutral{% endif %}">
+                                <i class="bi {{ icon_state }} me-1"></i>
+                                {%- if poc.estado == 'pendiente_aprobacion' %}En aprobación
+                                {%- elif poc.estado == 'aprobada' %}Aprobada
+                                {%- else %}{{ poc.estado.capitalize() }}{%- endif %}
                             </span>
                         </div>
 
@@ -178,6 +195,7 @@
                         <div class="card-footer bg-transparent py-3 px-4" style="border-top:1px solid var(--border)">
                             
                             <!-- Acciones por estado -->
+                            {% set es_admin = current_user.rol in ['super_admin', 'admin'] %}
                             {% if poc.estado == 'borrador' %}
                             <div class="mb-2">
                                 <div class="d-flex flex-wrap gap-2 align-items-stretch">
@@ -185,13 +203,23 @@
                                        class="btn btn-warning btn-sm fw-bold text-dark flex-grow-1 rounded-3">
                                         <i class="bi bi-pencil me-1"></i>Editar
                                     </a>
+                                    {% if es_admin %}
                                     <form action="{{ url_for('purchasing.enviar_proyecto_oc', id=poc.id) }}" method="POST" class="flex-grow-1"
-                                          data-confirm="¿Marcar como enviada al proveedor?">
+                                          data-confirm="¿Enviar esta OC directamente al proveedor?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-info btn-sm fw-bold text-white w-100 rounded-3">
-                                            <i class="bi bi-send me-1"></i>Enviar
+                                            <i class="bi bi-send me-1"></i>Enviar Directo
                                         </button>
                                     </form>
+                                    {% else %}
+                                    <form action="{{ url_for('purchasing.solicitar_aprobacion_oc', id=poc.id) }}" method="POST" class="flex-grow-1"
+                                          data-confirm="¿Solicitar aprobación para esta OC?">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-primary btn-sm fw-bold w-100 rounded-3">
+                                            <i class="bi bi-shield-check me-1"></i>Solicitar Aprobación
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                     <form action="{{ url_for('purchasing.cancelar_proyecto_oc', id=poc.id) }}" method="POST"
                                           data-confirm="¿Cancelar esta OC de Proyecto?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -200,6 +228,35 @@
                                         </button>
                                     </form>
                                 </div>
+                            </div>
+                            {% elif poc.estado == 'pendiente_aprobacion' %}
+                            <div class="mb-2">
+                                {% if es_admin %}
+                                <a href="{{ url_for('purchasing.ver_proyecto_oc', id=poc.id) }}"
+                                   class="btn btn-warning btn-sm fw-bold text-dark w-100 rounded-3">
+                                    <i class="bi bi-shield-exclamation me-1"></i>Revisar y Aprobar
+                                </a>
+                                {% else %}
+                                <div class="alert alert-warning m-0 py-2 text-center small fw-bold border-warning border-opacity-25">
+                                    <i class="bi bi-hourglass-split me-1"></i>Pendiente de aprobación
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% elif poc.estado == 'aprobada' %}
+                            <div class="mb-2">
+                                {% if es_admin %}
+                                <form action="{{ url_for('purchasing.enviar_proyecto_oc', id=poc.id) }}" method="POST" class="d-grid"
+                                      data-confirm="¿Marcar esta OC como enviada al proveedor?">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-info btn-sm fw-bold text-white rounded-3">
+                                        <i class="bi bi-send me-1"></i>Marcar como Enviada
+                                    </button>
+                                </form>
+                                {% else %}
+                                <div class="alert alert-success m-0 py-2 text-center small fw-bold border-success border-opacity-25">
+                                    <i class="bi bi-check-circle me-1"></i>Aprobada — en espera de envío
+                                </div>
+                                {% endif %}
                             </div>
                             {% elif poc.estado == 'enviada' %}
                             <div class="d-grid mb-2">
@@ -261,5 +318,23 @@ document.querySelectorAll('form[method="POST"]').forEach(function(f) {
         }
     });
 });
+
+(function() {
+    var sw    = document.getElementById('toggleCanceladasPoc');
+    var items = document.querySelectorAll('.poc-item');
+    if (!sw) return;
+    var saved = localStorage.getItem('hide_canceled_poc') === 'true';
+    sw.checked = saved;
+    apply(saved);
+    sw.addEventListener('change', function() {
+        localStorage.setItem('hide_canceled_poc', this.checked);
+        apply(this.checked);
+    });
+    function apply(hide) {
+        items.forEach(function(el) {
+            el.style.display = (hide && el.dataset.estado === 'cancelada') ? 'none' : '';
+        });
+    }
+})();
 </script>
 {% endblock %}

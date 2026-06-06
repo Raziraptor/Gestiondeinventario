@@ -982,6 +982,13 @@
                         <i id="theme-icon" class="bi bi-moon-fill"></i>
                     </button>
 
+                    <!-- Logout button -->
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('auth.logout') }}" class="theme-btn text-danger" title="Cerrar sesión" aria-label="Cerrar sesión">
+                        <i class="bi bi-box-arrow-left" aria-hidden="true"></i>
+                    </a>
+                    {% endif %}
+
                     <!-- User dropdown (topbar) -->
                     {% if current_user.is_authenticated %}
                     <div class="dropdown">
@@ -1010,12 +1017,6 @@
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('auth.account') }}">
                                     <i class="bi bi-gear me-2 text-secondary"></i> Cuenta
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item py-2 text-danger" href="{{ url_for('auth.logout') }}">
-                                    <i class="bi bi-box-arrow-left me-2"></i> Cerrar Sesión
                                 </a>
                             </li>
                         </ul>
