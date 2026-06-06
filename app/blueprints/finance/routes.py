@@ -26,7 +26,8 @@ from openpyxl.worksheet.table import Table as ExcelTable, TableStyleInfo
 from openpyxl.chart import BarChart, Reference
 from openpyxl.drawing.image import Image as XlImage
 
-from sqlalchemy import extract
+from sqlalchemy import extract, func
+from sqlalchemy.orm import joinedload, selectinload
 from flask import (
     render_template, request, redirect, url_for,
     flash, jsonify, make_response, current_app,
@@ -269,12 +270,14 @@ def finanzas_dashboard():
     ultimas_ocs = (
         OrdenCompra.query
         .filter_by(organizacion_id=org_id, estado='recibida')
+        .options(joinedload(OrdenCompra.proveedor))
         .order_by(OrdenCompra.fecha_recepcion.desc()).limit(8).all()
     )
     ultimos_pagos = (
         PagoServicio.query.join(Servicio)
         .filter(Servicio.organizacion_id == org_id,
                 PagoServicio.estado == 'pagado')
+        .options(joinedload(PagoServicio.servicio))
         .order_by(PagoServicio.fecha_pago.desc()).limit(8).all()
     )
 
@@ -584,7 +587,15 @@ def cerrar_centro_costo(id):
 @check_permission('perm_view_gastos')
 def detalle_centro_costo(id):
     org_id = current_user.organizacion_id
-    cc = CentroCosto.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    cc = (
+        CentroCosto.query.filter_by(id=id, organizacion_id=org_id)
+        .options(
+            selectinload(CentroCosto.gastos),
+            selectinload(CentroCosto.pagos_servicio).joinedload(PagoServicio.servicio),
+            selectinload(CentroCosto.facturas).joinedload(FacturaProveedor.proveedor),
+        )
+        .first_or_404()
+    )
 
     # Desglose por tipo
     total_gastos    = sum(g.monto for g in cc.gastos)
@@ -643,10 +654,23 @@ def lista_presupuestos():
     else:
         presupuestos = q.filter(Presupuesto.mes.is_(None)).order_by(Presupuesto.categoria).all()
 
+    # Single GROUP BY query instead of one _real_por_categoria() call per budget
+    _gasto_q = db.session.query(
+        Gasto.categoria,
+        func.sum(Gasto.monto),
+    ).filter(
+        Gasto.organizacion_id == org_id,
+        extract('year', Gasto.fecha) == anio,
+    )
+    if mes:
+        _gasto_q = _gasto_q.filter(extract('month', Gasto.fecha) == mes)
+    _gasto_q = _gasto_q.group_by(Gasto.categoria)
+    gastos_por_cat_map = {cat: (total or Decimal(0)) for cat, total in _gasto_q.all()}
+
     items = []
     for p in presupuestos:
-        gastado = _real_por_categoria(org_id, p.categoria, anio, mes or None)
-        pct     = min(round(gastado / p.monto * 100, 1), 999) if p.monto > 0 else 0
+        gastado  = gastos_por_cat_map.get(p.categoria, Decimal(0))
+        pct      = min(round(float(gastado) / float(p.monto) * 100, 1), 999) if p.monto > 0 else 0
         cls, lbl = _semaforo(pct)
         items.append({
             'p': p,
@@ -789,27 +813,61 @@ def lista_facturas():
         q = q.filter_by(estado=estado_filtro)
     if proveedor_filtro:
         q = q.filter_by(proveedor_id=proveedor_filtro)
-    facturas = q.order_by(FacturaProveedor.fecha_vencimiento.asc()).all()
-
-    # KPIs
-    todas = FacturaProveedor.query.filter_by(organizacion_id=org_id).all()
-    total_pendiente = sum(f.monto for f in todas if f.estado in ('pendiente', 'vencido'))
-    total_vencido   = sum(f.monto for f in todas if f.estado == 'vencido')
-    total_pagado_mes = sum(
-        f.monto for f in todas
-        if f.estado == 'pagado'
-        and f.fecha_vencimiento.month == ahora.month
-        and f.fecha_vencimiento.year  == ahora.year
+    facturas = (
+        q.options(joinedload(FacturaProveedor.proveedor))
+        .order_by(FacturaProveedor.fecha_vencimiento.asc()).all()
     )
 
-    # Aging buckets
+    # KPIs — aggregate queries instead of loading all rows
+    _kpi_rows = db.session.query(
+        FacturaProveedor.estado,
+        func.sum(FacturaProveedor.monto),
+        func.count(FacturaProveedor.id),
+    ).filter(
+        FacturaProveedor.organizacion_id == org_id
+    ).group_by(FacturaProveedor.estado).all()
+
+    total_pendiente  = Decimal(0)
+    total_vencido    = Decimal(0)
+    for _estado, _suma, _cnt in _kpi_rows:
+        _suma = _suma or Decimal(0)
+        if _estado in ('pendiente', 'vencido'):
+            total_pendiente += _suma
+        if _estado == 'vencido':
+            total_vencido = _suma
+
+    total_pagado_mes = db.session.query(
+        func.coalesce(func.sum(FacturaProveedor.monto), Decimal(0))
+    ).filter(
+        FacturaProveedor.organizacion_id == org_id,
+        FacturaProveedor.estado == 'pagado',
+        extract('month', FacturaProveedor.fecha_vencimiento) == ahora.month,
+        extract('year',  FacturaProveedor.fecha_vencimiento) == ahora.year,
+    ).scalar() or Decimal(0)
+
+    # Aging buckets — fetch only unpaid rows (no proveedor needed)
+    todas_no_pagadas = FacturaProveedor.query.filter(
+        FacturaProveedor.organizacion_id == org_id,
+        FacturaProveedor.estado != 'pagado',
+    ).with_entities(FacturaProveedor.monto, FacturaProveedor.fecha_vencimiento, FacturaProveedor.estado).all()
     aging = {
         'vigente': Decimal(0), '1-30': Decimal(0),
         '31-60': Decimal(0), '61-90': Decimal(0), '90+': Decimal(0)
     }
-    for f in todas:
-        if f.estado != 'pagado':
-            aging[f.bucket_aging] = aging.get(f.bucket_aging, 0.0) + f.monto
+    for f in todas_no_pagadas:
+        # bucket_aging is a hybrid/property; re-compute inline to avoid loading full objects
+        dias = (ahora.date() - f.fecha_vencimiento).days if f.fecha_vencimiento else 0
+        if dias <= 0:
+            bucket = 'vigente'
+        elif dias <= 30:
+            bucket = '1-30'
+        elif dias <= 60:
+            bucket = '31-60'
+        elif dias <= 90:
+            bucket = '61-90'
+        else:
+            bucket = '90+'
+        aging[bucket] = aging.get(bucket, Decimal(0)) + (f.monto or Decimal(0))
 
     proveedores = Proveedor.query.filter_by(organizacion_id=org_id).order_by(Proveedor.nombre).all()
 
@@ -968,8 +1026,16 @@ def eliminar_factura(id):
 @login_required
 @check_org_permission
 def lista_servicios():
-    _actualizar_estados_pagos(current_user.organizacion_id)
+    org_id = current_user.organizacion_id
     hoy = now_mx().date()
+    _serv_ids = db.session.query(Servicio.id).filter_by(organizacion_id=org_id).subquery()
+    _needs_update = PagoServicio.query.filter(
+        PagoServicio.servicio_id.in_(_serv_ids),
+        PagoServicio.estado == 'pendiente',
+        PagoServicio.fecha_vencimiento < hoy,
+    ).count()
+    if _needs_update:
+        _actualizar_estados_pagos(org_id)
     servicios = Servicio.query.filter_by(
         organizacion_id=current_user.organizacion_id, activo=True
     ).order_by(Servicio.nombre).all()
@@ -1056,8 +1122,16 @@ def eliminar_servicio(id):
 @login_required
 @check_org_permission
 def detalle_servicio(id):
-    _actualizar_estados_pagos(current_user.organizacion_id)
-    s    = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    org_id = current_user.organizacion_id
+    hoy_d  = now_mx().date()
+    _serv_ids = db.session.query(Servicio.id).filter_by(organizacion_id=org_id).subquery()
+    if PagoServicio.query.filter(
+        PagoServicio.servicio_id.in_(_serv_ids),
+        PagoServicio.estado == 'pendiente',
+        PagoServicio.fecha_vencimiento < hoy_d,
+    ).count():
+        _actualizar_estados_pagos(org_id)
+    s    = Servicio.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
     hoy  = now_mx().date()
     info = TIPOS_SERVICIO.get(s.tipo, TIPOS_SERVICIO['otro'])
     pagados  = [p for p in s.pagos if p.estado == 'pagado'][:6]

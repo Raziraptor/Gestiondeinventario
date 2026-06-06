@@ -7,6 +7,7 @@ from datetime import timedelta
 from flask import (render_template, request, redirect, url_for,
                    make_response, send_from_directory, jsonify, current_app)
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload, contains_eager
 
 from app.extensions import db
 from app.models import (Almacen, Producto, Stock, Movimiento, Categoria,
@@ -57,6 +58,9 @@ def index():
         alertas_crudas = db.session.query(Stock).join(Almacen).join(Producto).filter(
             Almacen.organizacion_id == org_id,
             Stock.cantidad < Stock.stock_minimo
+        ).options(
+            contains_eager(Stock.almacen),
+            contains_eager(Stock.producto).options(joinedload(Producto.proveedor)),
         ).all()
 
         ordenes_pendientes = db.session.query(
@@ -119,7 +123,9 @@ def dashboard():
 
     if almacen_seleccionado:
         items_stock = db.session.query(Stock).filter_by(
-            almacen_id=almacen_seleccionado.id).join(Producto).order_by(Producto.nombre).all()
+            almacen_id=almacen_seleccionado.id).join(Producto).options(
+            contains_eager(Stock.producto)
+        ).order_by(Producto.nombre).all()
     else:
         items_stock = []
 

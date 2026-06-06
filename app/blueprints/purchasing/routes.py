@@ -23,6 +23,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import extract
+from sqlalchemy.orm import joinedload, selectinload
 from werkzeug.utils import secure_filename
 
 from reportlab.lib.pagesizes import A4
@@ -219,7 +220,12 @@ def lista_ordenes():
         query = query.filter_by(proveedor_id=prov_id)
 
     page = request.args.get('page', 1, type=int)
-    pagination = query.order_by(OrdenCompra.fecha_creacion.desc()).paginate(page=page, per_page=12, error_out=False)
+    pagination = (
+        query
+        .options(joinedload(OrdenCompra.proveedor), joinedload(OrdenCompra.almacen))
+        .order_by(OrdenCompra.fecha_creacion.desc())
+        .paginate(page=page, per_page=12, error_out=False)
+    )
 
     return render_template('ordenes.html',
                            ordenes=pagination.items,
@@ -296,7 +302,12 @@ def nueva_orden():
 @check_org_permission
 @check_permission('perm_create_oc_standard')
 def recibir_orden(id):
-    orden = OrdenCompra.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    orden = (
+        OrdenCompra.query
+        .filter_by(id=id, organizacion_id=current_user.organizacion_id)
+        .options(selectinload(OrdenCompra.detalles).joinedload(OrdenCompraDetalle.producto))
+        .first_or_404()
+    )
 
     if orden.estado != 'enviada':
         flash('Solo se pueden recibir órdenes en estado "Enviada".', 'warning')
@@ -394,7 +405,16 @@ def enviar_orden(id):
 @login_required
 @check_permission('perm_create_oc_standard')
 def generar_oc_pdf(id):
-    orden = OrdenCompra.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    orden = (
+        OrdenCompra.query
+        .filter_by(id=id, organizacion_id=current_user.organizacion_id)
+        .options(
+            joinedload(OrdenCompra.proveedor),
+            joinedload(OrdenCompra.almacen),
+            selectinload(OrdenCompra.detalles).joinedload(OrdenCompraDetalle.producto),
+        )
+        .first_or_404()
+    )
     org = orden.organizacion
     proveedor = orden.proveedor
 
@@ -594,9 +614,16 @@ def nueva_orden_manual():
 @check_org_permission
 @check_permission('perm_view_dashboard')
 def ver_orden(id):
-    orden = OrdenCompra.query.filter_by(
-        id=id, organizacion_id=current_user.organizacion_id
-    ).first_or_404()
+    orden = (
+        OrdenCompra.query
+        .filter_by(id=id, organizacion_id=current_user.organizacion_id)
+        .options(
+            joinedload(OrdenCompra.proveedor),
+            joinedload(OrdenCompra.almacen),
+            selectinload(OrdenCompra.detalles).joinedload(OrdenCompraDetalle.producto),
+        )
+        .first_or_404()
+    )
     return render_template('orden_detalle.html', orden=orden, titulo=f"Detalle de Orden #{orden.id}")
 
 
@@ -905,7 +932,17 @@ def lista_proyectos_oc():
 @check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def ver_proyecto_oc(id):
-    proyecto_oc = get_item_or_404(ProyectoOC, id)
+    org_id = current_user.organizacion_id
+    proyecto_oc = (
+        ProyectoOC.query
+        .filter_by(id=id, organizacion_id=org_id)
+        .options(
+            joinedload(ProyectoOC.proveedor),
+            joinedload(ProyectoOC.almacen),
+            selectinload(ProyectoOC.detalles).joinedload(ProyectoOCDetalle.producto),
+        )
+        .first_or_404()
+    )
     solicitud_pendiente = SolicitudAprobacion.query.filter_by(
         entidad_tipo='proyecto_oc',
         entidad_id=proyecto_oc.id,
@@ -1178,11 +1215,21 @@ def lista_aprobaciones():
         q = q.filter_by(estado=estado_filtro)
     solicitudes = q.order_by(SolicitudAprobacion.creado_en.desc()).all()
 
+    # Batch-fetch all referenced ProyectoOC objects to avoid N+1
+    poc_ids = [s.entidad_id for s in solicitudes if s.entidad_tipo == 'proyecto_oc']
+    ocs_map = (
+        {p.id: p for p in ProyectoOC.query.filter(
+            ProyectoOC.id.in_(poc_ids),
+            ProyectoOC.organizacion_id == org_id,
+        ).all()}
+        if poc_ids else {}
+    )
+
     items = []
     for s in solicitudes:
         ent, ent_url = None, '#'
         if s.entidad_tipo == 'proyecto_oc':
-            ent     = ProyectoOC.query.get(s.entidad_id)
+            ent     = ocs_map.get(s.entidad_id)
             ent_url = url_for('purchasing.ver_proyecto_oc', id=s.entidad_id)
         items.append({'s': s, 'ent': ent, 'ent_url': ent_url})
 
@@ -1311,12 +1358,23 @@ def recibir_proyecto_oc(id):
         items_a_ingresar = set(request.form.getlist('ingresar_item[]', type=int))
 
         try:
+            # Pre-fetch all relevant Stock rows in one query to avoid N+1
+            producto_ids_sel = [
+                d.producto_id for d in proyecto_oc.detalles
+                if d.producto_id and d.producto_id in items_a_ingresar
+            ]
+            stocks_map = (
+                {s.producto_id: s for s in Stock.query.filter(
+                    Stock.almacen_id == almacen_id_dest,
+                    Stock.producto_id.in_(producto_ids_sel),
+                ).all()}
+                if producto_ids_sel else {}
+            )
+
             items_ingresados = 0
             for detalle in proyecto_oc.detalles:
                 if detalle.producto_id and detalle.producto_id in items_a_ingresar:
-                    stock_item = Stock.query.filter_by(
-                        producto_id=detalle.producto_id, almacen_id=almacen_id_dest
-                    ).first()
+                    stock_item = stocks_map.get(detalle.producto_id)
                     if stock_item:
                         stock_item.cantidad += detalle.cantidad
                     else:
@@ -1362,7 +1420,16 @@ def recibir_proyecto_oc(id):
 @login_required
 @check_permission('perm_create_oc_proyecto')
 def generar_proyecto_oc_pdf(id):
-    proyecto_oc = get_item_or_404(ProyectoOC, id)
+    org_id = current_user.organizacion_id
+    proyecto_oc = (
+        ProyectoOC.query
+        .filter_by(id=id, organizacion_id=org_id)
+        .options(
+            joinedload(ProyectoOC.almacen),
+            selectinload(ProyectoOC.detalles).joinedload(ProyectoOCDetalle.producto),
+        )
+        .first_or_404()
+    )
     org = Organizacion.query.get(proyecto_oc.organizacion_id)
 
     buffer = io.BytesIO()

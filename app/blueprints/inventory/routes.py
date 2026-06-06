@@ -29,6 +29,7 @@ from flask import (
 from flask_login import login_required, current_user
 from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
 from PIL import Image as PILImage, ImageDraw, ImageFont
@@ -510,6 +511,15 @@ def importar_productos():
 
             importados, omitidos, errores = 0, 0, []
 
+            # Pre-load lookups to avoid per-row queries
+            categorias_dict = {c.nombre.lower(): c for c in Categoria.query.filter_by(organizacion_id=org_id).all()}
+            proveedores_dict = {p.nombre.lower(): p for p in Proveedor.query.filter_by(organizacion_id=org_id).all()}
+            existing_skus = set(
+                row[0] for row in Producto.query.filter(
+                    Producto.organizacion_id == org_id, Producto.codigo.isnot(None)
+                ).with_entities(Producto.codigo).all()
+            )
+
             for idx, fila in enumerate(filas, 2):
                 nombre = col(fila, 'nombre', 'name')
                 codigo = col(fila, 'codigo_sku', 'codigo', 'sku', 'code')
@@ -519,7 +529,7 @@ def importar_productos():
                         errores.append(f"Fila {idx}: 'nombre' y 'codigo_sku' son obligatorios.")
                     continue
 
-                if Producto.query.filter_by(codigo=codigo, organizacion_id=org_id).first():
+                if codigo in existing_skus:
                     omitidos += 1
                     continue
 
@@ -535,20 +545,22 @@ def importar_productos():
                 cat_nombre = col(fila, 'categoria', 'category')
                 categoria  = None
                 if cat_nombre:
-                    categoria = Categoria.query.filter_by(nombre=cat_nombre, organizacion_id=org_id).first()
+                    categoria = categorias_dict.get(cat_nombre.lower())
                     if not categoria:
                         categoria = Categoria(nombre=cat_nombre, organizacion_id=org_id)
                         db.session.add(categoria)
                         db.session.flush()
+                        categorias_dict[cat_nombre.lower()] = categoria
 
                 prov_nombre = col(fila, 'proveedor', 'supplier', 'proveedor_nombre')
                 proveedor   = None
                 if prov_nombre:
-                    proveedor = Proveedor.query.filter_by(nombre=prov_nombre, organizacion_id=org_id).first()
+                    proveedor = proveedores_dict.get(prov_nombre.lower())
                     if not proveedor:
                         proveedor = Proveedor(nombre=prov_nombre, organizacion_id=org_id)
                         db.session.add(proveedor)
                         db.session.flush()
+                        proveedores_dict[prov_nombre.lower()] = proveedor
 
                 db.session.add(Producto(
                     nombre=nombre, codigo=codigo, precio_unitario=precio,
@@ -556,6 +568,7 @@ def importar_productos():
                     proveedor_id=proveedor.id if proveedor else None,
                     unidades_por_caja=upc, organizacion_id=org_id,
                 ))
+                existing_skus.add(codigo)
                 importados += 1
 
             if importados > 0:
@@ -818,7 +831,9 @@ def historial_producto(id):
 
     total_global = sum(s.cantidad for s in stocks_actuales)
 
-    movimientos_query = Movimiento.query.filter_by(producto_id=id).order_by(Movimiento.fecha.desc())
+    movimientos_query = Movimiento.query.filter_by(producto_id=id).options(
+        joinedload(Movimiento.almacen)
+    ).order_by(Movimiento.fecha.desc())
     if current_user.rol != 'super_admin':
         movimientos_query = movimientos_query.filter(
             Movimiento.organizacion_id == current_user.organizacion_id
@@ -827,7 +842,7 @@ def historial_producto(id):
 
     historial_por_almacen = defaultdict(list)
     for m in movimientos:
-        alm_nombre = Almacen.query.get(m.almacen_id).nombre if m.almacen_id else "Sin Almacén"
+        alm_nombre = m.almacen.nombre if m.almacen_id and m.almacen else "Sin Almacén"
         historial_por_almacen[alm_nombre].append(m)
 
     return render_template('historial_producto.html',
@@ -1258,7 +1273,9 @@ def historial_salidas():
         extract('year',  Salida.fecha) == ano,
     )
     page       = request.args.get('page', 1, type=int)
-    pagination = query.order_by(Salida.fecha.desc()).paginate(page=page, per_page=12, error_out=False)
+    pagination = query.options(
+        joinedload(Salida.almacen)
+    ).order_by(Salida.fecha.desc()).paginate(page=page, per_page=12, error_out=False)
 
     org_id = current_user.organizacion_id
     total_unidades = db.session.query(
@@ -1279,9 +1296,11 @@ def historial_salidas():
     ).group_by(Movimiento.producto_id
     ).order_by(db.func.sum(db.func.abs(Movimiento.cantidad)).desc()).limit(5).all()
 
+    top_prod_ids = [row.producto_id for row in top_productos_raw]
+    top_prod_map = {p.id: p for p in Producto.query.filter(Producto.id.in_(top_prod_ids)).all()} if top_prod_ids else {}
     top_productos = []
     for row in top_productos_raw:
-        prod = Producto.query.get(row.producto_id)
+        prod = top_prod_map.get(row.producto_id)
         if prod:
             top_productos.append({'nombre': prod.nombre, 'sku': prod.codigo, 'uds': int(row.uds)})
 
@@ -1326,7 +1345,7 @@ def historial_salidas():
 @check_permission('perm_do_salidas')
 def ver_salida(id):
     salida      = get_item_or_404(Salida, id)
-    movimientos = salida.movimientos.order_by(Movimiento.fecha.asc()).all()
+    movimientos = salida.movimientos.options(joinedload(Movimiento.producto)).order_by(Movimiento.fecha.asc()).all()
     return render_template('salida_detalle.html', salida=salida, movimientos=movimientos,
                            titulo=f"Salida del {salida.fecha.strftime('%Y-%m-%d')}")
 
@@ -1555,7 +1574,7 @@ def generar_salida_pdf(id):
         Paragraph('Motivo', s_th),   Paragraph('Cantidad', s_th),
     ]]
     total_items = 0
-    for mov in salida.movimientos.order_by(Movimiento.fecha.asc()).all():
+    for mov in salida.movimientos.options(joinedload(Movimiento.producto)).order_by(Movimiento.fecha.asc()).all():
         cant = abs(mov.cantidad)
         total_items += cant
         data.append([

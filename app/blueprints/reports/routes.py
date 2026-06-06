@@ -14,6 +14,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy import extract
+from sqlalchemy.orm import joinedload, contains_eager, selectinload
 
 # ReportLab — PDF
 from reportlab.lib.pagesizes import A4
@@ -188,12 +189,27 @@ def exportar_inventario_excel():
 
     if almacen_id:
         almacen = Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first_or_404()
-        items = db.session.query(Stock).filter_by(almacen_id=almacen_id).join(Producto).order_by(Producto.nombre).all()
+        items = (
+            db.session.query(Stock)
+            .filter_by(almacen_id=almacen_id)
+            .join(Producto)
+            .options(contains_eager(Stock.producto)
+                     .options(joinedload(Producto.categoria), joinedload(Producto.proveedor)))
+            .order_by(Producto.nombre)
+            .all()
+        )
         nombre_almacen = almacen.nombre
     else:
-        items = db.session.query(Stock).join(
-            Almacen, Stock.almacen_id == Almacen.id
-        ).filter(Almacen.organizacion_id == org_id).join(Producto).order_by(Producto.nombre).all()
+        items = (
+            db.session.query(Stock)
+            .join(Almacen, Stock.almacen_id == Almacen.id)
+            .filter(Almacen.organizacion_id == org_id)
+            .join(Producto)
+            .options(contains_eager(Stock.producto)
+                     .options(joinedload(Producto.categoria), joinedload(Producto.proveedor)))
+            .order_by(Producto.nombre)
+            .all()
+        )
         nombre_almacen = 'Todos los Almacenes'
 
     wb = openpyxl.Workbook()
@@ -304,7 +320,7 @@ def exportar_movimientos_excel():
         q = q.filter(Movimiento.almacen_id == almacen_id)
     if tipo_f:
         q = q.filter(Movimiento.tipo == tipo_f)
-    movimientos = q.order_by(Movimiento.fecha.desc()).all()
+    movimientos = q.options(joinedload(Movimiento.producto)).order_by(Movimiento.fecha.desc()).all()
 
     almacen_map = {a.id: a.nombre for a in Almacen.query.filter_by(organizacion_id=org_id).all()}
 
@@ -387,12 +403,27 @@ def exportar_valorizacion_pdf():
 
     if almacen_id:
         almacen = Almacen.query.filter_by(id=almacen_id, organizacion_id=org_id).first_or_404()
-        items   = db.session.query(Stock).filter_by(almacen_id=almacen_id).join(Producto).order_by(Producto.nombre).all()
+        items = (
+            db.session.query(Stock)
+            .filter_by(almacen_id=almacen_id)
+            .join(Producto)
+            .options(contains_eager(Stock.producto)
+                     .options(joinedload(Producto.categoria), joinedload(Producto.proveedor)))
+            .order_by(Producto.nombre)
+            .all()
+        )
         nombre_almacen = almacen.nombre
     else:
-        items = db.session.query(Stock).join(
-            Almacen, Stock.almacen_id == Almacen.id
-        ).filter(Almacen.organizacion_id == org_id).join(Producto).order_by(Producto.nombre).all()
+        items = (
+            db.session.query(Stock)
+            .join(Almacen, Stock.almacen_id == Almacen.id)
+            .filter(Almacen.organizacion_id == org_id)
+            .join(Producto)
+            .options(contains_eager(Stock.producto)
+                     .options(joinedload(Producto.categoria), joinedload(Producto.proveedor)))
+            .order_by(Producto.nombre)
+            .all()
+        )
         nombre_almacen = 'Todos los Almacenes'
 
     items_sorted = sorted(items, key=lambda x: (x.cantidad or 0) * (x.producto.precio_unitario or 0), reverse=True)
@@ -500,7 +531,12 @@ def exportar_proyectos_oc_excel():
     mes_f    = request.args.get('mes', type=int)
     ano_f    = request.args.get('ano', type=int)
 
-    query = ProyectoOC.query.filter_by(organizacion_id=org_id)
+    query = ProyectoOC.query.filter_by(organizacion_id=org_id).options(
+        joinedload(ProyectoOC.almacen),
+        joinedload(ProyectoOC.creador),
+        joinedload(ProyectoOC.recibido_por),
+        selectinload(ProyectoOC.detalles).joinedload(ProyectoOCDetalle.producto),
+    )
     if estado_f:
         query = query.filter(ProyectoOC.estado == estado_f)
     if mes_f:

@@ -17,11 +17,13 @@ import os
 import re
 import json
 import logging
+import calendar
 from datetime import datetime
 from threading import Thread
 
 import requests
-from sqlalchemy import extract
+from sqlalchemy import extract, func, case
+from sqlalchemy.orm import joinedload, selectinload, contains_eager
 from flask import request, jsonify, url_for, current_app
 from flask_login import login_required, current_user
 
@@ -212,6 +214,9 @@ def api_alertas_stock_bajo():
         Almacen.organizacion_id == org_id,
         Stock.stock_minimo > 0,
         Stock.cantidad < Stock.stock_minimo
+    ).options(
+        contains_eager(Stock.almacen),
+        contains_eager(Stock.producto),
     ).order_by(Stock.cantidad.asc()).limit(10).all()
 
     return jsonify({
@@ -374,7 +379,9 @@ def api_ajuste_rapido():
 def enviar_oc_homedepot(orden_id):
     """Lanza automatización Playwright para llenar carrito en Home Depot Pro."""
     org_id = current_user.organizacion_id
-    orden = OrdenCompra.query.filter_by(id=orden_id, organizacion_id=org_id).first_or_404()
+    orden = OrdenCompra.query.filter_by(id=orden_id, organizacion_id=org_id).options(
+        selectinload(OrdenCompra.detalles).joinedload(OrdenCompraDetalle.producto)
+    ).first_or_404()
 
     if current_user.rol not in ('super_admin', 'admin'):
         return jsonify({'error': 'Sin permiso'}), 403
@@ -459,44 +466,74 @@ def integracion_status_oc(orden_id):
 def api_finanzas_mensual():
     org_id = current_user.organizacion_id
     ahora  = now_mx()
-    labels, gastos_data, ocs_data, servicios_data = [], [], [], []
 
+    # Build the ordered list of (year, month) for the last 6 months
+    meses_window = []
     for i in range(5, -1, -1):
         m = ahora.month - i
         y = ahora.year
         if m <= 0:
             m += 12
             y -= 1
+        meses_window.append((y, m))
 
-        g = db.session.query(db.func.coalesce(db.func.sum(Gasto.monto), 0.0)).filter(
-            Gasto.organizacion_id == org_id,
-            db.extract('month', Gasto.fecha) == m,
-            db.extract('year',  Gasto.fecha) == y
-        ).scalar()
+    ano_inicio, mes_inicio = meses_window[0]
+    fecha_inicio = datetime(ano_inicio, mes_inicio, 1)
 
-        o = db.session.query(
-            db.func.coalesce(db.func.sum(
-                OrdenCompraDetalle.cantidad_solicitada * OrdenCompraDetalle.costo_unitario_estimado
-            ), 0.0)
-        ).join(OrdenCompra).filter(
-            OrdenCompra.organizacion_id == org_id,
-            OrdenCompra.estado == 'recibida',
-            db.extract('month', OrdenCompra.fecha_recepcion) == m,
-            db.extract('year',  OrdenCompra.fecha_recepcion) == y
-        ).scalar()
+    # Single GROUP BY query for gastos
+    gastos_raw = db.session.query(
+        extract('year',  Gasto.fecha).label('year'),
+        extract('month', Gasto.fecha).label('month'),
+        func.coalesce(func.sum(Gasto.monto), 0.0).label('total')
+    ).filter(
+        Gasto.organizacion_id == org_id,
+        Gasto.fecha >= fecha_inicio,
+    ).group_by(
+        extract('year',  Gasto.fecha),
+        extract('month', Gasto.fecha),
+    ).all()
 
-        s = db.session.query(db.func.coalesce(db.func.sum(PagoServicio.monto), 0.0)).join(Servicio).filter(
-            Servicio.organizacion_id == org_id,
-            PagoServicio.estado == 'pagado',
-            db.extract('month', PagoServicio.fecha_pago) == m,
-            db.extract('year',  PagoServicio.fecha_pago) == y
-        ).scalar()
+    # Single GROUP BY query for OCs (facturas recibidas)
+    ocs_raw = db.session.query(
+        extract('year',  OrdenCompra.fecha_recepcion).label('year'),
+        extract('month', OrdenCompra.fecha_recepcion).label('month'),
+        func.coalesce(func.sum(
+            OrdenCompraDetalle.cantidad_solicitada * OrdenCompraDetalle.costo_unitario_estimado
+        ), 0.0).label('total')
+    ).join(OrdenCompraDetalle, OrdenCompraDetalle.orden_id == OrdenCompra.id).filter(
+        OrdenCompra.organizacion_id == org_id,
+        OrdenCompra.estado == 'recibida',
+        OrdenCompra.fecha_recepcion >= fecha_inicio,
+    ).group_by(
+        extract('year',  OrdenCompra.fecha_recepcion),
+        extract('month', OrdenCompra.fecha_recepcion),
+    ).all()
 
-        import calendar
+    # Single GROUP BY query for pagos de servicio
+    servicios_raw = db.session.query(
+        extract('year',  PagoServicio.fecha_pago).label('year'),
+        extract('month', PagoServicio.fecha_pago).label('month'),
+        func.coalesce(func.sum(PagoServicio.monto), 0.0).label('total')
+    ).join(Servicio, PagoServicio.servicio_id == Servicio.id).filter(
+        Servicio.organizacion_id == org_id,
+        PagoServicio.estado == 'pagado',
+        PagoServicio.fecha_pago >= fecha_inicio,
+    ).group_by(
+        extract('year',  PagoServicio.fecha_pago),
+        extract('month', PagoServicio.fecha_pago),
+    ).all()
+
+    gastos_map    = {(int(r.year), int(r.month)): round(float(r.total), 2) for r in gastos_raw}
+    ocs_map       = {(int(r.year), int(r.month)): round(float(r.total), 2) for r in ocs_raw}
+    servicios_map = {(int(r.year), int(r.month)): round(float(r.total), 2) for r in servicios_raw}
+
+    labels, gastos_data, ocs_data, servicios_data = [], [], [], []
+    for y, m in meses_window:
+        key = (y, m)
         labels.append(calendar.month_abbr[m] + f' {y}')
-        gastos_data.append(round(float(g), 2))
-        ocs_data.append(round(float(o), 2))
-        servicios_data.append(round(float(s), 2))
+        gastos_data.append(gastos_map.get(key, 0.0))
+        ocs_data.append(ocs_map.get(key, 0.0))
+        servicios_data.append(servicios_map.get(key, 0.0))
 
     return jsonify({'labels': labels, 'gastos': gastos_data, 'ocs': ocs_data, 'servicios': servicios_data})
 
@@ -602,7 +639,9 @@ def api_productos_con_stock(almacen_id):
     items = db.session.query(Stock).filter(
         Stock.almacen_id == almacen.id,
         Stock.cantidad > 0
-    ).join(Producto).order_by(Producto.nombre).all()
+    ).join(Producto).options(
+        contains_eager(Stock.producto),
+    ).order_by(Producto.nombre).all()
 
     return jsonify([{
         'id': s.producto_id,
@@ -624,30 +663,53 @@ def api_chart_movimientos_mes():
     org_id = current_user.organizacion_id
     hoy = now_mx()
 
-    labels, entradas, salidas = [], [], []
-
+    # Build the ordered list of (year, month) for the last 6 months
+    meses_window = []
     for i in range(5, -1, -1):
         mes = (hoy.month - i - 1) % 12 + 1
         ano = hoy.year if (hoy.month - i) > 0 else hoy.year - 1
+        meses_window.append((ano, mes))
 
-        total_entrada = db.session.query(db.func.sum(Movimiento.cantidad)).filter(
-            Movimiento.organizacion_id == org_id,
-            Movimiento.tipo.in_(['entrada', 'entrada-inicial', 'ajuste-entrada']),
-            extract('month', Movimiento.fecha) == mes,
-            extract('year', Movimiento.fecha) == ano
-        ).scalar() or 0
+    # Earliest month boundary for the WHERE clause
+    ano_inicio, mes_inicio = meses_window[0]
 
-        total_salida = abs(db.session.query(db.func.sum(Movimiento.cantidad)).filter(
-            Movimiento.organizacion_id == org_id,
-            Movimiento.tipo == 'salida',
-            extract('month', Movimiento.fecha) == mes,
-            extract('year', Movimiento.fecha) == ano
-        ).scalar() or 0)
+    # Single GROUP BY query for all entrada types across the 6-month window
+    entradas_raw = db.session.query(
+        extract('year',  Movimiento.fecha).label('year'),
+        extract('month', Movimiento.fecha).label('month'),
+        func.coalesce(func.sum(Movimiento.cantidad), 0).label('total')
+    ).filter(
+        Movimiento.organizacion_id == org_id,
+        Movimiento.tipo.in_(['entrada', 'entrada-inicial', 'ajuste-entrada']),
+        Movimiento.fecha >= datetime(ano_inicio, mes_inicio, 1),
+    ).group_by(
+        extract('year',  Movimiento.fecha),
+        extract('month', Movimiento.fecha),
+    ).all()
 
-        nombre_mes = datetime(ano, mes, 1).strftime('%b %Y')
-        labels.append(nombre_mes)
-        entradas.append(int(total_entrada))
-        salidas.append(int(total_salida))
+    # Single GROUP BY query for all salidas across the 6-month window
+    salidas_raw = db.session.query(
+        extract('year',  Movimiento.fecha).label('year'),
+        extract('month', Movimiento.fecha).label('month'),
+        func.coalesce(func.sum(Movimiento.cantidad), 0).label('total')
+    ).filter(
+        Movimiento.organizacion_id == org_id,
+        Movimiento.tipo == 'salida',
+        Movimiento.fecha >= datetime(ano_inicio, mes_inicio, 1),
+    ).group_by(
+        extract('year',  Movimiento.fecha),
+        extract('month', Movimiento.fecha),
+    ).all()
+
+    entradas_map = {(int(r.year), int(r.month)): int(r.total) for r in entradas_raw}
+    salidas_map  = {(int(r.year), int(r.month)): abs(int(r.total)) for r in salidas_raw}
+
+    labels, entradas, salidas = [], [], []
+    for ano, mes in meses_window:
+        key = (ano, mes)
+        labels.append(datetime(ano, mes, 1).strftime('%b %Y'))
+        entradas.append(entradas_map.get(key, 0))
+        salidas.append(salidas_map.get(key, 0))
 
     return jsonify({'labels': labels, 'entradas': entradas, 'salidas': salidas})
 
@@ -710,6 +772,7 @@ def api_actividad_reciente():
     movs = (
         Movimiento.query
         .filter_by(organizacion_id=org_id)
+        .options(joinedload(Movimiento.almacen), joinedload(Movimiento.producto))
         .order_by(Movimiento.fecha.desc())
         .limit(10)
         .all()

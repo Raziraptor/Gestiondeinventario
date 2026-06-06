@@ -30,6 +30,7 @@ from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
+from sqlalchemy.orm import joinedload
 from wtforms import BooleanField, SubmitField
 from wtforms.validators import DataRequired
 
@@ -190,11 +191,15 @@ def lista_usuarios():
         return redirect(url_for('main.index'))
 
     if current_user.rol == 'super_admin':
-        usuarios = User.query.order_by(User.username).all()
+        usuarios = User.query.options(joinedload(User.organizacion)).order_by(User.username).all()
     else:
-        usuarios = User.query.filter_by(
-            organizacion_id=current_user.organizacion_id
-        ).order_by(User.username).all()
+        usuarios = (
+            User.query
+            .filter_by(organizacion_id=current_user.organizacion_id)
+            .options(joinedload(User.organizacion))
+            .order_by(User.username)
+            .all()
+        )
 
     return render_template('usuarios.html', usuarios=usuarios)
 
@@ -306,7 +311,7 @@ def configurar_plantilla():
 def super_admin():
     """Panel principal del Super Admin para gestionar Organizaciones y Usuarios."""
     organizaciones = Organizacion.query.order_by(Organizacion.nombre).all()
-    usuarios = User.query.order_by(User.username).all()
+    usuarios = User.query.options(joinedload(User.organizacion)).order_by(User.username).all()
 
     return render_template(
         'super_admin.html',
