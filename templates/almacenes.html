@@ -79,16 +79,16 @@
                                 </a>
                                 
                                 <!-- Botón Editar -->
-                                <a href="{{ url_for('inventory.editar_almacen', id=alm.id) }}" class="btn btn-accion btn-sm btn-outline-secondary shadow-sm rounded-pill px-3" title="Editar Nombre/Ubicación">
-                                    <i class="bi bi-pencil"></i>
+                                <a href="{{ url_for('inventory.editar_almacen', id=alm.id) }}" class="btn btn-accion btn-sm btn-outline-secondary shadow-sm rounded-pill px-3" title="Editar Nombre/Ubicación" aria-label="Editar almacén">
+                                    <i class="bi bi-pencil" aria-hidden="true"></i>
                                 </a>
 
                                 <!-- BOTÓN ELIMINAR -->
                                 <form action="{{ url_for('inventory.eliminar_almacen', id=alm.id) }}" method="POST"
                                       data-confirm="¿Eliminar el almacén '{{ alm.nombre }}'? Esta acción no se puede deshacer y podría afectar el historial de movimientos.">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-accion btn-sm btn-outline-danger shadow-sm rounded-pill px-3" title="Eliminar Almacén">
-                                        <i class="bi bi-trash"></i>
+                                    <button type="submit" class="btn btn-accion btn-sm btn-outline-danger shadow-sm rounded-pill px-3" title="Eliminar Almacén" aria-label="Eliminar almacén">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                     </button>
                                 </form>
                             </div>

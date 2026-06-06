@@ -195,7 +195,7 @@
                                     <form action="{{ url_for('purchasing.cancelar_orden', id=orden.id) }}" method="POST" data-confirm="¿Cancelar esta orden de compra?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-accion btn-outline-danger btn-sm rounded-3 h-100 px-3" aria-label="Cancelar orden">
-                                            <i class="bi bi-x-lg"></i>
+                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
                                         </button>
                                     </form>
                                 </div>

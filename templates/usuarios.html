@@ -64,13 +64,14 @@
                                     <!-- BOTÓN DE RESTABLECER CONTRASEÑA (LA LLAVE) -->
                                     <button type="button" class="btn btn-accion btn-outline-warning btn-sm"
                                             onclick="abrirModalPassword('{{ usuario.id }}', '{{ usuario.username }}')"
-                                            title="Restablecer Contraseña">
-                                        <i class="bi bi-key-fill text-dark"></i>
+                                            title="Restablecer Contraseña"
+                                            aria-label="Restablecer contraseña de {{ usuario.username }}">
+                                        <i class="bi bi-key-fill text-dark" aria-hidden="true"></i>
                                     </button>
                                     
                                     <!-- Botón dummy de editar (puedes implementarlo luego) -->
-                                    <button class="btn btn-accion btn-outline-secondary btn-sm" title="Editar Detalles">
-                                        <i class="bi bi-pencil"></i>
+                                    <button class="btn btn-accion btn-outline-secondary btn-sm" title="Editar Detalles" aria-label="Editar usuario {{ usuario.username }}">
+                                        <i class="bi bi-pencil" aria-hidden="true"></i>
                                     </button>
                                 </div>
                             </td>

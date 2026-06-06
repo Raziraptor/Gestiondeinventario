@@ -142,8 +142,9 @@
                                 </form>
                                 <button type="button" class="btn btn-accion btn-sm btn-outline-danger rounded-3 fw-semibold"
                                         data-bs-toggle="modal"
-                                        data-bs-target="#modalRechazar{{ s.id }}">
-                                    <i class="bi bi-x-lg"></i>
+                                        data-bs-target="#modalRechazar{{ s.id }}"
+                                        aria-label="Rechazar solicitud #{{ s.id }}">
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
                                 </button>
                                 {% else %}
                                 <a href="{{ item.ent_url }}" class="btn btn-sm btn-outline-secondary rounded-3">

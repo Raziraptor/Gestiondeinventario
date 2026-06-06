@@ -184,14 +184,14 @@
                                 ${{ "{:,.2f}".format(item.disponible) }}
                             </td>
                             <td class="pe-4 py-3 text-end">
-                                <a href="{{ url_for('finance.editar_presupuesto', id=item.p.id) }}" class="btn btn-accion btn-sm btn-outline-secondary rounded-3 me-1" title="Editar">
-                                    <i class="bi bi-pencil"></i>
+                                <a href="{{ url_for('finance.editar_presupuesto', id=item.p.id) }}" class="btn btn-accion btn-sm btn-outline-secondary rounded-3 me-1" title="Editar" aria-label="Editar presupuesto">
+                                    <i class="bi bi-pencil" aria-hidden="true"></i>
                                 </a>
                                 <form action="{{ url_for('finance.eliminar_presupuesto', id=item.p.id) }}" method="POST" class="d-inline"
                                       data-confirm="¿Eliminar el presupuesto de {{ item.p.categoria }}?">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-accion btn-sm btn-outline-danger rounded-3" title="Eliminar">
-                                        <i class="bi bi-trash"></i>
+                                    <button type="submit" class="btn btn-accion btn-sm btn-outline-danger rounded-3" title="Eliminar" aria-label="Eliminar presupuesto">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                     </button>
                                 </form>
                             </td>

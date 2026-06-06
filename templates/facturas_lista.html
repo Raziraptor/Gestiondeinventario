@@ -189,14 +189,14 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    <a href="{{ url_for('finance.editar_factura', id=f.id) }}" class="btn btn-accion btn-outline-secondary btn-sm rounded-3" title="Editar">
-                                        <i class="bi bi-pencil"></i>
+                                    <a href="{{ url_for('finance.editar_factura', id=f.id) }}" class="btn btn-accion btn-outline-secondary btn-sm rounded-3" title="Editar" aria-label="Editar factura">
+                                        <i class="bi bi-pencil" aria-hidden="true"></i>
                                     </a>
                                     <form action="{{ url_for('finance.eliminar_factura', id=f.id) }}" method="POST"
                                           data-confirm="¿Eliminar esta factura? Esta acción no se puede deshacer.">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-accion btn-outline-danger btn-sm rounded-3" aria-label="Eliminar factura">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
                                         </button>
                                     </form>
                                 </div>

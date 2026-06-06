@@ -194,17 +194,17 @@
                                 <td class="text-end pe-4">
                                     <div class="btn-group shadow-sm">
                                         <!-- Botón de Edición -->
-                                        <a href="{{ url_for('inventory.editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-accion btn-outline-primary btn-sm" title="Editar Cantidad/Ubicación">
-                                            <i class="bi bi-pencil"></i>
+                                        <a href="{{ url_for('inventory.editar_producto', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-accion btn-outline-primary btn-sm" title="Editar Cantidad/Ubicación" aria-label="Editar producto">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i>
                                         </a>
                                         <!-- Botón de Etiqueta -->
-                                        <a href="{{ url_for('inventory.configurar_etiqueta', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-accion btn-outline-secondary btn-sm" title="Imprimir Etiqueta">
-                                            <i class="bi bi-upc-scan"></i>
+                                        <a href="{{ url_for('inventory.configurar_etiqueta', id=item.producto_id, almacen_id=almacen.id) }}" class="btn btn-accion btn-outline-secondary btn-sm" title="Imprimir Etiqueta" aria-label="Imprimir etiqueta">
+                                            <i class="bi bi-upc-scan" aria-hidden="true"></i>
                                         </a>
                                         <!-- Botón de Eliminar -->
                                         <form action="{{ url_for('inventory.eliminar_producto_de_almacen', id=item.id) }}" method="POST" style="display:inline;" data-confirm="¿Quitar este producto del almacén? Se perderá el historial de movimientos asociado a esta ubicación.">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="btn btn-accion btn-outline-danger btn-sm" title="Quitar de Almacén"><i class="bi bi-trash"></i></button>
+                                            <button type="submit" class="btn btn-accion btn-outline-danger btn-sm" title="Quitar de Almacén" aria-label="Quitar de almacén"><i class="bi bi-trash" aria-hidden="true"></i></button>
                                         </form>
                                     </div>
                                 </td>
