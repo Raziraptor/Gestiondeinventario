@@ -937,7 +937,6 @@ def ver_proyecto_oc(id):
         ProyectoOC.query
         .filter_by(id=id, organizacion_id=org_id)
         .options(
-            joinedload(ProyectoOC.proveedor),
             joinedload(ProyectoOC.almacen),
             selectinload(ProyectoOC.detalles).joinedload(ProyectoOCDetalle.producto),
         )
