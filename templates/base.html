@@ -772,11 +772,35 @@
                     </a>
                     {% endif %}
 
+                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+                    <a href="{{ url_for('inventory.nueva_transferencia') }}"
+                       class="sidebar-item {% if request.endpoint == 'inventory.nueva_transferencia' %}active{% endif %}">
+                        <i class="bi bi-arrow-left-right sidebar-item-icon" aria-hidden="true"></i>
+                        <span class="sidebar-item-label">Transferencia</span>
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+                    <a href="{{ url_for('inventory.nuevo_ajuste') }}"
+                       class="sidebar-item {% if request.endpoint == 'inventory.nuevo_ajuste' %}active{% endif %}">
+                        <i class="bi bi-sliders sidebar-item-icon" aria-hidden="true"></i>
+                        <span class="sidebar-item-label">Ajuste Manual</span>
+                    </a>
+                    {% endif %}
+
                     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
                     <a href="{{ url_for('inventory.lista_categorias') }}"
                        class="sidebar-item {% if request.endpoint == 'inventory.lista_categorias' %}active{% endif %}">
                         <i class="bi bi-tags sidebar-item-icon" aria-hidden="true"></i>
                         <span class="sidebar-item-label">Categorías</span>
+                    </a>
+                    {% endif %}
+
+                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+                    <a href="{{ url_for('inventory.lista_productos_sin_almacen') }}"
+                       class="sidebar-item {% if request.endpoint == 'inventory.lista_productos_sin_almacen' %}active{% endif %}">
+                        <i class="bi bi-box-seam sidebar-item-icon" aria-hidden="true"></i>
+                        <span class="sidebar-item-label">Sin Almacén</span>
                     </a>
                     {% endif %}
                 </div>
