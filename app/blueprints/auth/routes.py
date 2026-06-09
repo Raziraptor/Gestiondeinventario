@@ -269,10 +269,9 @@ def login():
     return render_template('login.html', titulo="Inicio de Sesión", form=form)
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
-    """Cierra la sesión del usuario."""
     logout_user()
     flash('Has cerrado la sesión.', 'info')
     return redirect(url_for('auth.login'))

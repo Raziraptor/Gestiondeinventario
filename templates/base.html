@@ -1008,9 +1008,12 @@
 
                     <!-- Logout button -->
                     {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('auth.logout') }}" class="theme-btn text-danger" title="Cerrar sesión" aria-label="Cerrar sesión">
-                        <i class="bi bi-box-arrow-left" aria-hidden="true"></i>
-                    </a>
+                    <form action="{{ url_for('auth.logout') }}" method="POST" class="d-inline m-0 p-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="theme-btn text-danger border-0 bg-transparent" title="Cerrar sesión" aria-label="Cerrar sesión">
+                            <i class="bi bi-box-arrow-left" aria-hidden="true"></i>
+                        </button>
+                    </form>
                     {% endif %}
 
                     <!-- User dropdown (topbar) -->

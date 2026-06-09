@@ -220,6 +220,7 @@
                                         </button>
                                     </form>
                                     {% endif %}
+                                    {% if es_admin %}
                                     <form action="{{ url_for('purchasing.cancelar_proyecto_oc', id=poc.id) }}" method="POST"
                                           data-confirm="¿Cancelar esta OC de Proyecto?">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -227,6 +228,7 @@
                                             <i class="bi bi-x-lg" aria-hidden="true"></i>
                                         </button>
                                     </form>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% elif poc.estado == 'pendiente_aprobacion' %}

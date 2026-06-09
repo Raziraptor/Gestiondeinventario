@@ -1127,6 +1127,7 @@ def editar_proyecto_oc(id):
 
 @purchasing_bp.route('/proyecto-oc/<int:id>/solicitar-aprobacion', methods=['POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def solicitar_aprobacion_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
@@ -1166,17 +1167,19 @@ def solicitar_aprobacion_oc(id):
 
 @purchasing_bp.route('/proyecto-oc/<int:id>/enviar', methods=['POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def enviar_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     es_admin = current_user.rol in ['super_admin', 'admin']
 
-    estados_validos = ['aprobada']
-    if es_admin:
-        estados_validos.append('borrador')
+    if not es_admin:
+        flash('Solo los administradores pueden marcar una OC como enviada.', 'danger')
+        return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
+    estados_validos = ['aprobada', 'borrador']
     if proyecto_oc.estado not in estados_validos:
-        flash('La OC debe estar aprobada antes de enviarse al proveedor.', 'danger')
+        flash('La OC debe estar en borrador o aprobada antes de enviarse al proveedor.', 'danger')
         return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
     try:

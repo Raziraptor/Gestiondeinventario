@@ -263,7 +263,7 @@
         function applyFilter(shouldHide) {
             items.forEach(item => {
                 if (item.dataset.estado === 'cancelada') {
-                    item.style.display = shouldHide ? 'none' : 'block';
+                    item.style.display = shouldHide ? 'none' : '';
                 }
             });
         }
