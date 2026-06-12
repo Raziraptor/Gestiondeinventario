@@ -15,7 +15,6 @@ from flask_login import current_user
 from PIL import Image
 
 from app.extensions import db
-from app.models.system import AuditLog
 
 # ── Zona horaria ───────────────────────────────────────────────────────────────
 
@@ -55,6 +54,7 @@ def _flash_err(user_msg: str, exc: Exception | None = None) -> None:
 def log_actividad(accion, entidad, descripcion, entidad_id=None):
     """Añade una entrada al audit log. Debe llamarse ANTES del db.session.commit()."""
     try:
+        from app.models.system import AuditLog  # lazy to avoid circular import
         org_id = current_user.organizacion_id if current_user.is_authenticated else None
         if not org_id:
             return

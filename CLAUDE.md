@@ -101,7 +101,7 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - `@check_org_permission` — NO filtra datos, solo bloquea usuarios sin org asignada. Debe estar en TODAS las rutas incluso si los queries ya filtran por org_id.
 - IDOR oracle: para rutas admin con `<user_id>`: hacer `filter_by(id=x, organizacion_id=org_id).first_or_404()` ANTES del org-check, no después.
 - `SolicitudAprobacion` tiene `organizacion_id` — siempre incluirlo en queries aunque el padre ya esté validado.
-- `log_actividad(accion, entidad, detalle, user_id, org_id)` — llamar ANTES de `db.session.commit()`.
+- `log_actividad(accion, entidad, descripcion, entidad_id=None)` — lee user/org de `current_user` automáticamente. Llamar ANTES de `db.session.commit()`.
 - `_flash_err(user_msg, exc)` — loguea excepción al servidor, muestra mensaje seguro al usuario.
 - `CATEGORIAS_GASTO` — whitelist: `['Servicios', 'Nómina', 'Mantenimiento', 'Insumos', 'Inventario', 'Otros']`.
 - `with db.session.no_autoflush:` — envolver loops que mezclan queries + mutaciones del mismo modelo (evita flush intermedio que propaga excepciones entre ítems).
