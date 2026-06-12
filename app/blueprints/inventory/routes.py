@@ -55,7 +55,7 @@ from . import inventory_bp
 from app.extensions import db
 from app.helpers import (
     now_mx, _flash_err, check_org_permission, check_permission,
-    get_item_or_404, admin_required, allowed_file, save_picture,
+    get_item_or_404, admin_required, allowed_file, save_picture, log_actividad,
 )
 from app.models import (
     Producto, Stock, Movimiento, Categoria, Proveedor, Almacen,
@@ -66,24 +66,6 @@ from app.models import (
 # ==============================================================================
 # HELPERS LOCALES
 # ==============================================================================
-
-def log_actividad(accion, entidad, descripcion, entidad_id=None):
-    """Añade una entrada al audit log. Debe llamarse ANTES del db.session.commit()."""
-    try:
-        org_id = current_user.organizacion_id if current_user.is_authenticated else None
-        if not org_id:
-            return
-        db.session.add(AuditLog(
-            usuario_id=current_user.id if current_user.is_authenticated else None,
-            organizacion_id=org_id,
-            accion=accion,
-            entidad=entidad,
-            entidad_id=entidad_id,
-            descripcion=descripcion,
-        ))
-    except Exception:
-        pass
-
 
 def _check_and_alert_stock_bajo(org_id, almacen_id):
     try:

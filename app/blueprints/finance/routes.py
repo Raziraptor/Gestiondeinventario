@@ -46,6 +46,7 @@ from app.helpers import (
     get_item_or_404,
     CATEGORIAS_GASTO,
     MESES_ES,
+    log_actividad,
 )
 from app.models import (
     Gasto,
@@ -67,25 +68,6 @@ from app.models import (
 # ==============================================================================
 # HELPERS LOCALES
 # ==============================================================================
-
-def log_actividad(accion, entidad, descripcion, entidad_id=None):
-    """Añade una entrada al audit log. Debe llamarse ANTES del db.session.commit()."""
-    try:
-        org_id = current_user.organizacion_id if current_user.is_authenticated else None
-        if not org_id:
-            return
-        entrada = AuditLog(
-            usuario_id=current_user.id if current_user.is_authenticated else None,
-            organizacion_id=org_id,
-            accion=accion,
-            entidad=entidad,
-            entidad_id=entidad_id,
-            descripcion=descripcion,
-        )
-        db.session.add(entrada)
-    except Exception:
-        pass  # El logging nunca debe romper el flujo principal
-
 
 def _semaforo(pct):
     """Devuelve (clase_bootstrap, etiqueta) según porcentaje gastado."""

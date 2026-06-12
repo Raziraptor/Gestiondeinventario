@@ -34,6 +34,7 @@ from app.helpers import (
     check_org_permission,
     check_permission,
     get_item_or_404,
+    log_actividad,
 )
 from app.models import (
     Organizacion,
@@ -55,25 +56,6 @@ from app.models import (
 # ==============================================================================
 # HELPERS LOCALES (copiados de app.py — referencias a app.* corregidas)
 # ==============================================================================
-
-def log_actividad(accion, entidad, descripcion, entidad_id=None):
-    """Añade una entrada al audit log. Debe llamarse ANTES del db.session.commit()."""
-    try:
-        org_id = current_user.organizacion_id if current_user.is_authenticated else None
-        if not org_id:
-            return
-        entrada = AuditLog(
-            usuario_id=current_user.id if current_user.is_authenticated else None,
-            organizacion_id=org_id,
-            accion=accion,
-            entidad=entidad,
-            entidad_id=entidad_id,
-            descripcion=descripcion,
-        )
-        db.session.add(entrada)
-    except Exception:
-        pass  # El logging nunca debe romper el flujo principal
-
 
 def _send_whatsapp_message(to_number, body):
     """Envía un mensaje de texto vía Meta WhatsApp Cloud API."""

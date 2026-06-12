@@ -14,6 +14,9 @@ from flask import flash, redirect, url_for, current_app
 from flask_login import current_user
 from PIL import Image
 
+from app.extensions import db
+from app.models.system import AuditLog
+
 # ── Zona horaria ───────────────────────────────────────────────────────────────
 
 _TZ_MX = ZoneInfo('America/Mexico_City')
@@ -45,6 +48,27 @@ def _flash_err(user_msg: str, exc: Exception | None = None) -> None:
     if exc is not None:
         current_app.logger.error('%s: %s', user_msg, exc, exc_info=True)
     flash(user_msg, 'danger')
+
+
+# ── Audit log ─────────────────────────────────────────────────────────────────
+
+def log_actividad(accion, entidad, descripcion, entidad_id=None):
+    """Añade una entrada al audit log. Debe llamarse ANTES del db.session.commit()."""
+    try:
+        org_id = current_user.organizacion_id if current_user.is_authenticated else None
+        if not org_id:
+            return
+        entrada = AuditLog(
+            usuario_id=current_user.id if current_user.is_authenticated else None,
+            organizacion_id=org_id,
+            accion=accion,
+            entidad=entidad,
+            entidad_id=entidad_id,
+            descripcion=descripcion,
+        )
+        db.session.add(entrada)
+    except Exception:
+        pass  # El logging nunca debe romper el flujo principal
 
 
 # ── Seguridad multi-tenant ─────────────────────────────────────────────────────
