@@ -40,6 +40,7 @@ from app.helpers import (
     admin_required,
     allowed_file,
     check_org_permission,
+    log_actividad,
     now_mx,
     _flash_err,
 )
@@ -156,26 +157,12 @@ def enviar_correo_api(destinatario, reset_url):
         return False, str(e)
 
 
-# ---------------------------------------------------------------------------
-# Helpers locales usados por api_sync (aún no extraídos de app.py)
-# ---------------------------------------------------------------------------
-
-def _log_actividad(accion, entidad, descripcion, entidad_id=None):
-    """Thin wrapper que delega en app.py mientras no se extraiga log_actividad."""
-    try:
-        import app as _monolith  # app.py vive en la raíz del proyecto
-        _monolith.log_actividad(accion, entidad, descripcion, entidad_id=entidad_id)
-    except Exception as exc:
-        current_app.logger.warning("_log_actividad falló: %s", exc)
-
-
 def _check_and_alert_stock_bajo(org_id, almacen_id):
-    """Thin wrapper que delega en app.py mientras no se extraiga check_and_alert_stock_bajo."""
     try:
-        import app as _monolith
-        _monolith.check_and_alert_stock_bajo(org_id, almacen_id)
+        from app.services.notifications import check_and_alert_stock
+        check_and_alert_stock(org_id, almacen_id)
     except Exception as exc:
-        current_app.logger.warning("_check_and_alert_stock_bajo falló: %s", exc)
+        current_app.logger.warning("check_and_alert falló: %s", exc)
 
 
 # ==============================================================================
@@ -604,7 +591,7 @@ def _sync_gasto(payload, org_id):
     )
     db.session.add(gasto)
     db.session.commit()
-    _log_actividad(
+    log_actividad(
         'crear', 'gasto',
         f'Gasto offline sincronizado: {descripcion} ${monto:.2f}',
         entidad_id=gasto.id,
@@ -692,7 +679,7 @@ def _sync_salida(payload, org_id):
 
     db.session.commit()
     total_uds = sum(v[1] for v in para_ejecutar)
-    _log_actividad(
+    log_actividad(
         'salida', 'salida',
         (
             f'Salida offline sincronizada: {len(para_ejecutar)} producto(s), '

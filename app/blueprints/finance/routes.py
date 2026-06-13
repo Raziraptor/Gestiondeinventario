@@ -141,10 +141,9 @@ def _actualizar_estados_pagos(org_id):
 
 
 def _enviar_push_notificacion(org_id, titulo, cuerpo, url='/dashboard'):
-    """Delega al helper global del app sin importar el módulo circular."""
     try:
-        from app import enviar_push_notificacion  # importado aquí para evitar circular
-        enviar_push_notificacion(org_id=org_id, titulo=titulo, cuerpo=cuerpo, url=url)
+        from app.services.notifications import enviar_push
+        enviar_push(org_id=org_id, titulo=titulo, cuerpo=cuerpo, url=url)
     except Exception:
         pass
 
