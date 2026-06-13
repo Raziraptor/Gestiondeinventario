@@ -107,4 +107,4 @@ def do_login(client, username, password='Pass1234!'):
 
 
 def do_logout(client):
-    return client.get('/logout', follow_redirects=True)
+    return client.post('/logout', follow_redirects=True)
