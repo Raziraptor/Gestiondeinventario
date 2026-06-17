@@ -26,6 +26,26 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - Tareas largas automatizables: `workflow_*` y `agent_*`.
 - Si ruflo NO conecta en la sesión: usar `/revise-claude-md` al final como memoria persistente alternativa.
 
+## Workflow de modelos — OBLIGATORIO en todo momento
+
+### Regla de selección de modelo (no negociable)
+| Fase | Modelo | Cuándo |
+|------|--------|--------|
+| **Planear** | `opus` | Diseñar arquitectura, evaluar opciones, definir pasos, leer y entender archivos grandes |
+| **Ejecutar** | `sonnet` | Escribir código, editar archivos, correr comandos, implementar lo que Opus planeó |
+| **Revisar** | `opus` | Code-review, pr-review-toolkit, audits de seguridad, verificación final |
+
+- Antes de cualquier tarea no trivial: planear con Opus primero, luego ejecutar con Sonnet.
+- Para leer archivos y entender la base de código: usar Opus (subagente o modo `/opus`).
+- Para revisiones de código (plugins `code-review`, `pr-review-toolkit`, agente `code-reviewer`): siempre Opus.
+- Tareas simples de una línea (renombrar, agregar import): Sonnet directo, sin cambio de modelo.
+
+### Skills y plugins — usar SIEMPRE que aplique
+- Ante cualquier duda (≥1% de probabilidad de que aplique un skill): invocar el skill ANTES de actuar.
+- Skills disponibles: `the-architect`, `graphify`, `andrej-karpathy`, `antigravity-skill-orchestrator`, `ui-ux-pro-max`, `update-config`.
+- Plugins disponibles: `superpowers`, `code-review`, `frontend-design`, `claude-md-management`, `pr-review-toolkit`.
+- No improvisar lo que un skill/plugin ya sabe hacer mejor.
+
 ## Reglas generales
 - Siempre usar ruflo (MCP) cuando esté disponible para memoria persistente y contexto.
 - Siempre hacer `git push origin main` después de cada commit (sin preguntar).
