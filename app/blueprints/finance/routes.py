@@ -384,9 +384,9 @@ def nuevo_gasto():
 
     if request.method == 'POST':
         try:
-            monto_val = float(request.form['monto'])
-            if monto_val <= 0:
-                flash('El monto debe ser mayor a cero.', 'danger')
+            monto_val = Decimal(request.form['monto'])
+            if monto_val < 0:
+                flash('El monto no puede ser negativo.', 'danger')
                 return redirect(url_for('finance.nuevo_gasto'))
             categoria_val = request.form['categoria']
             if categoria_val not in CATEGORIAS_GASTO:
@@ -440,9 +440,9 @@ def editar_gasto(id):
 
     if request.method == 'POST':
         try:
-            monto_val = float(request.form['monto'])
-            if monto_val <= 0:
-                flash('El monto debe ser mayor a cero.', 'danger')
+            monto_val = Decimal(request.form['monto'])
+            if monto_val < 0:
+                flash('El monto no puede ser negativo.', 'danger')
                 return redirect(url_for('finance.editar_gasto', id=id))
             categoria_val = request.form['categoria']
             if categoria_val not in CATEGORIAS_GASTO:

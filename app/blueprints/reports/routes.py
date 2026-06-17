@@ -794,7 +794,7 @@ def exportar_gastos_excel():
         cat_totals = {}
         for g in gastos_list:
             k = g.categoria or 'Sin categoría'
-            cat_totals[k] = cat_totals.get(k, 0) + g.monto
+            cat_totals[k] = cat_totals.get(k, Decimal('0')) + g.monto
         if not cat_totals:
             return
         ws.append([])
@@ -827,7 +827,7 @@ def exportar_gastos_excel():
         _banner(ws, empresa, f'Control de Gastos — {nombre_mes} {year}')
         _col_headers(ws, 3, COLS)
 
-        total = 0.0
+        total = Decimal('0')
         for i, g in enumerate(gastos):
             origen = 'Servicio' if g.descripcion.startswith('Servicio:') else 'Manual'
             row_data = [g.fecha.date(), g.descripcion, g.categoria or '—', g.monto]
@@ -892,7 +892,7 @@ def exportar_gastos_excel():
         totals_resumen.append((year, month, total_mes, count_mes))
 
     if ws_res is not None:
-        gran_total  = 0.0
+        gran_total  = Decimal('0')
         all_g_range = []
         for year, month, total_mes, count_mes in totals_resumen:
             nombre_mes = datetime(year, month, 1).strftime('%B').capitalize()
