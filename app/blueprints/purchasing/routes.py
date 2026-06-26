@@ -307,7 +307,7 @@ def nueva_orden():
         return redirect(url_for('main.index'))
 
 
-@purchasing_bp.route('/ordenes/recibir/<int:id>', methods=['POST'])
+@purchasing_bp.route('/ordenes/recibir/<int:id>', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
 @check_permission('perm_create_oc_standard')
@@ -319,9 +319,12 @@ def recibir_orden(id):
         .first_or_404()
     )
 
-    if orden.estado != 'enviada':
-        flash('Solo se pueden recibir órdenes en estado "Enviada".', 'warning')
-        return redirect(url_for('purchasing.lista_ordenes'))
+    if orden.estado not in ('enviada', 'recibida_parcial'):
+        flash('Solo se pueden recibir órdenes en estado "Enviada" o "Recibida parcial".', 'warning')
+        return redirect(url_for('purchasing.ver_orden', id=id))
+
+    if request.method == 'GET':
+        return render_template('orden_recibir.html', orden=orden)
 
     try:
         org_id = orden.organizacion_id
@@ -331,16 +334,20 @@ def recibir_orden(id):
         with db.session.no_autoflush:
             for detalle in orden.detalles:
                 producto = detalle.producto
-                cantidad = detalle.cantidad_solicitada
-
                 if not producto:
                     omitidos.append(f'detalle #{detalle.id} (producto eliminado)')
                     continue
-                if not cantidad or cantidad <= 0:
-                    omitidos.append(f'{producto.nombre} (cantidad inválida: {cantidad})')
+
+                try:
+                    recibir_ahora = int(request.form.get(f'recibir_{detalle.id}', 0))
+                except (ValueError, TypeError):
+                    recibir_ahora = 0
+
+                pendiente = detalle.cantidad_pendiente
+                recibir_ahora = max(0, min(recibir_ahora, pendiente))
+                if recibir_ahora <= 0:
                     continue
 
-                # detalle.almacen_id (new OCs) falls back to orden.almacen_id (legacy OCs)
                 alm_destino = detalle.almacen_id or orden.almacen_id
                 if not alm_destino:
                     omitidos.append(f'{producto.nombre} (sin almacén destino)')
@@ -350,39 +357,50 @@ def recibir_orden(id):
                     producto_id=producto.id, almacen_id=alm_destino
                 ).first()
                 if stock_item:
-                    stock_item.cantidad += cantidad
+                    stock_item.cantidad += recibir_ahora
                 else:
                     db.session.add(Stock(
                         producto_id=producto.id, almacen_id=alm_destino,
-                        cantidad=cantidad, stock_minimo=5, stock_maximo=100,
+                        cantidad=recibir_ahora, stock_minimo=5, stock_maximo=100,
                     ))
 
                 db.session.add(Movimiento(
-                    producto_id=producto.id, cantidad=cantidad, tipo='entrada',
+                    producto_id=producto.id, cantidad=recibir_ahora, tipo='entrada',
                     fecha=now_mx(), motivo=f'Recepción de OC #{orden.id}',
                     orden_compra_id=orden.id, organizacion_id=org_id,
                     almacen_id=alm_destino,
                 ))
 
-                if hasattr(producto, 'cantidad_stock'):
-                    producto.cantidad_stock = (producto.cantidad_stock or 0) + cantidad
-
+                detalle.cantidad_recibida = (detalle.cantidad_recibida or 0) + recibir_ahora
                 procesados += 1
 
-        orden.estado = 'recibida'
-        orden.fecha_recepcion = now_mx()
+        if procesados == 0:
+            flash('No se indicó ninguna cantidad a recibir.', 'warning')
+            return redirect(url_for('purchasing.recibir_orden', id=id))
+
         nombre_alm = orden.almacen.nombre if orden.almacen else 'múltiples almacenes'
-        resumen = f'{procesados} producto(s) ingresados al almacén {nombre_alm}'
-        log_actividad('recibir_oc', 'orden_compra', f'OC #{orden.id} recibida — {resumen}', entidad_id=orden.id)
+        if orden.totalmente_recibida:
+            orden.estado = 'recibida'
+            orden.fecha_recepcion = now_mx()
+            resumen = f'{procesados} producto(s) ingresados — recepción completa'
+            titulo_push = '📦 OC Recibida'
+        else:
+            orden.estado = 'recibida_parcial'
+            resumen = f'{procesados} producto(s) ingresados parcialmente'
+            titulo_push = '📦 OC Parcialmente Recibida'
+
+        log_actividad('recibir_oc', 'orden_compra',
+                      f'OC #{orden.id} — {resumen} (almacén: {nombre_alm})',
+                      entidad_id=orden.id)
         db.session.commit()
 
-        flash(f'¡Orden recibida! {resumen}.', 'success')
+        flash(f'{resumen}.', 'success')
         if omitidos:
-            flash(f'Ítems omitidos por datos inválidos: {", ".join(omitidos)}.', 'warning')
+            flash(f'Ítems omitidos: {", ".join(omitidos)}.', 'warning')
 
         _enviar_push_notificacion(
             org_id=org_id,
-            titulo='📦 OC Recibida',
+            titulo=titulo_push,
             cuerpo=f'OC #{orden.id} de {orden.proveedor.nombre} — {resumen}.',
             url=url_for('purchasing.ver_orden', id=orden.id),
         )
@@ -391,7 +409,7 @@ def recibir_orden(id):
         db.session.rollback()
         _flash_err('Error al recibir la orden. Verifica los datos e intenta de nuevo.', e)
 
-    return redirect(url_for('purchasing.lista_ordenes'))
+    return redirect(url_for('purchasing.ver_orden', id=id))
 
 
 @purchasing_bp.route('/orden/<int:id>/enviar', methods=['POST'])
@@ -886,7 +904,7 @@ def eliminar_orden(id):
         id=id, organizacion_id=current_user.organizacion_id
     ).first_or_404()
 
-    if orden.estado == 'recibida':
+    if orden.estado in ('recibida', 'recibida_parcial'):
         flash('No se pueden eliminar órdenes ya recibidas (el stock ya fue ingresado).', 'danger')
         return redirect(url_for('purchasing.lista_ordenes'))
 
@@ -1353,82 +1371,100 @@ def recibir_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
     org_id      = proyecto_oc.organizacion_id
 
-    if proyecto_oc.estado != 'enviada':
-        flash('Solo se puede registrar la recepción de una OC en estado "Enviada".', 'danger')
+    if proyecto_oc.estado not in ('enviada', 'recibida_parcial'):
+        flash('Solo se puede registrar la recepción de órdenes en estado "Enviada" o "Recibida parcial".', 'danger')
         return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
     almacenes = Almacen.query.filter_by(organizacion_id=org_id).order_by(Almacen.nombre).all()
 
-    if request.method == 'POST':
-        almacen_id_dest = request.form.get('almacen_id', type=int)
-        if not almacen_id_dest:
-            flash('Debes seleccionar un almacén destino.', 'danger')
-            return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
+    if request.method == 'GET':
+        return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
 
-        almacen_dest = Almacen.query.get(almacen_id_dest)
-        if not almacen_dest or almacen_dest.organizacion_id != org_id:
-            flash('Almacén no válido.', 'danger')
-            return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
+    # POST
+    almacen_id_dest = request.form.get('almacen_id', type=int)
+    if not almacen_id_dest:
+        flash('Debes seleccionar un almacén destino.', 'danger')
+        return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
 
-        items_a_ingresar = set(request.form.getlist('ingresar_item[]', type=int))
+    almacen_dest = Almacen.query.filter_by(id=almacen_id_dest, organizacion_id=org_id).first()
+    if not almacen_dest:
+        flash('Almacén no válido.', 'danger')
+        return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
 
-        try:
-            # Pre-fetch all relevant Stock rows in one query to avoid N+1
-            producto_ids_sel = [
-                d.producto_id for d in proyecto_oc.detalles
-                if d.producto_id and d.producto_id in items_a_ingresar
-            ]
-            stocks_map = (
-                {s.producto_id: s for s in Stock.query.filter(
-                    Stock.almacen_id == almacen_id_dest,
-                    Stock.producto_id.in_(producto_ids_sel),
-                ).all()}
-                if producto_ids_sel else {}
-            )
+    try:
+        procesados = 0
+        omitidos   = []
 
-            items_ingresados = 0
+        with db.session.no_autoflush:
             for detalle in proyecto_oc.detalles:
-                if detalle.producto_id and detalle.producto_id in items_a_ingresar:
-                    stock_item = stocks_map.get(detalle.producto_id)
+                try:
+                    recibir_ahora = int(request.form.get(f'recibir_{detalle.id}', 0))
+                except (ValueError, TypeError):
+                    recibir_ahora = 0
+
+                pendiente     = detalle.cantidad_pendiente
+                recibir_ahora = max(0, min(recibir_ahora, pendiente))
+                if recibir_ahora <= 0:
+                    continue
+
+                if detalle.producto_id:
+                    stock_item = Stock.query.filter_by(
+                        producto_id=detalle.producto_id, almacen_id=almacen_id_dest
+                    ).first()
                     if stock_item:
-                        stock_item.cantidad += detalle.cantidad
+                        stock_item.cantidad += recibir_ahora
                     else:
                         db.session.add(Stock(
                             producto_id=detalle.producto_id,
                             almacen_id=almacen_id_dest,
                             organizacion_id=org_id,
-                            cantidad=detalle.cantidad,
+                            cantidad=recibir_ahora,
                             stock_minimo=5, stock_maximo=100,
                         ))
                     db.session.add(Movimiento(
                         producto_id=detalle.producto_id,
-                        cantidad=detalle.cantidad,
+                        cantidad=recibir_ahora,
                         tipo='entrada',
                         fecha=now_mx(),
                         motivo=f'Recepción OC Proyecto #{proyecto_oc.id} — {proyecto_oc.nombre_proyecto}',
                         almacen_id=almacen_id_dest,
                         organizacion_id=org_id,
                     ))
-                    items_ingresados += 1
+                else:
+                    omitidos.append(detalle.descripcion_nuevo or f'detalle #{detalle.id}')
 
+                detalle.cantidad_recibida = (detalle.cantidad_recibida or 0) + recibir_ahora
+                procesados += 1
+
+        if procesados == 0:
+            flash('No se indicó ninguna cantidad a recibir.', 'warning')
+            return redirect(url_for('purchasing.recibir_proyecto_oc', id=id))
+
+        proyecto_oc.almacen_id      = almacen_id_dest
+        proyecto_oc.recibido_por_id = current_user.id
+
+        if proyecto_oc.totalmente_recibida:
             proyecto_oc.estado          = 'recibida'
             proyecto_oc.fecha_recepcion = now_mx()
-            proyecto_oc.almacen_id      = almacen_id_dest
-            proyecto_oc.recibido_por_id = current_user.id
+            resumen = f'{procesados} artículo(s) ingresados — recepción completa'
+        else:
+            proyecto_oc.estado = 'recibida_parcial'
+            resumen = f'{procesados} artículo(s) ingresados parcialmente en "{almacen_dest.nombre}"'
 
-            log_actividad('recibir', 'proyecto_oc',
-                          f'OC Proyecto #{proyecto_oc.id} recibida en "{almacen_dest.nombre}". '
-                          f'{items_ingresados} producto(s) ingresados al inventario.',
-                          entidad_id=proyecto_oc.id)
-            db.session.commit()
-            flash(f'✓ OC #{proyecto_oc.id} recibida. {items_ingresados} producto(s) ingresados al inventario de "{almacen_dest.nombre}".', 'success')
-            return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
+        log_actividad('recibir', 'proyecto_oc',
+                      f'OC Proyecto #{proyecto_oc.id} — {resumen}.',
+                      entidad_id=proyecto_oc.id)
+        db.session.commit()
 
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Error al registrar la recepción: {e}', 'danger')
+        flash(f'{resumen}.', 'success')
+        if omitidos:
+            flash(f'Artículos externos (sin ingreso a stock): {", ".join(omitidos)}.', 'info')
 
-    return render_template('proyecto_oc_recibir.html', proyecto_oc=proyecto_oc, almacenes=almacenes)
+    except Exception as e:
+        db.session.rollback()
+        _flash_err('Error al registrar la recepción. Verifica los datos e intenta de nuevo.', e)
+
+    return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
 
 @purchasing_bp.route('/proyecto-oc/<int:id>/pdf')
@@ -1545,8 +1581,8 @@ def generar_proyecto_oc_pdf(id):
 def cancelar_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
 
-    if proyecto_oc.estado in ['recibida', 'cancelada']:
-        flash('No se puede cancelar una orden ya recibida o previamente cancelada.', 'danger')
+    if proyecto_oc.estado in ['recibida', 'recibida_parcial', 'cancelada']:
+        flash('No se puede cancelar una orden ya recibida (parcial o total) o previamente cancelada.', 'danger')
         return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
     try:

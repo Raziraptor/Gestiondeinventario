@@ -101,6 +101,10 @@
                 {% set border_color = '#06b6d4' %}
                 {% set status_icon = 'bi-truck' %}
                 {% set status_class = 'status-pill--info' %}
+            {% elif orden.estado == 'recibida_parcial' %}
+                {% set border_color = '#f59e0b' %}
+                {% set status_icon = 'bi-hourglass-split' %}
+                {% set status_class = 'status-pill--warn' %}
             {% elif orden.estado == 'cancelada' %}
                 {% set border_color = '#64748b' %}
                 {% set status_icon = 'bi-x-circle-fill' %}
@@ -199,13 +203,12 @@
                                         </button>
                                     </form>
                                 </div>
-                            {% elif orden.estado == 'enviada' %}
-                                <form action="{{ url_for('purchasing.recibir_orden', id=orden.id) }}" method="POST" class="d-grid" data-confirm="¿Confirmar la recepción física de toda la mercancía de esta orden?">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-success fw-bold rounded-3">
-                                        <i class="bi bi-box-seam me-1"></i> Registrar Recepción
-                                    </button>
-                                </form>
+                            {% elif orden.estado in ('enviada', 'recibida_parcial') %}
+                                <a href="{{ url_for('purchasing.recibir_orden', id=orden.id) }}"
+                                   class="btn btn-success fw-bold rounded-3 d-block text-center">
+                                    <i class="bi bi-box-seam me-1"></i>
+                                    {% if orden.estado == 'recibida_parcial' %}Continuar Recepción{% else %}Registrar Recepción{% endif %}
+                                </a>
                             {% elif orden.estado == 'recibida' %}
                                 <div class="alert alert-success m-0 py-2 text-center border-success border-opacity-25 small fw-bold">
                                     <i class="bi bi-calendar-check me-1"></i> Recibida: {{ orden.fecha_recepcion.strftime('%d/%m/%Y') }}

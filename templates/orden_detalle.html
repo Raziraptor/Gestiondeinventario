@@ -33,6 +33,14 @@
             </form>
             {% endif %}
 
+            {% if orden.estado in ('enviada', 'recibida_parcial') %}
+            <a href="{{ url_for('purchasing.recibir_orden', id=orden.id) }}"
+               class="btn btn-success shadow-sm rounded-pill px-4 fw-bold">
+                <i class="bi bi-box-seam me-1"></i>
+                {% if orden.estado == 'recibida_parcial' %}Continuar Recepción{% else %}Registrar Recepción{% endif %}
+            </a>
+            {% endif %}
+
             {# ── Detectar si hay SKUs de HD en esta OC ── #}
             {% set tiene_hd_sku = namespace(value=false) %}
             {% for d in orden.detalles %}{% if d.producto and d.producto.hd_sku %}{% set tiene_hd_sku.value = true %}{% endif %}{% endfor %}
@@ -113,7 +121,7 @@
         <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
             <div class="d-flex align-items-center gap-3">
                 <h5 class="mb-0 fw-bold text-body">Estado Actual:</h5>
-                {% set _pill = {'borrador':'status-pill--neutral','enviada':'status-pill--info','recibida':'status-pill--ok','cancelada':'status-pill--neutral','aprobada':'status-pill--ok'} %}
+                {% set _pill = {'borrador':'status-pill--neutral','enviada':'status-pill--info','recibida_parcial':'status-pill--warn','recibida':'status-pill--ok','cancelada':'status-pill--neutral','aprobada':'status-pill--ok'} %}
                 <span class="status-pill {{ _pill.get(orden.estado, 'status-pill--neutral') }} fs-6">
                     {{ orden.estado|capitalize }}
                 </span>
@@ -151,8 +159,8 @@
                         <h6 class="text-uppercase text-muted fw-bold small mb-2" style="letter-spacing: 1px;">
                             <i class="bi bi-shop me-1 text-primary"></i> Almacén de Destino
                         </h6>
-                        <div class="fs-4 fw-bold text-body">{{ orden.almacen.nombre }}</div>
-                        {% if orden.almacen.ubicacion %}
+                        <div class="fs-4 fw-bold text-body">{{ orden.almacen.nombre if orden.almacen else 'Múltiples almacenes' }}</div>
+                        {% if orden.almacen and orden.almacen.ubicacion %}
                             <hr class="border-secondary border-opacity-25 my-2">
                             <div class="small text-muted">
                                 <i class="bi bi-geo-alt me-1"></i> {{ orden.almacen.ubicacion }}

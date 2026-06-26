@@ -104,6 +104,9 @@
                 {% elif poc.estado == 'enviada' %}
                     {% set color_theme = 'info' %}
                     {% set icon_state = 'bi-send' %}
+                {% elif poc.estado == 'recibida_parcial' %}
+                    {% set color_theme = 'warning' %}
+                    {% set icon_state = 'bi-hourglass-split' %}
                 {% elif poc.estado == 'recibida' %}
                     {% set color_theme = 'success' %}
                     {% set icon_state = 'bi-check-all' %}
@@ -132,7 +135,7 @@
                                 </h5>
                                 <small class="text-muted fw-bold font-monospace"><i class="bi bi-hash"></i>OC-PROY-{{ poc.id }}</small>
                             </div>
-                            <span class="status-pill {% if poc.estado == 'borrador' %}status-pill--neutral{% elif poc.estado == 'enviada' %}status-pill--info{% elif poc.estado in ['recibida', 'aprobada'] %}status-pill--ok{% elif poc.estado == 'pendiente_aprobacion' %}status-pill--neutral{% else %}status-pill--neutral{% endif %}">
+                            <span class="status-pill {% if poc.estado == 'borrador' %}status-pill--neutral{% elif poc.estado == 'enviada' %}status-pill--info{% elif poc.estado == 'recibida_parcial' %}status-pill--warn{% elif poc.estado in ['recibida', 'aprobada'] %}status-pill--ok{% elif poc.estado == 'pendiente_aprobacion' %}status-pill--neutral{% else %}status-pill--neutral{% endif %}">
                                 <i class="bi {{ icon_state }} me-1"></i>
                                 {%- if poc.estado == 'pendiente_aprobacion' %}En aprobación
                                 {%- elif poc.estado == 'aprobada' %}Aprobada
@@ -260,11 +263,12 @@
                                 </div>
                                 {% endif %}
                             </div>
-                            {% elif poc.estado == 'enviada' %}
+                            {% elif poc.estado in ('enviada', 'recibida_parcial') %}
                             <div class="d-grid mb-2">
                                 <a href="{{ url_for('purchasing.recibir_proyecto_oc', id=poc.id) }}"
                                    class="btn btn-success btn-sm fw-bold shadow-sm">
-                                    <i class="bi bi-box-seam me-1"></i> Registrar Recepción
+                                    <i class="bi bi-box-seam me-1"></i>
+                                    {% if poc.estado == 'recibida_parcial' %}Continuar Recepción{% else %}Registrar Recepción{% endif %}
                                 </a>
                             </div>
                             {% elif poc.estado == 'recibida' %}

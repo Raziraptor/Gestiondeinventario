@@ -81,6 +81,10 @@ class OrdenCompra(db.Model):
     def costo_total(self):
         return sum(d.subtotal for d in self.detalles)
 
+    @property
+    def totalmente_recibida(self):
+        return bool(self.detalles) and all(d.cantidad_pendiente == 0 for d in self.detalles)
+
 
 class OrdenCompraDetalle(db.Model):
     id                       = db.Column(db.Integer, primary_key=True)
@@ -90,9 +94,14 @@ class OrdenCompraDetalle(db.Model):
     almacen_id               = db.Column(db.Integer, db.ForeignKey('almacen.id'),     nullable=True)
     almacen                  = db.relationship('Almacen')
     cantidad_solicitada      = db.Column(db.Integer,      nullable=False, default=1)
+    cantidad_recibida        = db.Column(db.Integer,      nullable=False, default=0, server_default='0')
     cajas                    = db.Column(db.Float,        nullable=True,  default=0.0)
     costo_unitario_estimado  = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     enlace_proveedor         = db.Column(db.Text,         nullable=True)
+
+    @property
+    def cantidad_pendiente(self):
+        return max(0, self.cantidad_solicitada - (self.cantidad_recibida or 0))
 
     @property
     def subtotal(self):
@@ -121,6 +130,10 @@ class ProyectoOC(db.Model):
     def costo_total(self):
         return sum(d.subtotal for d in self.detalles)
 
+    @property
+    def totalmente_recibida(self):
+        return bool(self.detalles) and all(d.cantidad_pendiente == 0 for d in self.detalles)
+
 
 class ProyectoOCDetalle(db.Model):
     id                  = db.Column(db.Integer, primary_key=True)
@@ -130,9 +143,14 @@ class ProyectoOCDetalle(db.Model):
     descripcion_nuevo   = db.Column(db.Text,         nullable=True)
     proveedor_sugerido  = db.Column(db.String(255),  nullable=True)
     cantidad            = db.Column(db.Integer,      nullable=False, default=1)
+    cantidad_recibida   = db.Column(db.Integer,      nullable=False, default=0, server_default='0')
     costo_unitario      = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     enlace_proveedor    = db.Column(db.Text,         nullable=True)
     comentarios_detalle = db.Column(db.Text,         nullable=True)
+
+    @property
+    def cantidad_pendiente(self):
+        return max(0, self.cantidad - (self.cantidad_recibida or 0))
 
     @property
     def subtotal(self):

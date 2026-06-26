@@ -193,6 +193,23 @@ def register_commands(app):
         else:
             print(f"Usuario '{username}' no encontrado.")
 
+    @app.cli.command('fix-add-cantidad-recibida')
+    @with_appcontext
+    def fix_add_cantidad_recibida():
+        """Añade cantidad_recibida a detalles de OC para recepción parcial. Idempotente."""
+        from app.extensions import db
+        stmts = [
+            "ALTER TABLE orden_compra_detalle ADD COLUMN IF NOT EXISTS cantidad_recibida INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE proyecto_oc_detalle ADD COLUMN IF NOT EXISTS cantidad_recibida INTEGER NOT NULL DEFAULT 0",
+        ]
+        with db.engine.connect() as conn:
+            for stmt in stmts:
+                try:
+                    conn.execute(text(stmt)); conn.commit(); print(f'OK: {stmt[:70]}')
+                except Exception as e:
+                    conn.rollback(); print(f'Omitido: {e}')
+        print('fix-add-cantidad-recibida completado.')
+
     @app.cli.command('fix-oc-detalle-almacen')
     @with_appcontext
     def fix_oc_detalle_almacen():
