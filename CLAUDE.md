@@ -147,6 +147,15 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - **Jinja2 doble `>`**: `{% else %}">{% endif %}>` produce `">>` (el `>` visible en pantalla). Patrón correcto: `{% else %}"{% endif %}>`.
 - **`del` no existe en Bash/Linux**: en la Bash tool usar `rm -f archivo`, no `del archivo`.
 
+## OC Rápida — agrupación por proveedor (commit pendiente)
+- OC Rápida ahora agrupa por **proveedor** (accordion exterior) en lugar de almacén.
+- Una sola OC puede incluir productos de múltiples almacenes.
+- `OrdenCompraDetalle.almacen_id` (nullable FK) — almacén por ítem.
+- `OrdenCompra.almacen_id` ahora nullable; se puebla con el almacén dominante para retrocompat de templates.
+- `recibir_orden` usa `detalle.almacen_id or orden.almacen_id` (backward compat con OCs legacy).
+- Form envía `name="item" value="prod_id:alm_id"` por checkbox (ya no `producto_id` + `almacen_id` oculto).
+- **Correr en servidor**: `flask fix-oc-detalle-almacen && sudo systemctl restart inventario`
+
 ## Estado actual
 - FIN-01 ✅ — RATE-01 ✅ — AUTH-02 ✅ — Multi-tenant isolation ✅ (commits 0db5e87, 4d63d06)
 - HD Pro Quick Order ✅ Fase 1 (CSV) + Fase 2 (sesión persistente) — commits 49ccf47–89900fa.

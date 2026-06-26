@@ -648,99 +648,82 @@
     {% if (current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard) and alertas_agrupadas %}
     <div class="mt-4 pt-4" style="border-top:1px solid var(--border);">
         <p class="section-label">Generar OC rápida desde alertas</p>
-        <div class="accordion shadow-sm rounded-4 overflow-hidden" id="accordionAlmacenes">
-            {% set current_alm = namespace(id=-1) %}
+        <div class="accordion shadow-sm rounded-4 overflow-hidden" id="accordionProveedores">
             {% for key, items_stock in alertas_agrupadas.items() | sort(attribute='0') %}
-                {% set alm_id = key[0] %}
-                {% set alm_nombre = key[1] %}
-                {% set prov_id = key[2] %}
-                {% set prov_nombre = key[3] %}
+                {% set prov_id = key[0] %}
+                {% set prov_nombre = key[1] %}
 
-                {% if current_alm.id != alm_id %}
-                    {% if not loop.first %}
-                            </div></div></div>
-                    {% endif %}
-                    <div class="accordion-item border mb-2 rounded-3 overflow-hidden">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed fw-bold bg-transparent text-body"
-                                    type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseAlm_{{ alm_id }}">
-                                <i class="bi bi-building text-primary me-2"></i> {{ alm_nombre }}
-                            </button>
-                        </h2>
-                        <div id="collapseAlm_{{ alm_id }}" class="accordion-collapse collapse">
-                            <div class="accordion-body pt-3">
-                    {% set current_alm.id = alm_id %}
-                {% endif %}
-
-                <div class="card border rounded-3 shadow-sm mb-3">
-                    <div class="card-header bg-transparent d-flex align-items-center gap-2 py-2">
-                        <i class="bi bi-truck text-info"></i>
-                        <span class="fw-bold small">{{ prov_nombre }}</span>
-                    </div>
-                    <form action="{{ url_for('purchasing.nueva_orden') }}" method="POST">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="almacen_id" value="{{ alm_id }}">
-                        <div class="card-body p-0">
-                            <button class="btn bg-transparent text-start w-100 border-bottom d-flex justify-content-between align-items-center py-2 px-3 small"
-                                    type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseProd_{{ alm_id }}_{{ prov_id }}">
-                                <span><i class="bi bi-box-seam text-warning me-1"></i>{{ items_stock|length }} producto(s) bajo mínimo</span>
-                                <i class="bi bi-chevron-down text-muted"></i>
-                            </button>
-                            {% set ns_grp = namespace(has_free=false) %}
-                            {% for _i in items_stock %}{% if not pending_map_tmpl.get(_i.producto.id|string + ':' + alm_id|string) %}{% set ns_grp.has_free = true %}{% endif %}{% endfor %}
-                            <div class="collapse" id="collapseProd_{{ alm_id }}_{{ prov_id }}">
-                                <ul class="list-group list-group-flush">
-                                    {% for item in items_stock %}
-                                    {% set pm_key = item.producto.id|string + ':' + alm_id|string %}
-                                    {% set pend = pending_map_tmpl.get(pm_key) %}
-                                    {% if pend %}
-                                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 small" style="background:var(--surface-raised,#f8fafc);">
-                                        <span class="d-flex align-items-center gap-2 text-muted">
-                                            <i class="bi bi-check2-circle text-success flex-shrink-0"></i>
-                                            <span>{{ item.producto.nombre }} <span style="font-size:.7rem;">({{ item.producto.codigo }})</span></span>
-                                        </span>
-                                        <a href="{{ url_for('purchasing.ver_orden', id=pend.orden_id) }}"
-                                           class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 text-decoration-none flex-shrink-0 ms-2"
-                                           title="Creado por {{ pend.username }}">
-                                            OC #{{ pend.orden_id }} · {{ pend.estado }}
-                                        </a>
-                                    </li>
-                                    {% else %}
-                                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 small">
-                                        <label class="d-flex align-items-center gap-2 mb-0">
-                                            <input class="form-check-input m-0" type="checkbox" name="producto_id" value="{{ item.producto.id }}" checked>
-                                            <span><strong>{{ item.producto.nombre }}</strong> <span class="text-muted">({{ item.producto.codigo }})</span></span>
-                                        </label>
-                                        <span class="badge bg-danger rounded-pill">{{ item.cantidad }}/{{ item.stock_minimo }}</span>
-                                    </li>
+                <div class="accordion-item border mb-2 rounded-3 overflow-hidden">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold bg-transparent text-body"
+                                type="button" data-bs-toggle="collapse"
+                                data-bs-target="#collapseProv_{{ prov_id }}">
+                            <i class="bi bi-truck text-info me-2"></i> {{ prov_nombre }}
+                            <span class="badge bg-warning text-dark rounded-pill ms-2 fw-normal" style="font-size:.7rem;">{{ items_stock|length }}</span>
+                        </button>
+                    </h2>
+                    <div id="collapseProv_{{ prov_id }}" class="accordion-collapse collapse">
+                        <div class="accordion-body pt-3">
+                            <form action="{{ url_for('purchasing.nueva_orden') }}" method="POST">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                {% set ns_grp = namespace(has_free=false) %}
+                                {% for _i in items_stock %}
+                                    {% if not pending_map_tmpl.get(_i.producto.id|string + ':' + _i.almacen_id|string) %}
+                                        {% set ns_grp.has_free = true %}
                                     {% endif %}
+                                {% endfor %}
+                                <ul class="list-group list-group-flush rounded-3 border mb-3">
+                                    {% for item in items_stock %}
+                                        {% set pm_key = item.producto.id|string + ':' + item.almacen_id|string %}
+                                        {% set pend = pending_map_tmpl.get(pm_key) %}
+                                        {% if pend %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 small" style="background:var(--surface-raised,#f8fafc);">
+                                            <span class="d-flex align-items-center gap-2 text-muted">
+                                                <i class="bi bi-check2-circle text-success flex-shrink-0"></i>
+                                                <span>{{ item.producto.nombre }} <span style="font-size:.7rem;">({{ item.producto.codigo }})</span></span>
+                                                <span class="badge bg-secondary rounded-pill" style="font-size:.65rem;">{{ item.almacen.nombre }}</span>
+                                            </span>
+                                            <a href="{{ url_for('purchasing.ver_orden', id=pend.orden_id) }}"
+                                               class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 text-decoration-none flex-shrink-0 ms-2"
+                                               title="Creado por {{ pend.username }}">
+                                                OC #{{ pend.orden_id }} · {{ pend.estado }}
+                                            </a>
+                                        </li>
+                                        {% else %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 small">
+                                            <label class="d-flex align-items-center gap-2 mb-0">
+                                                <input class="form-check-input m-0" type="checkbox"
+                                                       name="item" value="{{ item.producto.id }}:{{ item.almacen_id }}" checked>
+                                                <span>
+                                                    <strong>{{ item.producto.nombre }}</strong>
+                                                    <span class="text-muted">({{ item.producto.codigo }})</span>
+                                                    <span class="badge bg-secondary ms-1 rounded-pill" style="font-size:.65rem;">{{ item.almacen.nombre }}</span>
+                                                </span>
+                                            </label>
+                                            <span class="badge bg-danger rounded-pill">{{ item.cantidad }}/{{ item.stock_minimo }}</span>
+                                        </li>
+                                        {% endif %}
                                     {% endfor %}
                                 </ul>
-                            </div>
+                                <div class="text-end">
+                                    {% if prov_id != 0 and ns_grp.has_free %}
+                                    <button type="submit" class="btn btn-primary btn-sm rounded-pill fw-bold px-3 shadow-sm">
+                                        <i class="bi bi-cart-plus me-1"></i> Generar OC Rápida
+                                    </button>
+                                    {% elif prov_id != 0 %}
+                                    <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-info btn-sm rounded-pill fw-semibold px-3">
+                                        <i class="bi bi-eye me-1"></i> Ver OC pendiente
+                                    </a>
+                                    {% else %}
+                                    <span class="text-danger small fw-semibold">
+                                        <i class="bi bi-exclamation-circle me-1"></i>Asigna un proveedor para generar OC
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </form>
                         </div>
-                        <div class="card-footer bg-transparent text-end py-2">
-                            {% if prov_id != 0 and ns_grp.has_free %}
-                            <button type="submit" class="btn btn-primary btn-sm rounded-pill fw-bold px-3 shadow-sm">
-                                <i class="bi bi-cart-plus me-1"></i> Generar OC Rápida
-                            </button>
-                            {% elif prov_id != 0 %}
-                            <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-info btn-sm rounded-pill fw-semibold px-3">
-                                <i class="bi bi-eye me-1"></i> Ver OC pendiente
-                            </a>
-                            {% else %}
-                            <span class="text-danger small fw-semibold">
-                                <i class="bi bi-exclamation-circle me-1"></i>Asigna un proveedor para generar OC
-                            </span>
-                            {% endif %}
-                        </div>
-                    </form>
+                    </div>
                 </div>
-
-                {% if loop.last %}
-                        </div></div></div>
-                {% endif %}
             {% endfor %}
         </div>
     </div>

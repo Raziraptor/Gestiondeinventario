@@ -226,37 +226,63 @@ def lista_ordenes():
 @check_permission('perm_create_oc_standard')
 def nueva_orden():
     try:
-        ids_productos_a_ordenar = [int(i) for i in request.form.getlist('producto_id') if i.isdigit()]
-        almacen_id = request.form.get('almacen_id', type=int)
+        from collections import Counter
+        # Each checkbox submits "producto_id:almacen_id"
+        pares = []
+        for raw in request.form.getlist('item'):
+            partes = raw.split(':')
+            if len(partes) == 2 and partes[0].isdigit() and partes[1].isdigit():
+                pares.append((int(partes[0]), int(partes[1])))
 
-        if not ids_productos_a_ordenar or not almacen_id:
-            flash('Error en la solicitud de alerta.', 'danger')
+        if not pares:
+            flash('No se seleccionaron productos válidos.', 'danger')
             return redirect(url_for('main.index'))
 
-        productos = Producto.query.filter(Producto.id.in_(ids_productos_a_ordenar)).all()
+        org_id = current_user.organizacion_id
+        pids = [p for p, _ in pares]
+        aids = list({a for _, a in pares})
 
+        productos_map = {p.id: p for p in Producto.query.filter(Producto.id.in_(pids)).all()}
         if current_user.rol != 'super_admin':
-            for p in productos:
-                if p.organizacion_id != current_user.organizacion_id:
+            for p in productos_map.values():
+                if p.organizacion_id != org_id:
                     flash('Error: Intento de ordenar un producto no válido.', 'danger')
                     return redirect(url_for('main.index'))
 
-        proveedor_id_comun = productos[0].proveedor_id
-        if not all(p.proveedor_id == proveedor_id_comun for p in productos):
+        # Validate almacenes belong to the org
+        almacenes_validos = {
+            a.id for a in Almacen.query.filter(
+                Almacen.id.in_(aids), Almacen.organizacion_id == org_id
+            ).all()
+        }
+        if current_user.rol != 'super_admin' and len(almacenes_validos) != len(aids):
+            flash('Error: almacén no pertenece a tu organización.', 'danger')
+            return redirect(url_for('main.index'))
+
+        proveedores = {productos_map[pid].proveedor_id for pid, _ in pares if pid in productos_map}
+        if len(proveedores) != 1:
             flash('Error: Los productos seleccionados deben ser del mismo proveedor.', 'danger')
             return redirect(url_for('main.index'))
+        proveedor_id_comun = proveedores.pop()
+
+        # Header almacen = most frequent (keeps legacy templates happy)
+        alm_counter = Counter(a for _, a in pares)
+        almacen_dominante_id = alm_counter.most_common(1)[0][0]
 
         nueva_oc = OrdenCompra(
             proveedor_id=proveedor_id_comun,
             estado='borrador',
             creador_id=current_user.id,
-            organizacion_id=current_user.organizacion_id,
-            almacen_id=almacen_id
+            organizacion_id=org_id,
+            almacen_id=almacen_dominante_id,
         )
         db.session.add(nueva_oc)
 
-        for prod in productos:
-            stock_item = Stock.query.filter_by(producto_id=prod.id, almacen_id=almacen_id).first()
+        for prod_id, alm_id in pares:
+            prod = productos_map.get(prod_id)
+            if not prod:
+                continue
+            stock_item = Stock.query.filter_by(producto_id=prod_id, almacen_id=alm_id).first()
             cantidad_sugerida = (stock_item.stock_maximo - stock_item.cantidad) if stock_item else 5
             cantidad_final = max(1, cantidad_sugerida)
             factor_empaque = getattr(prod, 'unidades_por_caja', 1) or 1
@@ -264,7 +290,8 @@ def nueva_orden():
             costo_unitario = getattr(prod, 'precio_unitario', getattr(prod, 'costo', 0))
             db.session.add(OrdenCompraDetalle(
                 orden=nueva_oc,
-                producto_id=prod.id,
+                producto_id=prod_id,
+                almacen_id=alm_id,
                 cantidad_solicitada=cantidad_final,
                 costo_unitario_estimado=costo_unitario,
                 cajas=cajas_calculadas,
@@ -296,10 +323,6 @@ def recibir_orden(id):
         flash('Solo se pueden recibir órdenes en estado "Enviada".', 'warning')
         return redirect(url_for('purchasing.lista_ordenes'))
 
-    if not orden.almacen_id:
-        flash('Error: La orden no tiene un almacén asignado. No se puede ingresar el stock.', 'danger')
-        return redirect(url_for('purchasing.lista_ordenes'))
-
     try:
         org_id = orden.organizacion_id
         procesados = 0
@@ -317,14 +340,20 @@ def recibir_orden(id):
                     omitidos.append(f'{producto.nombre} (cantidad inválida: {cantidad})')
                     continue
 
+                # detalle.almacen_id (new OCs) falls back to orden.almacen_id (legacy OCs)
+                alm_destino = detalle.almacen_id or orden.almacen_id
+                if not alm_destino:
+                    omitidos.append(f'{producto.nombre} (sin almacén destino)')
+                    continue
+
                 stock_item = Stock.query.filter_by(
-                    producto_id=producto.id, almacen_id=orden.almacen_id
+                    producto_id=producto.id, almacen_id=alm_destino
                 ).first()
                 if stock_item:
                     stock_item.cantidad += cantidad
                 else:
                     db.session.add(Stock(
-                        producto_id=producto.id, almacen_id=orden.almacen_id,
+                        producto_id=producto.id, almacen_id=alm_destino,
                         cantidad=cantidad, stock_minimo=5, stock_maximo=100,
                     ))
 
@@ -332,7 +361,7 @@ def recibir_orden(id):
                     producto_id=producto.id, cantidad=cantidad, tipo='entrada',
                     fecha=now_mx(), motivo=f'Recepción de OC #{orden.id}',
                     orden_compra_id=orden.id, organizacion_id=org_id,
-                    almacen_id=orden.almacen_id,
+                    almacen_id=alm_destino,
                 ))
 
                 if hasattr(producto, 'cantidad_stock'):
@@ -342,7 +371,8 @@ def recibir_orden(id):
 
         orden.estado = 'recibida'
         orden.fecha_recepcion = now_mx()
-        resumen = f'{procesados} producto(s) ingresados al almacén {orden.almacen.nombre}'
+        nombre_alm = orden.almacen.nombre if orden.almacen else 'múltiples almacenes'
+        resumen = f'{procesados} producto(s) ingresados al almacén {nombre_alm}'
         log_actividad('recibir_oc', 'orden_compra', f'OC #{orden.id} recibida — {resumen}', entidad_id=orden.id)
         db.session.commit()
 

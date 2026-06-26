@@ -193,6 +193,23 @@ def register_commands(app):
         else:
             print(f"Usuario '{username}' no encontrado.")
 
+    @app.cli.command('fix-oc-detalle-almacen')
+    @with_appcontext
+    def fix_oc_detalle_almacen():
+        """Añade almacen_id a orden_compra_detalle y relaja orden_compra.almacen_id a nullable. Idempotente."""
+        from app.extensions import db
+        stmts = [
+            "ALTER TABLE orden_compra_detalle ADD COLUMN IF NOT EXISTS almacen_id INTEGER REFERENCES almacen(id) ON DELETE SET NULL",
+            "ALTER TABLE orden_compra ALTER COLUMN almacen_id DROP NOT NULL",
+        ]
+        with db.engine.connect() as conn:
+            for stmt in stmts:
+                try:
+                    conn.execute(text(stmt)); conn.commit(); print(f'OK: {stmt[:70]}')
+                except Exception as e:
+                    conn.rollback(); print(f'Omitido: {e}')
+        print('fix-oc-detalle-almacen completado.')
+
     @app.cli.command('limpiar-push-subs')
     @with_appcontext
     def limpiar_push_subs():
