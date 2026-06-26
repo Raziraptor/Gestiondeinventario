@@ -83,7 +83,7 @@
                             <td class="text-center">
                                 {% set alm = detalle.almacen or orden.almacen %}
                                 {% if alm %}
-                                <span class="badge bg-secondary bg-opacity-15 text-secondary border border-secondary border-opacity-25 rounded-pill px-2">
+                                <span class="rounded-pill px-2 py-1" style="background:var(--hover-bg);color:var(--bs-body-color);border:1px solid var(--border);font-size:.75rem;font-weight:600;white-space:nowrap;">
                                     <i class="bi bi-building me-1"></i>{{ alm.nombre }}
                                 </span>
                                 {% else %}
