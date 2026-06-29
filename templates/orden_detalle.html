@@ -107,6 +107,17 @@
 
             {% endif %}
 
+            {% if current_user.rol in ['super_admin','admin']
+                  and orden.proveedor.formato_oc is not none
+                  and orden.proveedor.formato_oc.activo %}
+            <a href="{{ url_for('purchasing.exportar_formato_proveedor', id=orden.id) }}"
+               class="btn btn-info shadow-sm rounded-pill px-4 fw-bold text-white"
+               aria-label="Exportar orden en el formato de {{ orden.proveedor.nombre }}">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i>
+                Exportar formato {{ orden.proveedor.nombre }}
+            </a>
+            {% endif %}
+
             <!-- Botón Volver -->
             <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
                 <i class="bi bi-arrow-left me-1"></i> Volver

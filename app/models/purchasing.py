@@ -48,6 +48,25 @@ class ProveedorIntegracion(db.Model):
         self._credenciales = Fernet(key).encrypt(json.dumps(value).encode()).decode()
 
 
+class FormatoProveedor(db.Model):
+    """Mapeo de columnas para exportar OC en el formato propio del proveedor."""
+    __tablename__ = 'formato_proveedor'
+    __table_args__ = (
+        db.UniqueConstraint('proveedor_id', 'organizacion_id',
+                            name='uq_formato_proveedor_org'),
+    )
+    id              = db.Column(db.Integer, primary_key=True)
+    proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedor.id'), nullable=False)
+    proveedor       = db.relationship('Proveedor',
+                                      backref=db.backref('formato_oc', uselist=False))
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
+    tipo_archivo    = db.Column(db.String(10),  nullable=False, default='xlsx')
+    nombre_archivo  = db.Column(db.String(100), nullable=False, default='OC-{id}')
+    # [{"campo": "producto.codigo", "header": "Item Number"}, ...]
+    columnas        = db.Column(db.JSON, nullable=False, default=list)
+    activo          = db.Column(db.Boolean, default=True, nullable=False)
+
+
 class HDSesion(db.Model):
     """Sesión persistente de HD Pro: cookies cifradas, TTL 7 días."""
     __tablename__ = 'hd_sesion'

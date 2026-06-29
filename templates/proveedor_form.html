@@ -129,17 +129,172 @@
         </div>
     </div>
     {% endif %}
+
+    {% if proveedor and current_user.rol in ['super_admin','admin'] %}
+    <hr class="my-5 border-secondary border-opacity-25">
+
+    <div class="card border-0 shadow-sm rounded-4 mt-4">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                 style="width:40px;height:40px;background:rgba(13,110,253,.12);">
+                <i class="bi bi-file-earmark-ruled text-primary fs-5"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold text-body">Formato de OC del Proveedor</h5>
+                <p class="mb-0 text-muted small">Genera un archivo con las columnas exactas que este proveedor requiere.</p>
+            </div>
+            {% if formato_oc %}
+            <span class="ms-auto badge rounded-pill px-3 py-2 fw-semibold {{ 'bg-success' if formato_oc.activo else 'bg-secondary' }}">
+                {{ 'Activo' if formato_oc.activo else 'Inactivo' }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="card-body pt-4">
+            <form method="POST" action="{{ url_for('inventory.guardar_formato_oc', id=proveedor.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="formato_activo"
+                                   name="formato_activo" value="1"
+                                   {{ 'checked' if formato_oc and formato_oc.activo else '' }}>
+                            <label class="form-check-label fw-semibold" for="formato_activo">
+                                Formato activo
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label for="formato_tipo" class="form-label fw-semibold">
+                            <i class="bi bi-file-earmark me-1 text-primary"></i>Tipo de archivo
+                        </label>
+                        <select class="form-select" id="formato_tipo" name="formato_tipo">
+                            <option value="xlsx" {{ 'selected' if not formato_oc or formato_oc.tipo_archivo == 'xlsx' else '' }}>Excel (.xlsx)</option>
+                            <option value="csv"  {{ 'selected' if formato_oc and formato_oc.tipo_archivo == 'csv' else '' }}>CSV (.csv)</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-8">
+                        <label for="formato_nombre" class="form-label fw-semibold">
+                            <i class="bi bi-file-text me-1 text-primary"></i>Nombre del archivo
+                        </label>
+                        <input type="text" class="form-control" id="formato_nombre" name="formato_nombre"
+                               value="{{ formato_oc.nombre_archivo if formato_oc else 'OC-{id}' }}"
+                               placeholder="OC-{id}">
+                        <div class="form-text text-muted"><code>{id}</code> se reemplaza con el número de la orden.</div>
+                    </div>
+
+                    <!-- Columnas dinámicas -->
+                    <div class="col-12 mt-2">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-table me-1 text-primary"></i>Columnas del archivo
+                        </label>
+                        <div class="small text-muted mb-2">Define cada columna: el campo interno y el nombre que quiere el proveedor.</div>
+                        <div id="columnas-container">
+                            {% if formato_oc and formato_oc.columnas %}
+                            {% for col in formato_oc.columnas %}
+                            <div class="columna-fila d-flex gap-2 mb-2 align-items-center">
+                                <select name="formato_campo[]" class="form-select form-select-sm" style="max-width:260px;">
+                                    {% for campo_id, etiqueta in campos_disponibles %}
+                                    <option value="{{ campo_id }}" {{ 'selected' if col.campo == campo_id else '' }}>{{ etiqueta }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="text" name="formato_header[]" class="form-control form-control-sm"
+                                       placeholder="Nombre de columna del proveedor"
+                                       value="{{ col.header }}">
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-quitar-col flex-shrink-0"
+                                        aria-label="Quitar columna">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                        <button type="button" id="btn-agregar-col" class="btn btn-outline-primary btn-sm mt-1">
+                            <i class="bi bi-plus-lg me-1"></i>Agregar columna
+                        </button>
+                    </div>
+
+                    <div class="col-12 mt-1 d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-primary fw-bold shadow-sm rounded-pill px-4">
+                            <i class="bi bi-floppy me-1"></i>
+                            {{ 'Actualizar formato' if formato_oc else 'Guardar formato' }}
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            {% if formato_oc %}
+            <hr class="my-3 border-secondary border-opacity-25">
+            <form method="POST" action="{{ url_for('inventory.eliminar_formato_oc', id=proveedor.id) }}"
+                  onsubmit="return confirm('¿Eliminar el formato de OC de este proveedor?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                    <i class="bi bi-trash me-1"></i>Eliminar formato
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('formProveedor').addEventListener('submit',function(){const btn=this.querySelector('[type="submit"]');if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Guardando…';}});
+(function() {
+    var camposDisponibles = {{ campos_disponibles | tojson if campos_disponibles else '[]' }};
 
-const btnToggle = document.getElementById('btn-toggle-pass');
+    function nuevaFilaColumna() {
+        var fila = document.createElement('div');
+        fila.className = 'columna-fila d-flex gap-2 mb-2 align-items-center';
+
+        var sel = document.createElement('select');
+        sel.name = 'formato_campo[]';
+        sel.className = 'form-select form-select-sm';
+        sel.style.maxWidth = '260px';
+        camposDisponibles.forEach(function(par) {
+            var opt = document.createElement('option');
+            opt.value = par[0];
+            opt.textContent = par[1];
+            sel.appendChild(opt);
+        });
+
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.name = 'formato_header[]';
+        inp.className = 'form-control form-control-sm';
+        inp.placeholder = 'Nombre de columna del proveedor';
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-outline-danger btn-sm btn-quitar-col flex-shrink-0';
+        btn.setAttribute('aria-label', 'Quitar columna');
+        btn.innerHTML = '<i class="bi bi-x-lg"></i>';
+
+        fila.appendChild(sel);
+        fila.appendChild(inp);
+        fila.appendChild(btn);
+        return fila;
+    }
+
+    var btnAgregar = document.getElementById('btn-agregar-col');
+    var container  = document.getElementById('columnas-container');
+    if (btnAgregar && container) {
+        btnAgregar.addEventListener('click', function() {
+            container.appendChild(nuevaFilaColumna());
+        });
+        container.addEventListener('click', function(e) {
+            var btn = e.target.closest('.btn-quitar-col');
+            if (btn) btn.closest('.columna-fila').remove();
+        });
+    }
+})();
+
+document.getElementById('formProveedor').addEventListener('submit',function(){var btn=this.querySelector('[type="submit"]');if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Guardando…';}});
+
+var btnToggle = document.getElementById('btn-toggle-pass');
 if (btnToggle) {
     btnToggle.addEventListener('click', function() {
-        const input = document.getElementById('hd_password');
-        const ico   = document.getElementById('ico-eye');
+        var input = document.getElementById('hd_password');
+        var ico   = document.getElementById('ico-eye');
         if (!input) return;
         if (input.type === 'password') {
             input.type = 'text';

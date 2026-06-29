@@ -242,6 +242,38 @@ def register_commands(app):
                 conn.rollback(); print(f'Omitido: {e}')
         print('fix-oc-distribucion-almacenes completado.')
 
+    @app.cli.command('fix-add-formato-proveedor')
+    @with_appcontext
+    def fix_add_formato_proveedor():
+        """Crea tabla formato_proveedor para formatos de OC por proveedor. Idempotente."""
+        from app.extensions import db
+        with db.engine.connect() as conn:
+            try:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS formato_proveedor (
+                        id SERIAL PRIMARY KEY,
+                        proveedor_id INTEGER NOT NULL REFERENCES proveedor(id) ON DELETE CASCADE,
+                        organizacion_id INTEGER NOT NULL REFERENCES organizacion(id) ON DELETE CASCADE,
+                        tipo_archivo VARCHAR(10) NOT NULL DEFAULT 'xlsx',
+                        nombre_archivo VARCHAR(100) NOT NULL DEFAULT 'OC-{id}',
+                        columnas JSONB NOT NULL DEFAULT '[]',
+                        activo BOOLEAN NOT NULL DEFAULT TRUE,
+                        CONSTRAINT uq_formato_proveedor_org UNIQUE (proveedor_id, organizacion_id)
+                    )
+                """)); conn.commit()
+                print('fix-add-formato-proveedor: tabla creada.')
+            except Exception as e:
+                conn.rollback(); print(f'Omitido: {e}')
+            try:
+                conn.execute(text(
+                    'CREATE INDEX IF NOT EXISTS ix_formato_proveedor_org '
+                    'ON formato_proveedor(organizacion_id)'
+                )); conn.commit()
+                print('fix-add-formato-proveedor: índice creado.')
+            except Exception as e:
+                conn.rollback(); print(f'Omitido índice: {e}')
+        print('fix-add-formato-proveedor completado.')
+
     @app.cli.command('limpiar-push-subs')
     @with_appcontext
     def limpiar_push_subs():

@@ -50,7 +50,7 @@ from app.helpers import (
 from app.models import (
     OrdenCompra, OrdenCompraDetalle, ProyectoOC, ProyectoOCDetalle,
     SolicitudAprobacion, Producto, Proveedor, Almacen, Stock, Movimiento,
-    Organizacion, AuditLog, ProveedorIntegracion, HDSesion,
+    Organizacion, AuditLog, ProveedorIntegracion, HDSesion, FormatoProveedor,
 )
 
 
@@ -768,6 +768,44 @@ def exportar_proyecto_hd_csv(id):
     response.headers['Content-Disposition'] = f'attachment; filename="hd-quickorder-proy{id}.csv"'
     if omitidos:
         response.headers['X-HD-Omitidos'] = ', '.join(omitidos[:10])
+    return response
+
+
+@purchasing_bp.route('/ordenes/<int:id>/exportar-formato-proveedor')
+@login_required
+@check_org_permission
+def exportar_formato_proveedor(id):
+    if current_user.rol not in ('super_admin', 'admin'):
+        flash('Solo administradores pueden exportar órdenes.', 'danger')
+        return redirect(url_for('purchasing.ver_orden', id=id))
+
+    org_id = current_user.organizacion_id
+    orden  = OrdenCompra.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+
+    formato = FormatoProveedor.query.filter_by(
+        proveedor_id=orden.proveedor_id, organizacion_id=org_id, activo=True
+    ).first()
+    if not formato:
+        flash('Este proveedor no tiene un formato de OC configurado o está inactivo.', 'warning')
+        return redirect(url_for('purchasing.ver_orden', id=id))
+
+    from integrations.formato_proveedor import generar_archivo
+    try:
+        archivo_bytes, mimetype, omitidos = generar_archivo(orden, formato)
+    except ValueError as e:
+        flash(str(e), 'warning')
+        return redirect(url_for('purchasing.ver_orden', id=id))
+    except Exception as e:
+        _flash_err('Error al generar el archivo del proveedor.', e)
+        return redirect(url_for('purchasing.ver_orden', id=id))
+
+    ext = 'csv' if 'csv' in mimetype else 'xlsx'
+    nombre = formato.nombre_archivo.replace('{id}', str(orden.id))
+    response = make_response(archivo_bytes)
+    response.headers['Content-Type'] = mimetype
+    response.headers['Content-Disposition'] = f'attachment; filename="{nombre}.{ext}"'
+    if omitidos:
+        response.headers['X-Formato-Omitidos'] = ', '.join(omitidos[:10])
     return response
 
 

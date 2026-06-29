@@ -59,7 +59,7 @@ from app.helpers import (
 )
 from app.models import (
     Producto, Stock, Movimiento, Categoria, Proveedor, Almacen,
-    Organizacion, Salida, AuditLog, ProveedorIntegracion,
+    Organizacion, Salida, AuditLog, ProveedorIntegracion, FormatoProveedor,
 )
 
 
@@ -962,11 +962,17 @@ def editar_proveedor(id):
             db.session.rollback()
             flash(f'Error al actualizar el proveedor: {e}', 'danger')
 
+    org_id = current_user.organizacion_id
     integracion = ProveedorIntegracion.query.filter_by(
-        proveedor_id=proveedor.id, organizacion_id=proveedor.organizacion_id
+        proveedor_id=proveedor.id, organizacion_id=org_id
     ).first()
+    formato_oc = FormatoProveedor.query.filter_by(
+        proveedor_id=proveedor.id, organizacion_id=org_id
+    ).first()
+    from integrations.formato_proveedor import CAMPOS_DISPONIBLES
     return render_template('proveedor_form.html', titulo="Editar Proveedor",
-                           proveedor=proveedor, integracion=integracion)
+                           proveedor=proveedor, integracion=integracion,
+                           formato_oc=formato_oc, campos_disponibles=CAMPOS_DISPONIBLES)
 
 
 @inventory_bp.route('/proveedor/<int:id>/integracion-hd', methods=['POST'])
@@ -1020,6 +1026,91 @@ def guardar_integracion_hd(id):
     except Exception as e:
         db.session.rollback()
         _flash_err('Error al guardar la integración.', e)
+
+    return redirect(url_for('inventory.editar_proveedor', id=id))
+
+
+@inventory_bp.route('/proveedor/<int:id>/formato-oc', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def guardar_formato_oc(id):
+    proveedor = get_item_or_404(Proveedor, id)
+    org_id    = proveedor.organizacion_id
+
+    if current_user.rol not in ('super_admin', 'admin'):
+        flash('Solo administradores pueden configurar formatos de OC.', 'danger')
+        return redirect(url_for('inventory.editar_proveedor', id=id))
+
+    from integrations.formato_proveedor import CAMPOS_DISPONIBLES
+    campos_validos = {c for c, _ in CAMPOS_DISPONIBLES}
+
+    campos_form  = request.form.getlist('formato_campo[]')
+    headers_form = request.form.getlist('formato_header[]')
+
+    columnas = []
+    for campo, header in zip(campos_form, headers_form):
+        campo  = campo.strip()
+        header = header.strip()
+        if campo in campos_validos and header:
+            columnas.append({'campo': campo, 'header': header})
+
+    activo         = request.form.get('formato_activo') == '1'
+    tipo_archivo   = request.form.get('formato_tipo', 'xlsx')
+    nombre_archivo = request.form.get('formato_nombre', 'OC-{id}').strip() or 'OC-{id}'
+
+    if tipo_archivo not in ('xlsx', 'csv'):
+        tipo_archivo = 'xlsx'
+
+    fmt = FormatoProveedor.query.filter_by(
+        proveedor_id=proveedor.id, organizacion_id=org_id
+    ).first()
+
+    try:
+        if fmt is None:
+            fmt = FormatoProveedor(
+                proveedor_id=proveedor.id, organizacion_id=org_id,
+            )
+            db.session.add(fmt)
+        fmt.activo        = activo
+        fmt.tipo_archivo  = tipo_archivo
+        fmt.nombre_archivo = nombre_archivo
+        fmt.columnas      = columnas  # asignación directa, no mutación in-place
+        db.session.commit()
+        flash('Formato de OC guardado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        _flash_err('Error al guardar el formato de OC.', e)
+
+    return redirect(url_for('inventory.editar_proveedor', id=id))
+
+
+@inventory_bp.route('/proveedor/<int:id>/formato-oc/eliminar', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def eliminar_formato_oc(id):
+    proveedor = get_item_or_404(Proveedor, id)
+    org_id    = proveedor.organizacion_id
+
+    if current_user.rol not in ('super_admin', 'admin'):
+        flash('Solo administradores pueden eliminar formatos de OC.', 'danger')
+        return redirect(url_for('inventory.editar_proveedor', id=id))
+
+    fmt = FormatoProveedor.query.filter_by(
+        proveedor_id=proveedor.id, organizacion_id=org_id
+    ).first()
+
+    if fmt:
+        try:
+            db.session.delete(fmt)
+            db.session.commit()
+            flash('Formato de OC eliminado.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            _flash_err('Error al eliminar el formato de OC.', e)
+    else:
+        flash('No hay formato de OC configurado para este proveedor.', 'warning')
 
     return redirect(url_for('inventory.editar_proveedor', id=id))
 
