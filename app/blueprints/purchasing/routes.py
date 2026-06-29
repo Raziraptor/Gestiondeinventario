@@ -24,6 +24,7 @@ from flask import (
 from flask_login import login_required, current_user
 from sqlalchemy import extract
 from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm.attributes import flag_modified
 from werkzeug.utils import secure_filename
 
 from reportlab.lib.pagesizes import A4
@@ -226,7 +227,7 @@ def lista_ordenes():
 @check_permission('perm_create_oc_standard')
 def nueva_orden():
     try:
-        from collections import Counter
+        from collections import Counter, defaultdict
         # Each checkbox submits "producto_id:almacen_id"
         pares = []
         for raw in request.form.getlist('item'):
@@ -249,13 +250,13 @@ def nueva_orden():
                     flash('Error: Intento de ordenar un producto no válido.', 'danger')
                     return redirect(url_for('main.index'))
 
-        # Validate almacenes belong to the org
-        almacenes_validos = {
-            a.id for a in Almacen.query.filter(
+        # Validate almacenes belong to the org; also load objects for names
+        almacenes_obj = {
+            a.id: a for a in Almacen.query.filter(
                 Almacen.id.in_(aids), Almacen.organizacion_id == org_id
             ).all()
         }
-        if current_user.rol != 'super_admin' and len(almacenes_validos) != len(aids):
+        if current_user.rol != 'super_admin' and len(almacenes_obj) != len(aids):
             flash('Error: almacén no pertenece a tu organización.', 'danger')
             return redirect(url_for('main.index'))
 
@@ -278,24 +279,44 @@ def nueva_orden():
         )
         db.session.add(nueva_oc)
 
+        # Group by producto_id: mismo producto en distintos almacenes → 1 detalle
+        # con cantidad total; distribucion_almacenes guarda el reparto por almacén.
+        grupos: dict = defaultdict(dict)  # {prod_id: {alm_id: cantidad}}
         for prod_id, alm_id in pares:
-            prod = productos_map.get(prod_id)
-            if not prod:
+            if prod_id not in productos_map:
                 continue
             stock_item = Stock.query.filter_by(producto_id=prod_id, almacen_id=alm_id).first()
-            cantidad_sugerida = (stock_item.stock_maximo - stock_item.cantidad) if stock_item else 5
-            cantidad_final = max(1, cantidad_sugerida)
-            factor_empaque = getattr(prod, 'unidades_por_caja', 1) or 1
-            cajas_calculadas = cantidad_final / factor_empaque
+            cant = max(1, (stock_item.stock_maximo - stock_item.cantidad) if stock_item else 5)
+            grupos[prod_id][alm_id] = grupos[prod_id].get(alm_id, 0) + cant
+
+        for prod_id, alm_cantidades in grupos.items():
+            prod = productos_map[prod_id]
             costo_unitario = getattr(prod, 'precio_unitario', getattr(prod, 'costo', 0))
-            db.session.add(OrdenCompraDetalle(
+            factor_empaque = getattr(prod, 'unidades_por_caja', 1) or 1
+            cantidad_total = sum(alm_cantidades.values())
+            items = list(alm_cantidades.items())  # [(alm_id, cantidad), ...]
+
+            detalle = OrdenCompraDetalle(
                 orden=nueva_oc,
                 producto_id=prod_id,
-                almacen_id=alm_id,
-                cantidad_solicitada=cantidad_final,
+                cantidad_solicitada=cantidad_total,
                 costo_unitario_estimado=costo_unitario,
-                cajas=cajas_calculadas,
-            ))
+                cajas=cantidad_total / factor_empaque,
+            )
+            if len(items) == 1:
+                detalle.almacen_id = items[0][0]
+            else:
+                detalle.almacen_id = None
+                detalle.distribucion_almacenes = [
+                    {
+                        'almacen_id': aid,
+                        'almacen_nombre': almacenes_obj[aid].nombre if aid in almacenes_obj else f'Almacén #{aid}',
+                        'cantidad': c,
+                        'recibida': 0,
+                    }
+                    for aid, c in items
+                ]
+            db.session.add(detalle)
 
         db.session.commit()
         flash('Nueva Orden de Compra generada en "Borrador".', 'success')
@@ -348,30 +369,69 @@ def recibir_orden(id):
                 if recibir_ahora <= 0:
                     continue
 
-                alm_destino = detalle.almacen_id or orden.almacen_id
-                if not alm_destino:
-                    omitidos.append(f'{producto.nombre} (sin almacén destino)')
-                    continue
-
-                stock_item = Stock.query.filter_by(
-                    producto_id=producto.id, almacen_id=alm_destino
-                ).first()
-                if stock_item:
-                    stock_item.cantidad += recibir_ahora
+                if detalle.distribucion_almacenes:
+                    # Multi-warehouse: distribuir en orden (llena primer almacén, luego siguiente)
+                    dist_list = [dict(d) for d in detalle.distribucion_almacenes]
+                    remaining = recibir_ahora
+                    for dist in dist_list:
+                        if remaining <= 0:
+                            break
+                        pendiente_alm = dist['cantidad'] - dist.get('recibida', 0)
+                        if pendiente_alm <= 0:
+                            continue
+                        recibir_alm = min(remaining, pendiente_alm)
+                        alm = Almacen.query.filter_by(
+                            id=dist['almacen_id'], organizacion_id=org_id
+                        ).first()
+                        if not alm:
+                            omitidos.append(
+                                f'{producto.nombre} → {dist.get("almacen_nombre","?")} (almacén no encontrado)'
+                            )
+                            continue
+                        stock_item = Stock.query.filter_by(
+                            producto_id=producto.id, almacen_id=alm.id
+                        ).first()
+                        if stock_item:
+                            stock_item.cantidad += recibir_alm
+                        else:
+                            db.session.add(Stock(
+                                producto_id=producto.id, almacen_id=alm.id,
+                                cantidad=recibir_alm, stock_minimo=5, stock_maximo=100,
+                            ))
+                        db.session.add(Movimiento(
+                            producto_id=producto.id, cantidad=recibir_alm, tipo='entrada',
+                            fecha=now_mx(),
+                            motivo=f'Recepción OC #{orden.id} → {alm.nombre}',
+                            orden_compra_id=orden.id, organizacion_id=org_id,
+                            almacen_id=alm.id,
+                        ))
+                        dist['recibida'] = dist.get('recibida', 0) + recibir_alm
+                        remaining -= recibir_alm
+                    detalle.distribucion_almacenes = dist_list
+                    flag_modified(detalle, 'distribucion_almacenes')
+                    detalle.cantidad_recibida = sum(d.get('recibida', 0) for d in dist_list)
                 else:
-                    db.session.add(Stock(
-                        producto_id=producto.id, almacen_id=alm_destino,
-                        cantidad=recibir_ahora, stock_minimo=5, stock_maximo=100,
+                    alm_destino = detalle.almacen_id or orden.almacen_id
+                    if not alm_destino:
+                        omitidos.append(f'{producto.nombre} (sin almacén destino)')
+                        continue
+                    stock_item = Stock.query.filter_by(
+                        producto_id=producto.id, almacen_id=alm_destino
+                    ).first()
+                    if stock_item:
+                        stock_item.cantidad += recibir_ahora
+                    else:
+                        db.session.add(Stock(
+                            producto_id=producto.id, almacen_id=alm_destino,
+                            cantidad=recibir_ahora, stock_minimo=5, stock_maximo=100,
+                        ))
+                    db.session.add(Movimiento(
+                        producto_id=producto.id, cantidad=recibir_ahora, tipo='entrada',
+                        fecha=now_mx(), motivo=f'Recepción de OC #{orden.id}',
+                        orden_compra_id=orden.id, organizacion_id=org_id,
+                        almacen_id=alm_destino,
                     ))
-
-                db.session.add(Movimiento(
-                    producto_id=producto.id, cantidad=recibir_ahora, tipo='entrada',
-                    fecha=now_mx(), motivo=f'Recepción de OC #{orden.id}',
-                    orden_compra_id=orden.id, organizacion_id=org_id,
-                    almacen_id=alm_destino,
-                ))
-
-                detalle.cantidad_recibida = (detalle.cantidad_recibida or 0) + recibir_ahora
+                    detalle.cantidad_recibida = (detalle.cantidad_recibida or 0) + recibir_ahora
                 procesados += 1
 
         if procesados == 0:

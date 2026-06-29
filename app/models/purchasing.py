@@ -98,6 +98,10 @@ class OrdenCompraDetalle(db.Model):
     cajas                    = db.Column(db.Float,        nullable=True,  default=0.0)
     costo_unitario_estimado  = db.Column(db.Numeric(10, 2), nullable=True, default=0)
     enlace_proveedor         = db.Column(db.Text,         nullable=True)
+    # Distribución por almacén para detalles multi-almacén de OC Rápida.
+    # Formato: [{"almacen_id": int, "almacen_nombre": str, "cantidad": int, "recibida": int}]
+    # Si es None, el detalle usa almacen_id simple (comportamiento legacy).
+    distribucion_almacenes   = db.Column(db.JSON,         nullable=True)
 
     @property
     def cantidad_pendiente(self):

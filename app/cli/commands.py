@@ -227,6 +227,21 @@ def register_commands(app):
                     conn.rollback(); print(f'Omitido: {e}')
         print('fix-oc-detalle-almacen completado.')
 
+    @app.cli.command('fix-oc-distribucion-almacenes')
+    @with_appcontext
+    def fix_oc_distribucion_almacenes():
+        """Añade distribucion_almacenes (JSONB) a orden_compra_detalle. Idempotente."""
+        from app.extensions import db
+        from sqlalchemy import text
+        stmt = ('ALTER TABLE orden_compra_detalle '
+                'ADD COLUMN IF NOT EXISTS distribucion_almacenes JSONB')
+        with db.engine.connect() as conn:
+            try:
+                conn.execute(text(stmt)); conn.commit(); print(f'OK: {stmt}')
+            except Exception as e:
+                conn.rollback(); print(f'Omitido: {e}')
+        print('fix-oc-distribucion-almacenes completado.')
+
     @app.cli.command('limpiar-push-subs')
     @with_appcontext
     def limpiar_push_subs():

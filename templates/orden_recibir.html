@@ -81,6 +81,22 @@
                                 {% endif %}
                             </td>
                             <td class="text-center">
+                                {% if detalle.distribucion_almacenes %}
+                                <div class="d-flex flex-column gap-1 align-items-center">
+                                    {% for dist in detalle.distribucion_almacenes %}
+                                    {% set pend_alm = dist.cantidad - (dist.recibida or 0) %}
+                                    <span class="rounded-pill px-2 py-1 d-flex align-items-center gap-1"
+                                          style="background:var(--hover-bg);color:var(--bs-body-color);border:1px solid var(--border);font-size:.72rem;font-weight:600;white-space:nowrap;{% if pend_alm == 0 %}opacity:.45{% endif %}">
+                                        <i class="bi bi-building"></i>{{ dist.almacen_nombre }}
+                                        {% if pend_alm > 0 %}
+                                        <span class="badge rounded-pill ms-1" style="background:var(--primary);color:#fff;font-size:.6rem;">→ {{ pend_alm }}</span>
+                                        {% else %}
+                                        <i class="bi bi-check-lg text-success ms-1"></i>
+                                        {% endif %}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
                                 {% set alm = detalle.almacen or orden.almacen %}
                                 {% if alm %}
                                 <span class="rounded-pill px-2 py-1" style="background:var(--hover-bg);color:var(--bs-body-color);border:1px solid var(--border);font-size:.75rem;font-weight:600;white-space:nowrap;">
@@ -88,6 +104,7 @@
                                 </span>
                                 {% else %}
                                 <span class="text-muted small">—</span>
+                                {% endif %}
                                 {% endif %}
                             </td>
                             <td class="text-center fw-bold">{{ detalle.cantidad_solicitada }}</td>

@@ -190,6 +190,15 @@
                             <!-- Producto con Botón de Enlace -->
                             <td class="ps-4 py-3 text-body">
                                 <div class="fw-bold">{{ detalle.producto.nombre }}</div>
+                                {% if detalle.distribucion_almacenes %}
+                                <div class="mt-1 d-flex flex-wrap gap-1">
+                                    {% for dist in detalle.distribucion_almacenes %}
+                                    <span class="rounded-pill px-2 py-0" style="background:var(--hover-bg);color:var(--bs-body-color);border:1px solid var(--border);font-size:.68rem;font-weight:600;">
+                                        <i class="bi bi-building" style="font-size:.65rem;"></i> {{ dist.almacen_nombre }}: {{ dist.cantidad }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
                                 {% if detalle.enlace_proveedor %}
                                     <a href="{{ detalle.enlace_proveedor }}" target="_blank" class="btn btn-link btn-sm p-0 text-primary text-decoration-none fw-bold btn-link-proveedor">
                                         <i class="bi bi-box-arrow-up-right me-1"></i> Ver en Proveedor
