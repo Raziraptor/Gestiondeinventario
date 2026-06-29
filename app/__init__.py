@@ -38,6 +38,11 @@ def create_app(config_name=None):
     )
     app.config.from_object(config[config_name])
 
+    # Werkzeug 2.x lee max_form_parts directo del request_class (Flask 3.x lo lee
+    # del config automáticamente; esto cubre ambas versiones).
+    if hasattr(app.request_class, 'max_form_parts'):
+        app.request_class.max_form_parts = app.config.get('MAX_FORM_PARTS', 5000)
+
     db.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)

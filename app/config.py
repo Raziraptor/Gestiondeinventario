@@ -56,6 +56,11 @@ class Config:
     # ── WTF ───────────────────────────────────────────────────────────────────
     WTF_CSRF_ENABLED = True
 
+    # ── Límite de campos de formulario ────────────────────────────────────────
+    # Werkzeug 2.3+ default = 1000. OC Proyecto usa 8 campos × N artículos;
+    # con 125+ artículos se supera el límite y el parse falla antes del CSRF.
+    MAX_FORM_PARTS = 5000
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

@@ -63,9 +63,7 @@
 
     <!-- FORMULARIO PRINCIPAL -->
     <form method="POST" id="form_proyecto_oc" action="{{ url_for('purchasing.editar_proyecto_oc', id=proyecto_oc.id) if proyecto_oc else url_for('purchasing.nuevo_proyecto_oc') }}">
-        {% if csrf_token %}
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {% endif %}
         
         <div class="row g-4">
             <!-- COLUMNA IZQUIERDA -->
