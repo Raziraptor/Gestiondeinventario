@@ -61,6 +61,7 @@ from app.models import (
     Producto, Stock, Movimiento, Categoria, Proveedor, Almacen,
     Organizacion, Salida, AuditLog, ProveedorIntegracion, FormatoProveedor,
 )
+from integrations.formato_proveedor import CAMPOS_DISPONIBLES
 
 
 # ==============================================================================
@@ -941,12 +942,13 @@ def nuevo_proveedor():
             return redirect(url_for('inventory.lista_proveedores'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear proveedor: {e}', 'danger')
+            _flash_err('Error al crear proveedor.', e)
     return render_template('proveedor_form.html', titulo="Nuevo Proveedor", proveedor=None)
 
 
 @inventory_bp.route('/proveedor/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_edit_management')
 def editar_proveedor(id):
     proveedor = get_item_or_404(Proveedor, id)
@@ -960,7 +962,7 @@ def editar_proveedor(id):
             return redirect(url_for('inventory.lista_proveedores'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar el proveedor: {e}', 'danger')
+            _flash_err('Error al actualizar el proveedor.', e)
 
     org_id = current_user.organizacion_id
     integracion = ProveedorIntegracion.query.filter_by(
@@ -969,7 +971,6 @@ def editar_proveedor(id):
     formato_oc = FormatoProveedor.query.filter_by(
         proveedor_id=proveedor.id, organizacion_id=org_id
     ).first()
-    from integrations.formato_proveedor import CAMPOS_DISPONIBLES
     return render_template('proveedor_form.html', titulo="Editar Proveedor",
                            proveedor=proveedor, integracion=integracion,
                            formato_oc=formato_oc, campos_disponibles=CAMPOS_DISPONIBLES)
@@ -1042,7 +1043,6 @@ def guardar_formato_oc(id):
         flash('Solo administradores pueden configurar formatos de OC.', 'danger')
         return redirect(url_for('inventory.editar_proveedor', id=id))
 
-    from integrations.formato_proveedor import CAMPOS_DISPONIBLES
     campos_validos = {c for c, _ in CAMPOS_DISPONIBLES}
 
     campos_form  = request.form.getlist('formato_campo[]')

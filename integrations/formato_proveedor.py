@@ -108,7 +108,7 @@ def generar_archivo(orden, formato) -> tuple[bytes, str, list[str]]:
 
     for col_idx, header in enumerate(headers_validos, 1):
         cell = ws.cell(row=1, column=col_idx, value=header)
-        cell.font = header_fill and header_font
+        cell.font = header_font
         cell.fill = header_fill
         cell.alignment = header_align
         ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = 20
