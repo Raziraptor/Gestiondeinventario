@@ -382,7 +382,7 @@
                     const a = document.createElement('a');
                     a.href = "#";
                     a.className = 'list-group-item list-group-item-action py-3';
-                    a.innerHTML = `<div class="d-flex justify-content-between"><strong>${p.nombre}</strong> <span class="badge bg-primary rounded-pill">$${p.precio_unitario || p.costo || 0}</span></div><small class="text-muted">SKU: ${p.codigo}</small>`;
+                    a.innerHTML = `<div class="d-flex justify-content-between"><strong>${escHtml(p.nombre)}</strong> <span class="badge bg-primary rounded-pill">$${p.precio_unitario || p.costo || 0}</span></div><small class="text-muted">SKU: ${escHtml(p.codigo)}</small>`;
                     a.onclick = (e) => {
                         e.preventDefault();
                         agregarFila({ 

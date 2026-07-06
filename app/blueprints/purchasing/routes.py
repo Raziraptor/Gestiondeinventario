@@ -32,6 +32,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from xml.sax.saxutils import escape as _xml_escape
 from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer,
     Image as ReportLabImage,
@@ -560,10 +561,12 @@ def generar_oc_pdf(id):
         factor_empaque = getattr(detalle.producto, 'unidades_por_caja', 1) or 1
         cajas = getattr(detalle, 'cajas', 0)
         enlace_url = getattr(detalle, 'enlace_proveedor', None) or getattr(detalle.producto, 'enlace_proveedor', None)
-        desc = (f"<b>{detalle.producto.nombre}</b><br/>SKU: {detalle.producto.codigo}<br/>"
+        _nombre = _xml_escape(detalle.producto.nombre)
+        _codigo = _xml_escape(detalle.producto.codigo or '')
+        desc = (f"<b>{_nombre}</b><br/>SKU: {_codigo}<br/>"
                 f"<font color='gray' size='8'>Empaque: {factor_empaque} ud(s)</font>")
         if enlace_url:
-            display_url = (enlace_url[:50] + '...') if len(enlace_url) > 53 else enlace_url
+            display_url = _xml_escape((enlace_url[:50] + '...') if len(enlace_url) > 53 else enlace_url)
             desc += f"<br/><font color='blue' size='7'>{display_url}</font>"
         data_table.append([
             Paragraph(desc, s_normal),
@@ -1633,14 +1636,14 @@ def generar_proyecto_oc_pdf(id):
     total = 0
     for d in proyecto_oc.detalles:
         if d.producto_id and d.producto:
-            desc_html = f'<b>{d.producto.nombre}</b><br/><font size="8" color="gray">SKU: {d.producto.codigo}</font>'
+            desc_html = f'<b>{_xml_escape(d.producto.nombre)}</b><br/><font size="8" color="gray">SKU: {_xml_escape(d.producto.codigo or "")}</font>'
         else:
-            desc_html = f'<b>{d.descripcion_nuevo or "Sin descripción"}</b><br/><font size="8" color="gray">Artículo externo</font>'
+            desc_html = f'<b>{_xml_escape(d.descripcion_nuevo or "Sin descripción")}</b><br/><font size="8" color="gray">Artículo externo</font>'
         if d.enlace_proveedor:
-            short = (d.enlace_proveedor[:45] + '...') if len(d.enlace_proveedor) > 48 else d.enlace_proveedor
+            short = _xml_escape((d.enlace_proveedor[:45] + '...') if len(d.enlace_proveedor) > 48 else d.enlace_proveedor)
             desc_html += f'<br/><font size="7" color="blue">{short}</font>'
         if d.comentarios_detalle:
-            desc_html += f'<br/><font size="7" color="gray">{d.comentarios_detalle}</font>'
+            desc_html += f'<br/><font size="7" color="gray">{_xml_escape(d.comentarios_detalle)}</font>'
         sub = d.cantidad * d.costo_unitario
         total += sub
         data.append([

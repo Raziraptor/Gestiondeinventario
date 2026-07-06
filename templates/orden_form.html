@@ -308,7 +308,7 @@
                 const item = document.createElement('a');
                 item.href = '#'; item.classList.add('list-group-item', 'list-group-item-action', 'py-3');
                 const icon = p.enlace ? '<i class="bi bi-link-45deg text-primary ms-2"></i>' : '';
-                item.innerHTML = `<div><strong>${p.nombre}</strong>${icon}<br><small class="text-muted">${p.codigo}</small></div>`;
+                item.innerHTML = `<div><strong>${escHtml(p.nombre)}</strong>${icon}<br><small class="text-muted">${escHtml(p.codigo)}</small></div>`;
                 item.onclick = (e) => { e.preventDefault(); agregarProducto(p); buscador.value = ''; sugerencias.style.display = 'none'; buscador.focus(); };
                 sugerencias.appendChild(item);
             });

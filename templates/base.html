@@ -1152,7 +1152,7 @@
             <div class="fab-item" id="fabItemOC">
                 <span class="fab-item-label">Nueva OC</span>
                 <a class="fab-item-btn" style="background:#10b981;color:#fff;"
-                   href="{{ url_for('purchasing.lista_ordenes') }}" title="Órdenes de compra">
+                   href="{{ url_for('purchasing.nueva_orden_manual') }}" title="Órdenes de compra">
                     <i class="bi bi-receipt"></i>
                 </a>
             </div>
@@ -1378,9 +1378,10 @@
             el.className = 'toast-app t-' + cat;
             el.innerHTML =
                 '<i class="bi ' + cfg.icon + ' toast-app-icon" style="color:' + cfg.color + '"></i>' +
-                '<span class="toast-app-msg">' + msg + '</span>' +
+                '<span class="toast-app-msg"></span>' +
                 '<button class="toast-app-close" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>' +
                 '<div class="toast-progress-bar" style="animation-duration:' + duration + 'ms"></div>';
+            el.querySelector('.toast-app-msg').textContent = msg;
             container.appendChild(el);
 
             function dismiss() {

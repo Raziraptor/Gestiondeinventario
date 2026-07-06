@@ -374,6 +374,7 @@
 .palette-btn.active { outline: 3px solid #fff; box-shadow: 0 0 0 5px currentColor; }
 </style>
 
+{% endblock %}
 {% block scripts %}
 <script>
 const LOGO_URL = {{ ('"' ~ url_for('static', filename='uploads/' ~ org.logo_url) ~ '"') | safe if org.logo_url else 'null' }};
@@ -492,5 +493,4 @@ function confirmarEliminarLogo() {
   });
 }
 </script>
-{% endblock %}
 {% endblock %}

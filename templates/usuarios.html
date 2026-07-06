@@ -16,7 +16,7 @@
                 <h2 class="page-title"><i class="bi bi-people-fill me-2"></i>Gestión de Usuarios</h2>
                 <p class="page-subtitle">Administra accesos y restablece contraseñas.</p>
             </div>
-            {% if 'register' in config or 'registro' in config %}
+            {% if current_user.rol in ['super_admin', 'admin'] %}
             <a href="{{ url_for('auth.register') }}" class="btn btn-primary shadow-sm">
                 <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
             </a>
@@ -67,11 +67,6 @@
                                             title="Restablecer Contraseña"
                                             aria-label="Restablecer contraseña de {{ usuario.username }}">
                                         <i class="bi bi-key-fill text-dark" aria-hidden="true"></i>
-                                    </button>
-                                    
-                                    <!-- Botón dummy de editar (puedes implementarlo luego) -->
-                                    <button class="btn btn-accion btn-outline-secondary btn-sm" title="Editar Detalles" aria-label="Editar usuario {{ usuario.username }}">
-                                        <i class="bi bi-pencil" aria-hidden="true"></i>
                                     </button>
                                 </div>
                             </td>

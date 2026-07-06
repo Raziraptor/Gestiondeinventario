@@ -197,6 +197,7 @@
 }
 </style>
 
+{% endblock %}
 {% block scripts %}
 <script>
 document.querySelectorAll('.size-radio').forEach(radio => {
@@ -210,6 +211,4 @@ document.querySelectorAll('.size-radio:checked').forEach(r => {
   document.querySelector(`.size-card[data-for="${r.id}"]`)?.classList.add('selected');
 });
 </script>
-{% endblock %}
-
 {% endblock %}

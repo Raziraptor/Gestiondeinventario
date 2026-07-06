@@ -804,7 +804,7 @@ function filtroRapido(estado) {
     b.classList.toggle('btn-outline-danger',  !match && b.dataset.filtroEstado === 'bajo');
     b.classList.toggle('btn-outline-success', !match && b.dataset.filtroEstado === 'ok');
     b.classList.toggle('btn-outline-info',    !match && b.dataset.filtroEstado === 'exceso');
-    b.classList.toggle('btn-outline-secondary', false);
+    b.classList.toggle('btn-outline-secondary', !match && b.dataset.filtroEstado === '');
   });
 }
 
@@ -917,7 +917,7 @@ async function cargarAlertas() {
           <a href="/orden/nueva/manual?producto_id=${item.producto_id}" class="btn btn-sm btn-outline-success rounded-pill px-2 fw-semibold" style="font-size:.75rem;" title="Crear Orden de Compra">
             <i class="bi bi-cart-plus"></i> OC
           </a>
-          <a href="/salida?almacen_id=" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:.75rem;" title="Ver historial">
+          <a href="/producto/${item.producto_id}/historial" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:.75rem;" title="Ver historial">
             <i class="bi bi-clock-history"></i>
           </a>
         </div>
