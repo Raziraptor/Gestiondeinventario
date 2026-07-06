@@ -1,0 +1,687 @@
+{
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\.mcp.json": {
+    "mtime": 1778800059.4368746,
+    "ast_hash": "56c73b4f5f01e9d156e340de4ad79c94",
+    "semantic_hash": "56c73b4f5f01e9d156e340de4ad79c94"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app.py": {
+    "mtime": 1780667573.7659662,
+    "ast_hash": "7ba33fb141111fad402f4f09a62eeadd",
+    "semantic_hash": "7ba33fb141111fad402f4f09a62eeadd"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\gen_vapid.py": {
+    "mtime": 1777932879.7779312,
+    "ast_hash": "5999e561e6dec852c2e0b9ca0a01a3b4",
+    "semantic_hash": "5999e561e6dec852c2e0b9ca0a01a3b4"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\instalar_fuentes_etiqueta.sh": {
+    "mtime": 1778267296.0758822,
+    "ast_hash": "42be428552b32d9993ff9df1969ec581",
+    "semantic_hash": "42be428552b32d9993ff9df1969ec581"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\instalar_ocr.sh": {
+    "mtime": 1778223718.075505,
+    "ast_hash": "e999f99a44d626e6865624e72c325198",
+    "semantic_hash": "e999f99a44d626e6865624e72c325198"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\migrate_brand_config.py": {
+    "mtime": 1778029730.9087708,
+    "ast_hash": "24194e60757c588bc7543aa4f23d7635",
+    "semantic_hash": "24194e60757c588bc7543aa4f23d7635"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\migrate_etiqueta_config.py": {
+    "mtime": 1778267441.452548,
+    "ast_hash": "7aa87b6180f3aa9f245359d515736c5d",
+    "semantic_hash": "7aa87b6180f3aa9f245359d515736c5d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\migrate_excel_config.py": {
+    "mtime": 1778272412.945679,
+    "ast_hash": "6b7cab9f9c5ca0e1eacd365710b0a4fa",
+    "semantic_hash": "6b7cab9f9c5ca0e1eacd365710b0a4fa"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\migrate_proyecto_oc.py": {
+    "mtime": 1777934721.5014472,
+    "ast_hash": "d2378b598b8ad4d0d73ec1027c9cfaa5",
+    "semantic_hash": "d2378b598b8ad4d0d73ec1027c9cfaa5"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\migrate_push.py": {
+    "mtime": 1778270028.480305,
+    "ast_hash": "d6402f40837d0399d39ec653db8d975d",
+    "semantic_hash": "d6402f40837d0399d39ec653db8d975d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\migrate_servicios.py": {
+    "mtime": 1778222973.3890653,
+    "ast_hash": "7264428c66e9a63fbfea75aee77645f0",
+    "semantic_hash": "7264428c66e9a63fbfea75aee77645f0"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\servicios_ocr.py": {
+    "mtime": 1778227224.4032493,
+    "ast_hash": "224570f4c5625f25121b90fc585918d6",
+    "semantic_hash": "224570f4c5625f25121b90fc585918d6"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\.swarm\\schema.sql": {
+    "mtime": 1778800375.8558905,
+    "ast_hash": "0b2a1e4dbcbf0c39a292ae69a1af3ad7",
+    "semantic_hash": "0b2a1e4dbcbf0c39a292ae69a1af3ad7"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\manifest.json": {
+    "mtime": 1778000027.1882572,
+    "ast_hash": "62c3208189b06a9a65d76a13422ebd7d",
+    "semantic_hash": "62c3208189b06a9a65d76a13422ebd7d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\sw.js": {
+    "mtime": 1779237237.1964242,
+    "ast_hash": "3f038ee76741dc28b53ca0f560e016cd",
+    "semantic_hash": "3f038ee76741dc28b53ca0f560e016cd"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\js\\offline-queue.js": {
+    "mtime": 1778026292.9683964,
+    "ast_hash": "a802e5efa58bb0892d97b8ef6a03f5fb",
+    "semantic_hash": "a802e5efa58bb0892d97b8ef6a03f5fb"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\CLAUDE.md": {
+    "mtime": 1779862045.7854824,
+    "ast_hash": "2bbd4ebcb2b943221588246e9b6eb7e8",
+    "semantic_hash": "2bbd4ebcb2b943221588246e9b6eb7e8"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\requirements.txt": {
+    "mtime": 1780668561.9093635,
+    "ast_hash": "d238f31112d4eaf83491916fa20d3b36",
+    "semantic_hash": "d238f31112d4eaf83491916fa20d3b36"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\403.html": {
+    "mtime": 1780638149.0363944,
+    "ast_hash": "d5dd072b332f377b87857138d1d035e4",
+    "semantic_hash": "d5dd072b332f377b87857138d1d035e4"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\404.html": {
+    "mtime": 1780638149.0508983,
+    "ast_hash": "4c6c6597f4c54694dede7fab425313ae",
+    "semantic_hash": "4c6c6597f4c54694dede7fab425313ae"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\500.html": {
+    "mtime": 1780638149.06338,
+    "ast_hash": "60bc8e8a6a82b859aa3b52cb1fe9f21d",
+    "semantic_hash": "60bc8e8a6a82b859aa3b52cb1fe9f21d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\account.html": {
+    "mtime": 1780770040.6395977,
+    "ast_hash": "d21cb2cc9aae5ff15b8cb69a7489e845",
+    "semantic_hash": "d21cb2cc9aae5ff15b8cb69a7489e845"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\actividad.html": {
+    "mtime": 1780770070.3333192,
+    "ast_hash": "1fe920ad8c71ece6d6ce925da1021be9",
+    "semantic_hash": "1fe920ad8c71ece6d6ce925da1021be9"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\admin_panel.html": {
+    "mtime": 1780785427.562732,
+    "ast_hash": "5d8b059af54dff108f61671fb163a79a",
+    "semantic_hash": "5d8b059af54dff108f61671fb163a79a"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\ajuste_form.html": {
+    "mtime": 1780638149.143898,
+    "ast_hash": "e361dfcbfc241053ecef1341e75ae5e3",
+    "semantic_hash": "e361dfcbfc241053ecef1341e75ae5e3"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\almacenes.html": {
+    "mtime": 1780786508.9553096,
+    "ast_hash": "09b7daf87c7f486bf77774f2f914afb6",
+    "semantic_hash": "09b7daf87c7f486bf77774f2f914afb6"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\almacen_form.html": {
+    "mtime": 1780770064.5923145,
+    "ast_hash": "8526013ae54826ad540bf507587bcab6",
+    "semantic_hash": "8526013ae54826ad540bf507587bcab6"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\almacen_inventario.html": {
+    "mtime": 1780786528.2965968,
+    "ast_hash": "6b8a4ea73d4c00e6f56f9f164d05ce03",
+    "semantic_hash": "6b8a4ea73d4c00e6f56f9f164d05ce03"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\aprobaciones_inbox.html": {
+    "mtime": 1780786437.0144658,
+    "ast_hash": "04522b004f5524e6d7e7ed0d90755f23",
+    "semantic_hash": "04522b004f5524e6d7e7ed0d90755f23"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\base.html": {
+    "mtime": 1781032643.6234682,
+    "ast_hash": "9ac4db76ef5bbc2d28390e663e24706b",
+    "semantic_hash": "9ac4db76ef5bbc2d28390e663e24706b"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\categorias.html": {
+    "mtime": 1780786440.0764582,
+    "ast_hash": "58cb9c45cb9335892c1a0adb92756eb7",
+    "semantic_hash": "58cb9c45cb9335892c1a0adb92756eb7"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\categoria_form.html": {
+    "mtime": 1780767747.3084104,
+    "ast_hash": "c6c35a38d601c1a4b5c4dd6958f5588d",
+    "semantic_hash": "c6c35a38d601c1a4b5c4dd6958f5588d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\centros_costo_lista.html": {
+    "mtime": 1780769414.1061203,
+    "ast_hash": "275e6956102c5a8db4b9fcfb4466d5a8",
+    "semantic_hash": "275e6956102c5a8db4b9fcfb4466d5a8"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\centro_costo_detalle.html": {
+    "mtime": 1780769410.904125,
+    "ast_hash": "9b1ef4bacc4d494beae190b43ea1acd6",
+    "semantic_hash": "9b1ef4bacc4d494beae190b43ea1acd6"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\centro_costo_form.html": {
+    "mtime": 1780769416.7481556,
+    "ast_hash": "57d7d3e48fc3f895ce9b84684e079f81",
+    "semantic_hash": "57d7d3e48fc3f895ce9b84684e079f81"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\dashboard.html": {
+    "mtime": 1780785415.9444149,
+    "ast_hash": "b56cbf1d7b37252a3a4458db787b942c",
+    "semantic_hash": "b56cbf1d7b37252a3a4458db787b942c"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\etiqueta_config.html": {
+    "mtime": 1780638149.3153796,
+    "ast_hash": "e005242d462bd051b93a8f366e3e91d2",
+    "semantic_hash": "e005242d462bd051b93a8f366e3e91d2"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\etiqueta_personalizar.html": {
+    "mtime": 1780638149.3173783,
+    "ast_hash": "213fa14bac6b4f9d39b5d199318e5bcd",
+    "semantic_hash": "213fa14bac6b4f9d39b5d199318e5bcd"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\excel_config.html": {
+    "mtime": 1780638149.3548758,
+    "ast_hash": "812c7394f26225e17080ebbd49a432c2",
+    "semantic_hash": "812c7394f26225e17080ebbd49a432c2"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\facturas_lista.html": {
+    "mtime": 1780786491.8886867,
+    "ast_hash": "30cb3d72efbcdb862da7679ebcb57df5",
+    "semantic_hash": "30cb3d72efbcdb862da7679ebcb57df5"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\factura_form.html": {
+    "mtime": 1780769692.2185984,
+    "ast_hash": "4aa42711da9f2be03cce45a3adbf3d3d",
+    "semantic_hash": "4aa42711da9f2be03cce45a3adbf3d3d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\finanzas_dashboard.html": {
+    "mtime": 1780769695.1870966,
+    "ast_hash": "b2caecec37ebdf2c756af795c4630c86",
+    "semantic_hash": "b2caecec37ebdf2c756af795c4630c86"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\gastos.html": {
+    "mtime": 1780769747.2001698,
+    "ast_hash": "e1a0161b18336fa1a42b412051a2e85d",
+    "semantic_hash": "e1a0161b18336fa1a42b412051a2e85d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\gasto_form.html": {
+    "mtime": 1780769700.322601,
+    "ast_hash": "41660dfa1dbd3ce10abeecf8cde46975",
+    "semantic_hash": "41660dfa1dbd3ce10abeecf8cde46975"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\historial_producto.html": {
+    "mtime": 1780667531.2592344,
+    "ast_hash": "4002f58984cd66cc4ef69da0ffa19db5",
+    "semantic_hash": "4002f58984cd66cc4ef69da0ffa19db5"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\importar_productos.html": {
+    "mtime": 1780767751.3759139,
+    "ast_hash": "6353f99bfdc5a8ce3e9c2882d3a45db7",
+    "semantic_hash": "6353f99bfdc5a8ce3e9c2882d3a45db7"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\index.html": {
+    "mtime": 1780770067.5758154,
+    "ast_hash": "37cb4042da0d3eba5fa6bc4cdbcd2499",
+    "semantic_hash": "37cb4042da0d3eba5fa6bc4cdbcd2499"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\login.html": {
+    "mtime": 1780638149.581393,
+    "ast_hash": "abe9e8a911ddfde4dca8a624a75a9c17",
+    "semantic_hash": "abe9e8a911ddfde4dca8a624a75a9c17"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\manual_usuario.html": {
+    "mtime": 1780638149.6093938,
+    "ast_hash": "57b81518da48206a660524b90f51df8b",
+    "semantic_hash": "57b81518da48206a660524b90f51df8b"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\offline.html": {
+    "mtime": 1778461399.8196046,
+    "ast_hash": "d30d0ce1c5e368e7f74a8a0f9109f832",
+    "semantic_hash": "d30d0ce1c5e368e7f74a8a0f9109f832"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\ordenes.html": {
+    "mtime": 1781032677.8930123,
+    "ast_hash": "88e7585b3d39b39e45128bf75e579d0a",
+    "semantic_hash": "88e7585b3d39b39e45128bf75e579d0a"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\orden_detalle.html": {
+    "mtime": 1780768648.1439176,
+    "ast_hash": "0c7ea474c6d19955e7609a6d6263f98c",
+    "semantic_hash": "0c7ea474c6d19955e7609a6d6263f98c"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\orden_form.html": {
+    "mtime": 1780768844.6563191,
+    "ast_hash": "2e79c74b922a51f6cac11e1bf44f2386",
+    "semantic_hash": "2e79c74b922a51f6cac11e1bf44f2386"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\pago_servicio_form.html": {
+    "mtime": 1780769569.0321815,
+    "ast_hash": "bfe80d13d6666cd63bb6d7bf9b783a41",
+    "semantic_hash": "bfe80d13d6666cd63bb6d7bf9b783a41"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\plantilla_config.html": {
+    "mtime": 1780638149.9153848,
+    "ast_hash": "0c249a23d2158538b112ff97ecc46b41",
+    "semantic_hash": "0c249a23d2158538b112ff97ecc46b41"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\presupuestos_lista.html": {
+    "mtime": 1780786511.842813,
+    "ast_hash": "8732f1327b82a97cefff1517b03ff88e",
+    "semantic_hash": "8732f1327b82a97cefff1517b03ff88e"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\presupuesto_form.html": {
+    "mtime": 1780769421.4298034,
+    "ast_hash": "e42fe585cb8fea66792a365329e74139",
+    "semantic_hash": "e42fe585cb8fea66792a365329e74139"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\productos_sin_almacen.html": {
+    "mtime": 1780786448.0643902,
+    "ast_hash": "30e4940a0034e0425feb5191b783397c",
+    "semantic_hash": "30e4940a0034e0425feb5191b783397c"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\producto_form.html": {
+    "mtime": 1780767815.724456,
+    "ast_hash": "18399eb16e4d4a74ce833e62bd83d2f2",
+    "semantic_hash": "18399eb16e4d4a74ce833e62bd83d2f2"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\proveedores.html": {
+    "mtime": 1780768629.0144055,
+    "ast_hash": "936c5925fcefb886a02990954348ede6",
+    "semantic_hash": "936c5925fcefb886a02990954348ede6"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\proveedor_form.html": {
+    "mtime": 1780768695.4408228,
+    "ast_hash": "1516da0fa079d191e4ddf8d172215a39",
+    "semantic_hash": "1516da0fa079d191e4ddf8d172215a39"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\proyecto_oc_detalle.html": {
+    "mtime": 1780768824.6338308,
+    "ast_hash": "5d67bb0c5237659361c1be735c1e8e26",
+    "semantic_hash": "5d67bb0c5237659361c1be735c1e8e26"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\proyecto_oc_form.html": {
+    "mtime": 1780786452.525193,
+    "ast_hash": "e4e64f6e7e5fb08a67b77ba58c82893f",
+    "semantic_hash": "e4e64f6e7e5fb08a67b77ba58c82893f"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\proyecto_oc_lista.html": {
+    "mtime": 1781032661.6509774,
+    "ast_hash": "5e3b85bf4a9eda30ca867dcc63ac3bfa",
+    "semantic_hash": "5e3b85bf4a9eda30ca867dcc63ac3bfa"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\proyecto_oc_recibir.html": {
+    "mtime": 1780768780.9628198,
+    "ast_hash": "829ff95bb6dbea6dbba0d4456f95d7ec",
+    "semantic_hash": "829ff95bb6dbea6dbba0d4456f95d7ec"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\register.html": {
+    "mtime": 1780638150.2428827,
+    "ast_hash": "ab8295abce3b21cc27f4ed5dff2ad02d",
+    "semantic_hash": "ab8295abce3b21cc27f4ed5dff2ad02d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\reportes.html": {
+    "mtime": 1780785442.8346424,
+    "ast_hash": "e8c35c9b81ce5d1eba5780dd5c7464a7",
+    "semantic_hash": "e8c35c9b81ce5d1eba5780dd5c7464a7"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\salidas.html": {
+    "mtime": 1780767977.5397637,
+    "ast_hash": "dfb26b775fd1b7a1ae13c8eebd852bf7",
+    "semantic_hash": "dfb26b775fd1b7a1ae13c8eebd852bf7"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\salida_detalle.html": {
+    "mtime": 1780786445.6614566,
+    "ast_hash": "16ea2f29650ef116746cb60381de8fba",
+    "semantic_hash": "16ea2f29650ef116746cb60381de8fba"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\salida_form.html": {
+    "mtime": 1780767950.1932588,
+    "ast_hash": "e9e71604dae8e4717c4a87895629f38e",
+    "semantic_hash": "e9e71604dae8e4717c4a87895629f38e"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\seleccionar_almacen.html": {
+    "mtime": 1780770035.6951005,
+    "ast_hash": "11ccf0670026b85a2962b1da08579515",
+    "semantic_hash": "11ccf0670026b85a2962b1da08579515"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\servicios_lista.html": {
+    "mtime": 1780786035.389906,
+    "ast_hash": "9967dc41b9877cb4c111bd83b8ab6bee",
+    "semantic_hash": "9967dc41b9877cb4c111bd83b8ab6bee"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\servicio_detalle.html": {
+    "mtime": 1780769684.4520984,
+    "ast_hash": "8fe14d52b692dfa1ffbb06256045e82a",
+    "semantic_hash": "8fe14d52b692dfa1ffbb06256045e82a"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\servicio_form.html": {
+    "mtime": 1780769619.2411282,
+    "ast_hash": "acf83e2d8f3aadb5e59a3bb1ed2971b4",
+    "semantic_hash": "acf83e2d8f3aadb5e59a3bb1ed2971b4"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\super_admin.html": {
+    "mtime": 1780785438.9591484,
+    "ast_hash": "beb4a94c6262f9e0c5aeb26bf3e3f0c1",
+    "semantic_hash": "beb4a94c6262f9e0c5aeb26bf3e3f0c1"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\transferencia_form.html": {
+    "mtime": 1780799286.099723,
+    "ast_hash": "bea1860428d209830742c1599ab7c0bc",
+    "semantic_hash": "bea1860428d209830742c1599ab7c0bc"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\usuarios.html": {
+    "mtime": 1780786514.7808065,
+    "ast_hash": "4aa73d977a2c41cc396937969f3e43c8",
+    "semantic_hash": "4aa73d977a2c41cc396937969f3e43c8"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\templates\\_macros.html": {
+    "mtime": 1777582611.673641,
+    "ast_hash": "46f260c8dffe2d91bd74abb51abfa59c",
+    "semantic_hash": "46f260c8dffe2d91bd74abb51abfa59c"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\twa\\README.md": {
+    "mtime": 1778000070.1714418,
+    "ast_hash": "d7f791cae00edd29758861129be087aa",
+    "semantic_hash": "d7f791cae00edd29758861129be087aa"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\favicon.svg": {
+    "mtime": 1776899475.0,
+    "ast_hash": "0d00f376d976591bc3e8294e017e64f2",
+    "semantic_hash": "0d00f376d976591bc3e8294e017e64f2"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\icons\\icon-192.png": {
+    "mtime": 1777613105.2216702,
+    "ast_hash": "6b500aa0e7abba7ce5f51769d4d7d243",
+    "semantic_hash": "6b500aa0e7abba7ce5f51769d4d7d243"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\icons\\icon-512.png": {
+    "mtime": 1777613105.231673,
+    "ast_hash": "f6b724ca79f2d2d3507e5edb195e98eb",
+    "semantic_hash": "f6b724ca79f2d2d3507e5edb195e98eb"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\icons\\shortcut-dashboard.svg": {
+    "mtime": 1777999997.325116,
+    "ast_hash": "8fa5917bbd87c38506b99d2122057f3a",
+    "semantic_hash": "8fa5917bbd87c38506b99d2122057f3a"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\icons\\shortcut-inventario.svg": {
+    "mtime": 1778000014.7474816,
+    "ast_hash": "4e82a58b46b5cbe9cbd8157fdecbfccd",
+    "semantic_hash": "4e82a58b46b5cbe9cbd8157fdecbfccd"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\icons\\shortcut-oc.svg": {
+    "mtime": 1778000008.927446,
+    "ast_hash": "a6a9cda6765ee76b2907250e3ee78c4f",
+    "semantic_hash": "a6a9cda6765ee76b2907250e3ee78c4f"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\icons\\shortcut-salida.svg": {
+    "mtime": 1778000002.8514366,
+    "ast_hash": "1a7370049470c9f80c9fd9412d2708f6",
+    "semantic_hash": "1a7370049470c9f80c9fd9412d2708f6"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\static\\img\\default_avatar.svg": {
+    "mtime": 1778466173.1754234,
+    "ast_hash": "191220bc54ab3c2eebcc3971cd8ac403",
+    "semantic_hash": "191220bc54ab3c2eebcc3971cd8ac403"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\run.py": {
+    "mtime": 1780599289.2078302,
+    "ast_hash": "04a54d26d3885a503218dc8af18d280f",
+    "semantic_hash": "04a54d26d3885a503218dc8af18d280f"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\wsgi.py": {
+    "mtime": 1780599295.804876,
+    "ast_hash": "9201438dce1d1813fb83cbe77c979d9d",
+    "semantic_hash": "9201438dce1d1813fb83cbe77c979d9d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\config.py": {
+    "mtime": 1780672965.519549,
+    "ast_hash": "a5e9c878ac16d451bb04351088cac590",
+    "semantic_hash": "a5e9c878ac16d451bb04351088cac590"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\extensions.py": {
+    "mtime": 1780598853.9582324,
+    "ast_hash": "dcd2d75111f1de2104e8f1fc7d076e2e",
+    "semantic_hash": "dcd2d75111f1de2104e8f1fc7d076e2e"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\helpers.py": {
+    "mtime": 1780598911.4729128,
+    "ast_hash": "87a3f4e79676cf58fb516961d0cde3f6",
+    "semantic_hash": "87a3f4e79676cf58fb516961d0cde3f6"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\__init__.py": {
+    "mtime": 1780719899.3477118,
+    "ast_hash": "a37850d8b16e50f35c5f80f56e829abf",
+    "semantic_hash": "a37850d8b16e50f35c5f80f56e829abf"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\admin\\routes.py": {
+    "mtime": 1780719640.2661402,
+    "ast_hash": "af4763f2b62b60eda865d803cda55e5f",
+    "semantic_hash": "af4763f2b62b60eda865d803cda55e5f"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\admin\\__init__.py": {
+    "mtime": 1780600045.9694483,
+    "ast_hash": "47b8d70de069248fecd1cd783b36d8fd",
+    "semantic_hash": "47b8d70de069248fecd1cd783b36d8fd"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\api\\routes.py": {
+    "mtime": 1780718226.405468,
+    "ast_hash": "68acd58f54e197448c97ece86b691111",
+    "semantic_hash": "68acd58f54e197448c97ece86b691111"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\api\\__init__.py": {
+    "mtime": 1780600051.9545789,
+    "ast_hash": "0a0768bf979ba7c602e75044d426b1a3",
+    "semantic_hash": "0a0768bf979ba7c602e75044d426b1a3"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\auth\\routes.py": {
+    "mtime": 1781032635.1296258,
+    "ast_hash": "978e626b217b0f393b6d151215542183",
+    "semantic_hash": "978e626b217b0f393b6d151215542183"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\auth\\__init__.py": {
+    "mtime": 1780600018.3596106,
+    "ast_hash": "edf12ad7338fb8e16dc29d1aea53bf41",
+    "semantic_hash": "edf12ad7338fb8e16dc29d1aea53bf41"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\finance\\routes.py": {
+    "mtime": 1780718255.1666825,
+    "ast_hash": "59a35aa3b9442403ea1c78b1575ba33f",
+    "semantic_hash": "59a35aa3b9442403ea1c78b1575ba33f"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\finance\\__init__.py": {
+    "mtime": 1780600289.5377731,
+    "ast_hash": "0b3d99c97028ad19cbc9c2807513ff2a",
+    "semantic_hash": "0b3d99c97028ad19cbc9c2807513ff2a"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\inventory\\routes.py": {
+    "mtime": 1780718879.486722,
+    "ast_hash": "322a0477a93eb81e4c1a6e7721a88d7c",
+    "semantic_hash": "322a0477a93eb81e4c1a6e7721a88d7c"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\inventory\\__init__.py": {
+    "mtime": 1780617567.781559,
+    "ast_hash": "4b253aa141fb062009b42dafad480d19",
+    "semantic_hash": "4b253aa141fb062009b42dafad480d19"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\main\\routes.py": {
+    "mtime": 1780718411.6015937,
+    "ast_hash": "42a834e480d75e5e3c3805edf9cda3b5",
+    "semantic_hash": "42a834e480d75e5e3c3805edf9cda3b5"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\main\\__init__.py": {
+    "mtime": 1780599213.5914867,
+    "ast_hash": "cfd38569f52c12a4ecc6d8de579090e9",
+    "semantic_hash": "cfd38569f52c12a4ecc6d8de579090e9"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\purchasing\\routes.py": {
+    "mtime": 1781032619.8776603,
+    "ast_hash": "b7aba72cf17d8fdfbb9aeb5c17961995",
+    "semantic_hash": "b7aba72cf17d8fdfbb9aeb5c17961995"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\purchasing\\__init__.py": {
+    "mtime": 1780617557.4068902,
+    "ast_hash": "1a427dc746bcce374579c90c8ec9a12b",
+    "semantic_hash": "1a427dc746bcce374579c90c8ec9a12b"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\reports\\routes.py": {
+    "mtime": 1780719596.2118392,
+    "ast_hash": "e7683189a281cdcb0688afd15b6ad05b",
+    "semantic_hash": "e7683189a281cdcb0688afd15b6ad05b"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\blueprints\\reports\\__init__.py": {
+    "mtime": 1780600041.6715362,
+    "ast_hash": "a3bd6f460736bb9f363e9d9a1443c8dc",
+    "semantic_hash": "a3bd6f460736bb9f363e9d9a1443c8dc"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\cli\\commands.py": {
+    "mtime": 1780599274.1871762,
+    "ast_hash": "0a3561d110fb594cbf7e19a940082f86",
+    "semantic_hash": "0a3561d110fb594cbf7e19a940082f86"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\cli\\__init__.py": {
+    "mtime": 1780599233.9022937,
+    "ast_hash": "9216215050554bedb82fe6d5bdbd6824",
+    "semantic_hash": "9216215050554bedb82fe6d5bdbd6824"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\models\\auth.py": {
+    "mtime": 1780598999.0973759,
+    "ast_hash": "ece45ee1bd54c12278fc4e97b7a12dc5",
+    "semantic_hash": "ece45ee1bd54c12278fc4e97b7a12dc5"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\models\\finance.py": {
+    "mtime": 1780599085.3696158,
+    "ast_hash": "e5bfa066c4e82b46a6ef711b05622efb",
+    "semantic_hash": "e5bfa066c4e82b46a6ef711b05622efb"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\models\\inventory.py": {
+    "mtime": 1780599022.801754,
+    "ast_hash": "53464567544c2ea9bf78d2b68281bbe5",
+    "semantic_hash": "53464567544c2ea9bf78d2b68281bbe5"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\models\\purchasing.py": {
+    "mtime": 1780599054.43346,
+    "ast_hash": "74f5320d62abf3f932aefc000721a73d",
+    "semantic_hash": "74f5320d62abf3f932aefc000721a73d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\models\\system.py": {
+    "mtime": 1780599099.9966645,
+    "ast_hash": "55942725c9111189453172574f163d13",
+    "semantic_hash": "55942725c9111189453172574f163d13"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\models\\__init__.py": {
+    "mtime": 1780599125.5700614,
+    "ast_hash": "8b1fa7a07ed34dbafe9fdd4158d6cae5",
+    "semantic_hash": "8b1fa7a07ed34dbafe9fdd4158d6cae5"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\services\\finance.py": {
+    "mtime": 1780618749.1706128,
+    "ast_hash": "2697277a5465cc1e4984fe4be1de1557",
+    "semantic_hash": "2697277a5465cc1e4984fe4be1de1557"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\services\\inventory.py": {
+    "mtime": 1780618729.5066662,
+    "ast_hash": "95e3d46f5e829f28c9d71a95bb642418",
+    "semantic_hash": "95e3d46f5e829f28c9d71a95bb642418"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\services\\notifications.py": {
+    "mtime": 1780618728.3911595,
+    "ast_hash": "e9324851bfb1743066ae4328d76be1a9",
+    "semantic_hash": "e9324851bfb1743066ae4328d76be1a9"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\services\\purchasing.py": {
+    "mtime": 1780635052.9621205,
+    "ast_hash": "a58e4ae0a80bb39ad9ead95957e87eab",
+    "semantic_hash": "a58e4ae0a80bb39ad9ead95957e87eab"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\app\\services\\__init__.py": {
+    "mtime": 1780635070.1547544,
+    "ast_hash": "653d815fcb5c90ba5d9b6fd556a8d0db",
+    "semantic_hash": "653d815fcb5c90ba5d9b6fd556a8d0db"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\integrations\\hd_quickorder.py": {
+    "mtime": 1779861516.3307035,
+    "ast_hash": "3e53e43bc34c8d503d3dc1f53d7f3520",
+    "semantic_hash": "3e53e43bc34c8d503d3dc1f53d7f3520"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\integrations\\hd_session.py": {
+    "mtime": 1779860779.3506613,
+    "ast_hash": "289c050534d75bf44ef9946033522754",
+    "semantic_hash": "289c050534d75bf44ef9946033522754"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\integrations\\homedepot.py": {
+    "mtime": 1779837852.336364,
+    "ast_hash": "cbeb8cd91924e021907efe68606f8658",
+    "semantic_hash": "cbeb8cd91924e021907efe68606f8658"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\integrations\\__init__.py": {
+    "mtime": 1779837832.6897182,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\scripts\\fix_url_for.py": {
+    "mtime": 1780639140.893799,
+    "ast_hash": "ebddad3e2685df0402ef8d0e04c3073d",
+    "semantic_hash": "ebddad3e2685df0402ef8d0e04c3073d"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\scripts\\update_url_for.py": {
+    "mtime": 1780600200.511872,
+    "ast_hash": "2002aa5035800f53db5ec9c5000b7ca9",
+    "semantic_hash": "2002aa5035800f53db5ec9c5000b7ca9"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\tests\\conftest.py": {
+    "mtime": 1780673469.5770311,
+    "ast_hash": "c24f73cdb11147688550d5c57271b4cf",
+    "semantic_hash": "c24f73cdb11147688550d5c57271b4cf"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\tests\\test_auth.py": {
+    "mtime": 1780673030.3883288,
+    "ast_hash": "a0e976943a2d0ecaed726017c00d0be8",
+    "semantic_hash": "a0e976943a2d0ecaed726017c00d0be8"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\tests\\test_helpers.py": {
+    "mtime": 1780672974.5372026,
+    "ast_hash": "9eb3584822733ab956d3525de2a92810",
+    "semantic_hash": "9eb3584822733ab956d3525de2a92810"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\tests\\test_purchasing.py": {
+    "mtime": 1780675930.4129665,
+    "ast_hash": "5d20de3588843528896f34addecd6cbc",
+    "semantic_hash": "5d20de3588843528896f34addecd6cbc"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\tests\\test_security.py": {
+    "mtime": 1780673539.03657,
+    "ast_hash": "c9451a714309835554e6e1402aa0054a",
+    "semantic_hash": "c9451a714309835554e6e1402aa0054a"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\tests\\__init__.py": {
+    "mtime": 1780668391.5221677,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\homedepot-integration.md": {
+    "mtime": 1779837644.794726,
+    "ast_hash": "d1152615dcaa9b9130bb0454a3987f7c",
+    "semantic_hash": "d1152615dcaa9b9130bb0454a3987f7c"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\docs\\superpowers\\specs\\2026-05-26-hd-quickorder-design.md": {
+    "mtime": 1779860040.2439172,
+    "ast_hash": "5fdb50ea02f6b707b4db4c4e5d1a7157",
+    "semantic_hash": "5fdb50ea02f6b707b4db4c4e5d1a7157"
+  },
+  "C:\\Users\\RazielEscamilla\\Gestiondeinventario\\docs\\superpowers\\specs\\erp-reestructura-blueprint.md": {
+    "mtime": 1780598605.3672395,
+    "ast_hash": "e399a8a3134862a1e86ceb5dd45b43f3",
+    "semantic_hash": "e399a8a3134862a1e86ceb5dd45b43f3"
+  }
+}

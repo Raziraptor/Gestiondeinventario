@@ -43,6 +43,7 @@ from app.helpers import (
     log_actividad,
     now_mx,
     _flash_err,
+    CATEGORIAS_GASTO,
 )
 from app.models import (
     Almacen,
@@ -200,13 +201,13 @@ def admin_reset_password(id):
         flash('No tienes permisos para realizar esta acción.', 'danger')
         return redirect(url_for('main.index'))
 
-    # 2. Buscar usuario
-    usuario_objetivo = User.query.get_or_404(id)
-
-    if (current_user.rol != 'super_admin'
-            and usuario_objetivo.organizacion_id != current_user.organizacion_id):
-        flash('No tienes permisos para realizar esta acción.', 'danger')
-        return redirect(url_for('admin.lista_usuarios'))
+    # 2. Buscar usuario — filtrar por org_id para admin (evita IDOR oracle)
+    if current_user.rol == 'super_admin':
+        usuario_objetivo = User.query.get_or_404(id)
+    else:
+        usuario_objetivo = User.query.filter_by(
+            id=id, organizacion_id=current_user.organizacion_id
+        ).first_or_404()
 
     # 3. Obtener nueva contraseña del form
     nueva_password = request.form.get('new_password')
@@ -224,7 +225,7 @@ def admin_reset_password(id):
         )
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al actualizar: {e}', 'danger')
+        _flash_err('Error al actualizar.', e)
 
     return redirect(url_for('admin.lista_usuarios'))
 
@@ -281,7 +282,7 @@ def configurar_plantilla():
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al guardar: {e}', 'danger')
+            _flash_err('Error al guardar.', e)
 
         return redirect(url_for('admin.configurar_plantilla'))
 
@@ -337,7 +338,7 @@ def nueva_organizacion():
         )
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al crear la organización: {e}', 'danger')
+        _flash_err('Error al crear la organización.', e)
 
     return redirect(url_for('admin.super_admin'))
 
@@ -371,7 +372,7 @@ def asignar_usuario(user_id):
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al actualizar el usuario: {e}', 'danger')
+        _flash_err('Error al actualizar el usuario.', e)
 
     return redirect(url_for('admin.super_admin'))
 
@@ -472,12 +473,12 @@ def admin_panel():
 @login_required
 @admin_required
 def update_user_permissions(user_id):
-    user_to_update = User.query.get_or_404(user_id)
-
-    if (current_user.rol == 'admin'
-            and user_to_update.organizacion_id != current_user.organizacion_id):
-        flash('No tienes permiso para editar a este usuario.', 'danger')
-        return redirect(url_for('admin.admin_panel'))
+    if current_user.rol == 'super_admin':
+        user_to_update = User.query.get_or_404(user_id)
+    else:
+        user_to_update = User.query.filter_by(
+            id=user_id, organizacion_id=current_user.organizacion_id
+        ).first_or_404()
 
     if user_to_update.id == current_user.id and current_user.rol != 'super_admin':
         flash('No puedes editar tus propios permisos.', 'warning')
@@ -497,7 +498,7 @@ def update_user_permissions(user_id):
             flash(f'Permisos para {user_to_update.username} actualizados.', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar permisos: {e}', 'danger')
+            _flash_err('Error al actualizar permisos.', e)
     else:
         flash('Error de validación del formulario.', 'danger')
 
@@ -565,6 +566,7 @@ def api_sync():
 
 def _sync_gasto(payload, org_id):
     from datetime import datetime as _dt
+    from app.models import OrdenCompra as _OC
 
     fecha_str   = payload.get('fecha')
     descripcion = payload.get('descripcion', '').strip()
@@ -581,12 +583,25 @@ def _sync_gasto(payload, org_id):
     except (ValueError, TypeError):
         return {'ok': False, 'error': 'Gasto: fecha o monto inválidos'}
 
+    if monto <= 0:
+        return {'ok': False, 'error': 'Gasto: el monto debe ser mayor a cero'}
+
+    if categoria not in CATEGORIAS_GASTO:
+        return {'ok': False, 'error': 'Gasto: categoría no válida'}
+
+    oc_id_int = None
+    if oc_id:
+        oc = _OC.query.filter_by(id=int(oc_id), organizacion_id=org_id).first()
+        if not oc:
+            return {'ok': False, 'error': 'Gasto: orden de compra no válida'}
+        oc_id_int = oc.id
+
     gasto = Gasto(
         fecha           = fecha,
         descripcion     = descripcion,
         monto           = monto,
         categoria       = categoria,
-        orden_compra_id = int(oc_id) if oc_id else None,
+        orden_compra_id = oc_id_int,
         organizacion_id = org_id,
     )
     db.session.add(gasto)

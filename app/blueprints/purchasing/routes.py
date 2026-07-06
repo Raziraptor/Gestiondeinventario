@@ -324,7 +324,7 @@ def nueva_orden():
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al generar la orden: {e}', 'danger')
+        _flash_err('Error al generar la orden.', e)
         return redirect(url_for('main.index'))
 
 
@@ -487,7 +487,7 @@ def enviar_orden(id):
             flash('Orden marcada como "Enviada".', 'info')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error: {e}', 'danger')
+            _flash_err('Error al procesar la operación.', e)
 
     return redirect(url_for('purchasing.lista_ordenes'))
 
@@ -960,7 +960,7 @@ def editar_orden(id):
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar la orden: {e}', 'danger')
+            _flash_err('Error al actualizar la orden.', e)
             return render_template('orden_form.html',
                                    titulo=f"Editar Orden de Compra #{orden.id}",
                                    proveedores=proveedores, productos=productos_lista,
@@ -989,7 +989,7 @@ def cancelar_orden(id):
         flash('Orden de Compra cancelada exitosamente.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al cancelar la orden: {e}', 'danger')
+        _flash_err('Error al cancelar la orden.', e)
 
     return redirect(url_for('purchasing.lista_ordenes'))
 
@@ -1017,7 +1017,7 @@ def eliminar_orden(id):
             flash(f'Orden #{id} eliminada del historial.', 'info')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al eliminar la orden: {e}', 'danger')
+        _flash_err('Error al eliminar la orden.', e)
 
     return redirect(url_for('purchasing.lista_ordenes'))
 
@@ -1289,7 +1289,7 @@ def solicitar_aprobacion_oc(id):
         flash('Solicitud de aprobación enviada. Un administrador revisará la OC.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error: {e}', 'danger')
+        _flash_err('Error al procesar la operación.', e)
 
     return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
@@ -1321,7 +1321,7 @@ def enviar_proyecto_oc(id):
         flash(f'OC #{proyecto_oc.id} marcada como enviada al proveedor.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error: {e}', 'danger')
+        _flash_err('Error al procesar la operación.', e)
 
     return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
@@ -1411,7 +1411,7 @@ def aprobar_solicitud(id):
         flash('Solicitud aprobada. La OC ya puede enviarse al proveedor.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error: {e}', 'danger')
+        _flash_err('Error al procesar la operación.', e)
 
     return redirect(url_for('purchasing.lista_aprobaciones'))
 
@@ -1457,7 +1457,7 @@ def rechazar_solicitud(id):
         flash('Solicitud rechazada. La OC vuelve a estado Borrador.', 'warning')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error: {e}', 'danger')
+        _flash_err('Error al procesar la operación.', e)
 
     return redirect(url_for('purchasing.lista_aprobaciones'))
 
@@ -1692,7 +1692,7 @@ def cancelar_proyecto_oc(id):
         flash(f'OC de Proyecto #{proyecto_oc.id} cancelada.', 'warning')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al cancelar la orden: {e}', 'danger')
+        _flash_err('Error al cancelar la orden.', e)
 
     return redirect(url_for('purchasing.lista_proyectos_oc'))
 

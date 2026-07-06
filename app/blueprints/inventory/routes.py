@@ -562,7 +562,7 @@ def importar_productos():
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al procesar el archivo: {e}', 'danger')
+            _flash_err('Error al procesar el archivo.', e)
 
     return render_template('importar_productos.html', titulo='Importar Productos', resultados=resultados)
 
@@ -677,7 +677,7 @@ def nuevo_producto():
             return repoblar()
         except Exception as e:
             db.session.rollback()
-            flash(f'Error inesperado: {e}', 'danger')
+            _flash_err('Error inesperado.', e)
             return repoblar()
 
     return render_template('producto_form.html', titulo="Nuevo Producto",
@@ -798,7 +798,7 @@ def generar_etiqueta(id):
         nombre_archivo = f"{nombre_base}_{fecha_str}.pdf"
         return send_file(buffer, as_attachment=False, download_name=nombre_archivo, mimetype='application/pdf')
     except Exception as e:
-        flash(f'Error al generar etiqueta: {e}', 'danger')
+        _flash_err('Error al generar etiqueta.', e)
         return redirect(url_for('main.index'))
 
 
@@ -868,7 +868,7 @@ def nueva_categoria():
             return redirect(url_for('inventory.lista_categorias'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear la categoría (quizás el nombre ya existe): {e}', 'danger')
+            _flash_err('Error al crear la categoría.', e)
     return render_template('categoria_form.html', titulo="Nueva Categoría", categoria=None)
 
 
@@ -886,7 +886,7 @@ def editar_categoria(id):
             return redirect(url_for('inventory.lista_categorias'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar la categoría: {e}', 'danger')
+            _flash_err('Error al actualizar la categoría.', e)
     return render_template('categoria_form.html', titulo="Editar Categoría", categoria=categoria)
 
 
@@ -904,7 +904,7 @@ def eliminar_categoria(id):
         flash(f'Categoría "{categoria.nombre}" eliminada. Los productos asociados fueron des-asignados.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al eliminar la categoría: {e}', 'danger')
+        _flash_err('Error al eliminar la categoría.', e)
     return redirect(url_for('inventory.lista_categorias'))
 
 
@@ -1148,7 +1148,7 @@ def nuevo_almacen():
             return redirect(url_for('inventory.lista_almacenes'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al crear el almacén: {e}', 'danger')
+            _flash_err('Error al crear el almacén.', e)
     return render_template('almacen_form.html', titulo="Nuevo Almacén", almacen=None)
 
 
@@ -1166,7 +1166,7 @@ def editar_almacen(id):
             return redirect(url_for('inventory.lista_almacenes'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar el almacén: {e}', 'danger')
+            _flash_err('Error al actualizar el almacén.', e)
     return render_template('almacen_form.html', titulo="Editar Almacén", almacen=almacen)
 
 
@@ -1184,7 +1184,7 @@ def eliminar_almacen(id):
         flash('Almacén eliminado correctamente.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al eliminar el almacén (puede tener datos relacionados): {e}', 'danger')
+        _flash_err('Error al eliminar el almacén.', e)
     return redirect(url_for('inventory.lista_almacenes'))
 
 
@@ -1223,7 +1223,7 @@ def gestionar_inventario_almacen(id):
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al añadir producto: {e}', 'danger')
+            _flash_err('Error al añadir producto.', e)
 
         return redirect(url_for('inventory.gestionar_inventario_almacen', id=id))
 
@@ -1260,7 +1260,7 @@ def eliminar_producto_de_almacen(id):
         flash(f'Producto "{nombre_prod}" eliminado de "{nombre_alm}".', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al eliminar del almacén: {e}', 'danger')
+        _flash_err('Error al eliminar del almacén.', e)
     return redirect(url_for('inventory.gestionar_inventario_almacen', id=almacen_id))
 
 
@@ -1313,7 +1313,7 @@ def asignar_producto_rapido():
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al asignar producto: {e}', 'danger')
+        _flash_err('Error al asignar producto.', e)
 
     return redirect(url_for('inventory.lista_productos_sin_almacen'))
 
@@ -1541,7 +1541,7 @@ def registrar_salida():
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al registrar la salida: {e}', 'danger')
+            _flash_err('Error al registrar la salida.', e)
 
     return render_template('salida_form.html',
                            titulo=f"Registrar Salida de: {almacen_seleccionado.nombre}",
@@ -1595,7 +1595,7 @@ def eliminar_movimiento_salida(id):
 
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al eliminar el item: {e}', 'danger')
+        _flash_err('Error al eliminar el item.', e)
 
     if salida_id_redirect and Salida.query.get(salida_id_redirect):
         return redirect(url_for('inventory.ver_salida', id=salida_id_redirect))
@@ -1754,7 +1754,7 @@ def nueva_transferencia():
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al realizar la transferencia: {e}', 'danger')
+            _flash_err('Error al realizar la transferencia.', e)
 
     return render_template('transferencia_form.html',
                            titulo='Nueva Transferencia de Stock', almacenes=almacenes)
@@ -1818,7 +1818,7 @@ def nuevo_ajuste():
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al registrar el ajuste: {e}', 'danger')
+            _flash_err('Error al registrar el ajuste.', e)
 
     return render_template('ajuste_form.html',
                            titulo='Ajuste Manual de Inventario', almacenes=almacenes)

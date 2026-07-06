@@ -530,6 +530,8 @@ def ai_generar_imagen_producto():
     import uuid as _uuid
     nombre = request.args.get('nombre', '').strip()
     seed   = request.args.get('seed', '42')
+    if not seed.isdigit():
+        seed = '42'
     if not nombre:
         return jsonify({'error': 'Proporciona un nombre de producto'}), 400
     prompt = f"{nombre}, product photography, white background, professional studio, clean, high quality"
@@ -541,6 +543,9 @@ def ai_generar_imagen_producto():
         resp = requests.get(poll_url, timeout=50)
         if not resp.ok:
             return jsonify({'error': 'Pollinations no respondió correctamente'}), 502
+        ct = resp.headers.get('Content-Type', '')
+        if not ct.startswith('image/'):
+            return jsonify({'error': 'Respuesta no es una imagen válida'}), 502
         filename = f"ai_{_uuid.uuid4().hex[:12]}.jpg"
         with open(os.path.join(current_app.config['UPLOAD_FOLDER'], filename), 'wb') as fh:
             fh.write(resp.content)

@@ -210,7 +210,7 @@
     async function llamarGemini(nombreProducto) {
         const resp = await fetch('/api/ai/mejorar-descripcion', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrf_token]').value },
             body: JSON.stringify({ producto: nombreProducto })
         });
         if (!resp.ok) {

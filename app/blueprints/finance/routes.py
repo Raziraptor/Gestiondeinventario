@@ -524,7 +524,7 @@ def nuevo_centro_costo():
             return redirect(url_for('finance.lista_centros_costo'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error: {e}', 'danger')
+            _flash_err('Error al crear el centro de costo.', e)
     return render_template('centro_costo_form.html', titulo='Nuevo Centro de Costo', centro=None, now=now_mx())
 
 
@@ -545,7 +545,7 @@ def editar_centro_costo(id):
             return redirect(url_for('finance.detalle_centro_costo', id=cc.id))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error: {e}', 'danger')
+            _flash_err('Error al actualizar el centro de costo.', e)
     return render_template('centro_costo_form.html', titulo='Editar Centro de Costo', centro=cc, now=now_mx())
 
 

@@ -260,7 +260,11 @@ def login():
             login_user(user)
             next_page = request.args.get('next')
             flash('Inicio de sesión exitoso.', 'success')
-            if next_page and urlparse(next_page).netloc == '':
+            if (next_page
+                    and next_page.startswith('/')
+                    and not next_page.startswith('//')
+                    and not next_page.startswith('/\\')
+                    and urlparse(next_page).netloc == ''):
                 return redirect(next_page)
             return redirect(url_for('main.index'))
         else:
@@ -297,6 +301,7 @@ def forgot_password():
 
 
 @auth_bp.route('/reset-password/<token>', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def reset_password(token):
     """Página para ingresar la nueva contraseña (accedida desde el e-mail)."""
     if current_user.is_authenticated:
@@ -366,7 +371,7 @@ def account():
             return redirect(url_for('auth.account'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al actualizar la cuenta: {e}', 'danger')
+            _flash_err('Error al actualizar la cuenta.', e)
 
     if form_password.submit_password.data and form_password.validate_on_submit():
         try:
@@ -379,7 +384,7 @@ def account():
                 flash('La contraseña actual es incorrecta.', 'danger')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al cambiar la contraseña: {e}', 'danger')
+            _flash_err('Error al cambiar la contraseña.', e)
 
     if request.method == 'GET':
         form_account.username.data = current_user.username
@@ -410,6 +415,6 @@ def delete_picture():
             flash('Tu foto de perfil ha sido eliminada.', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al eliminar la foto: {e}', 'danger')
+            _flash_err('Error al eliminar la foto.', e)
 
     return redirect(url_for('auth.account'))
