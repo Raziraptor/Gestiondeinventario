@@ -162,5 +162,37 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - Dashboard KPIs restringidos a `super_admin` y `admin` (commit db05095).
 - `recibir_orden` con guards para producto=None, cantidad≤0, y `no_autoflush` (commit 20ba5b4).
 - Almacenes ordenados por `.order_by(Almacen.id)` (commit 72a8afd).
-- **Pendiente en servidor**: `flask add-hd-session-table && sudo systemctl restart inventario`
-- Sin tareas pendientes de seguridad en la hoja de ruta original.
+
+### Auditoría de seguridad + UI ✅ COMPLETA (commits 5091fc6, febc65f)
+**Seguridad resuelta:**
+- A-1: `_sync_gasto` — monto > 0, categoria whitelist, oc_id org-check ✅
+- B-1: IDOR oracle en `admin_reset_password` + `update_user_permissions` ✅
+- B-2: Open redirect en login — backslash bypass bloqueado ✅
+- B-3: Rate limit en `reset_password` (10/min) ✅
+- B-4: `_xml_escape()` en Paragraph reportlab (OC + ProyectoOC PDF) ✅
+- M-3: Seed sanitización + Content-Type check en AI imagen ✅
+- M-5: 30+ `flash(f'Error: {e}')` → `_flash_err()` en todos los blueprints ✅
+- #18: `escHtml()` helper + escape `p.nombre`/`p.codigo` en innerHTML template literals ✅
+
+**UI/UX resuelto:**
+- #1: CSRF token en form de reset password ✅
+- #2: X-CSRFToken en llamarGemini fetch ✅
+- #3: Nested blocks (content > scripts) corregido en dashboard + 4 templates más ✅
+- #4: Atributos proveedor corregidos en orden_detalle ✅
+- #5: Spinner salta forms con `data-confirm` — botón Cancelar no queda disabled ✅
+- #6/#7: usuarios.html — check de rol correcto, botón Editar Detalles muerto eliminado ✅
+- #8: Link historial arreglado en panel de alertas del dashboard ✅
+- #9: `#alertas` → `#panelAlertas` en index.html ✅
+- #10: CSRF token eliminado de form GET en ordenes.html ✅
+- #11: `href="#"` breadcrumbs → `<span>` en 6 templates ✅
+- #12: filtroRapido pill Todos recibe `btn-outline-secondary` correctamente ✅
+- #13: Paginator `prev_num`/`next_num` con guards `or 1`/`or pages` ✅
+- #14: Toast usa `textContent` en vez de `innerHTML` para el mensaje ✅
+- #15: `_pollHdStatus` con MAX_RETRIES=20 y `.catch` para errores de red ✅
+- #16: FAB "Nueva OC" → `nueva_orden_manual` ✅
+
+**Pendiente (infraestructura, no bloqueante):**
+- M-1: CSP `unsafe-inline`/`unsafe-eval` — requiere refactor inline JS con nonces
+- M-2: Magic bytes en uploads (PIL.verify para imágenes, header check xlsx/csv)
+- M-4: Pinear versiones en `requirements.txt`
+- **Servidor**: `flask add-hd-session-table && sudo systemctl restart inventario`
