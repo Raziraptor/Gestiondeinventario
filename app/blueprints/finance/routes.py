@@ -362,7 +362,20 @@ def lista_gastos():
         ).scalar() or 0
 
     page = request.args.get('page', 1, type=int)
-    pagination = query_gastos.paginate(page=page, per_page=15, error_out=False)
+    # SA 2.0 Query.count() puede ignorar filtros extract() en subqueries — calculamos manual.
+    if current_user.rol == 'super_admin':
+        _total_count = db.session.query(db.func.count(Gasto.id)).filter(
+            extract('month', Gasto.fecha) == mes,
+            extract('year', Gasto.fecha) == ano
+        ).scalar() or 0
+    else:
+        _total_count = db.session.query(db.func.count(Gasto.id)).filter(
+            Gasto.organizacion_id == current_user.organizacion_id,
+            extract('month', Gasto.fecha) == mes,
+            extract('year', Gasto.fecha) == ano
+        ).scalar() or 0
+    pagination = query_gastos.paginate(page=page, per_page=15, error_out=False, count=False)
+    pagination.total = _total_count
 
     return render_template('gastos.html',
                            gastos=pagination.items,
