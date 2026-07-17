@@ -70,6 +70,12 @@
 {% block content %}
 <div class="container-fluid px-3 px-md-4 pb-5 anim-up" style="max-width:1400px;">
 
+  {# ── Pre-compute stock counts (used in header and health strip) ─── #}
+  {% set n_bajo   = items_stock | selectattr('estado_stock','equalto','bajo')   | list | length %}
+  {% set n_exceso = items_stock | selectattr('estado_stock','equalto','exceso') | list | length %}
+  {% set n_ok     = items_stock | selectattr('estado_stock','equalto','ok')     | list | length %}
+  {% set n_total  = items_stock | length %}
+
   {# ── Fusion page header ──────────────────────────────────────────── #}
   <div class="page-head">
     <div>
@@ -104,10 +110,6 @@
 
   {# ── BARRA DE SALUD (resumen de un vistazo) ───────────────────────────── #}
   {% if almacen_seleccionado %}
-  {% set n_bajo   = items_stock | selectattr('estado_stock','equalto','bajo')   | list | length %}
-  {% set n_exceso = items_stock | selectattr('estado_stock','equalto','exceso') | list | length %}
-  {% set n_ok     = items_stock | selectattr('estado_stock','equalto','ok')     | list | length %}
-  {% set n_total  = items_stock | length %}
   <div class="health-strip d-flex flex-wrap align-items-center gap-2 gap-md-4 px-3 px-md-4 py-2 mb-4 rounded-3 shadow-sm"
        style="background:var(--surface-raised,#f8fafc);border:1px solid var(--border,#e2e8f0);">
     <span class="fw-semibold text-body" style="font-size:.85rem;">
