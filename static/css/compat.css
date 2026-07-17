@@ -324,7 +324,7 @@ thead th, .table-light th {
 .form-control:focus-visible, .form-select:focus-visible { outline: none; }
 
 /* ── PAGE ANIMATIONS ──────────────────────────────────────────── */
-.main { animation: fadeUp .3s cubic-bezier(.25,.6,.3,1) both; }
+.main { animation: pageIn .28s cubic-bezier(.4,0,.2,1) both; padding-bottom: 9rem; }
 .animate-section { animation: fadeUp .28s cubic-bezier(.4,0,.2,1) both; }
 .animate-cards > .col,
 .animate-cards > [class*="col-"] {
@@ -394,3 +394,25 @@ thead th, .table-light th {
     animation: none !important;
   }
 }
+
+/* ── DASH-KICKER (alias de .kicker para page headers) ────────── */
+.dash-kicker {
+  font-family: var(--font-heading);
+  font-size: .66rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--accent-deep); margin-bottom: 4px;
+}
+
+/* ── SIDEBAR COLLAPSE (.shell.sidebar-collapsed) ─────────────── */
+.shell.sidebar-collapsed .sb { width: 60px; }
+.shell.sidebar-collapsed .sb-brand-name,
+.shell.sidebar-collapsed .sb-label,
+.shell.sidebar-collapsed .sb-kicker,
+.shell.sidebar-collapsed .sb-badge,
+.shell.sidebar-collapsed .sb-label-wrap {
+  opacity: 0; width: 0; overflow: hidden;
+  flex: none; white-space: nowrap; pointer-events: none;
+}
+.shell.sidebar-collapsed .sb-item { justify-content: center; padding: 0 8px; }
+.shell.sidebar-collapsed .sb-foot .sb-user { justify-content: center; }
+.shell.sidebar-collapsed #sidebarToggle i { transform: rotate(180deg); }

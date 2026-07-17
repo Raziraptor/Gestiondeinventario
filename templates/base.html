@@ -78,7 +78,7 @@
             from { opacity: 0; transform: translateY(10px); }
             to   { opacity: 1; }
         }
-        .erp-main { animation: pageIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) both; padding-bottom: 9rem; }
+        .erp-main, .main { animation: pageIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) both; padding-bottom: 9rem; }
 
         @keyframes cardIn {
             from { opacity: 0; transform: translateY(16px); }
@@ -643,202 +643,197 @@
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
     <!-- Backdrop móvil del sidebar -->
-    <div id="sidebarMobileBackdrop" class="sidebar-mobile-backdrop"></div>
+    <div id="sbBackdrop" class="sb-backdrop"></div>
 
     <!-- =====================================================
          SHELL — CSS Grid: sidebar + content
     ===================================================== -->
-    <div class="erp-shell" id="erpShell">
+    <div class="shell" id="erpShell">
 
         <!-- ─── SIDEBAR ──────────────────────────────────── -->
-        <aside class="erp-sidebar" id="erpSidebar" aria-label="Navegación principal">
+        <aside class="sb" id="erpSidebar" aria-label="Navegación principal">
 
             <!-- Brand -->
-            <div class="sidebar-brand">
-                <a href="{{ url_for('main.index') }}" class="sidebar-brand-logo" id="sidebarBrandLink" aria-label="Inicio">
-                    <div class="sidebar-brand-icon">
-                        <i class="bi bi-boxes" aria-hidden="true"></i>
-                    </div>
-                </a>
-                <span class="sidebar-brand-name">
+            <div class="sb-brand">
+                <div class="sb-logo" id="sidebarBrandLink" role="button" tabindex="0"
+                     aria-label="Inicio" style="cursor:pointer;">
+                    <i class="ph ph-fill ph-cube" aria-hidden="true"></i>
+                </div>
+                <span class="sb-brand-name">
                     {% if current_user.is_authenticated and current_user.organizacion %}
                         {{ current_user.organizacion.nombre | truncate(20, True) }}
                     {% else %}
                         Inventario ERP
                     {% endif %}
                 </span>
-                <button class="sidebar-toggle-btn" id="sidebarToggle" title="Colapsar menú" aria-label="Colapsar menú">
-                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                <button class="icon-btn" id="sidebarToggle" title="Colapsar menú" aria-label="Colapsar menú"
+                        style="width:32px;height:32px;margin-left:auto;flex-shrink:0;">
+                    <i class="ph ph-sidebar-simple" aria-hidden="true"></i>
                 </button>
             </div>
 
             <!-- Nav -->
-            <nav class="sidebar-nav" role="navigation">
+            <nav class="sb-nav" role="navigation">
                 {% if current_user.is_authenticated %}
 
                 <!-- Dashboard -->
                 <a href="{{ url_for('main.dashboard') }}"
-                   class="sidebar-item {% if request.endpoint in ('main.dashboard', 'main.index') %}active{% endif %}">
-                    <i class="bi bi-grid-fill sidebar-item-icon" aria-hidden="true"></i>
-                    <span class="sidebar-item-label">Dashboard</span>
+                   class="sb-item {% if request.endpoint in ('main.dashboard', 'main.index') %}active{% endif %}">
+                    <i class="ph ph-fill ph-squares-four" aria-hidden="true"></i>
+                    <span class="sb-label">Dashboard</span>
                 </a>
 
                 <!-- INVENTARIO -->
-                <div class="sidebar-group">
-                    <div class="sidebar-group-label">Inventario</div>
+                <div class="sb-kicker">Inventario</div>
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
-                    <a href="{{ url_for('inventory.lista_almacenes') }}"
-                       class="sidebar-item {% if request.endpoint == 'inventory.lista_almacenes' %}active{% endif %}">
-                        <i class="bi bi-building sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Almacenes</span>
-                        {% if nav_badges.stock_critico %}
-                        <span class="sidebar-item-badge">{{ nav_badges.stock_critico }}</span>
-                        {% endif %}
-                    </a>
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+                <a href="{{ url_for('inventory.lista_almacenes') }}"
+                   class="sb-item {% if request.endpoint == 'inventory.lista_almacenes' %}active{% endif %}">
+                    <i class="ph ph-fill ph-buildings" aria-hidden="true"></i>
+                    <span class="sb-label">Almacenes</span>
+                    {% if nav_badges.stock_critico %}
+                    <span class="sb-badge">{{ nav_badges.stock_critico }}</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
-                    <a href="{{ url_for('inventory.historial_salidas') }}"
-                       class="sidebar-item {% if request.endpoint == 'inventory.historial_salidas' %}active{% endif %}">
-                        <i class="bi bi-arrow-up-right-circle sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Salidas</span>
-                    </a>
-                    {% endif %}
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+                <a href="{{ url_for('inventory.historial_salidas') }}"
+                   class="sb-item {% if request.endpoint == 'inventory.historial_salidas' %}active{% endif %}">
+                    <i class="ph ph-fill ph-arrow-square-out" aria-hidden="true"></i>
+                    <span class="sb-label">Salidas</span>
+                </a>
+                {% endif %}
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
-                    <a href="{{ url_for('inventory.nueva_transferencia') }}"
-                       class="sidebar-item {% if request.endpoint == 'inventory.nueva_transferencia' %}active{% endif %}">
-                        <i class="bi bi-arrow-left-right sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Transferencia</span>
-                    </a>
-                    {% endif %}
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
+                <a href="{{ url_for('inventory.nueva_transferencia') }}"
+                   class="sb-item {% if request.endpoint == 'inventory.nueva_transferencia' %}active{% endif %}">
+                    <i class="ph ph-fill ph-arrows-left-right" aria-hidden="true"></i>
+                    <span class="sb-label">Transferencia</span>
+                </a>
+                {% endif %}
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-                    <a href="{{ url_for('inventory.nuevo_ajuste') }}"
-                       class="sidebar-item {% if request.endpoint == 'inventory.nuevo_ajuste' %}active{% endif %}">
-                        <i class="bi bi-sliders sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Ajuste Manual</span>
-                    </a>
-                    {% endif %}
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
+                <a href="{{ url_for('inventory.nuevo_ajuste') }}"
+                   class="sb-item {% if request.endpoint == 'inventory.nuevo_ajuste' %}active{% endif %}">
+                    <i class="ph ph-fill ph-sliders" aria-hidden="true"></i>
+                    <span class="sb-label">Ajuste Manual</span>
+                </a>
+                {% endif %}
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
-                    <a href="{{ url_for('inventory.lista_categorias') }}"
-                       class="sidebar-item {% if request.endpoint == 'inventory.lista_categorias' %}active{% endif %}">
-                        <i class="bi bi-tags sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Categorías</span>
-                    </a>
-                    {% endif %}
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+                <a href="{{ url_for('inventory.lista_categorias') }}"
+                   class="sb-item {% if request.endpoint == 'inventory.lista_categorias' %}active{% endif %}">
+                    <i class="ph ph-fill ph-tag" aria-hidden="true"></i>
+                    <span class="sb-label">Categorías</span>
+                </a>
+                {% endif %}
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
-                    <a href="{{ url_for('inventory.lista_productos_sin_almacen') }}"
-                       class="sidebar-item {% if request.endpoint == 'inventory.lista_productos_sin_almacen' %}active{% endif %}">
-                        <i class="bi bi-box-seam sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Sin Almacén</span>
-                    </a>
-                    {% endif %}
-                </div>
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_management %}
+                <a href="{{ url_for('inventory.lista_productos_sin_almacen') }}"
+                   class="sb-item {% if request.endpoint == 'inventory.lista_productos_sin_almacen' %}active{% endif %}">
+                    <i class="ph ph-fill ph-cube" aria-hidden="true"></i>
+                    <span class="sb-label">Sin Almacén</span>
+                </a>
+                {% endif %}
 
                 <!-- COMPRAS -->
                 {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard or current_user.perm_create_oc_proyecto %}
-                <div class="sidebar-group">
-                    <div class="sidebar-group-label">Compras</div>
+                <div class="sb-kicker">Compras</div>
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
-                    <a href="{{ url_for('purchasing.lista_ordenes') }}"
-                       class="sidebar-item {% if request.endpoint and request.endpoint.startswith('purchasing.') and 'proyecto' not in request.endpoint and 'aprobacion' not in request.endpoint %}active{% endif %}">
-                        <i class="bi bi-file-earmark-text sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Órdenes de Compra</span>
-                        {% if nav_badges.oc_pendientes %}
-                        <span class="sidebar-item-badge">{{ nav_badges.oc_pendientes }}</span>
-                        {% endif %}
-                    </a>
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
+                <a href="{{ url_for('purchasing.lista_ordenes') }}"
+                   class="sb-item {% if request.endpoint and request.endpoint.startswith('purchasing.') and 'proyecto' not in request.endpoint and 'aprobacion' not in request.endpoint %}active{% endif %}">
+                    <i class="ph ph-fill ph-file-text" aria-hidden="true"></i>
+                    <span class="sb-label">Órdenes de Compra</span>
+                    {% if nav_badges.oc_pendientes %}
+                    <span class="sb-badge">{{ nav_badges.oc_pendientes }}</span>
                     {% endif %}
+                </a>
+                {% endif %}
 
-                    {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
-                    <a href="{{ url_for('purchasing.lista_proyectos_oc') }}"
-                       class="sidebar-item {% if request.endpoint and 'proyecto' in request.endpoint %}active{% endif %}">
-                        <i class="bi bi-briefcase sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">OC Proyectos</span>
-                    </a>
-                    {% endif %}
+                {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_proyecto %}
+                <a href="{{ url_for('purchasing.lista_proyectos_oc') }}"
+                   class="sb-item {% if request.endpoint and 'proyecto' in request.endpoint %}active{% endif %}">
+                    <i class="ph ph-fill ph-briefcase" aria-hidden="true"></i>
+                    <span class="sb-label">OC Proyectos</span>
+                </a>
+                {% endif %}
 
-                    <a href="{{ url_for('inventory.lista_proveedores') }}"
-                       class="sidebar-item {% if request.endpoint == 'inventory.lista_proveedores' %}active{% endif %}">
-                        <i class="bi bi-truck sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Proveedores</span>
-                    </a>
+                <a href="{{ url_for('inventory.lista_proveedores') }}"
+                   class="sb-item {% if request.endpoint == 'inventory.lista_proveedores' %}active{% endif %}">
+                    <i class="ph ph-fill ph-truck" aria-hidden="true"></i>
+                    <span class="sb-label">Proveedores</span>
+                </a>
 
-                    {% if current_user.rol in ['super_admin', 'admin'] %}
-                    <a href="{{ url_for('purchasing.lista_aprobaciones') }}"
-                       class="sidebar-item {% if request.endpoint == 'purchasing.lista_aprobaciones' %}active{% endif %}">
-                        <i class="bi bi-shield-check sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Aprobaciones</span>
-                    </a>
-                    {% endif %}
-                </div>
+                {% if current_user.rol in ['super_admin', 'admin'] %}
+                <a href="{{ url_for('purchasing.lista_aprobaciones') }}"
+                   class="sb-item {% if request.endpoint == 'purchasing.lista_aprobaciones' %}active{% endif %}">
+                    <i class="ph ph-fill ph-shield-check" aria-hidden="true"></i>
+                    <span class="sb-label">Aprobaciones</span>
+                </a>
+                {% endif %}
                 {% endif %}
 
                 <!-- FINANZAS -->
                 {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_gastos %}
-                <div class="sidebar-group">
-                    <div class="sidebar-group-label">Finanzas</div>
+                <div class="sb-kicker">Finanzas</div>
 
-                    <a href="{{ url_for('finance.lista_gastos') }}"
-                       class="sidebar-item {% if request.endpoint == 'finance.lista_gastos' %}active{% endif %}">
-                        <i class="bi bi-cash-coin sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Gastos</span>
-                    </a>
-
-                    <a href="{{ url_for('finance.lista_facturas') }}"
-                       class="sidebar-item {% if request.endpoint == 'finance.lista_facturas' %}active{% endif %}">
-                        <i class="bi bi-file-earmark-text sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Cuentas por Pagar</span>
-                    </a>
-
-                    <a href="{{ url_for('finance.lista_servicios') }}"
-                       class="sidebar-item {% if request.endpoint and request.endpoint.startswith('finance.') and 'servicio' in request.endpoint %}active{% endif %}">
-                        <i class="bi bi-lightning-charge-fill sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Servicios</span>
-                        {% if nav_badges.servicios_vencidos %}
-                        <span class="sidebar-item-badge">{{ nav_badges.servicios_vencidos }}</span>
-                        {% endif %}
-                    </a>
-
-                    <a href="{{ url_for('finance.finanzas_dashboard') }}"
-                       class="sidebar-item {% if request.endpoint == 'finance.finanzas_dashboard' %}active{% endif %}">
-                        <i class="bi bi-graph-up-arrow sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Dashboard Financiero</span>
-                    </a>
-
-                    {% if current_user.rol in ['super_admin', 'admin'] %}
-                    <a href="{{ url_for('finance.lista_presupuestos') }}"
-                       class="sidebar-item {% if request.endpoint == 'finance.lista_presupuestos' %}active{% endif %}">
-                        <i class="bi bi-bullseye sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Presupuestos</span>
-                    </a>
-                    <a href="{{ url_for('finance.lista_centros_costo') }}"
-                       class="sidebar-item {% if request.endpoint == 'finance.lista_centros_costo' %}active{% endif %}">
-                        <i class="bi bi-diagram-3 sidebar-item-icon" aria-hidden="true"></i>
-                        <span class="sidebar-item-label">Centros de Costo</span>
-                    </a>
-                    {% endif %}
-                </div>
-                {% endif %}
-
-                <!-- Reportes -->
-                <a href="{{ url_for('reports.reportes') }}"
-                   class="sidebar-item {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}">
-                    <i class="bi bi-bar-chart-fill sidebar-item-icon" aria-hidden="true"></i>
-                    <span class="sidebar-item-label">Reportes</span>
+                <a href="{{ url_for('finance.lista_gastos') }}"
+                   class="sb-item {% if request.endpoint == 'finance.lista_gastos' %}active{% endif %}">
+                    <i class="ph ph-fill ph-coins" aria-hidden="true"></i>
+                    <span class="sb-label">Gastos</span>
                 </a>
 
-                <!-- Admin -->
+                <a href="{{ url_for('finance.lista_facturas') }}"
+                   class="sb-item {% if request.endpoint == 'finance.lista_facturas' %}active{% endif %}">
+                    <i class="ph ph-fill ph-receipt" aria-hidden="true"></i>
+                    <span class="sb-label">Cuentas por Pagar</span>
+                </a>
+
+                <a href="{{ url_for('finance.lista_servicios') }}"
+                   class="sb-item {% if request.endpoint and request.endpoint.startswith('finance.') and 'servicio' in request.endpoint %}active{% endif %}">
+                    <i class="ph ph-fill ph-lightning" aria-hidden="true"></i>
+                    <span class="sb-label">Servicios</span>
+                    {% if nav_badges.servicios_vencidos %}
+                    <span class="sb-badge">{{ nav_badges.servicios_vencidos }}</span>
+                    {% endif %}
+                </a>
+
+                <a href="{{ url_for('finance.finanzas_dashboard') }}"
+                   class="sb-item {% if request.endpoint == 'finance.finanzas_dashboard' %}active{% endif %}">
+                    <i class="ph ph-fill ph-chart-line-up" aria-hidden="true"></i>
+                    <span class="sb-label">Dashboard Financiero</span>
+                </a>
+
+                {% if current_user.rol in ['super_admin', 'admin'] %}
+                <a href="{{ url_for('finance.lista_presupuestos') }}"
+                   class="sb-item {% if request.endpoint == 'finance.lista_presupuestos' %}active{% endif %}">
+                    <i class="ph ph-fill ph-target" aria-hidden="true"></i>
+                    <span class="sb-label">Presupuestos</span>
+                </a>
+                <a href="{{ url_for('finance.lista_centros_costo') }}"
+                   class="sb-item {% if request.endpoint == 'finance.lista_centros_costo' %}active{% endif %}">
+                    <i class="ph ph-fill ph-tree-structure" aria-hidden="true"></i>
+                    <span class="sb-label">Centros de Costo</span>
+                </a>
+                {% endif %}
+                {% endif %}
+
+                <!-- Sistema -->
+                <div class="sb-kicker">Sistema</div>
+
+                <a href="{{ url_for('reports.reportes') }}"
+                   class="sb-item {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}">
+                    <i class="ph ph-fill ph-chart-bar" aria-hidden="true"></i>
+                    <span class="sb-label">Reportes</span>
+                </a>
+
                 {% if current_user.rol in ['super_admin', 'admin'] %}
                 <a href="{% if current_user.rol == 'super_admin' %}{{ url_for('admin.super_admin') }}{% else %}{{ url_for('admin.admin_panel') }}{% endif %}"
-                   class="sidebar-item {% if request.endpoint and request.endpoint.startswith('admin.') %}active{% endif %}">
-                    <i class="bi bi-gear-fill sidebar-item-icon" aria-hidden="true"></i>
-                    <span class="sidebar-item-label">Configuración</span>
+                   class="sb-item {% if request.endpoint and request.endpoint.startswith('admin.') %}active{% endif %}">
+                    <i class="ph ph-fill ph-gear" aria-hidden="true"></i>
+                    <span class="sb-label">Configuración</span>
                 </a>
                 {% endif %}
 
@@ -847,64 +842,62 @@
 
             <!-- Footer: usuario -->
             {% if current_user.is_authenticated %}
-            <div class="sidebar-footer">
-                <a href="{{ url_for('auth.account') }}" class="sidebar-user">
-                    <img src="{{ url_for('static', filename='uploads/profile_pics/' + current_user.image_file) }}"
-                         alt="Perfil" class="sidebar-avatar"
-                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='img/default_avatar.svg') }}'">
-                    <div style="min-width:0;flex:1;overflow:hidden;">
-                        <div class="sidebar-user-name">{{ current_user.username }}</div>
-                        <div class="sidebar-user-role">{{ current_user.rol | replace('_', ' ') | title }}</div>
+            <div class="sb-foot">
+                <a href="{{ url_for('auth.account') }}" class="sb-user" style="text-decoration:none;">
+                    <div class="avatar" aria-hidden="true">{{ current_user.username[0]|upper }}</div>
+                    <div class="sb-label-wrap" style="min-width:0;flex:1;overflow:hidden;">
+                        <div style="font-weight:600;font-size:.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">{{ current_user.username }}</div>
+                        <div style="color:var(--faint);font-size:.7rem;">{{ current_user.rol | replace('_', ' ') | title }}</div>
                     </div>
-                    <i class="bi bi-box-arrow-right sidebar-item-icon" aria-hidden="true" style="font-size:.85rem;opacity:.5;"></i>
+                    <i class="ph ph-sign-out" style="color:var(--faint);font-size:16px;flex-shrink:0;" aria-hidden="true"></i>
                 </a>
             </div>
             {% endif %}
         </aside>
 
         <!-- ─── CONTENT WRAP ─────────────────────────────── -->
-        <div class="erp-content-wrap">
+        <div class="main-wrap">
 
             <!-- TOPBAR -->
-            <div class="erp-topbar">
+            <header class="topbar">
 
                 <!-- Mobile hamburger -->
-                <button class="topbar-menu-btn" id="sidebarMobileToggle" aria-label="Abrir menú">
-                    <i class="bi bi-list" aria-hidden="true"></i>
+                <button class="icon-btn menu-btn" id="sidebarMobileToggle" aria-label="Abrir menú">
+                    <i class="ph ph-list" aria-hidden="true"></i>
                 </button>
 
                 <!-- Command bar / search trigger -->
                 {% if current_user.is_authenticated %}
-                <button class="cmd-trigger" id="cmdTrigger" aria-label="Búsqueda global (Ctrl+K)">
-                    <i class="bi bi-search" aria-hidden="true"></i>
+                <button class="searchbar" id="cmdTrigger" aria-label="Búsqueda global (⌘K)">
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
                     <span class="text-muted">Buscar...</span>
-                    <kbd>Ctrl K</kbd>
+                    <kbd>⌘K</kbd>
                 </button>
                 {% endif %}
 
                 <!-- Topbar actions (right side) -->
-                <div class="topbar-actions">
+                <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
 
                     <!-- Offline pending badge -->
                     {% if current_user.is_authenticated %}
                     <div id="offlinePendingWrap" style="display:none;">
-                        <span class="theme-btn position-relative" title="Operaciones pendientes de sincronizar">
-                            <i class="bi bi-cloud-arrow-up text-warning"></i>
+                        <button class="icon-btn" title="Operaciones pendientes de sincronizar" style="position:relative;">
+                            <i class="ph ph-cloud-arrow-up" style="color:var(--warn);" aria-hidden="true"></i>
                             <span id="offlinePendingBadge"
                                   class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
                                   style="font-size:.6rem;min-width:16px;">0</span>
-                        </span>
+                        </button>
                     </div>
                     {% endif %}
 
                     <!-- Push notifications -->
                     {% if current_user.is_authenticated and vapid_public_key %}
                     <div id="pushNavItem" style="display:none;" class="d-flex align-items-center gap-1">
-                        <button id="pushToggleBtn" class="theme-btn" title="Activar notificaciones push" aria-label="Notificaciones push">
-                            <i id="pushBellIcon" class="bi bi-bell-slash"></i>
+                        <button id="pushToggleBtn" class="icon-btn" title="Activar notificaciones push" aria-label="Notificaciones push">
+                            <i id="pushBellIcon" class="ph ph-bell-slash"></i>
                         </button>
-                        <button id="pushTestBtn" class="theme-btn" title="Enviar notificación de prueba" aria-label="Probar notificación" style="display:none;font-size:.8rem;opacity:.6;">
-                            <i class="bi bi-send-check-fill"></i>
+                        <button id="pushTestBtn" class="icon-btn" title="Enviar notificación de prueba" aria-label="Probar notificación" style="display:none;font-size:.8rem;opacity:.6;">
+                            <i class="ph ph-paper-plane-tilt"></i>
                         </button>
                     </div>
                     {% endif %}
@@ -912,21 +905,21 @@
                     <!-- Stock alerts bell -->
                     {% if current_user.is_authenticated and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard) %}
                     <div class="dropdown">
-                        <button class="theme-btn position-relative" id="alertaBell" role="button"
+                        <button class="icon-btn position-relative" id="alertaBell" role="button"
                                 data-bs-toggle="dropdown" aria-expanded="false" title="Alertas de stock bajo">
-                            <i class="bi bi-bell" aria-hidden="true"></i>
+                            <i class="ph ph-bell" aria-hidden="true"></i>
                             <span id="alerta-badge"
                                   class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
                                   style="font-size:.6rem;min-width:1.1rem;">0</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end p-0 border-0" style="min-width:310px;max-width:340px;" aria-labelledby="alertaBell">
                             <div class="d-flex align-items-center justify-content-between px-3 py-2"
-                                 style="background:rgba(239,68,68,.07);border-bottom:1px solid var(--border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
-                                <span class="fw-bold small"><i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>Stock Bajo</span>
+                                 style="background:rgba(239,68,68,.07);border-bottom:1px solid var(--border);border-radius:var(--r-card) var(--r-card) 0 0;">
+                                <span class="fw-bold small"><i class="ph ph-fill ph-warning-circle text-danger me-1"></i>Stock Bajo</span>
                                 <span id="alerta-count-label" class="badge rounded-pill bg-danger">0</span>
                             </div>
                             <div id="alerta-lista" style="max-height:280px;overflow-y:auto;"></div>
-                            <div class="border-top text-center px-3 py-2" style="background:var(--hover-bg);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+                            <div class="border-top text-center px-3 py-2" style="background:var(--card-2);border-radius:0 0 var(--r-card) var(--r-card);">
                                 <a href="{{ url_for('main.dashboard') }}" class="text-decoration-none small fw-semibold text-primary">
                                     Ver inventario completo →
                                 </a>
@@ -936,16 +929,16 @@
                     {% endif %}
 
                     <!-- Theme toggle -->
-                    <button id="theme-toggle" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema">
-                        <i id="theme-icon" class="bi bi-moon-fill"></i>
+                    <button id="theme-toggle" class="icon-btn" title="Cambiar tema" aria-label="Cambiar tema">
+                        <i id="theme-icon" class="ph ph-moon"></i>
                     </button>
 
                     <!-- Logout button -->
                     {% if current_user.is_authenticated %}
                     <form action="{{ url_for('auth.logout') }}" method="POST" class="d-inline m-0 p-0">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="theme-btn text-danger border-0 bg-transparent" title="Cerrar sesión" aria-label="Cerrar sesión">
-                            <i class="bi bi-box-arrow-left" aria-hidden="true"></i>
+                        <button type="submit" class="icon-btn" title="Cerrar sesión" aria-label="Cerrar sesión" style="border-color:transparent;">
+                            <i class="ph ph-sign-out" style="color:var(--danger);" aria-hidden="true"></i>
                         </button>
                     </form>
                     {% endif %}
@@ -953,45 +946,45 @@
                     <!-- User dropdown (topbar) -->
                     {% if current_user.is_authenticated %}
                     <div class="dropdown">
-                        <button class="theme-btn" data-bs-toggle="dropdown" aria-expanded="false" title="{{ current_user.username }}">
-                            <i class="bi bi-three-dots-vertical"></i>
+                        <button class="icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="{{ current_user.username }}">
+                            <i class="ph ph-dots-three-vertical"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end mt-1" style="min-width:220px;">
                             {% if current_user.rol in ['super_admin', 'admin'] %}
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('admin.configurar_plantilla') }}">
-                                    <i class="bi bi-palette me-2 text-primary"></i> Personalizar Marca
+                                    <i class="ph ph-palette me-2" style="color:var(--accent);"></i> Personalizar Marca
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('main.historial_actividad') }}">
-                                    <i class="bi bi-clock-history me-2 text-warning"></i> Historial de Actividad
+                                    <i class="ph ph-clock-counter-clockwise me-2" style="color:var(--warn);"></i> Historial de Actividad
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('admin.manual_usuario') }}">
-                                    <i class="bi bi-file-earmark-text me-2 text-success"></i> Manual de Usuario
+                                    <i class="ph ph-file-text me-2" style="color:var(--sage);"></i> Manual de Usuario
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             {% endif %}
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('auth.account') }}">
-                                    <i class="bi bi-gear me-2 text-secondary"></i> Cuenta
+                                    <i class="ph ph-gear me-2" style="color:var(--muted);"></i> Cuenta
                                 </a>
                             </li>
                         </ul>
                     </div>
                     {% else %}
                     <a class="btn btn-primary rounded-pill px-3 btn-sm" href="{{ url_for('auth.login') }}">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+                        <i class="ph ph-sign-in me-1"></i> Iniciar Sesión
                     </a>
                     {% endif %}
                 </div>
-            </div>
+            </header>
 
             <!-- MAIN CONTENT -->
-            <main class="erp-main" id="main-content">
+            <main class="main" id="main-content">
 
                 <!-- Flash messages → JS toasts -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -1006,8 +999,8 @@
 
                 {% block content %}{% endblock %}
             </main>
-        </div>{# end erp-content-wrap #}
-    </div>{# end erp-shell #}
+        </div>{# end main-wrap #}
+    </div>{# end shell #}
 
     <!-- Modales de página — FUERA de <main> para evitar conflictos de stacking context -->
     {% block modals %}{% endblock %}
@@ -1170,7 +1163,7 @@
             html.setAttribute('data-bs-theme', theme);
             localStorage.setItem('erp_theme', theme);
             localStorage.setItem('app_theme', theme); // compat alias
-            if (icon) icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            if (icon) icon.className = theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
             window.dispatchEvent(new Event('themechange'));
         }
 
@@ -1189,7 +1182,7 @@
         const sidebar  = document.getElementById('erpSidebar');
         const toggle   = document.getElementById('sidebarToggle');
         const mToggle  = document.getElementById('sidebarMobileToggle');
-        const backdrop = document.getElementById('sidebarMobileBackdrop');
+        const backdrop = document.getElementById('sbBackdrop');
 
         // Desktop: collapse/expand
         if (shell) {
@@ -1214,28 +1207,30 @@
                 });
             }
 
-            // Brand logo: expande el sidebar si está colapsado, navega al dashboard si está expandido
+            // Brand logo: expande el sidebar si está colapsado
             const brandLink = document.getElementById('sidebarBrandLink');
             if (brandLink) {
-                brandLink.addEventListener('click', function (e) {
+                brandLink.addEventListener('click', function () {
                     if (shell.classList.contains('sidebar-collapsed')) {
-                        e.preventDefault();
                         shell.classList.remove('sidebar-collapsed');
                         localStorage.setItem('sidebar_collapsed', '0');
                     }
+                });
+                brandLink.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); brandLink.click(); }
                 });
             }
         }
 
         // Mobile: off-canvas
         function openMobile() {
-            sidebar && sidebar.classList.add('mobile-open');
-            backdrop && backdrop.classList.add('active');
+            sidebar && sidebar.classList.add('open');
+            backdrop && backdrop.classList.add('show');
             document.body.style.overflow = 'hidden';
         }
         function closeMobile() {
-            sidebar && sidebar.classList.remove('mobile-open');
-            backdrop && backdrop.classList.remove('active');
+            sidebar && sidebar.classList.remove('open');
+            backdrop && backdrop.classList.remove('show');
             document.body.style.overflow = '';
         }
 
