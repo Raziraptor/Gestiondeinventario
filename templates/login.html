@@ -4,18 +4,20 @@
 {% block extra_css %}
 <style>
 /* ── HIDE shell for auth pages ──────────────────────────── */
-.erp-sidebar, .erp-topbar, .sidebar-mobile-backdrop,
-#sidebarMobileBackdrop { display: none !important; }
-.erp-shell { display: block !important; }
-.erp-content-wrap { display: block !important; }
-.erp-main {
+.sb, .topbar, .sb-backdrop,
+#sbBackdrop { display: none !important; }
+.shell { display: block !important; }
+.main-wrap { display: block !important; }
+.main {
     min-height: 100vh !important;
     padding: 24px !important;
+    padding-bottom: 24px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     position: relative;
     overflow: hidden;
+    animation: none !important;
 }
 
 /* ── BLOB animations ────────────────────────────────────── */
