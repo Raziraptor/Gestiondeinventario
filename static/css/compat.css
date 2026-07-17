@@ -403,16 +403,3 @@ thead th, .table-light th {
   color: var(--accent-deep); margin-bottom: 4px;
 }
 
-/* ── SIDEBAR COLLAPSE (.shell.sidebar-collapsed) ─────────────── */
-.shell.sidebar-collapsed .sb { width: 60px; }
-.shell.sidebar-collapsed .sb-brand-name,
-.shell.sidebar-collapsed .sb-label,
-.shell.sidebar-collapsed .sb-kicker,
-.shell.sidebar-collapsed .sb-badge,
-.shell.sidebar-collapsed .sb-label-wrap {
-  opacity: 0; width: 0; overflow: hidden;
-  flex: none; white-space: nowrap; pointer-events: none;
-}
-.shell.sidebar-collapsed .sb-item { justify-content: center; padding: 0 8px; }
-.shell.sidebar-collapsed .sb-foot .sb-user { justify-content: center; }
-.shell.sidebar-collapsed #sidebarToggle i { transform: rotate(180deg); }

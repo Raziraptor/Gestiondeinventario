@@ -46,9 +46,6 @@
             var t = localStorage.getItem('erp_theme') || localStorage.getItem('app_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', t);
             document.documentElement.setAttribute('data-bs-theme', t);
-            if (localStorage.getItem('sidebar_collapsed') === '1') {
-                document.documentElement.classList.add('sidebar-collapsed-init');
-            }
         })();
     </script>
 
@@ -655,10 +652,9 @@
 
             <!-- Brand -->
             <div class="sb-brand">
-                <div class="sb-logo" id="sidebarBrandLink" role="button" tabindex="0"
-                     aria-label="Inicio" style="cursor:pointer;">
+                <a href="{{ url_for('main.index') }}" class="sb-logo" style="text-decoration:none;">
                     <i class="ph ph-fill ph-cube" aria-hidden="true"></i>
-                </div>
+                </a>
                 <span class="sb-brand-name">
                     {% if current_user.is_authenticated and current_user.organizacion %}
                         {{ current_user.organizacion.nombre | truncate(20, True) }}
@@ -666,10 +662,6 @@
                         Inventario ERP
                     {% endif %}
                 </span>
-                <button class="icon-btn" id="sidebarToggle" title="Colapsar menú" aria-label="Colapsar menú"
-                        style="width:32px;height:32px;margin-left:auto;flex-shrink:0;">
-                    <i class="ph ph-sidebar-simple" aria-hidden="true"></i>
-                </button>
             </div>
 
             <!-- Nav -->
@@ -680,7 +672,7 @@
                 <a href="{{ url_for('main.dashboard') }}"
                    class="sb-item {% if request.endpoint in ('main.dashboard', 'main.index') %}active{% endif %}">
                     <i class="ph ph-fill ph-squares-four" aria-hidden="true"></i>
-                    <span class="sb-label">Dashboard</span>
+                    Dashboard
                 </a>
 
                 <!-- INVENTARIO -->
@@ -690,7 +682,7 @@
                 <a href="{{ url_for('inventory.lista_almacenes') }}"
                    class="sb-item {% if request.endpoint == 'inventory.lista_almacenes' %}active{% endif %}">
                     <i class="ph ph-fill ph-buildings" aria-hidden="true"></i>
-                    <span class="sb-label">Almacenes</span>
+                    Almacenes
                     {% if nav_badges.stock_critico %}
                     <span class="sb-badge">{{ nav_badges.stock_critico }}</span>
                     {% endif %}
@@ -701,7 +693,7 @@
                 <a href="{{ url_for('inventory.historial_salidas') }}"
                    class="sb-item {% if request.endpoint == 'inventory.historial_salidas' %}active{% endif %}">
                     <i class="ph ph-fill ph-arrow-square-out" aria-hidden="true"></i>
-                    <span class="sb-label">Salidas</span>
+                    Salidas
                 </a>
                 {% endif %}
 
@@ -709,7 +701,7 @@
                 <a href="{{ url_for('inventory.nueva_transferencia') }}"
                    class="sb-item {% if request.endpoint == 'inventory.nueva_transferencia' %}active{% endif %}">
                     <i class="ph ph-fill ph-arrows-left-right" aria-hidden="true"></i>
-                    <span class="sb-label">Transferencia</span>
+                    Transferencia
                 </a>
                 {% endif %}
 
@@ -717,7 +709,7 @@
                 <a href="{{ url_for('inventory.nuevo_ajuste') }}"
                    class="sb-item {% if request.endpoint == 'inventory.nuevo_ajuste' %}active{% endif %}">
                     <i class="ph ph-fill ph-sliders" aria-hidden="true"></i>
-                    <span class="sb-label">Ajuste Manual</span>
+                    Ajuste Manual
                 </a>
                 {% endif %}
 
@@ -725,7 +717,7 @@
                 <a href="{{ url_for('inventory.lista_categorias') }}"
                    class="sb-item {% if request.endpoint == 'inventory.lista_categorias' %}active{% endif %}">
                     <i class="ph ph-fill ph-tag" aria-hidden="true"></i>
-                    <span class="sb-label">Categorías</span>
+                    Categorías
                 </a>
                 {% endif %}
 
@@ -733,7 +725,7 @@
                 <a href="{{ url_for('inventory.lista_productos_sin_almacen') }}"
                    class="sb-item {% if request.endpoint == 'inventory.lista_productos_sin_almacen' %}active{% endif %}">
                     <i class="ph ph-fill ph-cube" aria-hidden="true"></i>
-                    <span class="sb-label">Sin Almacén</span>
+                    Sin Almacén
                 </a>
                 {% endif %}
 
@@ -745,7 +737,7 @@
                 <a href="{{ url_for('purchasing.lista_ordenes') }}"
                    class="sb-item {% if request.endpoint and request.endpoint.startswith('purchasing.') and 'proyecto' not in request.endpoint and 'aprobacion' not in request.endpoint %}active{% endif %}">
                     <i class="ph ph-fill ph-file-text" aria-hidden="true"></i>
-                    <span class="sb-label">Órdenes de Compra</span>
+                    Órdenes de Compra
                     {% if nav_badges.oc_pendientes %}
                     <span class="sb-badge">{{ nav_badges.oc_pendientes }}</span>
                     {% endif %}
@@ -756,21 +748,21 @@
                 <a href="{{ url_for('purchasing.lista_proyectos_oc') }}"
                    class="sb-item {% if request.endpoint and 'proyecto' in request.endpoint %}active{% endif %}">
                     <i class="ph ph-fill ph-briefcase" aria-hidden="true"></i>
-                    <span class="sb-label">OC Proyectos</span>
+                    OC Proyectos
                 </a>
                 {% endif %}
 
                 <a href="{{ url_for('inventory.lista_proveedores') }}"
                    class="sb-item {% if request.endpoint == 'inventory.lista_proveedores' %}active{% endif %}">
                     <i class="ph ph-fill ph-truck" aria-hidden="true"></i>
-                    <span class="sb-label">Proveedores</span>
+                    Proveedores
                 </a>
 
                 {% if current_user.rol in ['super_admin', 'admin'] %}
                 <a href="{{ url_for('purchasing.lista_aprobaciones') }}"
                    class="sb-item {% if request.endpoint == 'purchasing.lista_aprobaciones' %}active{% endif %}">
                     <i class="ph ph-fill ph-shield-check" aria-hidden="true"></i>
-                    <span class="sb-label">Aprobaciones</span>
+                    Aprobaciones
                 </a>
                 {% endif %}
                 {% endif %}
@@ -782,19 +774,19 @@
                 <a href="{{ url_for('finance.lista_gastos') }}"
                    class="sb-item {% if request.endpoint == 'finance.lista_gastos' %}active{% endif %}">
                     <i class="ph ph-fill ph-coins" aria-hidden="true"></i>
-                    <span class="sb-label">Gastos</span>
+                    Gastos
                 </a>
 
                 <a href="{{ url_for('finance.lista_facturas') }}"
                    class="sb-item {% if request.endpoint == 'finance.lista_facturas' %}active{% endif %}">
                     <i class="ph ph-fill ph-receipt" aria-hidden="true"></i>
-                    <span class="sb-label">Cuentas por Pagar</span>
+                    Cuentas por Pagar
                 </a>
 
                 <a href="{{ url_for('finance.lista_servicios') }}"
                    class="sb-item {% if request.endpoint and request.endpoint.startswith('finance.') and 'servicio' in request.endpoint %}active{% endif %}">
                     <i class="ph ph-fill ph-lightning" aria-hidden="true"></i>
-                    <span class="sb-label">Servicios</span>
+                    Servicios
                     {% if nav_badges.servicios_vencidos %}
                     <span class="sb-badge">{{ nav_badges.servicios_vencidos }}</span>
                     {% endif %}
@@ -803,19 +795,19 @@
                 <a href="{{ url_for('finance.finanzas_dashboard') }}"
                    class="sb-item {% if request.endpoint == 'finance.finanzas_dashboard' %}active{% endif %}">
                     <i class="ph ph-fill ph-chart-line-up" aria-hidden="true"></i>
-                    <span class="sb-label">Dashboard Financiero</span>
+                    Dashboard Financiero
                 </a>
 
                 {% if current_user.rol in ['super_admin', 'admin'] %}
                 <a href="{{ url_for('finance.lista_presupuestos') }}"
                    class="sb-item {% if request.endpoint == 'finance.lista_presupuestos' %}active{% endif %}">
                     <i class="ph ph-fill ph-target" aria-hidden="true"></i>
-                    <span class="sb-label">Presupuestos</span>
+                    Presupuestos
                 </a>
                 <a href="{{ url_for('finance.lista_centros_costo') }}"
                    class="sb-item {% if request.endpoint == 'finance.lista_centros_costo' %}active{% endif %}">
                     <i class="ph ph-fill ph-tree-structure" aria-hidden="true"></i>
-                    <span class="sb-label">Centros de Costo</span>
+                    Centros de Costo
                 </a>
                 {% endif %}
                 {% endif %}
@@ -826,14 +818,14 @@
                 <a href="{{ url_for('reports.reportes') }}"
                    class="sb-item {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}">
                     <i class="ph ph-fill ph-chart-bar" aria-hidden="true"></i>
-                    <span class="sb-label">Reportes</span>
+                    Reportes
                 </a>
 
                 {% if current_user.rol in ['super_admin', 'admin'] %}
                 <a href="{% if current_user.rol == 'super_admin' %}{{ url_for('admin.super_admin') }}{% else %}{{ url_for('admin.admin_panel') }}{% endif %}"
                    class="sb-item {% if request.endpoint and request.endpoint.startswith('admin.') %}active{% endif %}">
                     <i class="ph ph-fill ph-gear" aria-hidden="true"></i>
-                    <span class="sb-label">Configuración</span>
+                    Configuración
                 </a>
                 {% endif %}
 
@@ -845,7 +837,7 @@
             <div class="sb-foot">
                 <a href="{{ url_for('auth.account') }}" class="sb-user" style="text-decoration:none;">
                     <div class="avatar" aria-hidden="true">{{ current_user.username[0]|upper }}</div>
-                    <div class="sb-label-wrap" style="min-width:0;flex:1;overflow:hidden;">
+                    <div style="min-width:0;flex:1;overflow:hidden;">
                         <div style="font-weight:600;font-size:.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">{{ current_user.username }}</div>
                         <div style="color:var(--faint);font-size:.7rem;">{{ current_user.rol | replace('_', ' ') | title }}</div>
                     </div>
@@ -1175,54 +1167,13 @@
     })();
     </script>
 
-    <!-- SIDEBAR TOGGLE (desktop collapse + mobile off-canvas) -->
+    <!-- SIDEBAR — mobile off-canvas -->
     <script>
     (function () {
-        const shell    = document.getElementById('erpShell');
         const sidebar  = document.getElementById('erpSidebar');
-        const toggle   = document.getElementById('sidebarToggle');
         const mToggle  = document.getElementById('sidebarMobileToggle');
         const backdrop = document.getElementById('sbBackdrop');
 
-        // Desktop: collapse/expand
-        if (shell) {
-            // Deshabilitar transiciones durante restauración inicial (evita animación "se cierra solo")
-            shell.style.transition = 'none';
-            if (sidebar) sidebar.style.transition = 'none';
-
-            const stored = localStorage.getItem('sidebar_collapsed') === '1';
-            if (stored) shell.classList.add('sidebar-collapsed');
-            document.documentElement.classList.remove('sidebar-collapsed-init');
-
-            // Forzar reflow y re-habilitar transiciones
-            void shell.offsetWidth;
-            shell.style.transition = '';
-            if (sidebar) sidebar.style.transition = '';
-
-            // Botón colapsar (solo visible en modo expandido)
-            if (toggle) {
-                toggle.addEventListener('click', function () {
-                    const collapsed = shell.classList.toggle('sidebar-collapsed');
-                    localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
-                });
-            }
-
-            // Brand logo: expande el sidebar si está colapsado
-            const brandLink = document.getElementById('sidebarBrandLink');
-            if (brandLink) {
-                brandLink.addEventListener('click', function () {
-                    if (shell.classList.contains('sidebar-collapsed')) {
-                        shell.classList.remove('sidebar-collapsed');
-                        localStorage.setItem('sidebar_collapsed', '0');
-                    }
-                });
-                brandLink.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); brandLink.click(); }
-                });
-            }
-        }
-
-        // Mobile: off-canvas
         function openMobile() {
             sidebar && sidebar.classList.add('open');
             backdrop && backdrop.classList.add('show');
