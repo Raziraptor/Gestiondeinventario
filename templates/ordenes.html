@@ -3,17 +3,21 @@
 
 {% block title %}Órdenes de Compra{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
 .orden-card {
-    border-radius: var(--radius-lg); overflow: hidden;
+    border-radius: var(--r-card); overflow: hidden;
+    transition: transform .18s, box-shadow .18s; border: 1px solid var(--border) !important;
 }
+.orden-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md) !important; }
 .status-badge {
-    font-size: .75rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .5px; padding: .4em .9em; border-radius: 50rem;
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; padding: .3em .85em; border-radius: var(--r-pill);
+    font-family: var(--font-heading);
 }
-.filter-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
 </style>
+{% endblock %}
+{% block content %}
 
 <div class="container-fluid mt-3 mb-5">
 
@@ -27,16 +31,15 @@
     </nav>
 
     <!-- PAGE HEADER -->
-    <div class="page-header">
-        <div class="page-header-row">
-            <div>
-                <h1 class="page-title"><i class="bi bi-cart-check-fill text-primary me-2"></i>Órdenes de Compra</h1>
-                <p class="page-subtitle">Gestión de aprovisionamiento y recepción de mercancía.</p>
-            </div>
-            <a href="{{ url_for('purchasing.nueva_orden_manual') }}" class="btn btn-primary shadow-sm rounded-pill px-4 fw-bold">
-                <i class="bi bi-plus-lg me-1"></i> Crear OC Manual
-            </a>
+    <div class="page-head anim-up">
+        <div>
+            <div class="dash-kicker">Compras · {{ meses_lista[mes_seleccionado-1][1] if meses_lista else '' }} {{ ano_seleccionado }}</div>
+            <h1 class="page-title"><i class="ph ph-fill ph-file-text me-2" style="color:var(--accent);" aria-hidden="true"></i>Órdenes de Compra</h1>
+            <p class="page-sub">Gestión de aprovisionamiento y recepción de mercancía.</p>
         </div>
+        <a href="{{ url_for('purchasing.nueva_orden_manual') }}" class="btn rounded-pill px-4 fw-bold" style="background:var(--accent);color:#fff;">
+            <i class="ph ph-plus me-1" aria-hidden="true"></i> Crear OC Manual
+        </a>
     </div>
 
     <!-- SECCIÓN DE FILTROS -->

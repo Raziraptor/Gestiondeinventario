@@ -3,17 +3,24 @@
 
 {% block title %}Control de Gastos{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
-.gasto-card { }
+/* Gastos — Fusion upgrade */
 .total-card {
-    background: linear-gradient(135deg, var(--primary) 0%, rgba(var(--primary-rgb),.7) 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
     color: #fff !important; border: none;
+    box-shadow: var(--glow), var(--shadow-md);
 }
-[data-bs-theme="dark"] .total-card {
-    background: linear-gradient(135deg, var(--primary) 0%, #0050b3 100%);
+.gasto-card { transition: transform .18s, box-shadow .18s; }
+.gasto-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md) !important; }
+.cat-icon {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
 }
 </style>
+{% endblock %}
+
+{% block content %}
 
 <div class="container-fluid mt-3 mb-5">
 
@@ -27,12 +34,12 @@
     </nav>
 
     <!-- PAGE HEADER -->
-    <div class="page-header">
-        <div class="page-header-row">
-            <div>
-                <h1 class="page-title"><i class="bi bi-cash-coin text-success me-2"></i>Control de Gastos</h1>
-                <p class="page-subtitle">Registro, seguimiento y análisis de egresos.</p>
-            </div>
+    <div class="page-head anim-up">
+        <div>
+            <div class="dash-kicker">Finanzas · {{ meses_lista[mes_seleccionado-1][1] if meses_lista else '' }} {{ ano_seleccionado }}</div>
+            <h1 class="page-title"><i class="ph ph-fill ph-coins me-2" style="color:var(--accent);" aria-hidden="true"></i>Control de Gastos</h1>
+            <p class="page-sub">Registro, seguimiento y análisis de egresos.</p>
+        </div>
             <div class="d-flex flex-wrap gap-2">
                 <div class="btn-group shadow-sm">
                     <a href="{{ url_for('reports.exportar_gastos_excel', mes=mes_seleccionado, ano=ano_seleccionado) }}"
@@ -101,9 +108,11 @@
                 <div class="position-absolute opacity-25" style="top: -20px; right: -20px; width: 100px; height: 100px; background: white; border-radius: 50%; filter: blur(20px);"></div>
                 
                 <div class="card-body d-flex flex-column justify-content-center align-items-center text-center p-4 z-1">
-                    <h6 class="text-uppercase fw-bold opacity-75 mb-2" style="font-size: 0.85rem; letter-spacing: 1px;">Total del Mes</h6>
-                    <h1 class="mb-0 fw-bold display-5 text-white">${{ "{:,.2f}".format(total_gastos) }}</h1>
-                    <div class="opacity-75 mt-1" style="font-size:.75rem;letter-spacing:.5px;">MXN</div>
+                    <div class="dash-kicker" style="color:rgba(255,255,255,.7);border-bottom-color:rgba(255,255,255,.2);margin-bottom:8px;">Total del Mes</div>
+                    <h1 class="mb-0 fw-bold text-white kpi-value"
+                        data-count="{{ total_gastos | round(2) }}"
+                        data-dec="2" data-prefix="$">${{ "{:,.2f}".format(total_gastos) }}</h1>
+                    <div class="opacity-75 mt-1" style="font-size:.73rem;letter-spacing:.08em;">MXN</div>
                 </div>
             </div>
         </div>
