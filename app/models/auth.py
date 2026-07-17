@@ -63,6 +63,7 @@ class User(db.Model, UserMixin):
     image_file   = db.Column(db.String(20),  nullable=False, default='default.jpg')
     password_hash= db.Column(db.String(255), nullable=False)
     rol          = db.Column(db.String(20),  nullable=False, default='user')
+    is_active    = db.Column(db.Boolean, nullable=False, default=True)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=True)
 
     perm_view_dashboard    = db.Column(db.Boolean, nullable=False, default=False)

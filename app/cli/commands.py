@@ -227,6 +227,22 @@ def register_commands(app):
                     conn.rollback(); print(f'Omitido: {e}')
         print('fix-oc-detalle-almacen completado.')
 
+    @app.cli.command('fix-add-user-is-active')
+    @with_appcontext
+    def fix_add_user_is_active():
+        """Añade columna is_active a user. Idempotente."""
+        from app.extensions import db
+        stmts = [
+            "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE",
+        ]
+        with db.engine.connect() as conn:
+            for stmt in stmts:
+                try:
+                    conn.execute(text(stmt)); conn.commit(); print(f'OK: {stmt}')
+                except Exception as e:
+                    conn.rollback(); print(f'Omitido: {e}')
+        print('fix-add-user-is-active completado.')
+
     @app.cli.command('fix-oc-distribucion-almacenes')
     @with_appcontext
     def fix_oc_distribucion_almacenes():

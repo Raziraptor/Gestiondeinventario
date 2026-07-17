@@ -83,14 +83,16 @@
                                     <i class="bi bi-pencil" aria-hidden="true"></i>
                                 </a>
 
-                                <!-- BOTÓN ELIMINAR -->
-                                <form action="{{ url_for('inventory.eliminar_almacen', id=alm.id) }}" method="POST"
-                                      data-confirm="¿Eliminar el almacén '{{ alm.nombre }}'? Esta acción no se puede deshacer y podría afectar el historial de movimientos.">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-accion btn-sm btn-outline-danger shadow-sm rounded-pill px-3" title="Eliminar Almacén" aria-label="Eliminar almacén">
-                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                    </button>
-                                </form>
+                                <!-- BOTÓN ELIMINAR → abre modal de transferencia -->
+                                {% if current_user.rol in ['super_admin', 'admin'] %}
+                                <button type="button"
+                                        class="btn btn-accion btn-sm btn-outline-danger shadow-sm rounded-pill px-3"
+                                        title="Eliminar Almacén"
+                                        aria-label="Eliminar almacén {{ alm.nombre }}"
+                                        onclick="abrirModalEliminarAlmacen({{ alm.id }}, '{{ alm.nombre | replace("'", "\\'") }}')">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                                {% endif %}
                             </div>
 
                         </td>
@@ -111,4 +113,205 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block modals %}
+<!-- ── Modal: Eliminar Almacén con transferencia ─────────────── -->
+<div class="modal fade" id="modalEliminarAlmacen" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:540px;">
+    <div class="modal-content border-0 shadow-lg" style="background:var(--card);border-radius:var(--r-card);">
+
+      <div class="modal-header" style="border-color:var(--border);">
+        <h5 class="modal-title fw-bold" style="color:var(--text);">
+          <i class="bi bi-building-x text-danger me-2"></i>
+          Eliminar: <span id="elmNombre" class="text-danger"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Estado: cargando -->
+      <div id="elmLoading" class="modal-body text-center py-5">
+        <div class="spinner-border text-primary mb-3" role="status" style="width:2.5rem;height:2.5rem;"></div>
+        <p class="text-muted mb-0">Verificando inventario…</p>
+      </div>
+
+      <!-- Estado: sin stock -->
+      <div id="elmSinStock" class="modal-body" style="display:none;">
+        <div class="text-center py-3">
+          <div style="width:60px;height:60px;border-radius:50%;background:rgba(220,53,69,.12);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 1rem;">
+            <i class="bi bi-exclamation-triangle text-danger"></i>
+          </div>
+          <p class="mb-0 text-muted">Este almacén no tiene inventario activo. Se eliminará permanentemente.</p>
+        </div>
+      </div>
+
+      <!-- Estado: tiene stock → opciones de transferencia -->
+      <div id="elmConStock" style="display:none;">
+        <div class="modal-body pb-0">
+          <div class="d-flex align-items-center gap-3 mb-3 p-3 rounded-3" style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.4);">
+            <i class="bi bi-boxes" style="font-size:1.4rem;color:#ffc107;flex-shrink:0;"></i>
+            <div>
+              <div class="fw-bold" style="color:#997404;">Hay inventario activo</div>
+              <div style="font-size:.82rem;color:var(--muted);">
+                <span id="elmTotalProd"></span> productos · <span id="elmTotalUds"></span> unidades
+              </div>
+            </div>
+          </div>
+
+          <p class="fw-semibold mb-2" style="font-size:.85rem;color:var(--text);">¿A dónde transferir el inventario?</p>
+
+          <div class="d-flex gap-3 mb-3" id="elmRadioWrap">
+            <label class="d-flex align-items-center gap-2 rounded-3 px-3 py-2 w-50"
+                   id="lblModoUno"
+                   style="border:2px solid var(--accent);background:var(--hover-bg);cursor:pointer;">
+              <input type="radio" name="elmModo" value="uno" checked onchange="elmToggleModo()">
+              <div>
+                <div class="fw-semibold" style="font-size:.84rem;">Un solo almacén</div>
+                <div style="font-size:.74rem;color:var(--muted);">Todo va al mismo destino</div>
+              </div>
+            </label>
+            <label class="d-flex align-items-center gap-2 rounded-3 px-3 py-2 w-50"
+                   id="lblModoSep"
+                   style="border:1px solid var(--border);cursor:pointer;">
+              <input type="radio" name="elmModo" value="separado" onchange="elmToggleModo()">
+              <div>
+                <div class="fw-semibold" style="font-size:.84rem;">Por producto</div>
+                <div style="font-size:.74rem;color:var(--muted);">Elige destino por ítem</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Modo: un almacén -->
+          <div id="elmModoUno">
+            <label class="form-label fw-semibold" style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">Almacén destino</label>
+            <select id="elmDestinoUno" class="form-select" style="min-height:44px;"></select>
+          </div>
+
+          <!-- Modo: por producto -->
+          <div id="elmModoSeparado" style="display:none;">
+            <div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+              <table class="table table-sm mb-0" style="font-size:.82rem;">
+                <thead style="position:sticky;top:0;background:var(--card-2,var(--card));">
+                  <tr>
+                    <th class="ps-3 py-2 text-muted" style="font-size:.7rem;text-transform:uppercase;font-weight:700;">Producto</th>
+                    <th class="py-2 text-muted text-end" style="font-size:.7rem;text-transform:uppercase;font-weight:700;">Uds</th>
+                    <th class="pe-3 py-2 text-muted" style="font-size:.7rem;text-transform:uppercase;font-weight:700;">Destino</th>
+                  </tr>
+                </thead>
+                <tbody id="elmTablaProductos"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form que se envía -->
+      <form id="formEliminarAlmacen" method="POST" action="">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="modo" id="elmFormModo" value="sin_stock">
+        <div id="elmFormDestinos"></div>
+
+        <div class="modal-footer" style="border-color:var(--border);">
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" id="elmBtnConfirmar" class="btn btn-danger rounded-pill px-4 fw-bold">
+            <i class="bi bi-trash me-1"></i> Eliminar
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var verUrl = "{{ url_for('inventory.verificar_eliminacion_almacen', id=0) }}".replace('/0', '/');
+  var delUrl = "{{ url_for('inventory.eliminar_almacen', id=0) }}".replace('/0', '/');
+  var stocks = [], almacenes = [];
+  var bsModal;
+
+  window.abrirModalEliminarAlmacen = function (id, nombre) {
+    document.getElementById('elmNombre').textContent = nombre;
+    document.getElementById('elmLoading').style.display = '';
+    document.getElementById('elmSinStock').style.display = 'none';
+    document.getElementById('elmConStock').style.display = 'none';
+    document.getElementById('formEliminarAlmacen').action = delUrl + id;
+    document.getElementById('elmFormModo').value = 'sin_stock';
+    document.getElementById('elmFormDestinos').innerHTML = '';
+    document.querySelector('input[name="elmModo"][value="uno"]').checked = true;
+    elmToggleModo();
+
+    if (!bsModal) bsModal = new bootstrap.Modal(document.getElementById('modalEliminarAlmacen'));
+    bsModal.show();
+
+    fetch(verUrl + id)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        document.getElementById('elmLoading').style.display = 'none';
+        stocks = data.stocks || [];
+        almacenes = data.otros_almacenes || [];
+
+        if (!data.tiene_stock) {
+          document.getElementById('elmSinStock').style.display = '';
+          return;
+        }
+
+        document.getElementById('elmConStock').style.display = '';
+        document.getElementById('elmTotalProd').textContent = data.total_productos;
+        document.getElementById('elmTotalUds').textContent  = data.total_unidades;
+        document.getElementById('elmFormModo').value = 'transferir_uno';
+
+        var opts = '<option value="">— Selecciona almacén —</option>' +
+          almacenes.map(function (a) { return '<option value="' + a.id + '">' + a.nombre + '</option>'; }).join('');
+        document.getElementById('elmDestinoUno').innerHTML = opts;
+        if (almacenes.length === 1) document.getElementById('elmDestinoUno').value = almacenes[0].id;
+
+        var tbody = document.getElementById('elmTablaProductos');
+        tbody.innerHTML = stocks.map(function (s) {
+          var selOpts = '<option value="">—</option>' +
+            almacenes.map(function (a) { return '<option value="' + a.id + '"' + (almacenes.length === 1 ? ' selected' : '') + '>' + a.nombre + '</option>'; }).join('');
+          return '<tr>' +
+            '<td class="ps-3 py-2">' + s.nombre + '</td>' +
+            '<td class="py-2 text-end fw-bold text-primary">' + s.cantidad + '</td>' +
+            '<td class="pe-3 py-2"><select name="destino_' + s.stock_id + '" class="form-select form-select-sm">' + selOpts + '</select></td>' +
+            '</tr>';
+        }).join('');
+      })
+      .catch(function () {
+        document.getElementById('elmLoading').style.display = 'none';
+        document.getElementById('elmSinStock').style.display = '';
+      });
+  };
+
+  window.elmToggleModo = function () {
+    var modo = document.querySelector('input[name="elmModo"]:checked');
+    if (!modo) return;
+    var esUno = modo.value === 'uno';
+    document.getElementById('elmModoUno').style.display      = esUno ? '' : 'none';
+    document.getElementById('elmModoSeparado').style.display = esUno ? 'none' : '';
+    document.getElementById('elmFormModo').value = esUno ? 'transferir_uno' : 'transferir_separado';
+    document.getElementById('lblModoUno').style.border = esUno ? '2px solid var(--accent)' : '1px solid var(--border)';
+    document.getElementById('lblModoSep').style.border = esUno ? '1px solid var(--border)' : '2px solid var(--accent)';
+  };
+
+  document.getElementById('formEliminarAlmacen').addEventListener('submit', function (e) {
+    var modo = document.getElementById('elmFormModo').value;
+    var destinos = document.getElementById('elmFormDestinos');
+    destinos.innerHTML = '';
+
+    if (modo === 'transferir_uno') {
+      var val = document.getElementById('elmDestinoUno').value;
+      if (!val) { e.preventDefault(); alert('Selecciona un almacén destino.'); return; }
+      destinos.innerHTML = '<input type="hidden" name="destino_id" value="' + val + '">';
+    } else if (modo === 'transferir_separado') {
+      document.querySelectorAll('#elmTablaProductos select').forEach(function (s) {
+        if (s.name && s.value)
+          destinos.innerHTML += '<input type="hidden" name="' + s.name + '" value="' + s.value + '">';
+      });
+    }
+  });
+})();
+</script>
 {% endblock %}

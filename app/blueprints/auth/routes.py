@@ -257,6 +257,9 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
 
         if user and user.check_password(form.password.data):
+            if not user.is_active:
+                flash('Esta cuenta ha sido desactivada. Contacta al administrador.', 'warning')
+                return render_template('login.html', titulo="Inicio de Sesión", form=form)
             login_user(user)
             next_page = request.args.get('next')
             flash('Inicio de sesión exitoso.', 'success')

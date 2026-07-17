@@ -1170,6 +1170,41 @@ def editar_almacen(id):
     return render_template('almacen_form.html', titulo="Editar Almacén", almacen=almacen)
 
 
+@inventory_bp.route('/almacen/<int:id>/verificar-eliminacion', methods=['GET'])
+@login_required
+def verificar_eliminacion_almacen(id):
+    """JSON: stocks con cantidad>0 y lista de otros almacenes para el modal de transferencia."""
+    if current_user.rol not in ['super_admin', 'admin']:
+        return jsonify({'error': 'Sin permiso'}), 403
+    org_id = current_user.organizacion_id
+    almacen = Almacen.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    stocks_con_stock = (
+        Stock.query.filter_by(almacen_id=id)
+        .filter(Stock.cantidad > 0)
+        .join(Stock.producto)
+        .all()
+    )
+    otros = Almacen.query.filter(
+        Almacen.organizacion_id == org_id,
+        Almacen.id != id,
+    ).order_by(Almacen.nombre).all()
+    return jsonify({
+        'tiene_stock': len(stocks_con_stock) > 0,
+        'total_productos': len(stocks_con_stock),
+        'total_unidades': sum(s.cantidad for s in stocks_con_stock),
+        'stocks': [
+            {
+                'stock_id': s.id,
+                'producto_id': s.producto_id,
+                'nombre': s.producto.nombre,
+                'cantidad': s.cantidad,
+            }
+            for s in stocks_con_stock
+        ],
+        'otros_almacenes': [{'id': a.id, 'nombre': a.nombre} for a in otros],
+    })
+
+
 @inventory_bp.route('/almacen/eliminar/<int:id>', methods=['POST'])
 @login_required
 def eliminar_almacen(id):
@@ -1177,8 +1212,57 @@ def eliminar_almacen(id):
         flash('No tienes permiso para eliminar almacenes.', 'danger')
         return redirect(url_for('inventory.lista_almacenes'))
 
-    almacen = Almacen.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    org_id  = current_user.organizacion_id
+    almacen = Almacen.query.filter_by(id=id, organizacion_id=org_id).first_or_404()
+    modo    = request.form.get('modo', 'sin_stock')
+
     try:
+        if modo in ('transferir_uno', 'transferir_separado'):
+            stocks_activos = (
+                Stock.query.filter_by(almacen_id=id)
+                .filter(Stock.cantidad > 0)
+                .all()
+            )
+            for src in stocks_activos:
+                if modo == 'transferir_uno':
+                    destino_id = int(request.form.get('destino_id', 0))
+                else:
+                    destino_id = int(request.form.get(f'destino_{src.id}', 0))
+
+                if not destino_id:
+                    continue
+
+                destino_almacen = Almacen.query.filter_by(
+                    id=destino_id, organizacion_id=org_id
+                ).first()
+                if not destino_almacen:
+                    continue
+
+                dest_stock = Stock.query.filter_by(
+                    producto_id=src.producto_id, almacen_id=destino_id
+                ).first()
+                if dest_stock:
+                    dest_stock.cantidad += src.cantidad
+                else:
+                    db.session.add(Stock(
+                        producto_id=src.producto_id,
+                        almacen_id=destino_id,
+                        cantidad=src.cantidad,
+                        stock_minimo=src.stock_minimo,
+                        stock_maximo=src.stock_maximo,
+                        ubicacion=src.ubicacion,
+                    ))
+
+                db.session.add(Movimiento(
+                    producto_id=src.producto_id,
+                    cantidad=src.cantidad,
+                    tipo='ajuste',
+                    motivo=f'Transferencia por eliminación de almacén: {almacen.nombre}',
+                    almacen_id=destino_id,
+                    organizacion_id=org_id,
+                ))
+
+        log_actividad('eliminar', 'Almacen', f'Almacén eliminado: {almacen.nombre}', almacen.id)
         db.session.delete(almacen)
         db.session.commit()
         flash('Almacén eliminado correctamente.', 'success')

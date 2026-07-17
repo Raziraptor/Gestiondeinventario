@@ -67,6 +67,14 @@
                                             aria-label="Restablecer contraseña de {{ usuario.username }}">
                                         <i class="bi bi-key-fill text-dark" aria-hidden="true"></i>
                                     </button>
+                                    {% if current_user.rol in ['super_admin', 'admin'] and current_user.id != usuario.id %}
+                                    <button type="button" class="btn btn-accion btn-outline-danger btn-sm"
+                                            onclick="abrirModalEliminarUsuario('{{ usuario.id }}', '{{ usuario.username | replace("'", "\\'") }}')"
+                                            title="Eliminar Usuario"
+                                            aria-label="Eliminar usuario {{ usuario.username }}">
+                                        <i class="bi bi-person-x-fill" aria-hidden="true"></i>
+                                    </button>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -119,10 +127,58 @@
         </div>
     </div>
 </div>
+
+
+<!-- ── Modal: Eliminar / Anonimizar Usuario ─────────────── -->
+<div class="modal fade" id="modalEliminarUsuario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="background:var(--card);border-radius:var(--r-card);">
+            <div class="modal-header border-danger border-2" style="border-color:var(--border);">
+                <h5 class="modal-title fw-bold text-danger">
+                    <i class="bi bi-person-x-fill me-2"></i> Eliminar Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <div style="width:64px;height:64px;border-radius:50%;background:rgba(220,53,69,.12);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 1rem;">
+                        <i class="bi bi-person-x text-danger"></i>
+                    </div>
+                    <h5 class="mb-1">¿Eliminar a <span id="lblUsuarioEliminar" class="text-danger fw-bold"></span>?</h5>
+                    <p class="text-muted small mb-0">
+                        Si el usuario tiene historial (órdenes, salidas, solicitudes), su cuenta será
+                        <strong>anonimizada</strong> — su nombre y email quedarán libres para que otra persona
+                        se registre con ellos. Si no tiene historial, la cuenta se borrará permanentemente.
+                    </p>
+                </div>
+                <div class="alert alert-warning py-2 px-3" style="font-size:.82rem;">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Esta acción <strong>no se puede deshacer</strong>. El usuario perderá acceso inmediatamente.
+                </div>
+            </div>
+            <form id="formEliminarUsuario" method="POST" action="">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-footer" style="border-color:var(--border);">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
+                        <i class="bi bi-person-x-fill me-1"></i> Eliminar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+function abrirModalEliminarUsuario(userId, username) {
+    document.getElementById('lblUsuarioEliminar').textContent = username;
+    var baseUrl = "{{ url_for('admin.eliminar_usuario', id=0) }}";
+    document.getElementById('formEliminarUsuario').action = baseUrl.replace('/0', '/' + userId);
+    new bootstrap.Modal(document.getElementById('modalEliminarUsuario')).show();
+}
+
 function abrirModalPassword(userId, username) {
     document.getElementById('lblUsuarioReset').textContent = username;
     var baseUrl = "{{ url_for('admin.admin_reset_password', id=0) }}";

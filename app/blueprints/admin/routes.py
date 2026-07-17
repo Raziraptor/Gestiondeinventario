@@ -45,12 +45,17 @@ from app.helpers import (
     _flash_err,
     CATEGORIAS_GASTO,
 )
+import secrets as _secrets_mod
+
 from app.models import (
     Almacen,
     Gasto,
     Movimiento,
     Organizacion,
+    OrdenCompra,
+    ProyectoOC,
     Salida,
+    SolicitudAprobacion,
     Stock,
     User,
 )
@@ -226,6 +231,70 @@ def admin_reset_password(id):
     except Exception as e:
         db.session.rollback()
         _flash_err('Error al actualizar.', e)
+
+    return redirect(url_for('admin.lista_usuarios'))
+
+
+@admin_bp.route('/admin/usuario/<int:id>/eliminar', methods=['POST'])
+@login_required
+def eliminar_usuario(id):
+    """Elimina o anonimiza un usuario para que pueda re-registrarse."""
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('Acceso restringido a administradores.', 'danger')
+        return redirect(url_for('main.index'))
+
+    if current_user.id == id:
+        flash('No puedes eliminar tu propia cuenta.', 'warning')
+        return redirect(url_for('admin.lista_usuarios'))
+
+    if current_user.rol == 'super_admin':
+        usuario = User.query.get_or_404(id)
+    else:
+        usuario = User.query.filter_by(
+            id=id, organizacion_id=current_user.organizacion_id
+        ).first_or_404()
+        if usuario.rol in ('super_admin', 'admin'):
+            flash('No puedes eliminar a un administrador.', 'warning')
+            return redirect(url_for('admin.lista_usuarios'))
+
+    # Verificar si tiene registros con FK NOT NULL que impidan hard-delete
+    tiene_historial = (
+        Salida.query.filter_by(creador_id=id).first() is not None
+        or OrdenCompra.query.filter_by(creador_id=id).first() is not None
+        or ProyectoOC.query.filter_by(creador_id=id).first() is not None
+        or SolicitudAprobacion.query.filter_by(solicitante_id=id).first() is not None
+    )
+
+    nombre_original = usuario.username
+    try:
+        if tiene_historial:
+            # Anonimizar: libera username/email para re-registro, preserva el historial
+            usuario.username        = f'_del_{id}'
+            usuario.email           = f'_del_{id}@eliminado.local'
+            usuario.password_hash   = generate_password_hash(_secrets_mod.token_hex(32))
+            usuario.organizacion_id = None
+            usuario.is_active       = False
+            usuario.rol             = 'user'
+            usuario.perm_view_dashboard     = False
+            usuario.perm_view_management    = False
+            usuario.perm_edit_management    = False
+            usuario.perm_create_oc_standard = False
+            usuario.perm_create_oc_proyecto = False
+            usuario.perm_do_salidas         = False
+            usuario.perm_view_gastos        = False
+            db.session.commit()
+            flash(
+                f'Usuario "{nombre_original}" anonimizado. '
+                'Su username y email quedan libres para re-registro.',
+                'success',
+            )
+        else:
+            db.session.delete(usuario)
+            db.session.commit()
+            flash(f'Usuario "{nombre_original}" eliminado correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        _flash_err('Error al eliminar el usuario.', e)
 
     return redirect(url_for('admin.lista_usuarios'))
 
