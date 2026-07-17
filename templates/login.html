@@ -1,86 +1,242 @@
 {% extends 'base.html' %}
-
 {% block title %}{{ titulo }}{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
-.login-card { border: none; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,.15); background: var(--surface); overflow: hidden; }
-.login-header { background: linear-gradient(135deg, var(--primary) 0%, rgba(var(--primary-rgb),.7) 100%); padding: 3rem 2rem; text-align: center; color: #fff; }
-.login-icon-bg { background: rgba(255,255,255,.2); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 8px 16px rgba(0,0,0,.1); }
+/* ── HIDE shell for auth pages ──────────────────────────── */
+.erp-sidebar, .erp-topbar, .sidebar-mobile-backdrop,
+#sidebarMobileBackdrop { display: none !important; }
+.erp-shell { display: block !important; }
+.erp-content-wrap { display: block !important; }
+.erp-main {
+    min-height: 100vh !important;
+    padding: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── BLOB animations ────────────────────────────────────── */
+@keyframes floatGlow {
+    0%,100% { transform: translate(0,0); }
+    50%      { transform: translate(18px,-14px); }
+}
+
+/* ── KICKER ─────────────────────────────────────────────── */
+.auth-kicker {
+    font-family: var(--font-heading, 'Archivo', sans-serif);
+    font-size: .64rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .15em; color: var(--muted);
+}
+
+/* ── CARD (auth) ────────────────────────────────────────── */
+.auth-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--r-card); padding: 26px;
+    display: flex; flex-direction: column; gap: 18px;
+}
+
+/* ── FIELD ──────────────────────────────────────────────── */
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-field label {
+    font-size: .76rem; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em; margin: 0;
+}
+.auth-input-wrap { position: relative; display: flex; align-items: center; }
+.auth-input-wrap > i {
+    position: absolute; left: 12px; color: var(--faint);
+    font-size: 16px; pointer-events: none; z-index: 1;
+}
+.auth-input {
+    width: 100%; padding: 11px 14px 11px 38px;
+    background: var(--card-2, var(--surface)); border: 1px solid var(--border-strong, var(--border));
+    border-radius: var(--r-input); color: var(--text);
+    font-family: var(--font-body, sans-serif); font-size: .88rem;
+    min-height: 44px; outline: none;
+    transition: border-color .15s, box-shadow .2s;
+}
+.auth-input:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.auth-input::placeholder { color: var(--faint); }
+.auth-input.is-invalid { border-color: var(--danger) !important; }
+.auth-error { font-size: .76rem; color: var(--danger); margin-top: 2px; }
+
+/* ── CTA BUTTON ─────────────────────────────────────────── */
+.auth-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: .65rem 1.5rem; min-height: 48px;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--r-pill, 999px);
+    font-family: var(--font-heading, sans-serif); font-weight: 700; font-size: .92rem;
+    cursor: pointer; width: 100%; letter-spacing: .01em;
+    transition: background .15s, box-shadow .2s, transform .1s;
+}
+.auth-btn:hover  { background: var(--accent-deep); box-shadow: var(--glow, none); }
+.auth-btn:active { transform: scale(.97); }
+.auth-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+/* ── ANIM ───────────────────────────────────────────────── */
+.anim-pop {
+    animation: popIn .42s cubic-bezier(.34,1.3,.64,1) both;
+}
+@keyframes popIn {
+    from { opacity: 0; transform: scale(.94) translateY(10px); }
+    to   { opacity: 1; transform: none; }
+}
+.stagger-login > * { animation: fadeUpAuth .38s cubic-bezier(.4,0,.2,1) both; }
+.stagger-login > *:nth-child(1) { animation-delay: .05s; }
+.stagger-login > *:nth-child(2) { animation-delay: .13s; }
+.stagger-login > *:nth-child(3) { animation-delay: .21s; }
+@keyframes fadeUpAuth {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .anim-pop, .stagger-login > * { animation: none !important; }
+}
 </style>
+{% endblock %}
 
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 75vh;">
-    <div class="col-12 col-md-8 col-lg-5 col-xl-4">
-        
-        <div class="card login-card mt-2 mb-5">
-            <!-- CABECERA DEL LOGIN -->
-            <div class="login-header">
-                <div class="login-icon-bg">
-                    <i class="bi bi-box-seam-fill fs-1"></i>
-                </div>
-                <h3 class="fw-bold mb-0">{{ titulo }}</h3>
-                <p class="text-white opacity-75 mb-0 mt-2 fs-6">Ingresa tus credenciales para continuar</p>
+{% block content %}
+
+<!-- ── Blob glows ──────────────────────────────────────── -->
+<div aria-hidden="true" style="
+    position:fixed;width:480px;height:480px;border-radius:50%;
+    background:radial-gradient(circle,var(--accent-tint),transparent 65%);
+    top:-140px;right:-100px;animation:floatGlow 9s ease-in-out infinite;
+    pointer-events:none;z-index:0;"></div>
+<div aria-hidden="true" style="
+    position:fixed;width:380px;height:380px;border-radius:50%;
+    background:radial-gradient(circle,var(--sage-tint),transparent 65%);
+    bottom:-120px;left:-80px;animation:floatGlow 11s ease-in-out infinite reverse;
+    pointer-events:none;z-index:0;"></div>
+
+<!-- ── Theme toggle ───────────────────────────────────── -->
+<button id="authThemeBtn" class="icon-btn" title="Cambiar tema" aria-label="Cambiar tema"
+        style="position:fixed;top:18px;right:18px;z-index:10;">
+    <i id="authThemeIcon" class="ph ph-sun" aria-hidden="true"></i>
+</button>
+
+<!-- ── Login card ─────────────────────────────────────── -->
+<div class="anim-pop" style="width:100%;max-width:400px;position:relative;z-index:1;">
+    <div class="stagger-login" style="display:flex;flex-direction:column;gap:0;">
+
+        <!-- Header -->
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-bottom:26px;">
+            <div class="sb-logo" style="width:52px;height:52px;border-radius:16px;font-size:26px;">
+                <i class="ph ph-fill ph-cube" aria-hidden="true"></i>
             </div>
-            
-            <!-- CUERPO DEL FORMULARIO -->
-            <div class="card-body p-4 p-md-5">
-                <form method="POST" action="">
-                    
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    {{ form.hidden_tag() }}
-                    
-                    <!-- CAMPO: USUARIO -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold small text-muted text-uppercase" style="letter-spacing: 0.5px;">Usuario</label>
-                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                            <span class="input-group-text border-end-0"><i class="bi bi-person"></i></span>
-                            {% if form.username.errors %}
-                                {{ form.username(class="form-control border-start-0 is-invalid", placeholder="Tu nombre de usuario") }}
-                                <div class="invalid-feedback px-2">
-                                    {% for error in form.username.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form.username(class="form-control border-start-0", placeholder="Tu nombre de usuario") }}
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- CAMPO: CONTRASEÑA -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label fw-bold small text-muted text-uppercase mb-0" style="letter-spacing: 0.5px;">Contraseña</label>
-                            <a href="{{ url_for('auth.forgot_password') }}" class="small fw-bold text-decoration-none text-primary">¿La olvidaste?</a>
-                        </div>
-                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                            <span class="input-group-text border-end-0"><i class="bi bi-lock"></i></span>
-                            {% if form.password.errors %}
-                                {{ form.password(class="form-control border-start-0 is-invalid", placeholder="••••••••") }}
-                                <div class="invalid-feedback px-2">
-                                    {% for error in form.password.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form.password(class="form-control border-start-0", placeholder="••••••••") }}
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- BOTÓN DE SUBMIT -->
-                    <div class="d-grid mt-5">
-                        {{ form.submit(class="btn btn-primary btn-lg fw-bold rounded-pill shadow-sm py-3") }}
-                    </div>
-                </form>
-                <script>document.querySelector('form').addEventListener('submit',function(){var btn=this.querySelector('[type="submit"]');if(btn){btn.disabled=true;btn.innerHTML='<span class="spinner-border spinner-border-sm me-2"></span>Entrando…';}});</script>
-                
-                <!-- PIE: ENLACE A REGISTRO -->
-                <div class="text-center mt-4 pt-4 border-top border-secondary border-opacity-10">
-                    <p class="text-muted small mb-0">
-                        ¿No tienes una cuenta aún? <br>
-                        <a href="{{ url_for('auth.register') }}" class="fw-bold text-primary text-decoration-none mt-1 d-inline-block">Regístrate aquí</a>
-                    </p>
-                </div>
+            <div>
+                <div class="auth-kicker" style="margin-bottom:6px;">Gestor de Inventario</div>
+                <h1 style="font-size:1.7rem;font-weight:800;letter-spacing:-.02em;color:var(--text);margin:0;">
+                    {{ titulo }}
+                </h1>
+                <p style="color:var(--muted);margin:4px 0 0;font-size:.88rem;">
+                    Ingresa tus credenciales para continuar.
+                </p>
             </div>
         </div>
-        
+
+        <!-- Card -->
+        <div class="auth-card">
+            <form method="POST" action="" novalidate id="loginForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {{ form.hidden_tag() }}
+
+                <div style="display:flex;flex-direction:column;gap:18px;">
+                    <!-- Usuario -->
+                    <div class="auth-field">
+                        <label for="username">Usuario</label>
+                        <div class="auth-input-wrap">
+                            <i class="ph ph-user" aria-hidden="true"></i>
+                            {{ form.username(
+                                id="username",
+                                class="auth-input" + (" is-invalid" if form.username.errors else ""),
+                                placeholder="tu.usuario",
+                                autocomplete="username"
+                            ) }}
+                        </div>
+                        {% for error in form.username.errors %}
+                        <span class="auth-error"><i class="ph ph-warning-circle" aria-hidden="true"></i> {{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="auth-field">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <label for="password" style="margin:0;">Contraseña</label>
+                            <a href="{{ url_for('auth.forgot_password') }}"
+                               style="font-size:.76rem;font-weight:600;color:var(--accent);">¿La olvidaste?</a>
+                        </div>
+                        <div class="auth-input-wrap">
+                            <i class="ph ph-lock-simple" aria-hidden="true"></i>
+                            {{ form.password(
+                                id="password",
+                                class="auth-input" + (" is-invalid" if form.password.errors else ""),
+                                placeholder="••••••••",
+                                autocomplete="current-password"
+                            ) }}
+                        </div>
+                        {% for error in form.password.errors %}
+                        <span class="auth-error"><i class="ph ph-warning-circle" aria-hidden="true"></i> {{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="submit" class="auth-btn" id="loginSubmitBtn">
+                        Iniciar sesión <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Registro -->
+        <div style="text-align:center;margin-top:18px;color:var(--muted);font-size:.82rem;">
+            ¿No tienes cuenta?
+            <a href="{{ url_for('auth.register') }}" style="font-weight:600;color:var(--accent);">
+                Regístrate aquí
+            </a>
+        </div>
+
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    // Spinner on submit
+    var form = document.getElementById('loginForm');
+    var btn  = document.getElementById('loginSubmitBtn');
+    if (form && btn) {
+        form.addEventListener('submit', function () {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width:14px;height:14px;"></span>Entrando…';
+        });
+    }
+
+    // Theme toggle (sync with global fusion.js)
+    var authThemeBtn  = document.getElementById('authThemeBtn');
+    var authThemeIcon = document.getElementById('authThemeIcon');
+    function updateAuthIcon(t) {
+        if (authThemeIcon) {
+            authThemeIcon.className = (t === 'dark') ? 'ph ph-sun' : 'ph ph-moon';
+        }
+    }
+    updateAuthIcon(document.documentElement.getAttribute('data-theme') || 'dark');
+    if (authThemeBtn) {
+        authThemeBtn.addEventListener('click', function () {
+            if (window.toggleFusionTheme) window.toggleFusionTheme();
+            updateAuthIcon(document.documentElement.getAttribute('data-theme') || 'dark');
+        });
+    }
+    window.addEventListener('themechange', function () {
+        updateAuthIcon(document.documentElement.getAttribute('data-theme') || 'dark');
+    });
+})();
+</script>
 {% endblock %}
