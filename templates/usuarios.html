@@ -10,18 +10,17 @@
         </ol>
     </nav>
 
-    <div class="page-header mb-4">
-        <div class="page-header-row">
-            <div>
-                <h2 class="page-title"><i class="bi bi-people-fill me-2"></i>Gestión de Usuarios</h2>
-                <p class="page-subtitle">Administra accesos y restablece contraseñas.</p>
-            </div>
-            {% if current_user.rol in ['super_admin', 'admin'] %}
-            <a href="{{ url_for('auth.register') }}" class="btn btn-primary shadow-sm">
-                <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
-            </a>
-            {% endif %}
+    <div class="page-head anim-up">
+        <div>
+            <div class="dash-kicker">Administración · Accesos</div>
+            <h1 class="page-title"><i class="ph ph-fill ph-users me-2" style="color:var(--accent);" aria-hidden="true"></i>Gestión de Usuarios</h1>
+            <p class="page-sub">Administra accesos y restablece contraseñas.</p>
         </div>
+        {% if current_user.rol in ['super_admin', 'admin'] %}
+        <a href="{{ url_for('auth.register') }}" class="btn rounded-pill px-4 fw-bold" style="background:var(--accent);color:#fff;">
+            <i class="ph ph-user-plus me-1" aria-hidden="true"></i> Nuevo Usuario
+        </a>
+        {% endif %}
     </div>
 
     <!-- TABLA DE USUARIOS -->
@@ -42,21 +41,21 @@
                         <tr>
                             <td class="ps-4">
                                 <div class="d-flex align-items-center">
-                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3 text-primary fw-bold" style="width: 40px; height: 40px;">
-                                        {{ usuario.username[0]|upper }}
-                                    </div>
+                                    <div class="av av-violet me-3" data-initials="{{ usuario.username[0]|upper }}" style="width:40px;height:40px;font-size:.9rem;" aria-hidden="true"></div>
                                     <div>
-                                        <span class="fw-bold text-dark d-block">{{ usuario.username }}</span>
-                                        <small class="text-muted" style="font-size: 0.75rem;">ID: {{ usuario.id }}</small>
+                                        <span class="fw-bold text-body d-block">{{ usuario.username }}</span>
+                                        <small class="text-muted" style="font-size:.75rem;">ID: {{ usuario.id }}</small>
                                     </div>
                                 </div>
                             </td>
                             <td>{{ usuario.email }}</td>
                             <td>
-                                {% if usuario.rol in ['super_admin', 'admin'] %}
-                                    <span class="badge bg-primary">Administrador</span>
+                                {% if usuario.rol == 'super_admin' %}
+                                    <span class="tag tag-accent">Super Admin</span>
+                                {% elif usuario.rol == 'admin' %}
+                                    <span class="tag tag-info">Admin</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Usuario</span>
+                                    <span class="tag tag-neutral">Usuario</span>
                                 {% endif %}
                             </td>
                             <td class="text-end pe-4">

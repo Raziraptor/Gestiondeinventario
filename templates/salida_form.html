@@ -19,16 +19,15 @@
     </nav>
 
     <!-- PAGE HEADER -->
-    <div class="page-header">
-        <div class="page-header-row">
-            <div>
-                <h1 class="page-title"><i class="bi bi-box-arrow-up text-danger me-2"></i>{{ titulo }}</h1>
-                <p class="page-subtitle">Retira stock escaneando o buscando productos.</p>
-            </div>
-            <a href="{{ url_for('inventory.ver_salida', id=salida_id) }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
-                <i class="bi bi-eye me-1"></i> Ver Hoja de Hoy
-            </a>
+    <div class="page-head anim-up">
+        <div>
+            <div class="dash-kicker">Operaciones · Salidas</div>
+            <h1 class="page-title"><i class="ph ph-fill ph-arrow-square-out me-2" style="color:var(--danger);" aria-hidden="true"></i>{{ titulo }}</h1>
+            <p class="page-sub">Retira stock escaneando o buscando productos.</p>
         </div>
+        <a href="{{ url_for('inventory.ver_salida', id=salida_id) }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold text-nowrap">
+            <i class="bi bi-eye me-1"></i> Ver Hoja de Hoy
+        </a>
     </div>
     
     <div class="surface-panel shadow-sm rounded-4 d-flex align-items-center p-3 mb-4">

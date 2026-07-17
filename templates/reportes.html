@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Reportes{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
 .reporte-card { transition: box-shadow .2s, transform .2s; }
 .reporte-card:hover { box-shadow: var(--shadow-lg) !important; transform: translateY(-2px); }
@@ -11,22 +11,25 @@
     font-size: 1.6rem; flex-shrink: 0;
 }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="container-fluid mt-3 mb-5" style="max-width:900px;">
 
-    <!-- ENCABEZADO -->
-    <div class="page-header mb-4">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-1">
-                <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
-                <li class="breadcrumb-item active">Reportes</li>
-            </ol>
-        </nav>
-        <div class="page-header-row">
-            <div>
-                <h1 class="page-title"><i class="bi bi-file-earmark-bar-graph"></i>Reportes y Exportaciones</h1>
-                <p class="page-subtitle">Descarga reportes detallados de tu inventario en Excel o PDF.</p>
-            </div>
+    <!-- BREADCRUMB -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-1">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="bi bi-grid-fill me-1" style="font-size:.75rem;"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">Reportes</li>
+        </ol>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-head anim-up">
+        <div>
+            <div class="dash-kicker">Inventario · Exportaciones</div>
+            <h1 class="page-title"><i class="ph ph-fill ph-files me-2" style="color:var(--accent);" aria-hidden="true"></i>Reportes y Exportaciones</h1>
+            <p class="page-sub">Descarga reportes detallados de tu inventario en Excel o PDF.</p>
         </div>
     </div>
 
