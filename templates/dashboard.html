@@ -2,8 +2,105 @@
 {% block chartjs %}<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>{% endblock %}
 {% block title %}Dashboard · Inventario{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Fusion KPI card */
+.dash-kpi {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; border-radius: var(--r-card);
+  background: var(--card); border: 1px solid var(--border);
+  transition: transform .18s, box-shadow .18s;
+}
+.dash-kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.kpi-icon {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.kpi-value {
+  font-family: var(--font-heading, 'Archivo', sans-serif);
+  font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+/* card-kick — section label inside cards */
+.card-kick {
+  font-family: var(--font-heading, 'Archivo', sans-serif);
+  font-size: .64rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .14em; color: var(--faint); display: flex;
+  align-items: center; gap: 6px; padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-strong, var(--border));
+  margin-bottom: 14px;
+}
+/* meter — tricolor progress bar */
+.meter {
+  height: 8px; border-radius: 100px; overflow: hidden; background: var(--border);
+  display: flex;
+}
+.meter > div { height: 100%; }
+/* tags */
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 600; border-radius: var(--r-pill, 999px); padding: 2px 10px; font-family: var(--font-heading); }
+.tag-ok      { background: var(--sage-tint);   color: var(--sage); }
+.tag-danger  { background: var(--danger-tint); color: var(--danger); }
+.tag-warn    { background: var(--warn-tint);   color: var(--warn); }
+.tag-info    { background: var(--info-tint);   color: var(--info); }
+.tag-accent  { background: var(--accent-tint); color: var(--accent-deep); }
+.tag-neutral { background: var(--border);      color: var(--muted); }
+/* page-head */
+.page-head {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+  gap: 12px; margin-bottom: 22px; padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-strong, var(--border));
+}
+.page-title {
+  font-family: var(--font-heading, 'Archivo', sans-serif);
+  font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 800; margin: 2px 0 0; letter-spacing: -.02em;
+}
+.page-sub { color: var(--muted); font-size: .82rem; margin: 2px 0 0; }
+.dash-kicker {
+  font-family: var(--font-heading, 'Archivo', sans-serif);
+  font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--muted);
+}
+/* status pill upgrade — keep existing .status-pill classes, add Fusion look */
+.status-pill--ok     { background: var(--sage-tint);   color: var(--sage);   border: none; }
+.status-pill--danger { background: var(--danger-tint); color: var(--danger); border: none; }
+.status-pill--info   { background: var(--info-tint);   color: var(--info);   border: none; }
+.status-pill--warn   { background: var(--warn-tint);   color: var(--warn);   border: none; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid px-3 px-md-4 pb-5" style="max-width:1400px;">
+<div class="container-fluid px-3 px-md-4 pb-5 anim-up" style="max-width:1400px;">
+
+  {# ── Fusion page header ──────────────────────────────────────────── #}
+  <div class="page-head">
+    <div>
+      <div class="dash-kicker">
+        {% if almacen_seleccionado %}{{ almacen_seleccionado.nombre }} · {% endif %}{{ now_mx().strftime('%B %Y') if now_mx is defined else '' }}
+      </div>
+      <h1 class="page-title"><i class="ph ph-fill ph-squares-four me-2" style="color:var(--accent);font-size:1.1rem;" aria-hidden="true"></i>Dashboard de Inventario</h1>
+      {% if almacen_seleccionado %}
+      <p class="page-sub">
+        {{ n_total }} productos
+        {% if n_bajo > 0 %} · <span style="color:var(--danger);font-weight:600;">{{ n_bajo }} con stock bajo</span>{% endif %}
+      </p>
+      {% endif %}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      {% if almacen_seleccionado %}
+        {% if current_user.rol in ['super_admin','admin'] or current_user.perm_do_salidas %}
+        <a href="{{ url_for('inventory.registrar_salida', almacen_id=almacen_seleccionado.id) }}"
+           class="btn btn-sm rounded-pill px-3 fw-semibold" style="background:var(--danger-tint);color:var(--danger);border:1px solid var(--danger);">
+          <i class="ph ph-arrow-square-out me-1" aria-hidden="true"></i>Nueva Salida
+        </a>
+        {% endif %}
+        {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
+        <a href="{{ url_for('purchasing.nueva_orden_manual') }}"
+           class="btn btn-sm rounded-pill px-3 fw-semibold" style="background:var(--accent);color:#fff;border:none;">
+          <i class="ph ph-shopping-cart me-1" aria-hidden="true"></i>Nueva OC
+        </a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
 
   {# ── BARRA DE SALUD (resumen de un vistazo) ───────────────────────────── #}
   {% if almacen_seleccionado %}
@@ -932,24 +1029,39 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
 
 {% block extra_js %}
 <script>
-// ── GRÁFICAS CHART.JS ────────────────────────────────────────────────────
+// ── GRÁFICAS CHART.JS (Fusion tokens) ───────────────────────────────────
 (function() {
-  const isDark = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
+  const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
   function tc() {
-    const d = isDark();
-    return { grid: d?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)', text: d?'#94a3b8':'#64748b' };
+    const cs = getComputedStyle(document.documentElement);
+    const v = n => cs.getPropertyValue(n).trim();
+    return {
+      grid:    isDark() ? 'rgba(233,233,237,.06)' : 'rgba(32,30,29,.06)',
+      text:    v('--muted') || (isDark() ? '#8f93a8' : '#6d675e'),
+      sage:    v('--sage')   || '#a3b285',
+      danger:  v('--danger') || '#e0716d',
+      info:    v('--info')   || '#7fb3d9',
+      accent:  v('--accent') || '#9184d9',
+      card:    v('--card')   || '#1b1e2b',
+      border:  v('--border') || 'rgba(233,233,237,.09)',
+    };
   }
+  const FONT = 'Inter';
   let cMov=null, cEst=null, cTop=null;
 
   function renderMovimientos(data) {
     const ctx = document.getElementById('chartMovimientos'); if(!ctx) return;
     const t = tc(); if(cMov) cMov.destroy();
     cMov = new Chart(ctx, { type:'bar', data:{ labels:data.labels, datasets:[
-      { label:'Entradas', data:data.entradas, backgroundColor:'rgba(16,185,129,.75)', borderColor:'#10b981', borderWidth:1.5, borderRadius:6 },
-      { label:'Salidas',  data:data.salidas,  backgroundColor:'rgba(239,68,68,.75)',  borderColor:'#ef4444', borderWidth:1.5, borderRadius:6 }
+      { label:'Entradas', data:data.entradas, backgroundColor:t.sage+'bf', borderColor:t.sage, borderWidth:0, borderRadius:5, maxBarThickness:22 },
+      { label:'Salidas',  data:data.salidas,  backgroundColor:t.accent+'bf', borderColor:t.accent, borderWidth:0, borderRadius:5, maxBarThickness:22 }
     ]}, options:{ responsive:true, maintainAspectRatio:true,
-      plugins:{ legend:{ labels:{ color:t.text, font:{ family:'DM Sans', size:12 } } } },
-      scales:{ x:{ ticks:{ color:t.text }, grid:{ color:t.grid } }, y:{ ticks:{ color:t.text }, grid:{ color:t.grid }, beginAtZero:true } }
+      animation:{ duration:900, easing:'easeOutQuart', delay: ctx => ctx.dataIndex*60 },
+      plugins:{
+        legend:{ labels:{ color:t.text, font:{ family:FONT, size:11 }, boxWidth:9, boxHeight:9, padding:12 } },
+        tooltip:{ backgroundColor:t.card, titleColor:tc().text, bodyColor:tc().text, borderColor:t.border, borderWidth:1, cornerRadius:8, padding:9 }
+      },
+      scales:{ x:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ display:false } }, y:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ color:t.grid }, beginAtZero:true, border:{display:false} } }
     }});
   }
   function renderEstado(data) {
@@ -957,26 +1069,25 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
     const t = tc(); if(cEst) cEst.destroy();
     cEst = new Chart(ctx, { type:'doughnut', data:{
       labels:['Stock Bajo','Óptimo','Exceso'],
-      datasets:[{ data:[data.bajo,data.ok,data.exceso], backgroundColor:['#ef4444','#10b981','#3b82f6'], borderWidth:0, hoverOffset:8 }]
-    }, options:{ responsive:true, maintainAspectRatio:true, cutout:'68%',
-      plugins:{ legend:{ position:'bottom', labels:{ color:t.text, padding:14, font:{ family:'DM Sans', size:11 } } } }
+      datasets:[{ data:[data.bajo,data.ok,data.exceso], backgroundColor:[t.danger,t.sage,t.info], borderWidth:0, hoverOffset:6 }]
+    }, options:{ responsive:true, maintainAspectRatio:true, cutout:'70%',
+      animation:{ animateRotate:true, duration:1100, easing:'easeOutQuart' },
+      plugins:{ legend:{ position:'bottom', labels:{ color:t.text, padding:12, font:{ family:FONT, size:11 }, boxWidth:9, boxHeight:9 } },
+        tooltip:{ backgroundColor:t.card, titleColor:t.text, borderColor:t.border, borderWidth:1, cornerRadius:8, padding:9 } }
     }});
   }
   function renderTop(data) {
     const ctx = document.getElementById('chartTopProductos'); if(!ctx) return;
     const t = tc(); if(cTop) cTop.destroy();
     if(!data.labels||!data.labels.length) {
-      ctx.closest('.card-body').innerHTML = '<p class="text-muted text-center py-3 mb-0 small"><i class="bi bi-info-circle me-1"></i>Sin salidas este mes.</p>';
+      const cb = ctx.closest('.card-body'); if(cb) cb.innerHTML = '<p class="text-muted text-center py-3 mb-0 small"><i class="ph ph-info me-1"></i>Sin salidas este mes.</p>';
       return;
     }
-    const cs = getComputedStyle(document.documentElement);
-    const pRgb = cs.getPropertyValue('--primary-rgb').trim();
-    const pColor = cs.getPropertyValue('--primary').trim();
     cTop = new Chart(ctx, { type:'bar', data:{ labels:data.labels,
-      datasets:[{ label:'Unidades Salidas', data:data.valores, backgroundColor:`rgba(${pRgb},.75)`, borderColor:pColor, borderWidth:1.5, borderRadius:6 }]
+      datasets:[{ label:'Unidades Salidas', data:data.valores, backgroundColor:t.accent+'bf', borderColor:t.accent, borderWidth:0, borderRadius:5 }]
     }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:true,
-      plugins:{ legend:{ display:false } },
-      scales:{ x:{ ticks:{ color:t.text }, grid:{ color:t.grid }, beginAtZero:true }, y:{ ticks:{ color:t.text, font:{ size:11 } }, grid:{ display:false } } }
+      plugins:{ legend:{ display:false }, tooltip:{ backgroundColor:t.card, borderColor:t.border, borderWidth:1, cornerRadius:8, padding:9 } },
+      scales:{ x:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ color:t.grid }, beginAtZero:true }, y:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ display:false } } }
     }});
   }
   async function cargarGraficas() {
@@ -990,7 +1101,8 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
     } catch(e){ console.warn('Gráficas:',e); }
   }
   document.addEventListener('DOMContentLoaded', cargarGraficas);
-  new MutationObserver(cargarGraficas).observe(document.documentElement, { attributes:true, attributeFilter:['data-bs-theme'] });
+  window.addEventListener('themechange', cargarGraficas);
+  new MutationObserver(cargarGraficas).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme','data-bs-theme'] });
 })();
 
 // ── ACTIVIDAD RECIENTE ────────────────────────────────────────────────────
