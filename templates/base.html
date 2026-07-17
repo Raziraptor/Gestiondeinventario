@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-bs-theme="dark">
+<html lang="es" data-bs-theme="dark" data-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -29,9 +29,13 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fusion.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/compat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
 
     {% block extra_css %}{% endblock %}
@@ -39,7 +43,8 @@
     <!-- Prevenir FOUC al navegar entre páginas -->
     <script>
         (function() {
-            const t = localStorage.getItem('app_theme') || 'dark';
+            var t = localStorage.getItem('erp_theme') || localStorage.getItem('app_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
             document.documentElement.setAttribute('data-bs-theme', t);
             if (localStorage.getItem('sidebar_collapsed') === '1') {
                 document.documentElement.classList.add('sidebar-collapsed-init');
@@ -49,80 +54,7 @@
 
     <style>
         /* ============================================================
-           TOKENS DE DISEÑO — MODO CLARO
-           Primary: #4f46e5 (Indigo) — ERP Inventario
-        ============================================================ */
-        :root {
-            --primary:          #4f46e5;
-            --primary-rgb:      79, 70, 229;
-            --primary-hover:    #4338ca;
-            --primary-tonal:    rgba(79, 70, 229, 0.10);
-            --bs-primary:       var(--primary);
-            --bs-primary-rgb:   var(--primary-rgb);
-            --bs-body-bg:       #F1F5F9;
-            --bs-body-color:    #1E293B;
-            --bs-secondary:     #64748B;
-
-            --text-primary:     #1E293B;
-            --text-secondary:   #64748B;
-            --text-tertiary:    #94A3B8;
-
-            --surface:          #FFFFFF;
-            --surface-raised:   #F8FAFC;
-            --card-bg:          #FFFFFF;
-            --border:           #E2E8F0;
-            --shadow-sm:        0 1px 3px rgba(0,0,0,.05), 0 0 0 1px rgba(0,0,0,.03);
-            --shadow-md:        0 4px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
-            --shadow-lg:        0 8px 32px rgba(0,0,0,.09), 0 2px 8px rgba(0,0,0,.05);
-            --hover-bg:         rgba(79, 70, 229, 0.06);
-            --glass-border:     rgba(0, 0, 0, 0.06);
-
-            --radius-sm:        8px;
-            --radius-md:        12px;
-            --radius-lg:        16px;
-            --radius-xl:        24px;
-
-            --bs-body-font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
-            --bs-card-bg:       var(--surface);
-            --bs-card-border-color: var(--border);
-            --bs-border-color:  var(--border);
-        }
-
-        /* ============================================================
-           TOKENS — MODO OSCURO
-        ============================================================ */
-        [data-bs-theme="dark"] {
-            --primary:          #818cf8;
-            --primary-rgb:      129, 140, 248;
-            --primary-hover:    #6366f1;
-            --primary-tonal:    rgba(129, 140, 248, 0.15);
-            --bs-primary:       var(--primary);
-            --bs-primary-rgb:   var(--primary-rgb);
-            --bs-body-bg:       #0F172A;
-            --bs-body-color:    #F1F5F9;
-            --bs-secondary:     #94A3B8;
-
-            --text-primary:     #F1F5F9;
-            --text-secondary:   #94A3B8;
-            --text-tertiary:    #475569;
-
-            --surface:          #1E293B;
-            --surface-raised:   #0F172A;
-            --card-bg:          #1E293B;
-            --border:           rgba(255, 255, 255, 0.08);
-            --shadow-sm:        0 1px 3px rgba(0,0,0,.40);
-            --shadow-md:        0 4px 16px rgba(0,0,0,.55), 0 1px 4px rgba(0,0,0,.35);
-            --shadow-lg:        0 8px 32px rgba(0,0,0,.70), 0 2px 8px rgba(0,0,0,.45);
-            --hover-bg:         rgba(129, 140, 248, 0.10);
-            --glass-border:     rgba(255, 255, 255, 0.08);
-
-            --bs-card-bg:       var(--surface);
-            --bs-card-border-color: var(--border);
-            --bs-border-color:  var(--border);
-        }
-
-        /* ============================================================
-           BASE
+           BASE (tokens vienen de fusion.css + compat.css)
         ============================================================ */
         *, *::before, *::after { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
@@ -225,7 +157,7 @@
            TIPOGRAFÍA
         ============================================================ */
         h1, h2, h3, h4, h5, h6 {
-            font-family: var(--bs-body-font-family);
+            font-family: var(--font-heading, var(--bs-body-font-family));
             font-weight: 700;
             letter-spacing: -0.02em;
             line-height: 1.2;
@@ -1223,6 +1155,7 @@
          SCRIPTS
     ===================================================== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/fusion.js') }}" defer></script>
     {% block chartjs %}{% endblock %}
 
     <!-- TEMA -->
@@ -1233,14 +1166,18 @@
         const icon = document.getElementById('theme-icon');
 
         function applyTheme(theme) {
+            html.setAttribute('data-theme', theme);
             html.setAttribute('data-bs-theme', theme);
-            localStorage.setItem('app_theme', theme);
+            localStorage.setItem('erp_theme', theme);
+            localStorage.setItem('app_theme', theme); // compat alias
             if (icon) icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            window.dispatchEvent(new Event('themechange'));
         }
 
-        applyTheme(localStorage.getItem('app_theme') || 'dark');
+        const stored = localStorage.getItem('erp_theme') || localStorage.getItem('app_theme') || 'dark';
+        applyTheme(stored);
         if (btn) btn.addEventListener('click', function () {
-            applyTheme(html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+            applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
         });
     })();
     </script>

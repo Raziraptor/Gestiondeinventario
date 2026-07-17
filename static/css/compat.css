@@ -1,0 +1,396 @@
+/*
+ * compat.css — Bridge entre tokens legacy y sistema Fusion
+ * Carga DESPUÉS de fusion.css. No hay que cambiar templates legacy.
+ */
+
+/* ── BRIDGE DE TOKENS: legacy → fusion ────────────────────────── */
+:root {
+  --primary:              var(--accent);
+  --primary-rgb:          var(--accent-rgb);
+  --primary-hover:        var(--accent-deep);
+  --primary-tonal:        var(--accent-tint);
+  --bs-primary:           var(--accent);
+  --bs-primary-rgb:       var(--accent-rgb);
+  --bs-body-bg:           var(--bg);
+  --bs-body-color:        var(--text);
+  --bs-secondary:         var(--muted);
+  --text-primary:         var(--text);
+  --text-secondary:       var(--muted);
+  --text-tertiary:        var(--faint);
+  --surface:              var(--card);
+  --surface-raised:       var(--card-2);
+  --card-bg:              var(--card);
+  --hover-bg:             var(--accent-tint);
+  --glass-border:         var(--border);
+  --bs-card-bg:           var(--card);
+  --bs-card-border-color: var(--border);
+  --bs-border-color:      var(--border);
+  --bs-body-font-family:  var(--font-body);
+  --radius-sm:  8px;
+  --radius-md:  var(--r-card);
+  --radius-lg:  var(--r-card);
+  --radius-xl:  20px;
+}
+/* Light theme bridge — los tokens fusion ya están en [data-theme="light"],
+   solo necesitamos repetir los aliases para que el CSS legacy los encuentre */
+[data-theme="light"] {
+  --primary:        var(--accent);
+  --primary-rgb:    var(--accent-rgb);
+  --primary-hover:  var(--accent-deep);
+  --primary-tonal:  var(--accent-tint);
+  --bs-primary:     var(--accent);
+  --bs-body-bg:     var(--bg);
+  --bs-body-color:  var(--text);
+  --surface:        var(--card);
+  --surface-raised: var(--card-2);
+  --card-bg:        var(--card);
+  --hover-bg:       var(--accent-tint);
+  --shadow-sm:      var(--shadow-sm);
+  --shadow-md:      var(--shadow-md);
+}
+
+/* ── BODY: override Bootstrap body styles ─────────────────────── */
+body {
+  background: var(--bg-grad) !important;
+  background-attachment: fixed !important;
+  color: var(--text) !important;
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+}
+h1,h2,h3,h4,h5 { font-family: var(--font-heading); }
+
+/* ── BOOTSTRAP COMPONENT OVERRIDES ────────────────────────────── */
+.dropdown-menu {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+  border-radius: var(--r-card) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.dropdown-item { color: var(--text) !important; font-size: .84rem; }
+.dropdown-item:hover, .dropdown-item:focus { background: var(--accent-tint) !important; color: var(--accent-deep) !important; }
+.dropdown-divider { border-color: var(--border) !important; }
+
+.modal-content {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  border-radius: var(--r-card) !important;
+  color: var(--text) !important;
+}
+.modal-header { border-color: var(--border) !important; }
+.modal-footer { border-color: var(--border) !important; }
+
+.form-control, .form-select {
+  background-color: var(--card-2) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text) !important;
+  border-radius: var(--r-input) !important;
+  font-size: .88rem;
+  min-height: 44px;
+}
+.form-control::placeholder { color: var(--faint) !important; }
+.form-control:focus, .form-select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-tint) !important;
+  background-color: var(--card) !important;
+}
+.form-label { color: var(--muted); font-size: .76rem; font-weight: 600; }
+.form-text { color: var(--faint) !important; }
+.input-group-text {
+  background-color: var(--card-2) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--muted) !important;
+}
+
+/* Tables — fusion .table already has these but Bootstrap tables need override */
+.table {
+  color: var(--text) !important;
+  --bs-table-border-color: var(--border);
+  --bs-table-hover-bg: var(--accent-tint);
+  --bs-table-hover-color: var(--text);
+}
+.table > :not(caption) > * > * {
+  background-color: transparent !important;
+  color: inherit;
+  border-bottom-color: var(--border);
+}
+thead th, .table-light th {
+  background-color: var(--accent-tint) !important;
+  color: var(--faint) !important;
+  border-bottom: 2px solid var(--border-strong) !important;
+  font-family: var(--font-heading);
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+/* Badge */
+.badge.bg-primary { background-color: var(--accent) !important; }
+.badge.bg-success { background-color: var(--sage) !important; }
+.badge.bg-danger  { background-color: var(--danger) !important; }
+.badge.bg-warning { background-color: var(--warn) !important; color: #fff !important; }
+.badge.bg-info    { background-color: var(--info) !important; }
+
+/* ── SCROLLBAR ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── TOPBAR: .icon-btn refinements + .theme-btn alias ─────────── */
+.theme-btn {
+  width: 44px; height: 44px; border-radius: 12px;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; cursor: pointer; position: relative;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.theme-btn:hover { background: var(--accent-tint); color: var(--accent-deep); border-color: var(--accent); }
+
+/* ── TOAST SYSTEM ─────────────────────────────────────────────── */
+.toast-container-app {
+  position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 10000;
+  display: flex; flex-direction: column; gap: .5rem; pointer-events: none;
+  max-width: min(90vw, 360px);
+}
+.toast-app {
+  pointer-events: all; overflow: hidden;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-card); box-shadow: var(--shadow-md);
+  display: flex; align-items: flex-start; gap: .6rem; padding: .75rem 1rem;
+  position: relative; animation: toastIn .25s cubic-bezier(.34,1.4,.5,1) both;
+  font-size: .84rem; color: var(--text);
+}
+.toast-app.toast-hiding { animation: toastOut .2s ease-out forwards; }
+@keyframes toastIn  { from { opacity:0; transform: translateX(24px) scale(.96); } to { opacity:1; transform: none; } }
+@keyframes toastOut { to { opacity:0; transform: translateX(24px) scale(.96); } }
+.toast-app-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.toast-app-msg  { flex: 1; line-height: 1.4; }
+.toast-app-close {
+  background: none; border: none; color: var(--faint); cursor: pointer;
+  padding: 0; font-size: .9rem; flex-shrink: 0; transition: color .12s;
+}
+.toast-app-close:hover { color: var(--text); }
+.toast-progress-bar {
+  position: absolute; bottom: 0; left: 0; height: 2px;
+  background: var(--accent); border-radius: 2px;
+  animation: toastProgress linear forwards;
+}
+@keyframes toastProgress { from { width:100%; } to { width:0%; } }
+
+/* ── FAB — hereda de base.html inline, solo bridge de colores ──── */
+.fab-container {
+  position: fixed; bottom: 1.75rem; right: 1.75rem; z-index: 9000;
+  display: flex; flex-direction: column; align-items: flex-end; gap: .55rem;
+  pointer-events: none;
+}
+.fab-main {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; line-height: 1;
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb),.5);
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
+  position: relative; z-index: 2; flex-shrink: 0;
+  pointer-events: auto;
+}
+.fab-main:hover { box-shadow: 0 6px 28px rgba(var(--accent-rgb),.65); }
+.fab-main.fab-open { transform: rotate(45deg); }
+.fab-items { display: flex; flex-direction: column-reverse; align-items: flex-end; gap: .45rem; }
+.fab-item {
+  display: flex; align-items: center; gap: .55rem;
+  opacity: 0; transform: translateY(12px) scale(.88);
+  transition: opacity .18s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+  pointer-events: none;
+}
+.fab-item.fab-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
+.fab-item-btn {
+  width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; line-height: 1; box-shadow: var(--shadow-md);
+  transition: transform .18s, box-shadow .15s;
+}
+.fab-item-btn:hover { transform: scale(1.1); }
+.fab-item-label {
+  background: var(--card); color: var(--text); font-size: .76rem; font-weight: 600;
+  padding: .22rem .6rem; border-radius: var(--r-pill); border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm); white-space: nowrap; pointer-events: none;
+}
+.fab-backdrop { display: none; position: fixed; inset: 0; z-index: 8999; }
+.fab-backdrop.active { display: block; }
+
+/* ── COMMAND PALETTE ──────────────────────────────────────────── */
+.cmd-palette-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9100;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+  align-items: flex-start; justify-content: center; padding-top: 15vh;
+}
+.cmd-palette-overlay.open { display: flex; animation: cmdFadeIn .15s ease both; }
+@keyframes cmdFadeIn { from { opacity:0; } to { opacity:1; } }
+.cmd-palette-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-card); box-shadow: var(--shadow-md);
+  width: 100%; max-width: 540px; overflow: hidden;
+}
+.cmd-search-row {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .875rem 1.25rem; border-bottom: 1px solid var(--border);
+}
+.cmd-search-icon { color: var(--faint); font-size: 1rem; flex-shrink: 0; }
+.cmd-search-input {
+  flex: 1; background: none; border: none; color: var(--text);
+  font-size: 1rem; outline: none; font-family: var(--font-body);
+}
+.cmd-search-input::placeholder { color: var(--faint); }
+.cmd-results { max-height: 300px; overflow-y: auto; }
+.cmd-result-item {
+  display: flex; align-items: center; gap: .75rem; padding: .625rem 1.25rem;
+  cursor: pointer; font-size: .84rem; color: var(--text);
+  transition: background .1s;
+}
+.cmd-result-item:hover, .cmd-result-item.focused { background: var(--accent-tint); color: var(--accent-deep); }
+.cmd-result-icon {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--accent-tint);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .9rem;
+}
+.cmd-footer {
+  display: flex; gap: 1.5rem; padding: .5rem 1.25rem;
+  border-top: 1px solid var(--border); background: var(--card-2);
+  font-size: .72rem; color: var(--faint);
+}
+.cmd-footer kbd {
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 0 5px; font-size: .68rem; font-family: var(--font-body);
+}
+
+/* ── CONFIRM MODAL ────────────────────────────────────────────── */
+.confirm-modal-body { background: var(--card) !important; }
+.confirm-icon-wrap {
+  width: 56px; height: 56px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;
+}
+
+/* ── QUICK ADJUST (FAB modal) ─────────────────────────────────── */
+.qa-search-wrap { position: relative; }
+.qa-search-list {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-card); box-shadow: var(--shadow-md);
+  z-index: 10; max-height: 200px; overflow-y: auto; display: none;
+}
+.qa-item { padding: .48rem .875rem; cursor: pointer; border-bottom: 1px solid var(--border); font-size: .875rem; transition: background .12s; }
+.qa-item:last-child { border-bottom: none; }
+.qa-item:hover { background: var(--accent-tint); color: var(--accent-deep); }
+.qa-tipo-btn {
+  flex: 1; padding: .45rem; border: 2px solid var(--border); background: transparent;
+  color: var(--text); border-radius: var(--r-input); font-weight: 700; font-size: .9rem;
+  transition: all .15s; cursor: pointer;
+}
+.qa-tipo-btn.qa-active-entrada { border-color: var(--sage); background: var(--sage-tint); color: var(--sage); }
+.qa-tipo-btn.qa-active-salida  { border-color: var(--danger); background: var(--danger-tint); color: var(--danger); }
+.qa-qty-btn {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--accent-tint); color: var(--text); display: flex;
+  align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; font-weight: 700;
+  transition: background .15s, transform .1s; flex-shrink: 0;
+}
+.qa-qty-btn:hover { background: var(--accent); color: #fff; }
+
+/* ── SEARCH DROPDOWN ──────────────────────────────────────────── */
+.search-item {
+  display: flex; align-items: center; gap: .75rem; padding: .65rem 1rem;
+  text-decoration: none; color: var(--text); border-bottom: 1px solid var(--border);
+  transition: background .12s; font-size: .875rem;
+}
+.search-item:last-child { border-bottom: none; }
+.search-item:hover { background: var(--accent-tint); color: var(--accent-deep); }
+.search-item-icon {
+  width: 32px; height: 32px; border-radius: 8px; background: var(--accent-tint);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .95rem;
+}
+
+/* ── SKIP LINK ────────────────────────────────────────────────── */
+.skip-link {
+  position: fixed; top: -60px; left: 1rem; z-index: 100000;
+  background: var(--accent); color: #fff; padding: .5rem 1.25rem;
+  border-radius: var(--r-input); text-decoration: none; font-weight: 600; font-size: .9rem;
+  transition: top .2s;
+}
+.skip-link:focus { top: 1rem; }
+
+/* ── FOCUS VISIBLE override ───────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.form-control:focus-visible, .form-select:focus-visible { outline: none; }
+
+/* ── PAGE ANIMATIONS ──────────────────────────────────────────── */
+.main { animation: fadeUp .3s cubic-bezier(.25,.6,.3,1) both; }
+.animate-section { animation: fadeUp .28s cubic-bezier(.4,0,.2,1) both; }
+.animate-cards > .col,
+.animate-cards > [class*="col-"] {
+  animation: fadeUp .3s cubic-bezier(.25,.6,.3,1) both;
+}
+.animate-cards > .col:nth-child(1)  { animation-delay: .04s; }
+.animate-cards > .col:nth-child(2)  { animation-delay: .08s; }
+.animate-cards > .col:nth-child(3)  { animation-delay: .12s; }
+.animate-cards > .col:nth-child(4)  { animation-delay: .16s; }
+.animate-cards > .col:nth-child(5)  { animation-delay: .20s; }
+.animate-cards > .col:nth-child(n+6){ animation-delay: .24s; }
+
+/* ── CONTENT CARD (legacy) ────────────────────────────────────── */
+.content-card {
+  transition: transform .2s cubic-bezier(.4,0,.2,1), box-shadow .2s, border-color .2s;
+}
+.content-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md) !important; }
+
+/* ── MISC LEGACY CLASSES ──────────────────────────────────────── */
+.page-header {
+  padding-bottom: 14px; border-bottom: 2px solid var(--border-strong); margin-bottom: 22px;
+  display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; justify-content: space-between;
+}
+.page-header-row { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; width: 100%; }
+.page-title { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 700; margin: 0; }
+.page-subtitle { color: var(--muted); font-size: .85rem; margin: 2px 0 0; }
+
+.total-panel {
+  border-radius: var(--r-card); padding: 12px 16px;
+}
+.total-panel-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; display: block; }
+.total-panel-value { font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ── EMPTY STATE ──────────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 3rem 1.5rem; color: var(--muted); }
+.empty-state-icon { font-size: 3rem; opacity: .25; display: block; margin-bottom: 1rem; }
+
+/* ── PAGINATION (complemento fusion) ─────────────────────────── */
+.pagination .page-link {
+  background-color: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--muted) !important;
+}
+.pagination .page-link:hover {
+  background-color: var(--accent-tint) !important;
+  color: var(--accent-deep) !important;
+}
+.pagination .page-item.active .page-link {
+  background-color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+.pagination .page-item.disabled .page-link { opacity: .4; }
+
+/* ── OFFLINE BANNER ───────────────────────────────────────────── */
+#offlineBanner {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999;
+  background: var(--warn); color: #fff; padding: .5rem 1rem;
+  text-align: center; font-size: .84rem; font-weight: 600;
+  transform: translateY(100%); transition: transform .3s;
+}
+#offlineBanner.show { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .main, .anim-up, .anim-pop, .stagger > *, .animate-section,
+  .animate-cards > .col, .animate-cards > [class*="col-"] {
+    animation: none !important;
+  }
+}
