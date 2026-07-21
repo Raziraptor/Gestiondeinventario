@@ -60,6 +60,7 @@ from app.helpers import (
 from app.models import (
     Producto, Stock, Movimiento, Categoria, Proveedor, Almacen,
     Organizacion, Salida, AuditLog, ProveedorIntegracion, FormatoProveedor,
+    OrdenCompra, ProyectoOC,
 )
 from integrations.formato_proveedor import CAMPOS_DISPONIBLES
 
@@ -1262,17 +1263,24 @@ def eliminar_almacen(id):
                     organizacion_id=org_id,
                 ))
 
-        # Reasignar registros históricos ANTES de borrar el almacén para evitar
-        # NOT NULL violation en movimiento.almacen_id y FK violation en salida.almacen_id.
-        # Para transferir_uno: los movimientos pasan al almacén destino.
-        # Para sin_stock / transferir_separado: se dejan como NULL (historial huérfano).
+        # Reasignar / nullear TODOS los FK que apuntan a este almacén antes de borrarlo.
+        # Sin esto, Postgres lanza ForeignKeyViolation en las tablas que no tienen
+        # ON DELETE CASCADE / SET NULL definido a nivel de BD.
         destino_mov = None
         if modo == 'transferir_uno':
             destino_mov = int(request.form.get('destino_id', 0)) or None
+        # movimiento: si hay destino único se reasigna al nuevo almacén, sino NULL
         Movimiento.query.filter_by(almacen_id=id).update(
             {'almacen_id': destino_mov}, synchronize_session='fetch'
         )
+        # salida, orden_compra, proyecto_oc: siempre NULL (registros históricos huérfanos)
         Salida.query.filter_by(almacen_id=id).update(
+            {'almacen_id': None}, synchronize_session='fetch'
+        )
+        OrdenCompra.query.filter_by(almacen_id=id).update(
+            {'almacen_id': None}, synchronize_session='fetch'
+        )
+        ProyectoOC.query.filter_by(almacen_id=id).update(
             {'almacen_id': None}, synchronize_session='fetch'
         )
 
