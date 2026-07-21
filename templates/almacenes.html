@@ -227,77 +227,99 @@
 {% block scripts %}
 <script>
 (function () {
-  var verUrl = "{{ url_for('inventory.verificar_eliminacion_almacen', id=0) }}".replace('/0', '/');
-  var delUrl = "{{ url_for('inventory.eliminar_almacen', id=0) }}".replace('/0', '/');
+  /* Base URLs con id=0 como placeholder — NO hacer replace anticipado */
+  var verBaseUrl = "{{ url_for('inventory.verificar_eliminacion_almacen', id=0) }}";
+  var delBaseUrl = "{{ url_for('inventory.eliminar_almacen', id=0) }}";
   var stocks = [], almacenes = [];
   var bsModal;
 
-  window.abrirModalEliminarAlmacen = function (id, nombre) {
+  window.abrirModalEliminarAlmacen = function (almId, nombre) {
+    /* Reset UI */
     document.getElementById('elmNombre').textContent = nombre;
     document.getElementById('elmLoading').style.display = '';
     document.getElementById('elmSinStock').style.display = 'none';
     document.getElementById('elmConStock').style.display = 'none';
-    document.getElementById('formEliminarAlmacen').action = delUrl + id;
+    /* Modo inicial es sin_stock — NO llamar elmToggleModo aquí o sobreescribiría */
     document.getElementById('elmFormModo').value = 'sin_stock';
     document.getElementById('elmFormDestinos').innerHTML = '';
+    /* Acción del form: reemplaza /0 al final por el id real */
+    document.getElementById('formEliminarAlmacen').action = delBaseUrl.replace('/0', '/' + almId);
+    /* Reset radio visualmente sin tocar elmFormModo */
     document.querySelector('input[name="elmModo"][value="uno"]').checked = true;
-    elmToggleModo();
+    document.getElementById('lblModoUno').style.border = '2px solid var(--accent)';
+    document.getElementById('lblModoSep').style.border = '1px solid var(--border)';
 
     if (!bsModal) bsModal = new bootstrap.Modal(document.getElementById('modalEliminarAlmacen'));
     bsModal.show();
 
-    fetch(verUrl + id)
-      .then(function (r) { return r.json(); })
+    /* URL correcta: /almacen/0/verificar-eliminacion → /almacen/5/verificar-eliminacion */
+    var fetchUrl = verBaseUrl.replace('/0/', '/' + almId + '/');
+    fetch(fetchUrl)
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then(function (data) {
         document.getElementById('elmLoading').style.display = 'none';
-        stocks = data.stocks || [];
+        stocks    = data.stocks || [];
         almacenes = data.otros_almacenes || [];
 
         if (!data.tiene_stock) {
           document.getElementById('elmSinStock').style.display = '';
+          document.getElementById('elmFormModo').value = 'sin_stock';
           return;
         }
 
+        /* Hay stock → mostrar opciones de transferencia */
         document.getElementById('elmConStock').style.display = '';
         document.getElementById('elmTotalProd').textContent = data.total_productos;
         document.getElementById('elmTotalUds').textContent  = data.total_unidades;
         document.getElementById('elmFormModo').value = 'transferir_uno';
 
+        /* Poblar select "un almacén" */
         var opts = '<option value="">— Selecciona almacén —</option>' +
-          almacenes.map(function (a) { return '<option value="' + a.id + '">' + a.nombre + '</option>'; }).join('');
+          almacenes.map(function (a) {
+            return '<option value="' + a.id + '">' + a.nombre + '</option>';
+          }).join('');
         document.getElementById('elmDestinoUno').innerHTML = opts;
         if (almacenes.length === 1) document.getElementById('elmDestinoUno').value = almacenes[0].id;
 
-        var tbody = document.getElementById('elmTablaProductos');
-        tbody.innerHTML = stocks.map(function (s) {
+        /* Construir tabla "por producto" */
+        var autoSel = almacenes.length === 1 ? ' selected' : '';
+        document.getElementById('elmTablaProductos').innerHTML = stocks.map(function (s) {
           var selOpts = '<option value="">—</option>' +
-            almacenes.map(function (a) { return '<option value="' + a.id + '"' + (almacenes.length === 1 ? ' selected' : '') + '>' + a.nombre + '</option>'; }).join('');
+            almacenes.map(function (a) {
+              return '<option value="' + a.id + '"' + autoSel + '>' + a.nombre + '</option>';
+            }).join('');
           return '<tr>' +
             '<td class="ps-3 py-2">' + s.nombre + '</td>' +
             '<td class="py-2 text-end fw-bold text-primary">' + s.cantidad + '</td>' +
-            '<td class="pe-3 py-2"><select name="destino_' + s.stock_id + '" class="form-select form-select-sm">' + selOpts + '</select></td>' +
-            '</tr>';
+            '<td class="pe-3 py-2"><select name="destino_' + s.stock_id + '" class="form-select form-select-sm">' +
+            selOpts + '</select></td></tr>';
         }).join('');
       })
       .catch(function () {
+        /* Si el fetch falla, permitir eliminación simple (sin transferencia) */
         document.getElementById('elmLoading').style.display = 'none';
         document.getElementById('elmSinStock').style.display = '';
+        document.getElementById('elmFormModo').value = 'sin_stock';
       });
   };
 
+  /* Solo cambia el modo de transferencia cuando el usuario toca un radio */
   window.elmToggleModo = function () {
-    var modo = document.querySelector('input[name="elmModo"]:checked');
-    if (!modo) return;
-    var esUno = modo.value === 'uno';
+    var radio = document.querySelector('input[name="elmModo"]:checked');
+    if (!radio) return;
+    var esUno = radio.value === 'uno';
     document.getElementById('elmModoUno').style.display      = esUno ? '' : 'none';
     document.getElementById('elmModoSeparado').style.display = esUno ? 'none' : '';
-    document.getElementById('elmFormModo').value = esUno ? 'transferir_uno' : 'transferir_separado';
+    document.getElementById('elmFormModo').value             = esUno ? 'transferir_uno' : 'transferir_separado';
     document.getElementById('lblModoUno').style.border = esUno ? '2px solid var(--accent)' : '1px solid var(--border)';
     document.getElementById('lblModoSep').style.border = esUno ? '1px solid var(--border)' : '2px solid var(--accent)';
   };
 
   document.getElementById('formEliminarAlmacen').addEventListener('submit', function (e) {
-    var modo = document.getElementById('elmFormModo').value;
+    var modo     = document.getElementById('elmFormModo').value;
     var destinos = document.getElementById('elmFormDestinos');
     destinos.innerHTML = '';
 
@@ -311,6 +333,7 @@
           destinos.innerHTML += '<input type="hidden" name="' + s.name + '" value="' + s.value + '">';
       });
     }
+    /* sin_stock: ningún campo adicional, el form se envía directo */
   });
 })();
 </script>
