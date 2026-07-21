@@ -290,6 +290,23 @@ def register_commands(app):
                 conn.rollback(); print(f'Omitido índice: {e}')
         print('fix-add-formato-proveedor completado.')
 
+    @app.cli.command('fix-almacen-delete-nullable')
+    @with_appcontext
+    def fix_almacen_delete_nullable():
+        """Hace nullable movimiento.almacen_id y salida.almacen_id para permitir eliminar almacenes. Idempotente."""
+        from app.extensions import db
+        stmts = [
+            "ALTER TABLE movimiento ALTER COLUMN almacen_id DROP NOT NULL",
+            "ALTER TABLE salida ALTER COLUMN almacen_id DROP NOT NULL",
+        ]
+        with db.engine.connect() as conn:
+            for stmt in stmts:
+                try:
+                    conn.execute(text(stmt)); conn.commit(); print(f'OK: {stmt}')
+                except Exception as e:
+                    conn.rollback(); print(f'Omitido: {e}')
+        print('fix-almacen-delete-nullable completado.')
+
     @app.cli.command('limpiar-push-subs')
     @with_appcontext
     def limpiar_push_subs():

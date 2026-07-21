@@ -80,7 +80,7 @@ class Salida(db.Model):
     creador_id      = db.Column(db.Integer, db.ForeignKey('user.id'),        nullable=False)
     cancelado_por_id= db.Column(db.Integer, db.ForeignKey('user.id'),        nullable=True)
     organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False)
-    almacen_id      = db.Column(db.Integer, db.ForeignKey('almacen.id'),      nullable=False)
+    almacen_id      = db.Column(db.Integer, db.ForeignKey('almacen.id'),      nullable=True)
     almacen         = db.relationship('Almacen')
 
     movimientos = db.relationship('Movimiento', backref='salida', lazy='dynamic',

@@ -1262,6 +1262,20 @@ def eliminar_almacen(id):
                     organizacion_id=org_id,
                 ))
 
+        # Reasignar registros históricos ANTES de borrar el almacén para evitar
+        # NOT NULL violation en movimiento.almacen_id y FK violation en salida.almacen_id.
+        # Para transferir_uno: los movimientos pasan al almacén destino.
+        # Para sin_stock / transferir_separado: se dejan como NULL (historial huérfano).
+        destino_mov = None
+        if modo == 'transferir_uno':
+            destino_mov = int(request.form.get('destino_id', 0)) or None
+        Movimiento.query.filter_by(almacen_id=id).update(
+            {'almacen_id': destino_mov}, synchronize_session='fetch'
+        )
+        Salida.query.filter_by(almacen_id=id).update(
+            {'almacen_id': None}, synchronize_session='fetch'
+        )
+
         log_actividad('eliminar', 'Almacen', f'Almacén eliminado: {almacen.nombre}', almacen.id)
         db.session.delete(almacen)
         db.session.commit()
