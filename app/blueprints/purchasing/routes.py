@@ -815,7 +815,10 @@ def exportar_formato_proveedor(id):
         return redirect(url_for('purchasing.ver_orden', id=id))
 
     ext = 'csv' if 'csv' in mimetype else 'xlsx'
-    nombre = formato.nombre_archivo.replace('{id}', str(orden.id))
+    nombre_raw = formato.nombre_archivo.replace('{id}', str(orden.id))
+    # M-15: sanitizar para evitar header injection (solo alfanum, guiones, espacios)
+    import re as _re_m15
+    nombre = _re_m15.sub(r'[^\w\-. ]', '_', nombre_raw)[:80] or f'OC-{orden.id}'
     response = make_response(archivo_bytes)
     response.headers['Content-Type'] = mimetype
     response.headers['Content-Disposition'] = f'attachment; filename="{nombre}.{ext}"'
@@ -1418,7 +1421,8 @@ def aprobar_solicitud(id):
 
         if s.entidad_tipo == 'proyecto_oc':
             oc = ProyectoOC.query.get(s.entidad_id)
-            if oc:
+            # H-11: solo aprobar si la OC está en estado correcto
+            if oc and oc.estado == 'pendiente_aprobacion':
                 oc.estado = 'aprobada'
                 log_actividad('aprobar', 'proyecto_oc',
                               f'OC Proyecto #{oc.id} aprobada por {current_user.username}.',

@@ -1588,7 +1588,9 @@ def registrar_salida():
 
     today         = now_mx().date()
     salida_del_dia = Salida.query.filter_by(
-        fecha=today, organizacion_id=org_id, almacen_id=almacen_seleccionado.id
+        fecha=today, organizacion_id=org_id,
+        almacen_id=almacen_seleccionado.id,
+        estado='abierta',  # M-21: no reutilizar salidas canceladas/completadas
     ).first()
 
     if not salida_del_dia:
