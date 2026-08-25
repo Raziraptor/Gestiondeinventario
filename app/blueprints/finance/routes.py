@@ -941,14 +941,55 @@ def nueva_factura():
             if monto_val <= 0:
                 flash('El monto debe ser mayor a cero.', 'danger')
                 return redirect(url_for('finance.nueva_factura'))
+
+            # M-18: validar fechas
+            fecha_emision_v     = date.fromisoformat(request.form['fecha_emision'])
+            fecha_vencimiento_v = date.fromisoformat(request.form['fecha_vencimiento'])
+            if fecha_vencimiento_v < fecha_emision_v:
+                flash('La fecha de vencimiento no puede ser anterior a la fecha de emisión.', 'danger')
+                return redirect(url_for('finance.nueva_factura'))
+
+            # M-18: validar proveedor cross-tenant
+            prov_id = int(request.form['proveedor_id'])
+            if not Proveedor.query.filter_by(id=prov_id, organizacion_id=org_id).first():
+                flash('Proveedor no autorizado.', 'danger')
+                return redirect(url_for('finance.nueva_factura'))
+
+            # M-18: validar duplicados (mismo número + proveedor)
+            num_factura = request.form['numero_factura'].strip()
+            duplicado = FacturaProveedor.query.filter_by(
+                organizacion_id=org_id, numero_factura=num_factura, proveedor_id=prov_id
+            ).first()
+            if duplicado:
+                flash(f'Ya existe la factura #{num_factura} para ese proveedor.', 'warning')
+                return redirect(url_for('finance.nueva_factura'))
+
+            # H-17: validar FKs de OC y CentroCosto
+            oc_id_raw  = request.form.get('orden_compra_id')  or None
+            cc_id_raw  = request.form.get('centro_costo_id')  or None
+            _oc_id = None
+            if oc_id_raw:
+                _oc = OrdenCompra.query.filter_by(id=int(oc_id_raw), organizacion_id=org_id).first()
+                if not _oc:
+                    flash('Orden de compra no autorizada.', 'danger')
+                    return redirect(url_for('finance.nueva_factura'))
+                _oc_id = _oc.id
+            _cc_id = None
+            if cc_id_raw:
+                _cc = CentroCosto.query.filter_by(id=int(cc_id_raw), organizacion_id=org_id).first()
+                if not _cc:
+                    flash('Centro de costo no autorizado.', 'danger')
+                    return redirect(url_for('finance.nueva_factura'))
+                _cc_id = _cc.id
+
             factura = FacturaProveedor(
-                numero_factura    = request.form['numero_factura'].strip(),
-                proveedor_id      = int(request.form['proveedor_id']),
-                orden_compra_id   = int(request.form['orden_compra_id']) if request.form.get('orden_compra_id') else None,
-                centro_costo_id   = int(request.form['centro_costo_id']) if request.form.get('centro_costo_id') else None,
+                numero_factura    = num_factura,
+                proveedor_id      = prov_id,
+                orden_compra_id   = _oc_id,
+                centro_costo_id   = _cc_id,
                 monto             = monto_val,
-                fecha_emision     = date.fromisoformat(request.form['fecha_emision']),
-                fecha_vencimiento = date.fromisoformat(request.form['fecha_vencimiento']),
+                fecha_emision     = fecha_emision_v,
+                fecha_vencimiento = fecha_vencimiento_v,
                 notas             = request.form.get('notas', '').strip() or None,
                 registrado_por_id = current_user.id,
                 organizacion_id   = org_id,

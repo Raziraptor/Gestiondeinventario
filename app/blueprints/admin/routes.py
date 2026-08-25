@@ -706,6 +706,8 @@ def _sync_salida(payload, org_id):
 
     # ── Fase de validación ────────────────────────────────────────────────
     para_ejecutar = []
+    # H-05: acumular reservaciones por producto para detectar over-commit en batch
+    reservaciones: dict = {}  # {prod_id: cantidad_ya_reservada_en_este_batch}
     for item in items:
         prod_id  = item.get('producto_id')
         cantidad = item.get('cantidad')
@@ -731,21 +733,24 @@ def _sync_salida(payload, org_id):
         if stock_item.producto.organizacion_id != org_id:
             return {'ok': False, 'error': f'Salida: producto {prod_id} no autorizado'}
 
-        if stock_item.cantidad < cantidad:
+        ya_reservado = reservaciones.get(prod_id, 0)
+        if stock_item.cantidad - ya_reservado < cantidad:
             return {
                 'ok':    False,
                 'error': (
                     f'Stock insuficiente para "{stock_item.producto.nombre}": '
-                    f'disponible {stock_item.cantidad}, solicitado {cantidad}'
+                    f'disponible {stock_item.cantidad - ya_reservado}, solicitado {cantidad}'
                 ),
             }
+        reservaciones[prod_id] = ya_reservado + cantidad
 
         para_ejecutar.append((stock_item, cantidad, motivo))
 
     # ── Fase de ejecución ─────────────────────────────────────────────────
     today = now_mx().date()
     salida_del_dia = Salida.query.filter_by(
-        fecha=today, organizacion_id=org_id, almacen_id=almacen_id
+        fecha=today, organizacion_id=org_id,
+        almacen_id=almacen_id, estado='abierta',  # M-21: no reutilizar canceladas
     ).first()
     if not salida_del_dia:
         salida_del_dia = Salida(
