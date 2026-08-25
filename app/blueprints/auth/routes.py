@@ -48,14 +48,13 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField('Registrarse')
 
     def validate_username(self, username):
-        user = User.query.filter_by(username=username.data).first()
-        if user:
-            raise ValidationError('Ese nombre de usuario ya existe. Por favor, elige otro.')
+        # M-01: mensaje genérico para no filtrar qué campo existe
+        if User.query.filter_by(username=username.data).first():
+            raise ValidationError('Este nombre de usuario o e-mail ya está en uso.')
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
-        if user:
-            raise ValidationError('Ese e-mail ya está registrado. Por favor, usa otro.')
+        if User.query.filter_by(email=email.data).first():
+            raise ValidationError('Este nombre de usuario o e-mail ya está en uso.')
 
 
 class LoginForm(FlaskForm):

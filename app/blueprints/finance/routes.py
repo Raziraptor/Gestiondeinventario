@@ -407,10 +407,29 @@ def nuevo_gasto():
                 flash('Categoría no válida.', 'danger')
                 return redirect(url_for('finance.nuevo_gasto'))
             fecha_gasto = datetime.strptime(request.form['fecha'], '%Y-%m-%d')
-            oc_id = request.form.get('orden_compra_id')
-            if oc_id == "":
+            # H-17: validar que oc_id y cc_id pertenezcan a la org
+            oc_id_raw = request.form.get('orden_compra_id') or None
+            if oc_id_raw:
+                _oc = OrdenCompra.query.filter_by(
+                    id=int(oc_id_raw), organizacion_id=current_user.organizacion_id
+                ).first()
+                if not _oc:
+                    flash('Orden de compra no autorizada.', 'danger')
+                    return redirect(url_for('finance.nuevo_gasto'))
+                oc_id = _oc.id
+            else:
                 oc_id = None
-            cc_id = request.form.get('centro_costo_id') or None
+            cc_id_raw = request.form.get('centro_costo_id') or None
+            if cc_id_raw:
+                _cc = CentroCosto.query.filter_by(
+                    id=int(cc_id_raw), organizacion_id=current_user.organizacion_id
+                ).first()
+                if not _cc:
+                    flash('Centro de costo no autorizado.', 'danger')
+                    return redirect(url_for('finance.nuevo_gasto'))
+                cc_id = _cc.id
+            else:
+                cc_id = None
 
             g = Gasto(
                 descripcion=request.form['descripcion'],
