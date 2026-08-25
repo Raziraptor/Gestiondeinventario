@@ -25,7 +25,6 @@
         action="{{ url_for('incidents.editar_incidencia', id=inc.id) if inc else url_for('incidents.nueva_incidencia') }}"
         enctype="multipart/form-data"
         id="formIncidencia">
-    {{ csrf_token() if csrf_token is defined else '' }}
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     {# ── 01 DATOS DEL REPORTE ──────────────────────────────────────────────── #}
