@@ -612,8 +612,9 @@ def exportar_pdf(id):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
-    from reportlab.platypus import (HRFlowable, Paragraph, SimpleDocTemplate,
-                                    Spacer, Table, TableStyle)
+    from reportlab.lib.utils import ImageReader
+    from reportlab.platypus import (HRFlowable, Image as RLImage, Paragraph,
+                                    SimpleDocTemplate, Spacer, Table, TableStyle)
 
     inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
     avances  = inc.avances.all()
@@ -701,16 +702,47 @@ def exportar_pdf(id):
     story.append(Paragraph('03 · Descripción del problema', s_h2))
     story.append(Paragraph(_xe(inc.descripcion), s_val))
 
-    # ── 04 Evidencia (referencia)
+    # ── 04 Evidencia fotográfica (imágenes embebidas)
     fotos = [(inc.foto1_path, inc.foto1_desc), (inc.foto2_path, inc.foto2_desc), (inc.foto3_path, inc.foto3_desc)]
     fotos = [(p, d) for p, d in fotos if p]
     if fotos:
         story.append(hr())
         story.append(Paragraph('04 · Evidencia fotográfica', s_h2))
-        story.append(Paragraph(
-            f'{len(fotos)} foto(s) adjuntas. Consultar el sistema digital para visualizarlas.',
-            s_sm,
-        ))
+        MAX_W = (doc.width - 0.6*cm) / 3   # ancho máximo por columna
+        MAX_H = 5 * cm
+        img_cells  = []
+        cap_cells  = []
+        for p, d in fotos:
+            full = os.path.join(current_app.root_path, '..', 'static', p)
+            if os.path.isfile(full):
+                try:
+                    ir = ImageReader(full)
+                    iw, ih = ir.getSize()
+                    ratio = min(MAX_W / iw, MAX_H / ih)
+                    img_cells.append(RLImage(full, width=iw * ratio, height=ih * ratio))
+                    cap_cells.append(Paragraph(_xe(d or ''), s_lbl))
+                except Exception:
+                    img_cells.append(Paragraph('(imagen no disponible)', s_lbl))
+                    cap_cells.append(Paragraph('', s_lbl))
+            else:
+                img_cells.append(Paragraph('(archivo no encontrado)', s_lbl))
+                cap_cells.append(Paragraph('', s_lbl))
+        # Rellenar hasta 3 columnas
+        while len(img_cells) < 3:
+            img_cells.append(Paragraph('', s_normal))
+            cap_cells.append(Paragraph('', s_normal))
+        col_w = doc.width / 3
+        t = Table(
+            [img_cells, cap_cells],
+            colWidths=[col_w, col_w, col_w],
+        )
+        t.setStyle(TableStyle([
+            ('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING',   (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
+        ]))
+        story.append(t)
 
     # ── 05 Asignación
     story.append(hr())
