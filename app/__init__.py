@@ -9,6 +9,7 @@ from decimal import Decimal
 
 _badge_cache: dict = {}   # {org_id: (expires_at, payload)}
 _BADGE_TTL = 30           # seconds
+_BADGE_CACHE_MAX = 500    # L-13: cap size to prevent unbounded growth
 
 from flask import Flask
 from flask.json.provider import DefaultJSONProvider
@@ -174,6 +175,13 @@ def _register_context_processors(app):
             'aprobaciones_badge': aprobaciones,
             'servicios_badge': servicios_vencidos,
             }
+            # L-13: evict expired entries if cache is at capacity
+            if len(_badge_cache) >= _BADGE_CACHE_MAX:
+                _now = time.time()
+                for _k in [k for k, v in _badge_cache.items() if v[0] < _now]:
+                    del _badge_cache[_k]
+                if len(_badge_cache) >= _BADGE_CACHE_MAX:
+                    _badge_cache.clear()
             _badge_cache[org_id] = (time.time() + _BADGE_TTL, payload)
             return payload
         except Exception:
