@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+{% block title %}{{ inc.folio }} — Incidencia{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 pb-5" style="max-width:1200px;">
+
+  <nav aria-label="breadcrumb" class="mt-3 mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('incidents.lista_incidencias') }}">Incidencias</a></li>
+      <li class="breadcrumb-item active">{{ inc.folio }}</li>
+    </ol>
+  </nav>
+
+  {# ── HEADER ────────────────────────────────────────────────────────────── #}
+  <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <span class="badge bg-secondary font-monospace fs-6">{{ inc.folio }}</span>
+        <span class="badge bg-{{ badge_estado(inc.estado) }}">{{ inc.estado }}</span>
+        <span class="badge bg-{{ badge_prioridad(inc.prioridad) }}">{{ inc.prioridad }}</span>
+      </div>
+      <h2 class="fw-bold mb-1">{{ inc.titulo }}</h2>
+      <p class="text-muted small mb-0">
+        <i class="ph ph-map-pin me-1" aria-hidden="true"></i>{{ inc.ubicacion }}
+        &nbsp;·&nbsp;
+        <i class="ph ph-calendar me-1" aria-hidden="true"></i>{{ inc.fecha.strftime('%d/%m/%Y') if inc.fecha else '—' }}
+        {% if inc.hora %}&nbsp;{{ inc.hora }}{% endif %}
+        &nbsp;·&nbsp;
+        <i class="ph ph-user me-1" aria-hidden="true"></i>{{ inc.reportado_por }}
+      </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if es_editor %}
+      <a href="{{ url_for('incidents.editar_incidencia', id=inc.id) }}"
+         class="btn btn-outline-primary btn-sm">
+        <i class="ph ph-pencil me-1" aria-hidden="true"></i>Editar
+      </a>
+      {% endif %}
+      <a href="{{ url_for('incidents.exportar_pdf', id=inc.id) }}"
+         class="btn btn-outline-secondary btn-sm">
+        <i class="ph ph-file-pdf me-1" aria-hidden="true"></i>PDF
+      </a>
+      {% if es_admin %}
+      <form method="post" action="{{ url_for('incidents.eliminar_incidencia', id=inc.id) }}"
+            onsubmit="return confirm('¿Eliminar definitivamente esta incidencia?');" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+          <i class="ph ph-trash me-1" aria-hidden="true"></i>Eliminar
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    {# ── COLUMNA PRINCIPAL ──────────────────────────────────────────────── #}
+    <div class="col-lg-8">
+
+      {# Descripción + fotos #}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-note me-1" aria-hidden="true"></i>Descripción del problema
+          </h6>
+          <p class="mb-3" style="white-space:pre-wrap;">{{ inc.descripcion }}</p>
+
+          {# Clasificación #}
+          <div class="row g-2 mb-3">
+            <div class="col-auto">
+              <span class="text-muted small">Tipo:</span>
+              <span class="badge bg-light text-dark border ms-1">{{ inc.tipo }}{% if inc.tipo == 'Otro' and inc.tipo_otro %} — {{ inc.tipo_otro }}{% endif %}</span>
+            </div>
+            <div class="col-auto">
+              <span class="text-muted small">Severidad:</span>
+              <span class="badge bg-light text-dark border ms-1">{{ inc.severidad }}</span>
+            </div>
+            {% if inc.lesionados %}
+            <div class="col-auto">
+              <span class="badge bg-danger"><i class="ph ph-first-aid me-1" aria-hidden="true"></i>Lesionados</span>
+            </div>
+            {% endif %}
+          </div>
+
+          {# Fotos de evidencia #}
+          {% set fotos = [] %}
+          {% if inc.foto1_path %}{% do fotos.append((inc.foto1_path, inc.foto1_desc)) %}{% endif %}
+          {% if inc.foto2_path %}{% do fotos.append((inc.foto2_path, inc.foto2_desc)) %}{% endif %}
+          {% if inc.foto3_path %}{% do fotos.append((inc.foto3_path, inc.foto3_desc)) %}{% endif %}
+          {% if fotos %}
+          <h6 class="fw-semibold text-uppercase text-muted mt-3 mb-2" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-image me-1" aria-hidden="true"></i>Evidencia fotográfica
+          </h6>
+          <div class="row g-2">
+            {% for ruta, desc in fotos %}
+            <div class="col-md-4">
+              <a href="{{ url_for('static', filename=ruta) }}" target="_blank" rel="noopener">
+                <img src="{{ url_for('static', filename=ruta) }}"
+                     alt="{{ desc or 'Foto de evidencia' }}"
+                     class="img-fluid rounded" loading="lazy"
+                     style="height:150px; width:100%; object-fit:cover;">
+              </a>
+              {% if desc %}<div class="text-muted small mt-1">{{ desc }}</div>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Bitácora de seguimiento #}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-chat-text me-1" aria-hidden="true"></i>Bitácora de seguimiento
+          </h6>
+          {% if avances %}
+          <div class="timeline">
+            {% for a in avances %}
+            <div class="d-flex gap-3 mb-3">
+              <div class="flex-shrink-0 d-flex flex-column align-items-center">
+                <div class="rounded-circle bg-{{ 'success' if a.concluido else 'primary' }} text-white d-flex align-items-center justify-content-center"
+                     style="width:32px;height:32px;font-size:.75rem;">
+                  {{ a.porcentaje }}
+                </div>
+                {% if not loop.last %}<div style="width:2px;background:var(--border);flex:1;margin-top:4px;"></div>{% endif %}
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                  <div>
+                    <span class="fw-semibold small">{{ a.autor.username if a.autor else '—' }}</span>
+                    {% if a.concluido %}
+                    <span class="badge bg-success ms-1" style="font-size:.65rem;">Concluido</span>
+                    {% endif %}
+                  </div>
+                  <span class="text-muted" style="font-size:.75rem;">{{ a.creado_en.strftime('%d/%m/%Y %H:%M') }}</span>
+                </div>
+                <p class="mb-1 small" style="white-space:pre-wrap;">{{ a.texto }}</p>
+                {% if a.foto_path %}
+                <a href="{{ url_for('static', filename=a.foto_path) }}" target="_blank" rel="noopener" class="d-inline-block">
+                  <img src="{{ url_for('static', filename=a.foto_path) }}" alt="Foto de avance"
+                       class="rounded" loading="lazy" style="max-height:80px; max-width:120px; object-fit:cover;">
+                </a>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted small mb-0">Sin avances registrados todavía.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Formulario de nuevo avance #}
+      {% if inc.estado not in ('Resuelto', 'Cerrado sin resolver') %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-plus-circle me-1" aria-hidden="true"></i>Registrar avance
+          </h6>
+          <form method="post" action="{{ url_for('incidents.agregar_avance', id=inc.id) }}"
+                enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="mb-3">
+              <textarea name="texto_avance" class="form-control" rows="3" required
+                        placeholder="Describe el avance, acción tomada, o situación actual…"></textarea>
+            </div>
+            <div class="row g-3 mb-3">
+              <div class="col-md-5">
+                <label class="form-label small fw-semibold">Progreso total (%)</label>
+                <input type="number" name="porcentaje" class="form-control form-control-sm"
+                       min="0" max="100" value="{{ inc.progreso }}" placeholder="0–100">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold">Foto de avance (opcional)</label>
+                <input type="file" name="foto_avance" class="form-control form-control-sm"
+                       accept=".png,.jpg,.jpeg,.gif,.webp">
+              </div>
+              <div class="col-md-3 d-flex align-items-end pb-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="concluido" name="concluido">
+                  <label class="form-check-label small fw-semibold text-success" for="concluido">
+                    Marcar como concluida
+                  </label>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm px-4">
+              <i class="ph ph-paper-plane-tilt me-1" aria-hidden="true"></i>Registrar avance
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Acciones correctivas #}
+      {% if acciones %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-checks me-1" aria-hidden="true"></i>Acciones correctivas
+          </h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Acción</th>
+                  <th>Responsable</th>
+                  <th>Fecha límite</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in acciones %}
+                <tr>
+                  <td>{{ a.accion }}</td>
+                  <td class="text-muted small">{{ a.responsable or '—' }}</td>
+                  <td class="text-muted small">{{ a.fecha_limite.strftime('%d/%m/%Y') if a.fecha_limite else '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Causa raíz e impacto #}
+      {% if inc.causa_raiz or inc.impacto %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-magnifying-glass me-1" aria-hidden="true"></i>Causa raíz e impacto
+          </h6>
+          {% if inc.causa_raiz %}
+          <p class="mb-2"><span class="text-muted small fw-semibold">Causa raíz:</span><br>{{ inc.causa_raiz }}</p>
+          {% endif %}
+          {% if inc.impacto %}
+          <p class="mb-0"><span class="text-muted small fw-semibold">Impacto operativo:</span><br>{{ inc.impacto }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# Costos #}
+      {% if inc.mostrar_costos and costos %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-currency-dollar me-1" aria-hidden="true"></i>Costos estimados
+          </h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-1">
+              <thead class="table-light">
+                <tr>
+                  <th>Concepto</th>
+                  <th>Descripción</th>
+                  <th class="text-end">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in costos %}
+                <tr>
+                  <td class="fw-semibold small">{{ c.concepto }}</td>
+                  <td class="text-muted small">{{ c.descripcion or '—' }}</td>
+                  <td class="text-end small">${{ '{:,.2f}'.format(c.monto) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot>
+                <tr class="table-light">
+                  <td colspan="2" class="text-end fw-bold small">Total</td>
+                  <td class="text-end fw-bold">${{ '{:,.2f}'.format(inc.total_costos) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /col-lg-8 -->
+
+    {# ── COLUMNA LATERAL ──────────────────────────────────────────────────── #}
+    <div class="col-lg-4">
+
+      {# Estado y progreso #}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            Estado actual
+          </h6>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="small text-muted">Progreso</span>
+              <span class="small fw-bold">{{ inc.progreso }}%</span>
+            </div>
+            <div class="progress" style="height:8px;border-radius:6px;">
+              <div class="progress-bar" role="progressbar"
+                   style="width:{{ inc.progreso }}%"
+                   aria-valuenow="{{ inc.progreso }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <span class="badge bg-{{ badge_estado(inc.estado) }} fs-6 px-3 py-2">{{ inc.estado }}</span>
+          </div>
+          {% if es_admin %}
+          <form method="post" action="{{ url_for('incidents.cambiar_estado', id=inc.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-label small fw-semibold">Cambiar estado</label>
+            <div class="input-group input-group-sm">
+              <select name="nuevo_estado" class="form-select">
+                {% for e in estados %}
+                <option value="{{ e }}" {% if e == inc.estado %}selected{% endif %}>{{ e }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-outline-primary">
+                <i class="ph ph-arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Asignación #}
+      {% if inc.responsable_nombre or inc.responsable_puesto %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-user-circle-gear me-1" aria-hidden="true"></i>Asignado a
+          </h6>
+          {% if inc.responsable_nombre %}
+          <p class="fw-semibold mb-1">{{ inc.responsable_nombre }}</p>
+          {% endif %}
+          {% if inc.responsable_puesto %}
+          <p class="text-muted small mb-1">{{ inc.responsable_puesto }}</p>
+          {% endif %}
+          {% if inc.contacto_responsable %}
+          <p class="text-muted small mb-1"><i class="ph ph-phone me-1" aria-hidden="true"></i>{{ inc.contacto_responsable }}</p>
+          {% endif %}
+          {% if inc.fecha_compromiso %}
+          <p class="small mb-0">
+            <span class="text-muted">Compromiso:</span>
+            <span class="fw-semibold">{{ inc.fecha_compromiso.strftime('%d/%m/%Y') }}</span>
+          </p>
+          {% endif %}
+          {% if inc.asignado_por %}
+          <p class="text-muted small mt-2 mb-0">Asignado por: {{ inc.asignado_por }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# Cierre del reporte #}
+      {% if inc.estado_final or inc.fecha_cierre or inc.comentarios_cierre %}
+      <div class="card border-0 shadow-sm rounded-4 mb-4 border-success">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-check-circle text-success me-1" aria-hidden="true"></i>Cierre del reporte
+          </h6>
+          {% if inc.estado_final %}
+          <p class="mb-1"><span class="text-muted small">Estado final:</span><br>
+            <span class="badge bg-dark">{{ inc.estado_final }}</span></p>
+          {% endif %}
+          {% if inc.fecha_cierre %}
+          <p class="mb-1 small"><span class="text-muted">Fecha:</span> {{ inc.fecha_cierre.strftime('%d/%m/%Y') }}</p>
+          {% endif %}
+          {% if inc.comentarios_cierre %}
+          <p class="small mb-0">{{ inc.comentarios_cierre }}</p>
+          {% endif %}
+          {% if inc.firma_reporto or inc.firma_responsable or inc.firma_vobo %}
+          <hr class="my-2">
+          <div class="d-flex flex-column gap-1">
+            {% if inc.firma_reporto %}<span class="small"><span class="text-muted">Reportó:</span> {{ inc.firma_reporto }}</span>{% endif %}
+            {% if inc.firma_responsable %}<span class="small"><span class="text-muted">Responsable:</span> {{ inc.firma_responsable }}</span>{% endif %}
+            {% if inc.firma_vobo %}<span class="small"><span class="text-muted">Vo. Bo.:</span> {{ inc.firma_vobo }}</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# Historial de auditoría #}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-clock-counterclockwise me-1" aria-hidden="true"></i>Historial
+          </h6>
+          {% if historial %}
+          <ul class="list-unstyled mb-0" style="font-size:.8rem;">
+            {% for h in historial %}
+            <li class="mb-2 pb-2 border-bottom last-border-0">
+              <div class="d-flex justify-content-between">
+                <span class="fw-semibold text-capitalize">{{ h.accion.replace('_', ' ') }}</span>
+                <span class="text-muted">{{ h.fecha.strftime('%d/%m %H:%M') }}</span>
+              </div>
+              <div class="text-muted small text-truncate">{{ h.descripcion }}</div>
+              <div class="text-muted" style="font-size:.7rem;">{{ h.usuario.username if h.usuario else '—' }}</div>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted small mb-0">Sin registro de actividad.</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div><!-- /col-lg-4 -->
+  </div><!-- /row -->
+
+</div>
+{% endblock %}

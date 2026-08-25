@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Incidencias{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 pb-5" style="max-width:1200px;">
+
+  <nav aria-label="breadcrumb" class="mt-3 mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item active">Incidencias</li>
+    </ol>
+  </nav>
+
+  {# ── ENCABEZADO ────────────────────────────────────────────────────────── #}
+  <div class="page-header">
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-title">
+          <i class="ph ph-fill ph-warning-circle text-warning me-2" aria-hidden="true"></i>
+          Reporte de Incidencias
+        </h1>
+        <p class="page-subtitle">Registro, seguimiento y cierre de incidencias operativas.</p>
+      </div>
+      <a href="{{ url_for('incidents.nueva_incidencia') }}" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
+        <i class="ph ph-plus me-1" aria-hidden="true"></i>Nueva Incidencia
+      </a>
+    </div>
+  </div>
+
+  {# ── FILTROS ───────────────────────────────────────────────────────────── #}
+  <form method="get" class="row g-2 mb-4 align-items-end">
+    <div class="col-12 col-md-3">
+      <input type="text" name="buscar" value="{{ filtro_buscar }}"
+             class="form-control form-control-sm" placeholder="Folio, título o ubicación…">
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="estado" class="form-select form-select-sm">
+        <option value="">Todos los estados</option>
+        {% for e in estados %}
+        <option value="{{ e }}" {% if filtro_estado == e %}selected{% endif %}>{{ e }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="prioridad" class="form-select form-select-sm">
+        <option value="">Toda prioridad</option>
+        {% for p in prioridades %}
+        <option value="{{ p }}" {% if filtro_prioridad == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <select name="tipo" class="form-select form-select-sm">
+        <option value="">Todos los tipos</option>
+        {% for t in tipos %}
+        <option value="{{ t }}" {% if filtro_tipo == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm px-3">
+        <i class="ph ph-magnifying-glass me-1" aria-hidden="true"></i>Filtrar
+      </button>
+      {% if filtro_estado or filtro_prioridad or filtro_tipo or filtro_buscar %}
+      <a href="{{ url_for('incidents.lista_incidencias') }}" class="btn btn-outline-secondary btn-sm">
+        Limpiar
+      </a>
+      {% endif %}
+    </div>
+  </form>
+
+  {# ── TABLA ─────────────────────────────────────────────────────────────── #}
+  {% if incidencias.items %}
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-header-sticky">
+          <tr>
+            <th class="ps-3">Folio</th>
+            <th>Título / Ubicación</th>
+            <th>Prioridad</th>
+            <th>Estado</th>
+            <th>Progreso</th>
+            <th>Fecha</th>
+            <th>Reportado por</th>
+            <th class="pe-3 text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for inc in incidencias.items %}
+          <tr>
+            <td class="ps-3">
+              <span class="badge bg-secondary font-monospace">{{ inc.folio }}</span>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ inc.titulo | truncate(60, True) }}</div>
+              <div class="text-muted small">
+                <i class="ph ph-map-pin me-1" aria-hidden="true"></i>{{ inc.ubicacion | truncate(40, True) }}
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-{{ badge_prioridad(inc.prioridad) }}">{{ inc.prioridad }}</span>
+            </td>
+            <td>
+              <span class="badge bg-{{ badge_estado(inc.estado) }}">{{ inc.estado }}</span>
+            </td>
+            <td style="min-width:90px;">
+              <div class="progress" style="height:6px;border-radius:4px;">
+                <div class="progress-bar" role="progressbar"
+                     style="width:{{ inc.progreso }}%"
+                     aria-valuenow="{{ inc.progreso }}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <div class="text-muted" style="font-size:.7rem;margin-top:2px;">{{ inc.progreso }}%</div>
+            </td>
+            <td class="text-muted small">{{ inc.fecha.strftime('%d/%m/%Y') if inc.fecha else '—' }}</td>
+            <td class="text-muted small">{{ inc.reportado_por | truncate(25, True) }}</td>
+            <td class="pe-3 text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="{{ url_for('incidents.ver_incidencia', id=inc.id) }}"
+                   class="btn btn-sm btn-outline-primary btn-accion"
+                   title="Ver detalle" aria-label="Ver incidencia {{ inc.folio }}">
+                  <i class="ph ph-eye" aria-hidden="true"></i>
+                </a>
+                <a href="{{ url_for('incidents.exportar_pdf', id=inc.id) }}"
+                   class="btn btn-sm btn-outline-secondary btn-accion"
+                   title="Descargar PDF" aria-label="PDF {{ inc.folio }}">
+                  <i class="ph ph-file-pdf" aria-hidden="true"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ── PAGINACIÓN ─────────────────────────────────────────────────────────── #}
+  {% if incidencias.pages > 1 %}
+  <nav aria-label="Paginación de incidencias">
+    <ul class="pagination pagination-sm justify-content-center gap-1">
+      <li class="page-item {% if not incidencias.has_prev %}disabled{% endif %}">
+        <a class="page-link rounded-3"
+           href="{{ url_for('incidents.lista_incidencias', page=incidencias.prev_num or 1,
+                            estado=filtro_estado, prioridad=filtro_prioridad,
+                            tipo=filtro_tipo, buscar=filtro_buscar) }}">
+          <i class="ph ph-caret-left" aria-hidden="true"></i>
+        </a>
+      </li>
+      {% for p in incidencias.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <li class="page-item {% if p == incidencias.page %}active{% endif %}">
+          <a class="page-link rounded-3"
+             href="{{ url_for('incidents.lista_incidencias', page=p,
+                              estado=filtro_estado, prioridad=filtro_prioridad,
+                              tipo=filtro_tipo, buscar=filtro_buscar) }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not incidencias.has_next %}disabled{% endif %}">
+        <a class="page-link rounded-3"
+           href="{{ url_for('incidents.lista_incidencias', page=incidencias.next_num or incidencias.pages,
+                            estado=filtro_estado, prioridad=filtro_prioridad,
+                            tipo=filtro_tipo, buscar=filtro_buscar) }}">
+          <i class="ph ph-caret-right" aria-hidden="true"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="ph ph-warning-circle" style="font-size:3rem;" aria-hidden="true"></i>
+    <p class="mt-3 mb-2 fw-semibold">No hay incidencias registradas</p>
+    {% if filtro_estado or filtro_prioridad or filtro_tipo or filtro_buscar %}
+    <a href="{{ url_for('incidents.lista_incidencias') }}" class="btn btn-outline-secondary btn-sm">
+      Limpiar filtros
+    </a>
+    {% else %}
+    <a href="{{ url_for('incidents.nueva_incidencia') }}" class="btn btn-primary btn-sm">
+      Registrar primera incidencia
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

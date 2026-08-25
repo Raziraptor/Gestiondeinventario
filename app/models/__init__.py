@@ -11,6 +11,7 @@ from .purchasing import (Proveedor, ProveedorIntegracion, HDSesion, FormatoProve
 from .finance import (Gasto, Servicio, PagoServicio, FacturaProveedor,
                       CentroCosto, Presupuesto)
 from .system import AuditLog, PushSubscription, SolicitudAprobacion
+from .incidencias import Incidencia, IncidenciaAvance, IncidenciaAccion, IncidenciaCosto
 
 __all__ = [
     'Organizacion', 'User', 'TokenUsado',
@@ -21,4 +22,5 @@ __all__ = [
     'Gasto', 'Servicio', 'PagoServicio', 'FacturaProveedor',
     'CentroCosto', 'Presupuesto',
     'AuditLog', 'PushSubscription', 'SolicitudAprobacion',
+    'Incidencia', 'IncidenciaAvance', 'IncidenciaAccion', 'IncidenciaCosto',
 ]

@@ -1,0 +1,491 @@
+{% extends 'base.html' %}
+{% block title %}{{ titulo_pagina }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 pb-5" style="max-width:900px;">
+
+  <nav aria-label="breadcrumb" class="mt-3 mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('incidents.lista_incidencias') }}">Incidencias</a></li>
+      <li class="breadcrumb-item active">{{ titulo_pagina }}</li>
+    </ol>
+  </nav>
+
+  <div class="page-header mb-4">
+    <div class="page-header-row">
+      <h1 class="page-title">
+        <i class="ph ph-fill ph-warning-circle text-warning me-2" aria-hidden="true"></i>
+        {{ titulo_pagina }}
+      </h1>
+    </div>
+  </div>
+
+  <form method="post"
+        action="{{ url_for('incidents.editar_incidencia', id=inc.id) if inc else url_for('incidents.nueva_incidencia') }}"
+        enctype="multipart/form-data"
+        id="formIncidencia">
+    {{ csrf_token() if csrf_token is defined else '' }}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {# ── 01 DATOS DEL REPORTE ──────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-3">
+          <span class="badge bg-primary me-2">01</span>Datos del reporte
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="titulo" class="form-label fw-semibold">Título del incidente <span class="text-danger">*</span></label>
+            <input type="text" id="titulo" name="titulo" class="form-control" required
+                   value="{{ inc.titulo if inc else '' }}"
+                   placeholder="Breve descripción del incidente">
+          </div>
+          <div class="col-md-3">
+            <label for="fecha" class="form-label fw-semibold">Fecha <span class="text-danger">*</span></label>
+            <input type="date" id="fecha" name="fecha" class="form-control" required
+                   value="{{ inc.fecha.strftime('%Y-%m-%d') if inc and inc.fecha else '' }}">
+          </div>
+          <div class="col-md-3">
+            <label for="hora" class="form-label fw-semibold">Hora <span class="text-danger">*</span></label>
+            <input type="time" id="hora" name="hora" class="form-control" required
+                   value="{{ inc.hora if inc else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label for="ubicacion" class="form-label fw-semibold">Área / Ubicación <span class="text-danger">*</span></label>
+            <input type="text" id="ubicacion" name="ubicacion" class="form-control" required
+                   value="{{ inc.ubicacion if inc else '' }}"
+                   placeholder="Ej. Bodega 3 — Estantería Norte">
+          </div>
+          <div class="col-md-6">
+            <label for="reportado_por" class="form-label fw-semibold">Reportado por <span class="text-danger">*</span></label>
+            <input type="text" id="reportado_por" name="reportado_por" class="form-control" required
+                   value="{{ inc.reportado_por if inc else '' }}"
+                   placeholder="Nombre completo">
+          </div>
+          <div class="col-md-6">
+            <label for="cargo_reporta" class="form-label fw-semibold">Cargo / Área</label>
+            <input type="text" id="cargo_reporta" name="cargo_reporta" class="form-control"
+                   value="{{ inc.cargo_reporta if inc else '' }}"
+                   placeholder="Ej. Operador de almacén">
+          </div>
+          <div class="col-md-6">
+            <label for="contacto_reporta" class="form-label fw-semibold">Teléfono / Ext.</label>
+            <input type="text" id="contacto_reporta" name="contacto_reporta" class="form-control"
+                   value="{{ inc.contacto_reporta if inc else '' }}"
+                   placeholder="Ej. Ext. 210 / 55 1234 5678">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 02 CLASIFICACIÓN ─────────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-3">
+          <span class="badge bg-primary me-2">02</span>Clasificación
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="tipo" class="form-label fw-semibold">Tipo de incidente <span class="text-danger">*</span></label>
+            <select id="tipo" name="tipo" class="form-select" required onchange="toggleTipoOtro()">
+              <option value="">Seleccionar…</option>
+              {% for t in tipos %}
+              <option value="{{ t }}" {% if inc and inc.tipo == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4" id="campoTipoOtro" style="display:{% if inc and inc.tipo == 'Otro' %}block{% else %}none{% endif %};">
+            <label for="tipo_otro" class="form-label fw-semibold">Especificar tipo</label>
+            <input type="text" id="tipo_otro" name="tipo_otro" class="form-control"
+                   value="{{ inc.tipo_otro if inc else '' }}"
+                   placeholder="Describe el tipo de incidente">
+          </div>
+          <div class="col-md-4">
+            <label for="prioridad" class="form-label fw-semibold">Prioridad <span class="text-danger">*</span></label>
+            <select id="prioridad" name="prioridad" class="form-select" required>
+              <option value="">Seleccionar…</option>
+              {% for p in prioridades %}
+              <option value="{{ p }}" {% if inc and inc.prioridad == p %}selected{% endif %}>{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="severidad" class="form-label fw-semibold">Severidad <span class="text-danger">*</span></label>
+            <select id="severidad" name="severidad" class="form-select" required>
+              <option value="">Seleccionar…</option>
+              {% for s in severidades %}
+              <option value="{{ s }}" {% if inc and inc.severidad == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4 d-flex align-items-end pb-1">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="lesionados" name="lesionados"
+                     {% if inc and inc.lesionados %}checked{% endif %}>
+              <label class="form-check-label fw-semibold" for="lesionados">
+                <i class="ph ph-first-aid text-danger me-1" aria-hidden="true"></i>¿Hubo lesionados?
+              </label>
+            </div>
+          </div>
+          <div class="col-12">
+            <label for="descripcion" class="form-label fw-semibold">Descripción detallada <span class="text-danger">*</span></label>
+            <textarea id="descripcion" name="descripcion" class="form-control" rows="4" required
+                      placeholder="Describe qué ocurrió, cómo, y las condiciones del momento…">{{ inc.descripcion if inc else '' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 03 EVIDENCIA FOTOGRÁFICA ─────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-3">
+          <span class="badge bg-primary me-2">03</span>Evidencia fotográfica
+          <small class="text-muted fw-normal">(hasta 3 fotos — PNG, JPG, WEBP)</small>
+        </h5>
+        <div class="row g-3">
+          {# Foto 1 #}
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Foto 1</label>
+            {% if inc and inc.foto1_path %}
+            <div class="mb-2">
+              <img src="{{ url_for('static', filename=inc.foto1_path) }}"
+                   alt="Foto de evidencia 1" class="img-fluid rounded" style="max-height:120px; object-fit:cover; width:100%;">
+              <div class="text-muted small mt-1">Foto actual. Sube otra para reemplazarla.</div>
+            </div>
+            {% endif %}
+            <input type="file" name="foto1" class="form-control form-control-sm mb-2"
+                   accept=".png,.jpg,.jpeg,.gif,.webp">
+            <input type="text" name="foto1_desc" class="form-control form-control-sm"
+                   placeholder="Descripción breve de la foto 1"
+                   value="{{ inc.foto1_desc if inc and inc.foto1_desc else '' }}">
+          </div>
+          {# Foto 2 #}
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Foto 2</label>
+            {% if inc and inc.foto2_path %}
+            <div class="mb-2">
+              <img src="{{ url_for('static', filename=inc.foto2_path) }}"
+                   alt="Foto de evidencia 2" class="img-fluid rounded" style="max-height:120px; object-fit:cover; width:100%;">
+              <div class="text-muted small mt-1">Foto actual. Sube otra para reemplazarla.</div>
+            </div>
+            {% endif %}
+            <input type="file" name="foto2" class="form-control form-control-sm mb-2"
+                   accept=".png,.jpg,.jpeg,.gif,.webp">
+            <input type="text" name="foto2_desc" class="form-control form-control-sm"
+                   placeholder="Descripción breve de la foto 2"
+                   value="{{ inc.foto2_desc if inc and inc.foto2_desc else '' }}">
+          </div>
+          {# Foto 3 #}
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">Foto 3</label>
+            {% if inc and inc.foto3_path %}
+            <div class="mb-2">
+              <img src="{{ url_for('static', filename=inc.foto3_path) }}"
+                   alt="Foto de evidencia 3" class="img-fluid rounded" style="max-height:120px; object-fit:cover; width:100%;">
+              <div class="text-muted small mt-1">Foto actual. Sube otra para reemplazarla.</div>
+            </div>
+            {% endif %}
+            <input type="file" name="foto3" class="form-control form-control-sm mb-2"
+                   accept=".png,.jpg,.jpeg,.gif,.webp">
+            <input type="text" name="foto3_desc" class="form-control form-control-sm"
+                   placeholder="Descripción breve de la foto 3"
+                   value="{{ inc.foto3_desc if inc and inc.foto3_desc else '' }}">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 04 ASIGNACIÓN ────────────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-3">
+          <span class="badge bg-primary me-2">04</span>Asignación de seguimiento
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="responsable_nombre" class="form-label fw-semibold">Responsable asignado</label>
+            <input type="text" id="responsable_nombre" name="responsable_nombre" class="form-control"
+                   value="{{ inc.responsable_nombre if inc else '' }}"
+                   placeholder="Nombre del responsable">
+          </div>
+          <div class="col-md-6">
+            <label for="responsable_puesto" class="form-label fw-semibold">Puesto / Área</label>
+            <input type="text" id="responsable_puesto" name="responsable_puesto" class="form-control"
+                   value="{{ inc.responsable_puesto if inc else '' }}"
+                   placeholder="Ej. Jefe de Mantenimiento">
+          </div>
+          <div class="col-md-4">
+            <label for="asignado_por" class="form-label fw-semibold">Asignado por</label>
+            <input type="text" id="asignado_por" name="asignado_por" class="form-control"
+                   value="{{ inc.asignado_por if inc else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label for="fecha_asignacion" class="form-label fw-semibold">Fecha asignación</label>
+            <input type="date" id="fecha_asignacion" name="fecha_asignacion" class="form-control"
+                   value="{{ inc.fecha_asignacion.strftime('%Y-%m-%d') if inc and inc.fecha_asignacion else '' }}">
+          </div>
+          <div class="col-md-4">
+            <label for="fecha_compromiso" class="form-label fw-semibold">Fecha compromiso</label>
+            <input type="date" id="fecha_compromiso" name="fecha_compromiso" class="form-control"
+                   value="{{ inc.fecha_compromiso.strftime('%Y-%m-%d') if inc and inc.fecha_compromiso else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label for="contacto_responsable" class="form-label fw-semibold">Contacto responsable</label>
+            <input type="text" id="contacto_responsable" name="contacto_responsable" class="form-control"
+                   value="{{ inc.contacto_responsable if inc else '' }}"
+                   placeholder="Tel. / Ext.">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 05 CAUSA RAÍZ ────────────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-3">
+          <span class="badge bg-primary me-2">05</span>Causa raíz e impacto
+        </h5>
+        <div class="row g-3">
+          <div class="col-12">
+            <label for="causa_raiz" class="form-label fw-semibold">Causa raíz identificada</label>
+            <textarea id="causa_raiz" name="causa_raiz" class="form-control" rows="3"
+                      placeholder="¿Por qué ocurrió el incidente? Análisis 5-Porqués, espina de pescado, etc.">{{ inc.causa_raiz if inc else '' }}</textarea>
+          </div>
+          <div class="col-12">
+            <label for="impacto" class="form-label fw-semibold">Impacto operativo / económico</label>
+            <textarea id="impacto" name="impacto" class="form-control" rows="2"
+                      placeholder="Describe el impacto en operaciones, seguridad, producción…">{{ inc.impacto if inc else '' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── 06 ACCIONES CORRECTIVAS ──────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-semibold mb-0">
+            <span class="badge bg-primary me-2">06</span>Acciones correctivas
+          </h5>
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarAccion()">
+            <i class="ph ph-plus me-1" aria-hidden="true"></i>Agregar acción
+          </button>
+        </div>
+        <div id="tablaAcciones">
+          {% if inc and acciones %}
+            {% for a in acciones %}
+            <div class="row g-2 mb-2 align-items-center fila-accion">
+              <div class="col-md-5">
+                <input type="text" name="accion[]" class="form-control form-control-sm"
+                       placeholder="Acción correctiva / preventiva" value="{{ a.accion }}">
+              </div>
+              <div class="col-md-4">
+                <input type="text" name="responsable_accion[]" class="form-control form-control-sm"
+                       placeholder="Responsable" value="{{ a.responsable or '' }}">
+              </div>
+              <div class="col-md-2">
+                <input type="date" name="fecha_limite_accion[]" class="form-control form-control-sm"
+                       value="{{ a.fecha_limite.strftime('%Y-%m-%d') if a.fecha_limite else '' }}">
+              </div>
+              <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm btn-accion" onclick="eliminarFila(this)">
+                  <i class="ph ph-trash" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+          <div class="row g-2 mb-2 align-items-center fila-accion">
+            <div class="col-md-5">
+              <input type="text" name="accion[]" class="form-control form-control-sm"
+                     placeholder="Acción correctiva / preventiva">
+            </div>
+            <div class="col-md-4">
+              <input type="text" name="responsable_accion[]" class="form-control form-control-sm"
+                     placeholder="Responsable">
+            </div>
+            <div class="col-md-2">
+              <input type="date" name="fecha_limite_accion[]" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-1 text-end">
+              <button type="button" class="btn btn-outline-danger btn-sm btn-accion" onclick="eliminarFila(this)">
+                <i class="ph ph-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="text-muted small mt-2">
+          <i class="ph ph-info me-1" aria-hidden="true"></i>
+          Encabezados: <strong>Acción</strong> · <strong>Responsable</strong> · <strong>Fecha límite</strong>
+        </div>
+      </div>
+    </div>
+
+    {# ── 07 COSTOS ────────────────────────────────────────────────────────── #}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-semibold mb-0">
+            <span class="badge bg-primary me-2">07</span>Costos estimados
+          </h5>
+          <div class="d-flex gap-2 align-items-center">
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input" type="checkbox" id="mostrar_costos" name="mostrar_costos"
+                     {% if not inc or inc.mostrar_costos %}checked{% endif %}>
+              <label class="form-check-label small" for="mostrar_costos">Mostrar costos en PDF</label>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="agregarCosto()">
+              <i class="ph ph-plus me-1" aria-hidden="true"></i>Agregar costo
+            </button>
+          </div>
+        </div>
+        <div id="tablaCostos">
+          {% if inc and costos %}
+            {% for c in costos %}
+            <div class="row g-2 mb-2 align-items-center fila-costo">
+              <div class="col-md-4">
+                <input type="text" name="concepto[]" class="form-control form-control-sm"
+                       placeholder="Concepto" value="{{ c.concepto }}">
+              </div>
+              <div class="col-md-5">
+                <input type="text" name="descripcion_costo[]" class="form-control form-control-sm"
+                       placeholder="Descripción" value="{{ c.descripcion or '' }}">
+              </div>
+              <div class="col-md-2">
+                <input type="number" name="monto_costo[]" step="0.01" min="0" class="form-control form-control-sm"
+                       placeholder="Monto $" value="{{ c.monto }}">
+              </div>
+              <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm btn-accion" onclick="eliminarFila(this)">
+                  <i class="ph ph-trash" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {# ── 08 CIERRE — solo admin editando ──────────────────────────────────── #}
+    {% if inc and es_admin is defined and es_admin %}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-3">
+          <span class="badge bg-secondary me-2">08</span>Cierre del reporte
+          <small class="text-muted fw-normal">(solo administradores)</small>
+        </h5>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label for="estado_final" class="form-label fw-semibold">Estado de cierre</label>
+            <select id="estado_final" name="estado_final" class="form-select">
+              <option value="">Sin cambio de estado</option>
+              {% for ec in estados_cierre %}
+              <option value="{{ ec }}" {% if inc.estado_final == ec %}selected{% endif %}>{{ ec }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label for="fecha_cierre" class="form-label fw-semibold">Fecha de cierre</label>
+            <input type="date" id="fecha_cierre" name="fecha_cierre" class="form-control"
+                   value="{{ inc.fecha_cierre.strftime('%Y-%m-%d') if inc.fecha_cierre else '' }}">
+          </div>
+          <div class="col-12">
+            <label for="comentarios_cierre" class="form-label fw-semibold">Comentarios de cierre</label>
+            <textarea id="comentarios_cierre" name="comentarios_cierre" class="form-control" rows="2">{{ inc.comentarios_cierre or '' }}</textarea>
+          </div>
+          <div class="col-md-4">
+            <label for="firma_reporto" class="form-label fw-semibold">Firma — quien reportó</label>
+            <input type="text" id="firma_reporto" name="firma_reporto" class="form-control"
+                   value="{{ inc.firma_reporto or '' }}" placeholder="Nombre completo">
+          </div>
+          <div class="col-md-4">
+            <label for="firma_responsable" class="form-label fw-semibold">Firma — responsable</label>
+            <input type="text" id="firma_responsable" name="firma_responsable" class="form-control"
+                   value="{{ inc.firma_responsable or '' }}" placeholder="Nombre completo">
+          </div>
+          <div class="col-md-4">
+            <label for="firma_vobo" class="form-label fw-semibold">Vo. Bo. Administración</label>
+            <input type="text" id="firma_vobo" name="firma_vobo" class="form-control"
+                   value="{{ inc.firma_vobo or '' }}" placeholder="Nombre completo">
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── BOTONES ──────────────────────────────────────────────────────────── #}
+    <div class="d-flex gap-3 justify-content-end">
+      <a href="{{ url_for('incidents.ver_incidencia', id=inc.id) if inc else url_for('incidents.lista_incidencias') }}"
+         class="btn btn-outline-secondary px-4">Cancelar</a>
+      <button type="submit" class="btn btn-primary px-4 fw-semibold">
+        <i class="ph ph-floppy-disk me-1" aria-hidden="true"></i>
+        {{ 'Guardar cambios' if inc else 'Crear incidencia' }}
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleTipoOtro() {
+  const tipo = document.getElementById('tipo').value;
+  document.getElementById('campoTipoOtro').style.display = tipo === 'Otro' ? 'block' : 'none';
+}
+
+function eliminarFila(btn) {
+  btn.closest('[class*="fila-"]').remove();
+}
+
+function agregarAccion() {
+  const contenedor = document.getElementById('tablaAcciones');
+  const fila = document.createElement('div');
+  fila.className = 'row g-2 mb-2 align-items-center fila-accion';
+  fila.innerHTML = `
+    <div class="col-md-5">
+      <input type="text" name="accion[]" class="form-control form-control-sm"
+             placeholder="Acción correctiva / preventiva">
+    </div>
+    <div class="col-md-4">
+      <input type="text" name="responsable_accion[]" class="form-control form-control-sm"
+             placeholder="Responsable">
+    </div>
+    <div class="col-md-2">
+      <input type="date" name="fecha_limite_accion[]" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-1 text-end">
+      <button type="button" class="btn btn-outline-danger btn-sm btn-accion" onclick="eliminarFila(this)">
+        <i class="ph ph-trash" aria-hidden="true"></i>
+      </button>
+    </div>`;
+  contenedor.appendChild(fila);
+}
+
+function agregarCosto() {
+  const contenedor = document.getElementById('tablaCostos');
+  const fila = document.createElement('div');
+  fila.className = 'row g-2 mb-2 align-items-center fila-costo';
+  fila.innerHTML = `
+    <div class="col-md-4">
+      <input type="text" name="concepto[]" class="form-control form-control-sm" placeholder="Concepto">
+    </div>
+    <div class="col-md-5">
+      <input type="text" name="descripcion_costo[]" class="form-control form-control-sm" placeholder="Descripción">
+    </div>
+    <div class="col-md-2">
+      <input type="number" name="monto_costo[]" step="0.01" min="0" class="form-control form-control-sm" placeholder="Monto $">
+    </div>
+    <div class="col-md-1 text-end">
+      <button type="button" class="btn btn-outline-danger btn-sm btn-accion" onclick="eliminarFila(this)">
+        <i class="ph ph-trash" aria-hidden="true"></i>
+      </button>
+    </div>`;
+  contenedor.appendChild(fila);
+}
+</script>
+{% endblock %}

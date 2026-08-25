@@ -812,6 +812,16 @@
                 {% endif %}
                 {% endif %}
 
+                <!-- Incidencias -->
+                {% if current_user.organizacion_id %}
+                <div class="sb-kicker">Incidencias</div>
+                <a href="{{ url_for('incidents.lista_incidencias') }}"
+                   class="sb-item {% if request.endpoint and request.endpoint.startswith('incidents.') %}active{% endif %}">
+                    <i class="ph ph-fill ph-warning-circle" aria-hidden="true"></i>
+                    Incidencias
+                </a>
+                {% endif %}
+
                 <!-- Sistema -->
                 <div class="sb-kicker">Sistema</div>
 

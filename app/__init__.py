@@ -117,6 +117,9 @@ def _register_blueprints(app):
     from .blueprints.api import api_bp
     app.register_blueprint(api_bp)
 
+    from .blueprints.incidents import incidents_bp
+    app.register_blueprint(incidents_bp)
+
 
 def _register_security_headers(app):
     @app.after_request

@@ -316,3 +316,86 @@ def register_commands(app):
         from app.models.system import PushSubscription
         n = PushSubscription.query.delete(); db.session.commit()
         print(f'limpiar-push-subs: {n} suscripciones eliminadas.')
+
+    @app.cli.command('fix-add-incidencias')
+    @with_appcontext
+    def fix_add_incidencias():
+        """Crea las tablas del módulo de incidencias. Idempotente."""
+        from app.extensions import db
+        with db.engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS incidencia (
+                    id               SERIAL PRIMARY KEY,
+                    folio            VARCHAR(20)  NOT NULL,
+                    titulo           VARCHAR(300) NOT NULL,
+                    fecha            DATE         NOT NULL,
+                    hora             VARCHAR(10)  NOT NULL,
+                    ubicacion        VARCHAR(200) NOT NULL,
+                    reportado_por    VARCHAR(150) NOT NULL,
+                    cargo_reporta    VARCHAR(150),
+                    contacto_reporta VARCHAR(100),
+                    tipo             VARCHAR(50)  NOT NULL,
+                    tipo_otro        VARCHAR(150),
+                    prioridad        VARCHAR(20)  NOT NULL,
+                    severidad        VARCHAR(20)  NOT NULL,
+                    lesionados       BOOLEAN      NOT NULL DEFAULT FALSE,
+                    descripcion      TEXT         NOT NULL,
+                    foto1_path       VARCHAR(300), foto1_desc VARCHAR(300),
+                    foto2_path       VARCHAR(300), foto2_desc VARCHAR(300),
+                    foto3_path       VARCHAR(300), foto3_desc VARCHAR(300),
+                    responsable_nombre   VARCHAR(150),
+                    responsable_puesto   VARCHAR(150),
+                    asignado_por         VARCHAR(150),
+                    fecha_asignacion     DATE,
+                    fecha_compromiso     DATE,
+                    contacto_responsable VARCHAR(100),
+                    estado           VARCHAR(30)  NOT NULL DEFAULT 'Abierto',
+                    progreso         INTEGER      NOT NULL DEFAULT 0,
+                    causa_raiz       TEXT,
+                    impacto          TEXT,
+                    mostrar_costos   BOOLEAN      NOT NULL DEFAULT TRUE,
+                    estado_final       VARCHAR(50),
+                    fecha_cierre       DATE,
+                    comentarios_cierre TEXT,
+                    firma_reporto      VARCHAR(150),
+                    firma_responsable  VARCHAR(150),
+                    firma_vobo         VARCHAR(150),
+                    organizacion_id  INTEGER NOT NULL REFERENCES organizacion(id) ON DELETE CASCADE,
+                    creador_id       INTEGER NOT NULL REFERENCES "user"(id),
+                    creado_en        TIMESTAMP NOT NULL DEFAULT NOW(),
+                    actualizado_en   TIMESTAMP NOT NULL DEFAULT NOW(),
+                    CONSTRAINT _uc_incidencia_folio_org UNIQUE (folio, organizacion_id)
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS incidencia_avance (
+                    id            SERIAL PRIMARY KEY,
+                    incidencia_id INTEGER NOT NULL REFERENCES incidencia(id) ON DELETE CASCADE,
+                    texto         TEXT    NOT NULL,
+                    porcentaje    INTEGER NOT NULL DEFAULT 0,
+                    concluido     BOOLEAN NOT NULL DEFAULT FALSE,
+                    foto_path     VARCHAR(300),
+                    autor_id      INTEGER NOT NULL REFERENCES "user"(id),
+                    creado_en     TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS incidencia_accion (
+                    id            SERIAL PRIMARY KEY,
+                    incidencia_id INTEGER NOT NULL REFERENCES incidencia(id) ON DELETE CASCADE,
+                    accion        VARCHAR(500) NOT NULL,
+                    responsable   VARCHAR(150),
+                    fecha_limite  DATE
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS incidencia_costo (
+                    id            SERIAL PRIMARY KEY,
+                    incidencia_id INTEGER NOT NULL REFERENCES incidencia(id) ON DELETE CASCADE,
+                    concepto      VARCHAR(200) NOT NULL,
+                    descripcion   VARCHAR(500),
+                    monto         NUMERIC(10,2) NOT NULL DEFAULT 0
+                )
+            """))
+            conn.commit()
+        print('fix-add-incidencias: tablas incidencia, incidencia_avance, incidencia_accion, incidencia_costo creadas.')
