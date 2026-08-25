@@ -399,3 +399,17 @@ def register_commands(app):
             """))
             conn.commit()
         print('fix-add-incidencias: tablas incidencia, incidencia_avance, incidencia_accion, incidencia_costo creadas.')
+
+    @app.cli.command('fix-incidencias-v2')
+    @with_appcontext
+    def fix_incidencias_v2():
+        """Agrega columnas descripcion_lesionados y asignado_user_id a incidencia. Idempotente."""
+        from app.extensions import db
+        with db.engine.connect() as conn:
+            conn.execute(db.text("""
+                ALTER TABLE incidencia
+                    ADD COLUMN IF NOT EXISTS descripcion_lesionados TEXT,
+                    ADD COLUMN IF NOT EXISTS asignado_user_id INTEGER REFERENCES "user"(id)
+            """))
+            conn.commit()
+        print('fix-incidencias-v2: columnas descripcion_lesionados y asignado_user_id agregadas.')

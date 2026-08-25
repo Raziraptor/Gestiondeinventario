@@ -77,8 +77,11 @@
               <span class="badge bg-light text-dark border ms-1">{{ inc.severidad }}</span>
             </div>
             {% if inc.lesionados %}
-            <div class="col-auto">
-              <span class="badge bg-danger"><i class="ph ph-first-aid me-1" aria-hidden="true"></i>Lesionados</span>
+            <div class="col-12 mt-1">
+              <span class="badge bg-danger mb-1"><i class="ph ph-first-aid me-1" aria-hidden="true"></i>Hubo lesionados</span>
+              {% if inc.descripcion_lesionados %}
+              <p class="text-danger small mb-0 mt-1">{{ inc.descripcion_lesionados }}</p>
+              {% endif %}
             </div>
             {% endif %}
           </div>
@@ -325,20 +328,27 @@
       </div>
 
       {# Asignación #}
-      {% if inc.responsable_nombre or inc.responsable_puesto %}
+      {% if inc.asignado_user_id or inc.responsable_nombre %}
       <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-4">
           <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
             <i class="ph ph-user-circle-gear me-1" aria-hidden="true"></i>Asignado a
           </h6>
-          {% if inc.responsable_nombre %}
+          {% if inc.asignado_user_id and inc.asignado_a %}
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge bg-primary rounded-pill">
+              <i class="ph ph-user me-1" aria-hidden="true"></i>{{ inc.asignado_a.username }}
+            </span>
+            <span class="text-muted small">Usuario del sistema</span>
+          </div>
+          {% elif inc.responsable_nombre %}
           <p class="fw-semibold mb-1">{{ inc.responsable_nombre }}</p>
+          {% if inc.contacto_responsable %}
+          <p class="text-muted small mb-1"><i class="ph ph-phone me-1" aria-hidden="true"></i>{{ inc.contacto_responsable }}</p>
+          {% endif %}
           {% endif %}
           {% if inc.responsable_puesto %}
           <p class="text-muted small mb-1">{{ inc.responsable_puesto }}</p>
-          {% endif %}
-          {% if inc.contacto_responsable %}
-          <p class="text-muted small mb-1"><i class="ph ph-phone me-1" aria-hidden="true"></i>{{ inc.contacto_responsable }}</p>
           {% endif %}
           {% if inc.fecha_compromiso %}
           <p class="small mb-0">

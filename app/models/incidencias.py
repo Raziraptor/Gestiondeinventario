@@ -33,7 +33,8 @@ class Incidencia(db.Model):
     tipo_otro  = db.Column(db.String(150), nullable=True)
     prioridad  = db.Column(db.String(20), nullable=False)
     severidad  = db.Column(db.String(20), nullable=False)
-    lesionados = db.Column(db.Boolean, nullable=False, default=False)
+    lesionados             = db.Column(db.Boolean, nullable=False, default=False)
+    descripcion_lesionados = db.Column(db.Text, nullable=True)
 
     # 03 Descripción
     descripcion = db.Column(db.Text, nullable=False)
@@ -53,6 +54,7 @@ class Incidencia(db.Model):
     fecha_asignacion     = db.Column(db.Date,        nullable=True)
     fecha_compromiso     = db.Column(db.Date,        nullable=True)
     contacto_responsable = db.Column(db.String(100), nullable=True)
+    asignado_user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     # Estado y progreso
     estado   = db.Column(db.String(30),  nullable=False, default='Abierto')
@@ -80,7 +82,8 @@ class Incidencia(db.Model):
     actualizado_en  = db.Column(db.DateTime, nullable=False, default=now_mx, onupdate=now_mx)
 
     # Relaciones
-    creador = db.relationship('User', foreign_keys=[creador_id], lazy=True)
+    creador    = db.relationship('User', foreign_keys=[creador_id],        lazy=True)
+    asignado_a = db.relationship('User', foreign_keys=[asignado_user_id],  lazy=True)
     avances = db.relationship(
         'IncidenciaAvance', backref='incidencia', lazy='dynamic',
         cascade='all, delete-orphan',

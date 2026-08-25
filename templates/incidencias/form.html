@@ -57,22 +57,22 @@
                    placeholder="Ej. Bodega 3 — Estantería Norte">
           </div>
           <div class="col-md-6">
-            <label for="reportado_por" class="form-label fw-semibold">Reportado por <span class="text-danger">*</span></label>
-            <input type="text" id="reportado_por" name="reportado_por" class="form-control" required
-                   value="{{ inc.reportado_por if inc else '' }}"
-                   placeholder="Nombre completo">
+            <label for="reportado_por" class="form-label fw-semibold">Reportado por</label>
+            <input type="text" id="reportado_por" class="form-control bg-body-secondary"
+                   value="{{ inc.reportado_por if inc else current_user.username }}" readonly>
+            <div class="form-text">Se registra automáticamente con tu usuario.</div>
           </div>
           <div class="col-md-6">
-            <label for="cargo_reporta" class="form-label fw-semibold">Cargo / Área</label>
+            <label for="cargo_reporta" class="form-label fw-semibold">Área</label>
             <input type="text" id="cargo_reporta" name="cargo_reporta" class="form-control"
                    value="{{ inc.cargo_reporta if inc else '' }}"
-                   placeholder="Ej. Operador de almacén">
+                   placeholder="Ej. Bodega / Producción / Oficina">
           </div>
           <div class="col-md-6">
-            <label for="contacto_reporta" class="form-label fw-semibold">Teléfono / Ext.</label>
+            <label for="contacto_reporta" class="form-label fw-semibold">Teléfono</label>
             <input type="text" id="contacto_reporta" name="contacto_reporta" class="form-control"
                    value="{{ inc.contacto_reporta if inc else '' }}"
-                   placeholder="Ej. Ext. 210 / 55 1234 5678">
+                   placeholder="Ej. 55 1234 5678">
           </div>
         </div>
       </div>
@@ -121,11 +121,21 @@
           <div class="col-md-4 d-flex align-items-end pb-1">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" id="lesionados" name="lesionados"
-                     {% if inc and inc.lesionados %}checked{% endif %}>
+                     {% if inc and inc.lesionados %}checked{% endif %}
+                     onchange="toggleLesionados()">
               <label class="form-check-label fw-semibold" for="lesionados">
                 <i class="ph ph-first-aid text-danger me-1" aria-hidden="true"></i>¿Hubo lesionados?
               </label>
             </div>
+          </div>
+          <div class="col-12" id="campoLesionados"
+               style="display:{% if inc and inc.lesionados %}block{% else %}none{% endif %};">
+            <label for="descripcion_lesionados" class="form-label fw-semibold text-danger">
+              Descripción de lesiones <span class="text-danger">*</span>
+            </label>
+            <textarea id="descripcion_lesionados" name="descripcion_lesionados"
+                      class="form-control border-danger" rows="2"
+                      placeholder="Tipo de lesión, persona(s) afectada(s), atención recibida…">{{ inc.descripcion_lesionados if inc and inc.descripcion_lesionados else '' }}</textarea>
           </div>
           <div class="col-12">
             <label for="descripcion" class="form-label fw-semibold">Descripción detallada <span class="text-danger">*</span></label>
@@ -196,29 +206,74 @@
       </div>
     </div>
 
-    {# ── 04 ASIGNACIÓN ────────────────────────────────────────────────────── #}
+    {# ── 04 ASIGNACIÓN — solo administradores ────────────────────────────── #}
+    {% if es_admin %}
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
-        <h5 class="fw-semibold mb-3">
+        <h5 class="fw-semibold mb-1">
           <span class="badge bg-primary me-2">04</span>Asignación de seguimiento
         </h5>
+        <p class="text-muted small mb-3">Solo administradores pueden asignar responsables.</p>
+
+        {# Toggle: usuario del sistema vs manual #}
+        {% set tiene_user = inc and inc.asignado_user_id %}
+        <div class="d-flex gap-3 mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="tipo_asignacion"
+                   id="asig_usuario" value="usuario" onchange="toggleAsignacion()"
+                   {% if tiene_user %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="asig_usuario">
+              <i class="ph ph-user-circle me-1" aria-hidden="true"></i>Usuario del sistema
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="tipo_asignacion"
+                   id="asig_manual" value="manual" onchange="toggleAsignacion()"
+                   {% if not tiene_user %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="asig_manual">
+              <i class="ph ph-pencil-line me-1" aria-hidden="true"></i>Nombre manual
+            </label>
+          </div>
+        </div>
+
         <div class="row g-3">
-          <div class="col-md-6">
-            <label for="responsable_nombre" class="form-label fw-semibold">Responsable asignado</label>
+          {# Selector de usuario del sistema #}
+          <div class="col-md-6" id="bloqueUsuario"
+               style="display:{% if tiene_user %}block{% else %}none{% endif %};">
+            <label for="asignado_user_id" class="form-label fw-semibold">Usuario responsable</label>
+            <select id="asignado_user_id" name="asignado_user_id" class="form-select">
+              <option value="">Sin asignar</option>
+              {% for u in usuarios_org %}
+              <option value="{{ u.id }}"
+                      {% if inc and inc.asignado_user_id == u.id %}selected{% endif %}>
+                {{ u.username }}{% if u.rol in ('admin', 'super_admin') %} (admin){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          {# Asignación manual #}
+          <div class="col-md-4" id="bloqueManualNombre"
+               style="display:{% if not tiene_user %}block{% else %}none{% endif %};">
+            <label for="responsable_nombre" class="form-label fw-semibold">Nombre del responsable</label>
             <input type="text" id="responsable_nombre" name="responsable_nombre" class="form-control"
                    value="{{ inc.responsable_nombre if inc else '' }}"
-                   placeholder="Nombre del responsable">
+                   placeholder="Nombre completo">
           </div>
-          <div class="col-md-6">
+          <div class="col-md-4" id="bloqueManualTel"
+               style="display:{% if not tiene_user %}block{% else %}none{% endif %};">
+            <label for="contacto_responsable" class="form-label fw-semibold">Teléfono</label>
+            <input type="text" id="contacto_responsable" name="contacto_responsable" class="form-control"
+                   value="{{ inc.contacto_responsable if inc else '' }}"
+                   placeholder="Ej. 55 1234 5678">
+          </div>
+
+          {# Campos comunes #}
+          <div class="col-md-4">
             <label for="responsable_puesto" class="form-label fw-semibold">Puesto / Área</label>
             <input type="text" id="responsable_puesto" name="responsable_puesto" class="form-control"
                    value="{{ inc.responsable_puesto if inc else '' }}"
                    placeholder="Ej. Jefe de Mantenimiento">
-          </div>
-          <div class="col-md-4">
-            <label for="asignado_por" class="form-label fw-semibold">Asignado por</label>
-            <input type="text" id="asignado_por" name="asignado_por" class="form-control"
-                   value="{{ inc.asignado_por if inc else '' }}">
           </div>
           <div class="col-md-4">
             <label for="fecha_asignacion" class="form-label fw-semibold">Fecha asignación</label>
@@ -230,15 +285,30 @@
             <input type="date" id="fecha_compromiso" name="fecha_compromiso" class="form-control"
                    value="{{ inc.fecha_compromiso.strftime('%Y-%m-%d') if inc and inc.fecha_compromiso else '' }}">
           </div>
-          <div class="col-md-6">
-            <label for="contacto_responsable" class="form-label fw-semibold">Contacto responsable</label>
-            <input type="text" id="contacto_responsable" name="contacto_responsable" class="form-control"
-                   value="{{ inc.contacto_responsable if inc else '' }}"
-                   placeholder="Tel. / Ext.">
-          </div>
         </div>
       </div>
     </div>
+    {% else %}
+    {# No admin: mostrar asignación en lectura si existe #}
+    {% if inc and (inc.responsable_nombre or inc.asignado_user_id) %}
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-secondary">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-2">
+          <span class="badge bg-secondary me-2">04</span>Asignación de seguimiento
+        </h5>
+        <p class="mb-0 text-muted small">
+          Responsable:
+          <strong>
+            {% if inc.asignado_user_id and inc.asignado_a %}{{ inc.asignado_a.username }}
+            {% elif inc.responsable_nombre %}{{ inc.responsable_nombre }}
+            {% else %}Sin asignar{% endif %}
+          </strong>
+          — solo un administrador puede modificar la asignación.
+        </p>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
 
     {# ── 05 CAUSA RAÍZ ────────────────────────────────────────────────────── #}
     <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -435,6 +505,21 @@
 function toggleTipoOtro() {
   const tipo = document.getElementById('tipo').value;
   document.getElementById('campoTipoOtro').style.display = tipo === 'Otro' ? 'block' : 'none';
+}
+
+function toggleLesionados() {
+  const cb    = document.getElementById('lesionados');
+  const campo = document.getElementById('campoLesionados');
+  const ta    = document.getElementById('descripcion_lesionados');
+  campo.style.display = cb.checked ? 'block' : 'none';
+  ta.required = cb.checked;
+}
+
+function toggleAsignacion() {
+  const esUsuario = document.getElementById('asig_usuario').checked;
+  document.getElementById('bloqueUsuario').style.display      = esUsuario ? 'block' : 'none';
+  document.getElementById('bloqueManualNombre').style.display = esUsuario ? 'none'  : 'block';
+  document.getElementById('bloqueManualTel').style.display    = esUsuario ? 'none'  : 'block';
 }
 
 function eliminarFila(btn) {

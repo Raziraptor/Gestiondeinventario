@@ -16,6 +16,7 @@ from app.helpers import (
     _flash_err, admin_required, check_org_permission, log_actividad, now_mx,
 )
 from app.models import AuditLog
+from app.models.auth import User
 from app.models.incidencias import (
     _ESTADOS, _ESTADOS_CIERRE, _PRIORIDADES, _SEVERIDADES, _TIPOS_INCIDENCIA,
     Incidencia, IncidenciaAccion, IncidenciaAvance, IncidenciaCosto,
@@ -129,7 +130,9 @@ def lista_incidencias():
 @login_required
 @check_org_permission
 def nueva_incidencia():
+    org_id = current_user.organizacion_id
     if request.method == 'GET':
+        usuarios_org = User.query.filter_by(organizacion_id=org_id, is_active=True).order_by(User.username).all()
         return render_template(
             'incidencias/form.html',
             inc=None,
@@ -137,31 +140,34 @@ def nueva_incidencia():
             prioridades=_PRIORIDADES,
             severidades=_SEVERIDADES,
             titulo_pagina='Nueva Incidencia',
+            es_admin=current_user.rol in ('admin', 'super_admin'),
+            usuarios_org=usuarios_org,
         )
-
-    org_id = current_user.organizacion_id
 
     # Campos obligatorios
     titulo       = request.form.get('titulo', '').strip()
     fecha_str    = request.form.get('fecha', '')
     hora         = request.form.get('hora', '').strip()
     ubicacion    = request.form.get('ubicacion', '').strip()
-    reportado_por = request.form.get('reportado_por', '').strip()
+    reportado_por = current_user.username  # siempre el usuario actual
     tipo         = request.form.get('tipo', '').strip()
     prioridad    = request.form.get('prioridad', '').strip()
     severidad    = request.form.get('severidad', '').strip()
     descripcion  = request.form.get('descripcion', '').strip()
+    lesionados   = 'lesionados' in request.form
+    desc_lesionados = request.form.get('descripcion_lesionados', '').strip() or None
 
     errores = []
     if not titulo:       errores.append('El título es obligatorio.')
     if not fecha_str:    errores.append('La fecha es obligatoria.')
     if not hora:         errores.append('La hora es obligatoria.')
     if not ubicacion:    errores.append('La ubicación es obligatoria.')
-    if not reportado_por: errores.append('Quien reporta es obligatorio.')
     if tipo not in _TIPOS_INCIDENCIA:    errores.append('Tipo de incidencia no válido.')
     if prioridad not in _PRIORIDADES:    errores.append('Prioridad no válida.')
     if severidad not in _SEVERIDADES:    errores.append('Severidad no válida.')
     if not descripcion:  errores.append('La descripción es obligatoria.')
+    if lesionados and not desc_lesionados:
+        errores.append('Describe brevemente qué lesiones ocurrieron.')
 
     fecha = _parse_date(fecha_str)
     if fecha_str and not fecha:
@@ -170,6 +176,7 @@ def nueva_incidencia():
     if errores:
         for e in errores:
             flash(e, 'danger')
+        usuarios_org = User.query.filter_by(organizacion_id=org_id, is_active=True).order_by(User.username).all()
         return render_template(
             'incidencias/form.html',
             inc=None,
@@ -177,10 +184,26 @@ def nueva_incidencia():
             prioridades=_PRIORIDADES,
             severidades=_SEVERIDADES,
             titulo_pagina='Nueva Incidencia',
+            es_admin=current_user.rol in ('admin', 'super_admin'),
+            usuarios_org=usuarios_org,
         )
 
     try:
         folio = _generar_folio(org_id)
+
+        # Asignación: usuario del sistema o manual
+        asignado_user_id = None
+        responsable_nombre = None
+        contacto_responsable = None
+        tipo_asignacion = request.form.get('tipo_asignacion', 'manual')
+        if tipo_asignacion == 'usuario':
+            uid = request.form.get('asignado_user_id', '').strip()
+            if uid:
+                asignado_user_id = int(uid)
+        else:
+            responsable_nombre   = request.form.get('responsable_nombre', '').strip() or None
+            contacto_responsable = request.form.get('contacto_responsable', '').strip() or None
+
         inc = Incidencia(
             folio=folio,
             titulo=titulo,
@@ -194,14 +217,16 @@ def nueva_incidencia():
             tipo_otro=request.form.get('tipo_otro', '').strip() or None,
             prioridad=prioridad,
             severidad=severidad,
-            lesionados='lesionados' in request.form,
+            lesionados=lesionados,
+            descripcion_lesionados=desc_lesionados,
             descripcion=descripcion,
-            responsable_nombre=request.form.get('responsable_nombre', '').strip() or None,
+            responsable_nombre=responsable_nombre,
             responsable_puesto=request.form.get('responsable_puesto', '').strip() or None,
-            asignado_por=request.form.get('asignado_por', '').strip() or None,
+            asignado_por=current_user.username,
             fecha_asignacion=_parse_date(request.form.get('fecha_asignacion', '')),
             fecha_compromiso=_parse_date(request.form.get('fecha_compromiso', '')),
-            contacto_responsable=request.form.get('contacto_responsable', '').strip() or None,
+            contacto_responsable=contacto_responsable,
+            asignado_user_id=asignado_user_id,
             mostrar_costos='mostrar_costos' in request.form,
             organizacion_id=org_id,
             creador_id=current_user.id,
@@ -318,6 +343,9 @@ def editar_incidencia(id):
     if request.method == 'GET':
         acciones = inc.acciones.all()
         costos   = inc.costos.all()
+        usuarios_org = User.query.filter_by(
+            organizacion_id=current_user.organizacion_id, is_active=True,
+        ).order_by(User.username).all()
         return render_template(
             'incidencias/form.html',
             inc=inc,
@@ -329,6 +357,7 @@ def editar_incidencia(id):
             estados_cierre=_ESTADOS_CIERRE,
             es_admin=current_user.rol in ('admin', 'super_admin'),
             titulo_pagina=f'Editar — {inc.folio}',
+            usuarios_org=usuarios_org,
         )
 
     # POST — actualizar
@@ -336,11 +365,12 @@ def editar_incidencia(id):
     fecha_str    = request.form.get('fecha', '')
     hora         = request.form.get('hora', '').strip()
     ubicacion    = request.form.get('ubicacion', '').strip()
-    reportado_por = request.form.get('reportado_por', '').strip()
     tipo         = request.form.get('tipo', '').strip()
     prioridad    = request.form.get('prioridad', '').strip()
     severidad    = request.form.get('severidad', '').strip()
     descripcion  = request.form.get('descripcion', '').strip()
+    lesionados_e = 'lesionados' in request.form
+    desc_les_e   = request.form.get('descripcion_lesionados', '').strip() or None
 
     errores = []
     if not titulo:         errores.append('El título es obligatorio.')
@@ -348,6 +378,8 @@ def editar_incidencia(id):
     if prioridad not in _PRIORIDADES:  errores.append('Prioridad no válida.')
     if severidad not in _SEVERIDADES:  errores.append('Severidad no válida.')
     if not descripcion:    errores.append('La descripción es obligatoria.')
+    if lesionados_e and not desc_les_e:
+        errores.append('Describe brevemente qué lesiones ocurrieron.')
     fecha = _parse_date(fecha_str)
     if fecha_str and not fecha:
         errores.append('Fecha inválida.')
@@ -362,23 +394,36 @@ def editar_incidencia(id):
         if fecha: inc.fecha = fecha
         inc.hora          = hora or inc.hora
         inc.ubicacion     = ubicacion
-        inc.reportado_por = reportado_por
-        inc.cargo_reporta = request.form.get('cargo_reporta', '').strip() or None
+        # reportado_por no se modifica en edición (es el creador original)
+        inc.cargo_reporta    = request.form.get('cargo_reporta', '').strip() or None
         inc.contacto_reporta = request.form.get('contacto_reporta', '').strip() or None
         inc.tipo          = tipo
         inc.tipo_otro     = request.form.get('tipo_otro', '').strip() or None
         inc.prioridad     = prioridad
         inc.severidad     = severidad
-        inc.lesionados    = 'lesionados' in request.form
+        inc.lesionados             = lesionados_e
+        inc.descripcion_lesionados = desc_les_e
         inc.descripcion   = descripcion
-        inc.responsable_nombre   = request.form.get('responsable_nombre', '').strip() or None
-        inc.responsable_puesto   = request.form.get('responsable_puesto', '').strip() or None
-        inc.asignado_por         = request.form.get('asignado_por', '').strip() or None
-        inc.fecha_asignacion     = _parse_date(request.form.get('fecha_asignacion', ''))
-        inc.fecha_compromiso     = _parse_date(request.form.get('fecha_compromiso', ''))
-        inc.contacto_responsable = request.form.get('contacto_responsable', '').strip() or None
-        inc.causa_raiz   = request.form.get('causa_raiz', '').strip() or None
-        inc.impacto      = request.form.get('impacto', '').strip() or None
+
+        # Asignación — solo admin modifica
+        if current_user.rol in ('admin', 'super_admin'):
+            tipo_asig = request.form.get('tipo_asignacion', 'manual')
+            if tipo_asig == 'usuario':
+                uid = request.form.get('asignado_user_id', '').strip()
+                inc.asignado_user_id     = int(uid) if uid else None
+                inc.responsable_nombre   = None
+                inc.contacto_responsable = None
+            else:
+                inc.asignado_user_id     = None
+                inc.responsable_nombre   = request.form.get('responsable_nombre', '').strip() or None
+                inc.contacto_responsable = request.form.get('contacto_responsable', '').strip() or None
+            inc.responsable_puesto = request.form.get('responsable_puesto', '').strip() or None
+            inc.asignado_por       = current_user.username
+            inc.fecha_asignacion   = _parse_date(request.form.get('fecha_asignacion', ''))
+            inc.fecha_compromiso   = _parse_date(request.form.get('fecha_compromiso', ''))
+
+        inc.causa_raiz     = request.form.get('causa_raiz', '').strip() or None
+        inc.impacto        = request.form.get('impacto', '').strip() or None
         inc.mostrar_costos = 'mostrar_costos' in request.form
 
         # Sección cierre — solo admin
