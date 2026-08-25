@@ -133,7 +133,7 @@ class Presupuesto(db.Model):
     categoria       = db.Column(db.String(50), nullable=False)
     anio            = db.Column(db.Integer,    nullable=False)
     mes             = db.Column(db.Integer,    nullable=True)
-    monto           = db.Column(db.Float,      nullable=False)
+    monto           = db.Column(db.Numeric(10, 2), nullable=False)
     organizacion_id = db.Column(db.Integer,    db.ForeignKey('organizacion.id'), nullable=False)
     creado_en       = db.Column(db.DateTime,   default=now_mx)
 

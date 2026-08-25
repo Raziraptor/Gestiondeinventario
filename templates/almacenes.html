@@ -232,6 +232,8 @@
   var delBaseUrl = "{{ url_for('inventory.eliminar_almacen', id=0) }}";
   var stocks = [], almacenes = [];
   var bsModal;
+  var _fetchError = false;
+  function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   window.abrirModalEliminarAlmacen = function (almId, nombre) {
     /* Reset UI */
@@ -279,7 +281,7 @@
         /* Poblar select "un almacén" */
         var opts = '<option value="">— Selecciona almacén —</option>' +
           almacenes.map(function (a) {
-            return '<option value="' + a.id + '">' + a.nombre + '</option>';
+            return '<option value="' + a.id + '">' + _esc(a.nombre) + '</option>';
           }).join('');
         document.getElementById('elmDestinoUno').innerHTML = opts;
         if (almacenes.length === 1) document.getElementById('elmDestinoUno').value = almacenes[0].id;
@@ -289,20 +291,25 @@
         document.getElementById('elmTablaProductos').innerHTML = stocks.map(function (s) {
           var selOpts = '<option value="">—</option>' +
             almacenes.map(function (a) {
-              return '<option value="' + a.id + '"' + autoSel + '>' + a.nombre + '</option>';
+              return '<option value="' + a.id + '"' + autoSel + '>' + _esc(a.nombre) + '</option>';
             }).join('');
           return '<tr>' +
-            '<td class="ps-3 py-2">' + s.nombre + '</td>' +
+            '<td class="ps-3 py-2">' + _esc(s.nombre) + '</td>' +
             '<td class="py-2 text-end fw-bold text-primary">' + s.cantidad + '</td>' +
             '<td class="pe-3 py-2"><select name="destino_' + s.stock_id + '" class="form-select form-select-sm">' +
             selOpts + '</select></td></tr>';
         }).join('');
       })
       .catch(function () {
-        /* Si el fetch falla, permitir eliminación simple (sin transferencia) */
+        /* Error de red — NO permitir eliminación silenciosa de stock (C-10) */
         document.getElementById('elmLoading').style.display = 'none';
-        document.getElementById('elmSinStock').style.display = '';
-        document.getElementById('elmFormModo').value = 'sin_stock';
+        _fetchError = true;
+        var errDiv = document.getElementById('elmError') || document.createElement('div');
+        errDiv.id = 'elmError';
+        errDiv.className = 'alert alert-danger mx-3 my-2';
+        errDiv.textContent = 'No se pudo verificar el inventario. Intenta de nuevo antes de eliminar.';
+        var body = document.querySelector('#modalEliminarAlmacen .modal-body');
+        if (body && !document.getElementById('elmError')) body.prepend(errDiv);
       });
   };
 
@@ -319,6 +326,13 @@
   };
 
   document.getElementById('formEliminarAlmacen').addEventListener('submit', function (e) {
+    /* C-10: bloquear si el fetch de verificación falló */
+    if (_fetchError) {
+      e.preventDefault();
+      alert('No se puede eliminar: la verificación de inventario falló. Cierra este diálogo e intenta de nuevo.');
+      return;
+    }
+
     var modo     = document.getElementById('elmFormModo').value;
     var destinos = document.getElementById('elmFormDestinos');
     destinos.innerHTML = '';
@@ -328,8 +342,17 @@
       if (!val) { e.preventDefault(); alert('Selecciona un almacén destino.'); return; }
       destinos.innerHTML = '<input type="hidden" name="destino_id" value="' + val + '">';
     } else if (modo === 'transferir_separado') {
-      document.querySelectorAll('#elmTablaProductos select').forEach(function (s) {
-        if (s.name && s.value)
+      /* C-11: verificar que TODOS los selects tengan destino antes de enviar */
+      var sels = document.querySelectorAll('#elmTablaProductos select');
+      var faltantes = 0;
+      sels.forEach(function (s) { if (!s.value) faltantes++; });
+      if (faltantes > 0) {
+        e.preventDefault();
+        alert('Debes elegir un almacén destino para cada producto (' + faltantes + ' sin asignar).');
+        return;
+      }
+      sels.forEach(function (s) {
+        if (s.name)
           destinos.innerHTML += '<input type="hidden" name="' + s.name + '" value="' + s.value + '">';
       });
     }

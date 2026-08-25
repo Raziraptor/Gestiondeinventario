@@ -938,7 +938,14 @@ if (inputBusqueda) {
         sugs.forEach(s => {
           const a = document.createElement('a');
           a.href = '#'; a.className = 'list-group-item list-group-item-action py-2';
-          a.innerHTML = `<strong>${s.nombreReal}</strong> <small class='text-muted ms-2'>${s.skuReal}</small>`;
+          const strong = document.createElement('strong');
+          strong.textContent = s.nombreReal;
+          const small = document.createElement('small');
+          small.className = 'text-muted ms-2';
+          small.textContent = s.skuReal;
+          a.appendChild(strong);
+          a.appendChild(document.createTextNode(' '));
+          a.appendChild(small);
           a.onclick = e => { e.preventDefault(); inputBusqueda.value = s.nombreReal; paginaActual = 1; aplicarFiltros(); listaSug.style.display = 'none'; };
           listaSug.appendChild(a);
         });
@@ -995,17 +1002,21 @@ async function cargarAlertas() {
     document.getElementById('alertasChevron').className = 'bi bi-chevron-down';
     alertasColapsadas = true;
     cnt.textContent = data.count;
+    const _escA = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     lista.innerHTML = data.items.map(item => {
       const pct = item.minimo > 0 ? Math.round(item.cantidad / item.minimo * 100) : 0;
+      const nom = _escA(item.nombre);
+      const alm = _escA(item.almacen);
+      const pid = parseInt(item.producto_id, 10) || 0;
       return `<div class="alerta-row">
         <div class="flex-shrink-0 rounded-2 d-flex align-items-center justify-content-center"
              style="width:36px;height:36px;background:rgba(239,68,68,.1);">
           <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:.85rem;"></i>
         </div>
         <div class="flex-grow-1 min-w-0">
-          <div class="fw-semibold text-body text-truncate" style="font-size:.85rem;">${item.nombre}</div>
+          <div class="fw-semibold text-body text-truncate" style="font-size:.85rem;">${nom}</div>
           <div class="text-muted" style="font-size:.75rem;">
-            <i class="bi bi-shop me-1"></i>${item.almacen} ·
+            <i class="bi bi-shop me-1"></i>${alm} ·
             <span class="text-danger fw-bold">${item.cantidad}</span> uds (mín: ${item.minimo})
           </div>
           <div class="progress mt-1 rounded-pill" style="height:4px;max-width:120px;">
@@ -1013,10 +1024,10 @@ async function cargarAlertas() {
           </div>
         </div>
         <div class="d-flex gap-1 flex-shrink-0">
-          <a href="/orden/nueva/manual?producto_id=${item.producto_id}" class="btn btn-sm btn-outline-success rounded-pill px-2 fw-semibold" style="font-size:.75rem;" title="Crear Orden de Compra">
+          <a href="/orden/nueva/manual?producto_id=${pid}" class="btn btn-sm btn-outline-success rounded-pill px-2 fw-semibold" style="font-size:.75rem;" title="Crear Orden de Compra">
             <i class="bi bi-cart-plus"></i> OC
           </a>
-          <a href="/producto/${item.producto_id}/historial" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:.75rem;" title="Ver historial">
+          <a href="/producto/${pid}/historial" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:.75rem;" title="Ver historial">
             <i class="bi bi-clock-history"></i>
           </a>
         </div>
@@ -1110,24 +1121,29 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
 // ── ACTIVIDAD RECIENTE ────────────────────────────────────────────────────
 (function(){
   const feed = document.getElementById('actividadFeed'); if(!feed) return;
+  const _escF = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const _hexRe = /^#[0-9A-Fa-f]{6}$/;
+  const _iconRe = /^[\w-]+$/;
   function renderFeed(items) {
     if(!items.length){ feed.innerHTML='<div class="text-center py-4 text-muted" style="font-size:.82rem;"><i class="bi bi-clock-history d-block mb-2 fs-4 opacity-30"></i>Sin movimientos recientes</div>'; return; }
-    feed.innerHTML = items.map(m =>
-      `<div class="d-flex align-items-start gap-2 px-3 py-2" style="border-bottom:1px solid var(--border);">
+    feed.innerHTML = items.map(m => {
+      const color = _hexRe.test(m.color) ? m.color : '#6c757d';
+      const icon  = _iconRe.test(m.icon)  ? m.icon  : 'circle';
+      return `<div class="d-flex align-items-start gap-2 px-3 py-2" style="border-bottom:1px solid var(--border);">
         <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
-             style="width:28px;height:28px;background:${m.color}22;">
-          <i class="bi ${m.icon}" style="color:${m.color};font-size:.75rem;"></i>
+             style="width:28px;height:28px;background:${color}22;">
+          <i class="bi ${icon}" style="color:${color};font-size:.75rem;"></i>
         </div>
         <div class="min-w-0 flex-grow-1">
-          <div class="fw-semibold text-body text-truncate" style="font-size:.78rem;line-height:1.3;">${m.producto}</div>
+          <div class="fw-semibold text-body text-truncate" style="font-size:.78rem;line-height:1.3;">${_escF(m.producto)}</div>
           <div class="text-muted" style="font-size:.75rem;">
-            <span class="fw-bold" style="color:${m.color};">${m.signo}${m.cantidad} uds</span>
-            &middot; ${m.label} &middot; <i class="bi bi-shop"></i> ${m.almacen}
+            <span class="fw-bold" style="color:${color};">${m.signo}${m.cantidad} uds</span>
+            &middot; ${_escF(m.label)} &middot; <i class="bi bi-shop"></i> ${_escF(m.almacen)}
           </div>
         </div>
-        <div class="text-muted flex-shrink-0" style="font-size:.75rem;padding-top:2px;white-space:nowrap;">${m.fecha}</div>
-      </div>`
-    ).join('');
+        <div class="text-muted flex-shrink-0" style="font-size:.75rem;padding-top:2px;white-space:nowrap;">${_escF(m.fecha)}</div>
+      </div>`;
+    }).join('');
   }
   async function cargar() {
     try { const r = await fetch('/api/dashboard/actividad-reciente'); renderFeed(await r.json()); }

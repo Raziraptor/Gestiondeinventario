@@ -28,7 +28,7 @@ from flask import request, jsonify, url_for, current_app
 from flask_login import login_required, current_user
 
 from . import api_bp
-from app.extensions import db
+from app.extensions import db, limiter
 from app.helpers import (
     now_mx,
     check_org_permission,
@@ -526,6 +526,8 @@ def api_finanzas_mensual():
 
 @api_bp.route('/api/ai/generar-imagen-producto')
 @login_required
+@check_org_permission
+@limiter.limit('10/minute')
 def ai_generar_imagen_producto():
     import uuid as _uuid
     nombre = request.args.get('nombre', '').strip()
@@ -884,6 +886,8 @@ def api_push_test():
 
 @api_bp.route('/api/servicios/ocr-recibo', methods=['POST'])
 @login_required
+@check_org_permission
+@limiter.limit('10/minute')
 def api_ocr_recibo():
     """Recibe imagen o PDF de un recibo y devuelve monto y fecha extraídos por OCR."""
     if 'archivo' not in request.files:

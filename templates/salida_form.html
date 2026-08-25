@@ -200,9 +200,10 @@
         const query = decodedText.toLowerCase().trim();
         const exacto = productosDisponibles.find(p => p.codigo.toLowerCase() === query);
 
+        const _escQR = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         if (exacto) {
-            // Feedback visual
-            scanStatus.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ¡Escaneado: ${exacto.nombre}!`;
+            // Feedback visual — escaping product name (H-22)
+            scanStatus.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ¡Escaneado: ${_escQR(exacto.nombre)}!`;
             scanStatus.style.display = 'block';
             setTimeout(() => { scanStatus.style.display = 'none'; }, 2000);
 
@@ -212,7 +213,7 @@
                 alert(`El producto "${exacto.nombre}" no tiene stock.`);
             }
         } else {
-            scanStatus.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> Código no encontrado: ${decodedText}`;
+            scanStatus.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> Código no encontrado: ${_escQR(decodedText)}`;
             scanStatus.style.display = 'block';
             scanStatus.classList.remove('text-success', 'bg-success');
             scanStatus.classList.add('text-danger', 'bg-danger');

@@ -62,7 +62,7 @@
                                 <div class="btn-group">
                                     <!-- BOTÓN DE RESTABLECER CONTRASEÑA (LA LLAVE) -->
                                     <button type="button" class="btn btn-accion btn-outline-warning btn-sm"
-                                            onclick="abrirModalPassword('{{ usuario.id }}', '{{ usuario.username }}')"
+                                            onclick="abrirModalPassword('{{ usuario.id }}', '{{ usuario.username | replace("'", "\\'") }}')"
                                             title="Restablecer Contraseña"
                                             aria-label="Restablecer contraseña de {{ usuario.username }}">
                                         <i class="bi bi-key-fill text-dark" aria-hidden="true"></i>

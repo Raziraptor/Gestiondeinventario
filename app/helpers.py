@@ -64,7 +64,7 @@ def log_actividad(accion, entidad, descripcion, entidad_id=None):
             accion=accion,
             entidad=entidad,
             entidad_id=entidad_id,
-            descripcion=descripcion,
+            descripcion=str(descripcion)[:500],  # H-04: evitar StringDataRightTruncation
         )
         db.session.add(entrada)
     except Exception:

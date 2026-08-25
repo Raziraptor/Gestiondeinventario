@@ -1518,7 +1518,6 @@ def recibir_proyecto_oc(id):
                         db.session.add(Stock(
                             producto_id=detalle.producto_id,
                             almacen_id=almacen_id_dest,
-                            organizacion_id=org_id,
                             cantidad=recibir_ahora,
                             stock_minimo=5, stock_maximo=100,
                         ))

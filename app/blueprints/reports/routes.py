@@ -17,6 +17,7 @@ from sqlalchemy import extract
 from sqlalchemy.orm import joinedload, contains_eager, selectinload
 
 # ReportLab — PDF
+from xml.sax.saxutils import escape as _xml_escape
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from reportlab.platypus import (
@@ -93,9 +94,9 @@ def _pdf_header(story, org, styles):
             img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
             logo_el.append(img)
 
-    text_el = [Paragraph(org.header_titulo or org.nombre, s_brand)]
+    text_el = [Paragraph(_xml_escape(org.header_titulo or org.nombre), s_brand)]
     if org.header_subtitulo:
-        text_el.append(Paragraph(org.header_subtitulo, s_sub))
+        text_el.append(Paragraph(_xml_escape(org.header_subtitulo), s_sub))
 
     meta_parts = []
     if org.rfc:             meta_parts.append(f'RFC: {org.rfc}')
@@ -483,9 +484,9 @@ def exportar_valorizacion_pdf():
         pct        = (valor_item / valor_total * 100) if valor_total > 0 else 0
         data.append([
             Paragraph(str(i), s_cellr),
-            Paragraph(item.producto.codigo, s_cell),
-            Paragraph(item.producto.nombre[:40], s_cell),
-            Paragraph(item.producto.categoria.nombre if item.producto.categoria else '—', s_cell),
+            Paragraph(_xml_escape(item.producto.codigo), s_cell),
+            Paragraph(_xml_escape(item.producto.nombre[:40]), s_cell),
+            Paragraph(_xml_escape(item.producto.categoria.nombre if item.producto.categoria else '—'), s_cell),
             Paragraph(str(item.cantidad), s_cellr),
             Paragraph(f"$ {(item.producto.precio_unitario or 0):,.2f}", s_cellr),
             Paragraph(f"$ {valor_item:,.2f}", s_cellr),
@@ -687,18 +688,26 @@ def exportar_gastos_excel():
     org   = Organizacion.query.get(current_user.organizacion_id)
 
     # ── Rango de meses ────────────────────────────────────────────────────────
-    mes_desde = request.args.get('mes_desde', type=int)
-    ano_desde = request.args.get('ano_desde', type=int)
-    mes_hasta = request.args.get('mes_hasta', type=int)
-    ano_hasta = request.args.get('ano_hasta', type=int)
-    if not mes_desde:
-        mes_desde = mes_hasta = request.args.get('mes', type=int) or ahora.month
-        ano_desde = ano_hasta = request.args.get('ano', type=int) or ahora.year
+    # H-24: validar y acotar rango para evitar loop OOM con ano_hasta=999999
+    def _clamp_mes(v):
+        return max(1, min(12, v or ahora.month))
+    def _clamp_ano(v):
+        return max(2000, min(ahora.year + 2, v or ahora.year))
+
+    mes_desde = _clamp_mes(request.args.get('mes_desde', type=int))
+    ano_desde = _clamp_ano(request.args.get('ano_desde', type=int))
+    mes_hasta = _clamp_mes(request.args.get('mes_hasta', type=int))
+    ano_hasta = _clamp_ano(request.args.get('ano_hasta', type=int))
+    if not request.args.get('mes_desde'):
+        mes_desde = mes_hasta = _clamp_mes(request.args.get('mes', type=int) or ahora.month)
+        ano_desde = ano_hasta = _clamp_ano(request.args.get('ano', type=int) or ahora.year)
 
     periodos = []
     y, m = ano_desde, mes_desde
     while (y < ano_hasta) or (y == ano_hasta and m <= mes_hasta):
         periodos.append((y, m))
+        if len(periodos) >= 24:  # máximo 24 meses para evitar DoS
+            break
         m += 1
         if m > 12:
             m = 1

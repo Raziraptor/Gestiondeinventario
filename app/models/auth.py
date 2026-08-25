@@ -91,6 +91,11 @@ class User(db.Model, UserMixin):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def get_id(self):
+        # H-02: incluir sufijo del hash para invalidar sesiones al cambiar contraseña
+        suffix = self.password_hash[-16:] if self.password_hash else ''
+        return f"{self.id}:{suffix}"
+
     def __repr__(self):
         return f'<User {self.username}>'
 

@@ -17,6 +17,12 @@ class Config:
     _secret = os.environ.get('SECRET_KEY')
     if not _secret:
         import sys
+        _env = os.environ.get('FLASK_ENV', 'production')
+        if _env == 'production':
+            raise RuntimeError(
+                'SECRET_KEY es obligatoria en producción. '
+                'Define la variable de entorno SECRET_KEY antes de arrancar Gunicorn.'
+            )
         print("ADVERTENCIA: SECRET_KEY no está definida. Las sesiones se invalidarán en cada reinicio.",
               file=sys.stderr)
         _secret = secrets.token_hex(32)

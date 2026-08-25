@@ -47,6 +47,7 @@ def register_commands(app):
             ('orden_compra_detalle', 'costo_unitario_estimado'),
             ('gasto', 'monto'), ('pago_servicio', 'monto'),
             ('factura_proveedor', 'monto'), ('proyecto_oc_detalle', 'costo_unitario'),
+            ('presupuesto', 'monto'),
         ]
         with db.engine.connect() as conn:
             for tabla, columna in columnas:

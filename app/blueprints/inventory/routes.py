@@ -35,6 +35,7 @@ from werkzeug.utils import secure_filename
 from PIL import Image as PILImage, ImageDraw, ImageFont
 import qrcode
 
+from xml.sax.saxutils import escape as _xml_escape
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
@@ -106,9 +107,9 @@ def _pdf_header(story, org, styles):
             img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
             logo_el.append(img)
 
-    text_el = [Paragraph(org.header_titulo or org.nombre, s_brand)]
+    text_el = [Paragraph(_xml_escape(org.header_titulo or org.nombre), s_brand)]
     if org.header_subtitulo:
-        text_el.append(Paragraph(org.header_subtitulo, s_sub))
+        text_el.append(Paragraph(_xml_escape(org.header_subtitulo), s_sub))
 
     meta_parts = []
     if org.rfc:             meta_parts.append(f'RFC: {org.rfc}')
@@ -730,8 +731,21 @@ def editar_producto(id):
             if stock_item:
                 stock_item.stock_minimo = int(request.form.get('stock_minimo') or 0)
                 stock_item.stock_maximo = int(request.form.get('stock_maximo') or 0)
-                stock_item.cantidad     = int(request.form.get('cantidad') or 0)
                 stock_item.ubicacion    = request.form.get('ubicacion')
+                # C-08: registrar Movimiento para cualquier cambio de cantidad
+                nueva_cantidad = max(0, int(request.form.get('cantidad') or 0))
+                if nueva_cantidad != stock_item.cantidad:
+                    diff = nueva_cantidad - stock_item.cantidad
+                    db.session.add(Movimiento(
+                        producto_id=producto.id,
+                        cantidad=abs(diff),
+                        tipo='ajuste-entrada' if diff > 0 else 'ajuste-salida',
+                        motivo='Ajuste manual desde edición de producto',
+                        fecha=now_mx(),
+                        almacen_id=almacen_id,
+                        organizacion_id=org_id,
+                    ))
+                    stock_item.cantidad = nueva_cantidad
 
             log_actividad('editar', 'producto',
                           f'Producto editado: {producto.nombre} (SKU: {producto.codigo})',
@@ -1218,6 +1232,13 @@ def eliminar_almacen(id):
     modo    = request.form.get('modo', 'sin_stock')
 
     try:
+        # C-06: verificar server-side que no hay stock antes de eliminar en modo sin_stock
+        if modo == 'sin_stock':
+            stock_check = Stock.query.filter_by(almacen_id=id).filter(Stock.cantidad > 0).first()
+            if stock_check:
+                flash('El almacén tiene productos con stock. Elige un destino antes de eliminar.', 'warning')
+                return redirect(url_for('inventory.lista_almacenes'))
+
         if modo in ('transferir_uno', 'transferir_separado'):
             stocks_activos = (
                 Stock.query.filter_by(almacen_id=id)
@@ -1230,7 +1251,11 @@ def eliminar_almacen(id):
                 else:
                     destino_id = int(request.form.get(f'destino_{src.id}', 0))
 
+                # C-06/C-11: si falta destino en modo separado, abortar (no ignorar)
                 if not destino_id:
+                    if modo == 'transferir_separado':
+                        flash('Falta destino para uno o más productos. Selecciona destino para cada ítem.', 'warning')
+                        return redirect(url_for('inventory.lista_almacenes'))
                     continue
 
                 destino_almacen = Almacen.query.filter_by(
@@ -1304,12 +1329,17 @@ def gestionar_inventario_almacen(id):
 
     if request.method == 'POST':
         try:
-            producto_id = int(request.form.get('producto_id'))
+            producto_id = int(request.form.get('producto_id', 0))
             ubicacion   = request.form.get('ubicacion')
             cantidad    = float(request.form.get('cantidad', 0))
 
             if not producto_id:
                 raise Exception("No se seleccionó un producto.")
+
+            # C-07: validar que el producto pertenece a la org (evita IDOR)
+            if not Producto.query.filter_by(id=producto_id, organizacion_id=org_id).first():
+                flash('Producto no autorizado.', 'danger')
+                return redirect(url_for('inventory.gestionar_inventario_almacen', id=id))
 
             if Stock.query.filter_by(almacen_id=id, producto_id=producto_id).first():
                 flash('Ese producto ya está registrado en este almacén.', 'warning')
@@ -1436,8 +1466,8 @@ def historial_salidas():
     mes = request.args.get('mes', type=int)
     ano = request.args.get('ano', type=int)
     ahora = now_mx()
-    if not mes: mes = ahora.month
-    if not ano: ano = ahora.year
+    mes = max(1, min(12, mes or ahora.month))   # M-20: evitar calendar.IllegalMonthError
+    ano = max(2000, min(ahora.year + 1, ano or ahora.year))
 
     meses_lista = [
         (1,'Enero'),(2,'Febrero'),(3,'Marzo'),(4,'Abril'),
@@ -1683,7 +1713,6 @@ def eliminar_movimiento_salida(id):
                 producto_id=movimiento.producto_id,
                 almacen_id=movimiento.almacen_id,
                 cantidad=cantidad_a_devolver,
-                organizacion_id=movimiento.organizacion_id,
             ))
 
         db.session.add(Movimiento(
@@ -1735,9 +1764,9 @@ def generar_salida_pdf(id):
     estado_color = '#DC2626' if salida.estado == 'cancelada' else '#059669'
     info_izq = [
         Paragraph('<b>ALMACÉN:</b>', s_normal),
-        Paragraph(salida.almacen.nombre, s_bold),
+        Paragraph(_xml_escape(salida.almacen.nombre if salida.almacen else '—'), s_bold),
         Paragraph(f'Fecha: {salida.fecha.strftime("%d/%m/%Y")}', s_normal),
-        Paragraph(f'Creada por: {salida.creador.username}', s_normal),
+        Paragraph(f'Creada por: {_xml_escape(salida.creador.username)}', s_normal),
     ]
     info_der = [
         Paragraph(f'<b>SALIDA #{salida.id}</b>', s_brand),
@@ -1757,9 +1786,9 @@ def generar_salida_pdf(id):
         cant = abs(mov.cantidad)
         total_items += cant
         data.append([
-            Paragraph(mov.producto.nombre, s_cell),
-            Paragraph(mov.producto.codigo, s_cell),
-            Paragraph(mov.motivo or '—', s_cell),
+            Paragraph(_xml_escape(mov.producto.nombre), s_cell),
+            Paragraph(_xml_escape(mov.producto.codigo), s_cell),
+            Paragraph(_xml_escape(mov.motivo or '—'), s_cell),
             Paragraph(str(cant), s_cellr),
         ])
     s_totl = ParagraphStyle('STotL', fontName=_pdf_bold(fuente), fontSize=10, alignment=TA_RIGHT)

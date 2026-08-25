@@ -1202,13 +1202,15 @@
         const lista = document.getElementById('alerta-lista');
         if (!badge) return;
 
+        function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
         function renderItem(item) {
             const pct = Math.round((item.cantidad / item.minimo) * 100);
             return `<div class="px-3 py-2 d-flex justify-content-between align-items-start gap-3" style="border-bottom:1px solid var(--border);">
                 <div class="min-w-0 flex-grow-1">
-                    <div class="fw-semibold text-body text-truncate" style="font-size:.82rem;">${item.nombre}</div>
+                    <div class="fw-semibold text-body text-truncate" style="font-size:.82rem;">${_esc(item.nombre)}</div>
                     <div class="text-muted" style="font-size:.7rem;">
-                        <i class="bi bi-shop me-1"></i>${item.almacen} &nbsp;·&nbsp; <span class="font-monospace">${item.sku}</span>
+                        <i class="bi bi-shop me-1"></i>${_esc(item.almacen)} &nbsp;·&nbsp; <span class="font-monospace">${_esc(item.sku || '')}</span>
                     </div>
                     <div class="progress mt-1 rounded-pill" style="height:4px;max-width:140px;">
                         <div class="progress-bar bg-danger rounded-pill" style="width:${Math.min(pct,100)}%;"></div>
@@ -1401,6 +1403,7 @@
         function escHtml(s) {
             return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
+        window.escHtml = escHtml;
     })();
     </script>
     {% endif %}

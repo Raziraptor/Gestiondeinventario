@@ -1019,6 +1019,7 @@ def eliminar_factura(id):
 @finance_bp.route('/servicios')
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def lista_servicios():
     org_id = current_user.organizacion_id
     hoy = now_mx().date()
@@ -1059,6 +1060,7 @@ def lista_servicios():
 @finance_bp.route('/servicios/nuevo', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def nuevo_servicio():
     if request.method == 'POST':
         s = Servicio(
@@ -1081,6 +1083,7 @@ def nuevo_servicio():
 @finance_bp.route('/servicios/<int:id>/editar', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def editar_servicio(id):
     s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
     if request.method == 'POST':
@@ -1100,6 +1103,7 @@ def editar_servicio(id):
 @finance_bp.route('/servicios/<int:id>/eliminar', methods=['POST'])
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def eliminar_servicio(id):
     if current_user.rol not in ['super_admin', 'admin']:
         flash('Sin permiso para eliminar servicios.', 'danger')
@@ -1115,6 +1119,7 @@ def eliminar_servicio(id):
 @finance_bp.route('/servicios/<int:id>')
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def detalle_servicio(id):
     org_id = current_user.organizacion_id
     hoy_d  = now_mx().date()
@@ -1137,6 +1142,7 @@ def detalle_servicio(id):
 @finance_bp.route('/servicios/<int:id>/pago/nuevo', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def nuevo_pago_servicio(id):
     s = Servicio.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
     centros = CentroCosto.query.filter_by(organizacion_id=current_user.organizacion_id).order_by(CentroCosto.nombre).all()
@@ -1198,11 +1204,16 @@ def nuevo_pago_servicio(id):
 @finance_bp.route('/servicios/pago/<int:id>/marcar-pagado', methods=['POST'])
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def marcar_pago_pagado(id):
     p = PagoServicio.query.join(Servicio).filter(
         PagoServicio.id == id,
         Servicio.organizacion_id == current_user.organizacion_id
     ).first_or_404()
+    # H-16: idempotencia — si ya está pagado, no crear Gasto duplicado
+    if p.estado == 'pagado':
+        flash('Este pago ya estaba marcado como pagado.', 'info')
+        return redirect(url_for('finance.detalle_servicio', id=p.servicio_id))
     fecha_str = request.form.get('fecha_pago')
     p.fecha_pago = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else now_mx().date()
     p.estado = 'pagado'
@@ -1224,6 +1235,7 @@ def marcar_pago_pagado(id):
 @finance_bp.route('/servicios/pago/<int:id>/eliminar', methods=['POST'])
 @login_required
 @check_org_permission
+@check_permission('perm_view_gastos')
 def eliminar_pago_servicio(id):
     p = PagoServicio.query.join(Servicio).filter(
         PagoServicio.id == id,

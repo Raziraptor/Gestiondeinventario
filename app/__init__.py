@@ -65,7 +65,18 @@ def create_app(config_name=None):
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        # H-02: user_id puede ser "uid:pw_suffix" para invalidar sesiones al cambiar contraseña
+        parts = str(user_id).split(':', 1)
+        try:
+            uid = int(parts[0])
+        except (ValueError, IndexError):
+            return None
+        u = User.query.get(uid)
+        if not u or not u.is_active:
+            return None
+        if len(parts) == 2 and u.password_hash and parts[1] != u.password_hash[-16:]:
+            return None
+        return u
 
     from . import models  # noqa: F401 — registra todos los modelos en SQLAlchemy
 

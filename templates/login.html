@@ -145,7 +145,6 @@
         <!-- Card -->
         <div class="auth-card">
             <form method="POST" action="" novalidate id="loginForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 {{ form.hidden_tag() }}
 
                 <div style="display:flex;flex-direction:column;gap:18px;">

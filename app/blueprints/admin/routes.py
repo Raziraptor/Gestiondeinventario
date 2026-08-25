@@ -17,6 +17,7 @@ Cubre (en orden de aparición original en app.py):
 """
 
 import os
+import re
 import logging
 import secrets
 from functools import wraps
@@ -52,10 +53,7 @@ from app.models import (
     Gasto,
     Movimiento,
     Organizacion,
-    OrdenCompra,
-    ProyectoOC,
     Salida,
-    SolicitudAprobacion,
     Stock,
     User,
 )
@@ -257,41 +255,31 @@ def eliminar_usuario(id):
             flash('No puedes eliminar a un administrador.', 'warning')
             return redirect(url_for('admin.lista_usuarios'))
 
-    # Verificar si tiene registros con FK NOT NULL que impidan hard-delete
-    tiene_historial = (
-        Salida.query.filter_by(creador_id=id).first() is not None
-        or OrdenCompra.query.filter_by(creador_id=id).first() is not None
-        or ProyectoOC.query.filter_by(creador_id=id).first() is not None
-        or SolicitudAprobacion.query.filter_by(solicitante_id=id).first() is not None
-    )
-
     nombre_original = usuario.username
+    sufijo = _secrets_mod.token_hex(6)
     try:
-        if tiene_historial:
-            # Anonimizar: libera username/email para re-registro, preserva el historial
-            usuario.username        = f'_del_{id}'
-            usuario.email           = f'_del_{id}@eliminado.local'
-            usuario.password_hash   = generate_password_hash(_secrets_mod.token_hex(32))
-            usuario.organizacion_id = None
-            usuario.is_active       = False
-            usuario.rol             = 'user'
-            usuario.perm_view_dashboard     = False
-            usuario.perm_view_management    = False
-            usuario.perm_edit_management    = False
-            usuario.perm_create_oc_standard = False
-            usuario.perm_create_oc_proyecto = False
-            usuario.perm_do_salidas         = False
-            usuario.perm_view_gastos        = False
-            db.session.commit()
-            flash(
-                f'Usuario "{nombre_original}" anonimizado. '
-                'Su username y email quedan libres para re-registro.',
-                'success',
-            )
-        else:
-            db.session.delete(usuario)
-            db.session.commit()
-            flash(f'Usuario "{nombre_original}" eliminado correctamente.', 'success')
+        # Siempre anonimizar — preserva FKs de auditoría y libera username/email.
+        # '#' no es válido en el form de registro → evita UNIQUE collision por
+        # pre-registro malicioso (C-02); sufijo aleatorio evita predicción (C-01).
+        usuario.username        = f'#del#{id}#{sufijo}'
+        usuario.email           = f'del+{id}.{sufijo}@invalid.local'
+        usuario.password_hash   = generate_password_hash(_secrets_mod.token_hex(32))
+        usuario.organizacion_id = None
+        usuario.is_active       = False
+        usuario.rol             = 'user'
+        usuario.perm_view_dashboard     = False
+        usuario.perm_view_management    = False
+        usuario.perm_edit_management    = False
+        usuario.perm_create_oc_standard = False
+        usuario.perm_create_oc_proyecto = False
+        usuario.perm_do_salidas         = False
+        usuario.perm_view_gastos        = False
+        db.session.commit()
+        flash(
+            f'Usuario "{nombre_original}" eliminado. '
+            'Su username y email quedan libres para re-registro.',
+            'success',
+        )
     except Exception as e:
         db.session.rollback()
         _flash_err('Error al eliminar el usuario.', e)
@@ -334,9 +322,12 @@ def configurar_plantilla():
             organizacion.direccion        = request.form.get('direccion', '').strip() or None
             organizacion.telefono         = request.form.get('telefono', '').strip() or None
 
-            # Diseño
-            organizacion.color_primario   = request.form.get('color_primario',   '#333333')
-            organizacion.color_secundario = request.form.get('color_secundario', '#f1f5f9')
+            # Diseño — validar colores como hex #RRGGBB para evitar crash en ReportLab
+            _HEX_RE = re.compile(r'^#[0-9A-Fa-f]{6}$')
+            cp = request.form.get('color_primario', '#333333')
+            cs = request.form.get('color_secundario', '#f1f5f9')
+            organizacion.color_primario   = cp if _HEX_RE.match(cp) else '#333333'
+            organizacion.color_secundario = cs if _HEX_RE.match(cs) else '#f1f5f9'
             organizacion.tipo_letra       = request.form.get('tipo_letra', 'Helvetica')
 
             # Documentos PDF
