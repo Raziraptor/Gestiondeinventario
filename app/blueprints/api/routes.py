@@ -812,10 +812,11 @@ def api_push_subscribe():
     if not data or 'endpoint' not in data:
         return jsonify({'error': 'datos inválidos'}), 400
     endpoint = data['endpoint']
-    existing = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    # H-23: filter by user_id to prevent cross-user takeover; always refresh org_id
+    existing = PushSubscription.query.filter_by(endpoint=endpoint, user_id=current_user.id).first()
     if existing:
         existing.subscription_json = json.dumps(data)
-        existing.user_id = current_user.id
+        existing.organizacion_id = current_user.organizacion_id
     else:
         db.session.add(PushSubscription(
             user_id=current_user.id,

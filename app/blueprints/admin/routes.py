@@ -684,12 +684,13 @@ def _sync_gasto(payload, org_id):
         organizacion_id = org_id,
     )
     db.session.add(gasto)
-    db.session.commit()
+    db.session.flush()  # H-03: obtener gasto.id antes de commit
     log_actividad(
         'crear', 'gasto',
         f'Gasto offline sincronizado: {descripcion} ${monto:.2f}',
         entidad_id=gasto.id,
     )
+    db.session.commit()
     return {'ok': True}
 
 
