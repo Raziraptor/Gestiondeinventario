@@ -641,6 +641,7 @@ def nueva_orden_manual():
             cajas_lista    = request.form.getlist('cajas[]')
             enlaces_lista  = request.form.getlist('enlace[]')
 
+            items_agregados = 0
             for i in range(len(productos_ids)):
                 pid_raw = productos_ids[i]
                 if not pid_raw:
@@ -663,15 +664,26 @@ def nueva_orden_manual():
                     enlace_val = enlaces_lista[i]
                 except IndexError:
                     enlace_val = ''
+                try:
+                    costo_val = float(costos[i]) if i < len(costos) and costos[i] else 0  # M-11
+                except (ValueError, TypeError):
+                    costo_val = 0.0
 
                 db.session.add(OrdenCompraDetalle(
                     orden_id=nueva_oc.id,
                     producto_id=pid,
                     cantidad_solicitada=cant,
-                    costo_unitario_estimado=float(costos[i]) if i < len(costos) else 0,
+                    costo_unitario_estimado=costo_val,
                     cajas=cajas_val,
                     enlace_proveedor=enlace_val,
                 ))
+                items_agregados += 1
+
+            # M-10: evitar OC zombie sin productos
+            if items_agregados == 0:
+                db.session.rollback()
+                flash("Debes agregar al menos un producto válido a la orden.", "warning")
+                return redirect(request.url)
 
             db.session.commit()
             flash(f"Orden #{nueva_oc.id} creada exitosamente en estado borrador.", "success")
@@ -913,7 +925,15 @@ def editar_orden(id):
 
     if request.method == 'POST':
         try:
-            orden.proveedor_id = request.form.get('proveedor_id')
+            nuevo_prov_id = request.form.get('proveedor_id', type=int)
+            # H-08: validar que el proveedor pertenezca a la org antes de asignar
+            if nuevo_prov_id and not Proveedor.query.filter_by(id=nuevo_prov_id, organizacion_id=org_id).first():
+                flash('Proveedor no autorizado.', 'danger')
+                return render_template('orden_form.html',
+                                       titulo=f"Editar Orden de Compra #{orden.id}",
+                                       proveedores=proveedores, productos=productos_lista,
+                                       almacenes=almacenes, orden=orden)
+            orden.proveedor_id = nuevo_prov_id
             OrdenCompraDetalle.query.filter_by(orden_id=orden.id).delete()
 
             productos_ids = request.form.getlist('producto_id[]')

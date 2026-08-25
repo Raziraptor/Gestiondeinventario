@@ -221,6 +221,9 @@ def admin_reset_password(id):
 
     try:
         usuario_objetivo.password_hash = generate_password_hash(nueva_password)
+        log_actividad('admin_reset_password', 'usuario',
+            f'Contraseña restablecida por admin para: {usuario_objetivo.username}',
+            entidad_id=usuario_objetivo.id)
         db.session.commit()
         flash(
             f'Contraseña actualizada correctamente para: {usuario_objetivo.username}',
@@ -274,6 +277,9 @@ def eliminar_usuario(id):
         usuario.perm_create_oc_proyecto = False
         usuario.perm_do_salidas         = False
         usuario.perm_view_gastos        = False
+        log_actividad('eliminar', 'usuario',
+            f'Usuario anonimizado por admin: {nombre_original} (id={id})',
+            entidad_id=id)
         db.session.commit()
         flash(
             f'Usuario "{nombre_original}" eliminado. '
@@ -412,8 +418,15 @@ def asignar_usuario(user_id):
     nuevo_rol    = request.form.get('rol')
     nueva_org_id = request.form.get('organizacion_id')
 
-    if not nuevo_rol:
-        flash('Error: No se seleccionó un rol.', 'danger')
+    # H-07: whitelist de roles válidos
+    _ROLES_VALIDOS = {'super_admin', 'admin', 'user'}
+    if nuevo_rol not in _ROLES_VALIDOS:
+        flash('Rol no válido.', 'danger')
+        return redirect(url_for('admin.super_admin'))
+
+    # H-07: super_admin no puede demostrarse a sí mismo
+    if user.id == current_user.id and nuevo_rol != 'super_admin':
+        flash('No puedes cambiar tu propio rol de super_admin.', 'danger')
         return redirect(url_for('admin.super_admin'))
 
     try:
@@ -427,6 +440,9 @@ def asignar_usuario(user_id):
         if user.rol == 'super_admin':
             user.organizacion_id = None
 
+        log_actividad('editar', 'usuario',
+            f'Rol y org actualizados: {user.username} → rol={nuevo_rol}',
+            entidad_id=user.id)
         db.session.commit()
         flash(f'Usuario "{user.username}" actualizado.', 'success')
 
@@ -554,6 +570,9 @@ def update_user_permissions(user_id):
             user_to_update.perm_create_oc_proyecto = form.perm_create_oc_proyecto.data
             user_to_update.perm_do_salidas         = form.perm_do_salidas.data
             user_to_update.perm_view_gastos        = form.perm_view_gastos.data
+            log_actividad('editar_permisos', 'usuario',
+                f'Permisos actualizados por admin para: {user_to_update.username}',
+                entidad_id=user_to_update.id)
             db.session.commit()
             flash(f'Permisos para {user_to_update.username} actualizados.', 'success')
         except Exception as e:

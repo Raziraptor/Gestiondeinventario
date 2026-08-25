@@ -98,14 +98,15 @@ TIPOS_SERVICIO = {
     'otro':     ('bi-receipt',               '#94a3b8', 'Otro'),
 }
 
+# M-17: mapear a categorías del whitelist CATEGORIAS_GASTO
 _TIPO_A_CATEGORIA_GASTO = {
-    'luz':       'Energía Eléctrica',
-    'agua':      'Agua y Drenaje',
-    'gas':       'Gas',
-    'internet':  'Internet',
-    'telefono':  'Telefonía',
-    'renta':     'Renta',
-    'limpieza':  'Limpieza',
+    'luz':       'Servicios',
+    'agua':      'Servicios',
+    'gas':       'Servicios',
+    'internet':  'Servicios',
+    'telefono':  'Servicios',
+    'renta':     'Servicios',
+    'limpieza':  'Mantenimiento',
     'otro':      'Servicios',
 }
 
@@ -398,8 +399,8 @@ def nuevo_gasto():
     if request.method == 'POST':
         try:
             monto_val = Decimal(request.form['monto'])
-            if monto_val < 0:
-                flash('El monto no puede ser negativo.', 'danger')
+            if monto_val <= 0 or not monto_val.is_finite():  # M-16
+                flash('El monto debe ser mayor a cero.', 'danger')
                 return redirect(url_for('finance.nuevo_gasto'))
             categoria_val = request.form['categoria']
             if categoria_val not in CATEGORIAS_GASTO:
@@ -711,11 +712,36 @@ def nuevo_presupuesto():
     ahora  = now_mx()
 
     if request.method == 'POST':
-        categoria = request.form['categoria']
-        anio      = int(request.form['anio'])
-        mes_raw   = request.form.get('mes', '')
-        mes       = int(mes_raw) if mes_raw else None
-        monto     = float(request.form['monto'])
+        categoria = request.form.get('categoria', '')
+        # M-19: validaciones de entrada
+        if categoria not in CATEGORIAS_GASTO:
+            flash('Categoría no válida.', 'danger')
+            return redirect(request.url)
+        try:
+            anio = int(request.form['anio'])
+            if not (2000 <= anio <= ahora.year + 5):
+                raise ValueError
+        except (ValueError, KeyError):
+            flash('Año no válido.', 'danger')
+            return redirect(request.url)
+        mes_raw = request.form.get('mes', '')
+        if mes_raw:
+            try:
+                mes = int(mes_raw)
+                if not (1 <= mes <= 12):
+                    raise ValueError
+            except ValueError:
+                flash('Mes no válido.', 'danger')
+                return redirect(request.url)
+        else:
+            mes = None
+        try:
+            monto = float(request.form['monto'])
+            if monto <= 0:
+                raise ValueError
+        except (ValueError, KeyError):
+            flash('El monto debe ser mayor a cero.', 'danger')
+            return redirect(request.url)
 
         existente = Presupuesto.query.filter_by(
             organizacion_id=org_id, categoria=categoria, anio=anio, mes=mes
