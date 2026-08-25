@@ -186,7 +186,9 @@ def enviar_correo_api(destinatario, reset_url):
 def send_reset_email(user):
     """Genera token y lanza hilo para enviar correo de reset en segundo plano."""
     s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    token = s.dumps(user.email, salt='password-reset-salt')
+    # M-02: bind token to password hash so password change invalidates old links
+    ph_suffix = (user.password_hash or '')[-8:]
+    token = s.dumps({'e': user.email, 'p': ph_suffix}, salt='password-reset-salt')
     reset_url = url_for('auth.reset_password', token=token, _external=True)
     Thread(target=enviar_correo_api, args=(user.email, reset_url)).start()
 
@@ -312,7 +314,14 @@ def reset_password(token):
     _s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
     try:
-        email = _s.loads(token, salt='password-reset-salt', max_age=1800)
+        data = _s.loads(token, salt='password-reset-salt', max_age=1800)
+        # M-02: support both new dict format and legacy plain-email tokens
+        if isinstance(data, dict):
+            email = data['e']
+            ph_suffix = data.get('p', '')
+        else:
+            email = data
+            ph_suffix = None
     except Exception:
         flash('El enlace de reseteo no es válido o ha expirado.', 'danger')
         return redirect(url_for('auth.forgot_password'))
@@ -328,6 +337,11 @@ def reset_password(token):
     if user is None:
         flash('Usuario no encontrado.', 'danger')
         return redirect(url_for('auth.login'))
+
+    # M-02: reject token if password was changed since it was issued
+    if ph_suffix is not None and (user.password_hash or '')[-8:] != ph_suffix:
+        flash('El enlace de reseteo ya no es válido. Solicita uno nuevo.', 'danger')
+        return redirect(url_for('auth.forgot_password'))
 
     form = ResetPasswordForm()
     if form.validate_on_submit():

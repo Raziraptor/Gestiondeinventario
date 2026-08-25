@@ -391,7 +391,7 @@ def recibir_orden(id):
                             continue
                         stock_item = Stock.query.filter_by(
                             producto_id=producto.id, almacen_id=alm.id
-                        ).first()
+                        ).with_for_update().first()  # H-09: lock row to prevent race
                         if stock_item:
                             stock_item.cantidad += recibir_alm
                         else:
@@ -418,7 +418,7 @@ def recibir_orden(id):
                         continue
                     stock_item = Stock.query.filter_by(
                         producto_id=producto.id, almacen_id=alm_destino
-                    ).first()
+                    ).with_for_update().first()  # H-09: lock row to prevent race
                     if stock_item:
                         stock_item.cantidad += recibir_ahora
                     else:
@@ -1164,7 +1164,7 @@ def nuevo_proyecto_oc():
                     continue
                 detalle = ProyectoOCDetalle(
                     proyecto_oc_id=nueva_orden.id,
-                    cantidad=float(cantidades[i]),
+                    cantidad=int(float(cantidades[i])),  # M-14: Integer column, truncate decimal
                     costo_unitario=float(costos[i]) if costos[i] else 0.0,
                     proveedor_sugerido=proveedores_sugeridos[i] if i < len(proveedores_sugeridos) else None,
                     enlace_proveedor=enlaces[i] if i < len(enlaces) else None,
@@ -1225,7 +1225,7 @@ def editar_proyecto_oc(id):
                     continue
                 detalle = ProyectoOCDetalle(
                     proyecto_oc_id=id,
-                    cantidad=float(cantidades[i]),
+                    cantidad=int(float(cantidades[i])),  # M-14: Integer column, truncate decimal
                     costo_unitario=float(costos[i]) if costos[i] else 0.0,
                     proveedor_sugerido=proveedores_sugeridos[i] if i < len(proveedores_sugeridos) else None,
                     enlace_proveedor=enlaces[i] if i < len(enlaces) else None,
