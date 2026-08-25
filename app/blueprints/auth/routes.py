@@ -149,7 +149,7 @@ def enviar_correo_api(destinatario, reset_url):
                         Restablecer contraseña
                     </a>
                     <p style="font-size:13px;color:#64748b;">
-                        El enlace expira en <strong>1 hora</strong>.<br>
+                        El enlace expira en <strong>30 minutos</strong>.<br>
                         Si no solicitaste este cambio, ignora este correo.
                     </p>
                 </div>
