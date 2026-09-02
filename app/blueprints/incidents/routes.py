@@ -14,6 +14,7 @@ from . import incidents_bp
 from app.extensions import db
 from app.helpers import (
     _flash_err, admin_required, check_org_permission, log_actividad, now_mx,
+    verify_image_bytes,
 )
 from app.models import AuditLog
 from app.models.auth import User
@@ -35,6 +36,8 @@ def _guardar_foto_incidencia(file_storage, org_id: int):
     if not file_storage or not file_storage.filename:
         return None
     if not _allowed_foto(file_storage.filename):
+        return None
+    if not verify_image_bytes(file_storage):
         return None
     ext = file_storage.filename.rsplit('.', 1)[1].lower()
     nombre = f'{uuid.uuid4().hex}.{ext}'

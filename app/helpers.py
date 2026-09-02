@@ -134,6 +134,18 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def verify_image_bytes(file_storage) -> bool:
+    """Verifica magic bytes para confirmar que el upload es una imagen real."""
+    header = file_storage.read(12)
+    file_storage.seek(0)
+    return (
+        header[:3] == b'\xff\xd8\xff' or                          # JPEG
+        header[:8] == b'\x89PNG\r\n\x1a\n' or                    # PNG
+        header[:6] in (b'GIF87a', b'GIF89a') or                  # GIF
+        (header[:4] == b'RIFF' and header[8:12] == b'WEBP')      # WebP
+    )
+
+
 def save_picture(form_picture, output_dir: str, size: tuple = (200, 200)) -> str:
     """Redimensiona y guarda una imagen subida. Retorna el nombre del archivo."""
     import secrets as _secrets

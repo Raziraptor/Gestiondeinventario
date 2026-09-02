@@ -56,7 +56,7 @@ from . import inventory_bp
 from app.extensions import db
 from app.helpers import (
     now_mx, _flash_err, check_org_permission, check_permission,
-    get_item_or_404, admin_required, allowed_file, save_picture, log_actividad,
+    get_item_or_404, admin_required, allowed_file, verify_image_bytes, save_picture, log_actividad,
 )
 from app.models import (
     Producto, Stock, Movimiento, Categoria, Proveedor, Almacen,
@@ -473,6 +473,13 @@ def importar_productos():
             flash('Solo se aceptan archivos .csv o .xlsx', 'danger')
             return redirect(url_for('inventory.importar_productos'))
 
+        if ext == 'xlsx':
+            magic = archivo.read(4)
+            archivo.seek(0)
+            if magic != b'PK\x03\x04':
+                flash('El archivo .xlsx parece inválido o corrupto.', 'danger')
+                return redirect(url_for('inventory.importar_productos'))
+
         try:
             filas = []
             if ext == 'xlsx':
@@ -604,14 +611,14 @@ def nuevo_producto():
 
         if 'imagen' in request.files:
             file = request.files['imagen']
-            if file.filename != '' and allowed_file(file.filename):
+            if file.filename != '':
+                if not allowed_file(file.filename) or not verify_image_bytes(file):
+                    flash('Tipo de archivo de imagen no permitido.', 'danger')
+                    return repoblar()
                 ext = secure_filename(file.filename).rsplit('.', 1)[-1].lower()
                 filename = f"{uuid.uuid4().hex}.{ext}"
                 file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
-            elif file.filename != '' and not allowed_file(file.filename):
-                flash('Tipo de archivo de imagen no permitido.', 'danger')
-                return repoblar()
 
         if not imagen_filename:
             ai_fn = secure_filename(request.form.get('ai_imagen_filename', '').strip())
@@ -705,7 +712,10 @@ def editar_producto(id):
         try:
             if 'imagen' in request.files:
                 file = request.files['imagen']
-                if file.filename != '' and allowed_file(file.filename):
+                if file.filename != '':
+                    if not allowed_file(file.filename) or not verify_image_bytes(file):
+                        flash('Tipo de archivo de imagen no permitido.', 'danger')
+                        return redirect(url_for('inventory.editar_producto', id=producto.id))
                     ext = secure_filename(file.filename).rsplit('.', 1)[-1].lower()
                     filename = f"{uuid.uuid4().hex}.{ext}"
                     file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
