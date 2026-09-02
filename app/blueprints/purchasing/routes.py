@@ -346,7 +346,10 @@ def recibir_orden(id):
         return redirect(url_for('purchasing.ver_orden', id=id))
 
     if request.method == 'GET':
-        return render_template('orden_recibir.html', orden=orden)
+        almacenes = Almacen.query.filter_by(
+            organizacion_id=orden.organizacion_id
+        ).order_by(Almacen.id).all()
+        return render_template('orden_recibir.html', orden=orden, almacenes=almacenes)
 
     try:
         org_id = orden.organizacion_id
@@ -413,6 +416,9 @@ def recibir_orden(id):
                     detalle.cantidad_recibida = sum(d.get('recibida', 0) for d in dist_list)
                 else:
                     alm_destino = detalle.almacen_id or orden.almacen_id
+                    if not alm_destino:
+                        # Almacén seleccionado en el form de recepción
+                        alm_destino = request.form.get(f'almacen_{detalle.id}', type=int)
                     if not alm_destino:
                         omitidos.append(f'{producto.nombre} (sin almacén destino)')
                         continue

@@ -103,7 +103,15 @@
                                     <i class="bi bi-building me-1"></i>{{ alm.nombre }}
                                 </span>
                                 {% else %}
-                                <span class="text-muted small">—</span>
+                                <select name="almacen_{{ detalle.id }}"
+                                        class="form-select form-select-sm"
+                                        style="min-width:140px;"
+                                        required>
+                                    <option value="">— Selecciona —</option>
+                                    {% for a in almacenes %}
+                                    <option value="{{ a.id }}">{{ a.nombre }}</option>
+                                    {% endfor %}
+                                </select>
                                 {% endif %}
                                 {% endif %}
                             </td>
