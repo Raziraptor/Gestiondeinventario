@@ -399,8 +399,8 @@ def nuevo_gasto():
     if request.method == 'POST':
         try:
             monto_val = Decimal(request.form['monto'])
-            if monto_val <= 0 or not monto_val.is_finite():  # M-16
-                flash('El monto debe ser mayor a cero.', 'danger')
+            if monto_val < 0 or not monto_val.is_finite():  # M-16: 0 permitido en gastos
+                flash('El monto no puede ser negativo.', 'danger')
                 return redirect(url_for('finance.nuevo_gasto'))
             categoria_val = request.form['categoria']
             if categoria_val not in CATEGORIAS_GASTO:
