@@ -629,7 +629,7 @@ def nuevo_producto():
                 categoria_id=request.form.get('categoria_id') or None,
                 precio_unitario=precio_final, imagen_url=imagen_filename,
                 proveedor_id=request.form.get('proveedor_id') or None,
-                unidades_por_caja=int(request.form.get('unidades_por_caja', 1)),
+                unidades_por_caja=int(request.form.get('unidades_por_caja') or 1),
                 organizacion_id=current_user.organizacion_id,
                 enlace_proveedor=request.form.get('enlace_proveedor'),
             )
@@ -1655,7 +1655,7 @@ def registrar_salida():
                                            titulo=f"Registrar Salida de: {almacen_seleccionado.nombre}",
                                            productos=productos_lista, salida_id=salida_del_dia.id,
                                            almacen=almacen_seleccionado)
-                productos_para_actualizar.append((stock_item, cantidad_salida, motivos[i]))
+                productos_para_actualizar.append((stock_item, cantidad_salida, motivos[i][:255]))
 
             for stock_item, cantidad_salida, motivo_item in productos_para_actualizar:
                 stock_item.cantidad -= cantidad_salida
@@ -1874,14 +1874,15 @@ def nueva_transferencia():
                 ))
 
             now = now_mx()
+            motivo_ref = f'[REF:{ref}] {motivo}'[:255]
             db.session.add(Movimiento(
                 producto_id=producto_id, cantidad=-cantidad, tipo='transferencia-salida',
-                fecha=now, motivo=f'[REF:{ref}] {motivo}',
+                fecha=now, motivo=motivo_ref,
                 almacen_id=origen_id, organizacion_id=org_id,
             ))
             db.session.add(Movimiento(
                 producto_id=producto_id, cantidad=cantidad, tipo='transferencia-entrada',
-                fecha=now, motivo=f'[REF:{ref}] {motivo}',
+                fecha=now, motivo=motivo_ref,
                 almacen_id=destino_id, organizacion_id=org_id,
             ))
 
@@ -1938,7 +1939,7 @@ def nuevo_ajuste():
 
             db.session.add(Movimiento(
                 producto_id=producto_id, cantidad=diferencia, tipo=tipo_mov,
-                fecha=now_mx(), motivo=f'Ajuste Físico: {motivo}',
+                fecha=now_mx(), motivo=f'Ajuste Físico: {motivo}'[:255],
                 almacen_id=almacen_id, organizacion_id=org_id,
             ))
             signo = '+' if diferencia > 0 else ''
