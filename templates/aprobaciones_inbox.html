@@ -220,7 +220,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 /* Loading state en botones de aprobar */
 document.querySelectorAll('.btn-aprobar').forEach(function(btn) {
     btn.closest('form').addEventListener('submit', function() {

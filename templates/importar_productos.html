@@ -149,7 +149,7 @@
 
 {% endblock %}
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
     const input    = document.getElementById('archivoInput');
     const dropZone = document.getElementById('dropZone');

@@ -327,7 +327,7 @@
 </div>
 
 <!-- SCRIPT: LÓGICA AUTOMÁTICA DE "HOY" -->
-<script>
+<script nonce="{{ csp_nonce() }}">
     document.addEventListener('DOMContentLoaded', function() {
         // 1. Obtener la fecha de HOY en formato YYYY-MM-DD local
         const hoy = new Date();
@@ -387,7 +387,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const labels = {{ chart_labels | tojson }};
     const data   = {{ chart_data   | tojson }};

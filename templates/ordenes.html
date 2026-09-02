@@ -245,7 +245,7 @@
     {{ paginator(pagination, '?mes=' ~ mes_seleccionado ~ '&ano=' ~ ano_seleccionado ~ '&proveedor_id=' ~ prov_seleccionado) }}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     // ==========================================
     // 1. LÓGICA DE FILTRADO DINÁMICO
     // ==========================================
@@ -276,7 +276,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.querySelectorAll('form[method="POST"]').forEach(function(f) {
     f.addEventListener('submit', function() {
         if (f.hasAttribute('data-confirm')) return;

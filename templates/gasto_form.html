@@ -154,7 +154,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     /* Loading state en submit — UI UX Pro Max: "Loading Buttons" High */
     const allForms = document.querySelectorAll('form[method="POST"]');

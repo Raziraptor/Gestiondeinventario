@@ -1299,7 +1299,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   // Highlight active TOC link on scroll
   const sections = document.querySelectorAll('.manual-section[id], .subsection[id]');

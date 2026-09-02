@@ -225,7 +225,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
   /* Base URLs con id=0 como placeholder — NO hacer replace anticipado */
   var verBaseUrl = "{{ url_for('inventory.verificar_eliminacion_almacen', id=0) }}";

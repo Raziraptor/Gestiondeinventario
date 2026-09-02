@@ -819,7 +819,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── FILTROS, BÚSQUEDA Y PAGINACIÓN ───────────────────────────────────────
 const filas = document.querySelectorAll('.fila-producto');
 const inputBusqueda   = document.getElementById('filtro_busqueda');
@@ -1041,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAl
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── GRÁFICAS CHART.JS (Fusion tokens) ───────────────────────────────────
 (function() {
   const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';

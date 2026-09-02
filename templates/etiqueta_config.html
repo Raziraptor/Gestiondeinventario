@@ -199,7 +199,7 @@
 
 {% endblock %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.querySelectorAll('.size-radio').forEach(radio => {
   radio.addEventListener('change', () => {
     document.querySelectorAll('.size-card').forEach(c => c.classList.remove('selected'));

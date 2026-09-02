@@ -120,7 +120,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const f = document.getElementById('form-presupuesto');
     if (!f) return;

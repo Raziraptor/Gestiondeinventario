@@ -168,7 +168,7 @@
 
 {% endblock %}
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const almacenSel = document.getElementById('almacenSelector');
     const btnInvXls  = document.getElementById('btn-inv-excel');

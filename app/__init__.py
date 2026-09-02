@@ -4,6 +4,7 @@ create_app() inicializa Flask, extensiones, blueprints y CLI.
 """
 
 import json
+import secrets
 import time
 from decimal import Decimal
 
@@ -122,8 +123,15 @@ def _register_blueprints(app):
 
 
 def _register_security_headers(app):
+    from flask import g
+
+    @app.before_request
+    def _generate_csp_nonce():
+        g.csp_nonce = secrets.token_urlsafe(16)
+
     @app.after_request
     def add_security_headers(response):
+        nonce = g.get('csp_nonce', '')
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
@@ -132,7 +140,7 @@ def _register_security_headers(app):
         response.headers['X-XSS-Protection'] = '1; mode=block'
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net; "
+            f"script-src 'self' 'nonce-{nonce}' cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
             "font-src 'self' data: cdn.jsdelivr.net fonts.gstatic.com; "
             "img-src 'self' data: blob: https:; "
@@ -143,7 +151,12 @@ def _register_security_headers(app):
 
 
 def _register_context_processors(app):
+    from flask import g
     from flask_login import current_user
+
+    @app.context_processor
+    def inject_csp_nonce():
+        return {'csp_nonce': lambda: g.get('csp_nonce', '')}
 
     @app.context_processor
     def inject_nav_badges():

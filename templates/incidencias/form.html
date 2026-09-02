@@ -501,7 +501,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function toggleTipoOtro() {
   const tipo = document.getElementById('tipo').value;
   document.getElementById('campoTipoOtro').style.display = tipo === 'Otro' ? 'block' : 'none';

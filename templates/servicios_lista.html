@@ -199,7 +199,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.querySelectorAll('form[method="POST"]').forEach(function(f) {
     f.addEventListener('submit', function() {
         const btn = f.querySelector('[type="submit"]');

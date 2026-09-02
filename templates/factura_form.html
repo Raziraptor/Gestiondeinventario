@@ -171,7 +171,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 /* Loading state — UI UX Pro Max: Submit Feedback (High severity) */
 (function () {
     const form = document.getElementById('form-factura');

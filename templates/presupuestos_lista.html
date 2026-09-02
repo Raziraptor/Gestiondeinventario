@@ -235,7 +235,7 @@
 
 {% block scripts %}
 {% if items %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const cs       = getComputedStyle(document.documentElement);
     const pRgb     = cs.getPropertyValue('--primary-rgb').trim() || '99,102,241';

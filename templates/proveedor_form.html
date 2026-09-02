@@ -235,7 +235,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
     var camposDisponibles = {{ campos_disponibles | tojson if campos_disponibles else '[]' }};
 

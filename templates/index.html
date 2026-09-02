@@ -734,7 +734,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 // Mostrar tarjeta de pendientes offline si hay operaciones en cola
 (async function () {
     if (!window.OfflineQueue) return;

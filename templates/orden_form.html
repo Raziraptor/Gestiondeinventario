@@ -206,7 +206,7 @@
 
 <audio id="audio_beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     // 1. LÓGICA DE NEGOCIO
     const todosLosProductos = {{ productos | tojson | safe }};
     const selectProveedor = document.getElementById('proveedor_id');

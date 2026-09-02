@@ -265,7 +265,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 function subirHdAuto(ordenId) {
     const btn   = document.getElementById('btn-subir-hd-auto');
     const badge = document.getElementById('hd-status-badge');

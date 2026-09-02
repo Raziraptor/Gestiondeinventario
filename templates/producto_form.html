@@ -369,7 +369,7 @@
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── PREVISUALIZACIÓN IMAGEN MANUAL ──────────────────────────
 function previsualizarImagen(event) {
     const preview     = document.getElementById('img_preview');

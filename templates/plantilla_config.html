@@ -376,7 +376,7 @@
 
 {% endblock %}
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 const LOGO_URL = {{ ('"' ~ url_for('static', filename='uploads/' ~ org.logo_url) ~ '"') | safe if org.logo_url else 'null' }};
 
 // ── DRAG & DROP ──────────────────────────────────────────────────────────────

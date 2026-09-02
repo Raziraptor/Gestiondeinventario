@@ -41,7 +41,7 @@
     {% block extra_css %}{% endblock %}
 
     <!-- Prevenir FOUC al navegar entre páginas -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         (function() {
             var t = localStorage.getItem('erp_theme') || localStorage.getItem('app_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', t);
@@ -1154,7 +1154,7 @@
     {% block chartjs %}{% endblock %}
 
     <!-- TEMA -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         const html = document.documentElement;
         const btn  = document.getElementById('theme-toggle');
@@ -1178,7 +1178,7 @@
     </script>
 
     <!-- SIDEBAR — mobile off-canvas -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         const sidebar  = document.getElementById('erpSidebar');
         const mToggle  = document.getElementById('sidebarMobileToggle');
@@ -1205,7 +1205,7 @@
 
     <!-- ALERTAS STOCK BAJO -->
     {% if current_user.is_authenticated and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_view_dashboard) %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         const badge = document.getElementById('alerta-badge');
         const label = document.getElementById('alerta-count-label');
@@ -1257,7 +1257,7 @@
     {% endif %}
 
     <!-- TOASTS -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function() {
         const container = document.getElementById('toastContainer');
         const ICONS = {
@@ -1300,7 +1300,7 @@
     </script>
 
     <!-- CONFIRM MODAL -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function() {
         const modalEl = document.getElementById('confirmModal');
         if (!modalEl) return;
@@ -1335,7 +1335,7 @@
 
     <!-- COMMAND PALETTE (Ctrl+K) -->
     {% if current_user.is_authenticated %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function() {
         const overlay  = document.getElementById('cmdPalette');
         const input    = document.getElementById('cmdInput');
@@ -1420,7 +1420,7 @@
 
     <!-- PUSH NOTIFICATIONS -->
     {% if current_user.is_authenticated and vapid_public_key %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function() {
         const VAPID_PUBLIC = {{ vapid_public_key | tojson }};
         const pushNavItem  = document.getElementById('pushNavItem');
@@ -1536,7 +1536,7 @@
 
     <!-- FAB JS -->
     {% if current_user.is_authenticated and (current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management or current_user.perm_do_salidas or current_user.perm_create_oc_standard) %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         var fabMain  = document.getElementById('fabMain');
         var fabItems = document.querySelectorAll('#fabItems .fab-item');
@@ -1563,7 +1563,7 @@
 
     <!-- QUICK ADJUST JS -->
     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         var modal        = document.getElementById('quickAdjustModal');
         if (!modal) return;
@@ -1661,7 +1661,7 @@
     {% if current_user.is_authenticated %}
     <script src="{{ url_for('static', filename='js/offline-queue.js') }}"></script>
     {% endif %}
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js', { scope: '/' })
             .then(reg => {
@@ -1678,7 +1678,7 @@
         <span id="offlineBannerDot" style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block;"></span>
         <span id="offlineBannerText">Sin conexión</span>
     </div>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         const banner  = document.getElementById('offlineBanner');
         const dot     = document.getElementById('offlineBannerDot');
@@ -1705,7 +1705,7 @@
             <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwaDismissed','1')" style="background:rgba(255,255,255,.08);color:#94a3b8;border:none;border-radius:.5rem;padding:.6rem .9rem;cursor:pointer;font-size:.875rem;">Ahora no</button>
         </div>
     </div>
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         if (localStorage.getItem('pwaDismissed') || window.matchMedia('(display-mode: standalone)').matches) return;
         let deferredPrompt = null;
@@ -1718,7 +1718,7 @@
     </script>
 
     <!-- FALLBACK PROFILE PIC -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     (function () {
         var FALLBACK = "{{ url_for('static', filename='img/default_avatar.svg') }}";
         document.addEventListener('error', function (e) {

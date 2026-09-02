@@ -292,7 +292,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     var _cachedMensual = null;
     var _chartMensual  = null;

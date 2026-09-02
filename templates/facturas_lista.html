@@ -223,7 +223,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 /* Loading state en botones de pago — UI UX Pro Max: Loading Buttons (High) */
 document.querySelectorAll('form[action*="marcar-pagada"] button[type="submit"]').forEach(btn => {
     btn.closest('form').addEventListener('submit', function () {

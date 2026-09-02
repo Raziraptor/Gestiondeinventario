@@ -119,7 +119,7 @@
 #lista_productos .item-producto .meta   { font-size: 0.76rem; color: var(--bs-secondary-color); }
 </style>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.addEventListener('DOMContentLoaded', function () {
     const selAlmacen    = document.getElementById('sel_almacen');
     const buscarInput   = document.getElementById('buscar_producto');

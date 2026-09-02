@@ -127,7 +127,7 @@
 <audio id="audio_beep" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
 <!-- JAVASCRIPT -->
-<script>
+<script nonce="{{ csp_nonce() }}">
     // Datos de productos
     var productosDisponibles = {{ productos | tojson | safe }};
 
@@ -407,7 +407,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const form = document.getElementById('form_salida');
     if (!form || !window.OfflineQueue) return;

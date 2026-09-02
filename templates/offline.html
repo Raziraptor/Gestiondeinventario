@@ -109,7 +109,7 @@
 
     <footer>Gestor de Inventario · modo sin conexión</footer>
 
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Mostrar páginas disponibles en caché
         (async function() {
             const cached = document.getElementById('cachedPages');

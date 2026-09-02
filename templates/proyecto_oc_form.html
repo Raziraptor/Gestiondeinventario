@@ -199,7 +199,7 @@
     </div>
 </template>
 
-<script>
+<script nonce="{{ csp_nonce() }}">
     // Configuración Base
     const productosBase = {% if productos %}{{ productos | tojson | safe }}{% else %}[]{% endif %};
     const contenedor = document.getElementById('lineas_items_container');

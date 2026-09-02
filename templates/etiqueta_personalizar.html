@@ -247,7 +247,7 @@
 
 {% block scripts %}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;700&family=Oswald:wght@400;700&display=swap" rel="stylesheet">
-<script>
+<script nonce="{{ csp_nonce() }}">
 // ── Fuentes ──────────────────────────────────────────────────────────────────
 document.querySelectorAll('.font-card').forEach(c => {
   c.addEventListener('click', () => {

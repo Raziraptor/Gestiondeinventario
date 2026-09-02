@@ -208,7 +208,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     // Spinner on submit
     var form = document.getElementById('loginForm');
