@@ -413,3 +413,50 @@ def register_commands(app):
             """))
             conn.commit()
         print('fix-incidencias-v2: columnas descripcion_lesionados y asignado_user_id agregadas.')
+
+    @app.cli.command('fix-add-chatbot')
+    @with_appcontext
+    def fix_add_chatbot():
+        """Crea tablas del chatbot de soporte. Idempotente."""
+        from app.extensions import db
+        with db.engine.connect() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS chat_conversacion (
+                    id SERIAL PRIMARY KEY,
+                    organizacion_id INTEGER NOT NULL REFERENCES organizacion(id) ON DELETE CASCADE,
+                    usuario_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                    creado_en TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+            """))
+            conn.commit()
+            print('OK: chat_conversacion')
+
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS chat_mensaje (
+                    id SERIAL PRIMARY KEY,
+                    conversacion_id INTEGER NOT NULL REFERENCES chat_conversacion(id) ON DELETE CASCADE,
+                    rol VARCHAR(10) NOT NULL,
+                    contenido TEXT NOT NULL,
+                    creado_en TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+            """))
+            conn.commit()
+            print('OK: chat_mensaje')
+
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS soporte_reporte (
+                    id SERIAL PRIMARY KEY,
+                    organizacion_id INTEGER NOT NULL REFERENCES organizacion(id) ON DELETE CASCADE,
+                    usuario_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+                    titulo VARCHAR(300) NOT NULL,
+                    descripcion TEXT NOT NULL,
+                    conversacion_id INTEGER REFERENCES chat_conversacion(id) ON DELETE SET NULL,
+                    estado VARCHAR(20) NOT NULL DEFAULT 'abierto',
+                    nota_admin TEXT,
+                    creado_en TIMESTAMP NOT NULL DEFAULT NOW(),
+                    actualizado_en TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+            """))
+            conn.commit()
+            print('OK: soporte_reporte')
+        print('fix-add-chatbot completado.')

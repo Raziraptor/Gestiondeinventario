@@ -121,6 +121,9 @@ def _register_blueprints(app):
     from .blueprints.incidents import incidents_bp
     app.register_blueprint(incidents_bp)
 
+    from .blueprints.chatbot import chatbot_bp
+    app.register_blueprint(chatbot_bp)
+
 
 def _register_security_headers(app):
     from flask import g
@@ -161,7 +164,7 @@ def _register_context_processors(app):
     @app.context_processor
     def inject_nav_badges():
         if not current_user.is_authenticated or not current_user.organizacion_id:
-            return {'nav_badges': {}, 'aprobaciones_badge': 0, 'servicios_badge': 0}
+            return {'nav_badges': {}, 'aprobaciones_badge': 0, 'servicios_badge': 0, 'soporte_badge': 0}
         try:
             org_id = current_user.organizacion_id
             cached = _badge_cache.get(org_id)
@@ -169,7 +172,7 @@ def _register_context_processors(app):
                 return cached[1]
 
             from datetime import date
-            from .models import OrdenCompra, PagoServicio, Servicio, Stock, Almacen, SolicitudAprobacion
+            from .models import OrdenCompra, PagoServicio, Servicio, Stock, Almacen, SolicitudAprobacion, SoporteReporte
             servicios_vencidos = PagoServicio.query.join(Servicio).filter(
                 Servicio.organizacion_id == org_id,
                 PagoServicio.estado.in_(['pendiente', 'vencido']),
@@ -178,6 +181,9 @@ def _register_context_processors(app):
             aprobaciones = SolicitudAprobacion.query.filter_by(
                 organizacion_id=org_id, estado='pendiente'
             ).count()
+            soporte_abiertos = SoporteReporte.query.filter_by(
+                organizacion_id=org_id, estado='abierto'
+            ).count() if current_user.rol in ('admin', 'super_admin') else 0
             payload = {'nav_badges': {
                 'oc_pendientes': OrdenCompra.query.filter_by(
                     organizacion_id=org_id, estado='aprobada').count(),
@@ -190,6 +196,7 @@ def _register_context_processors(app):
             },
             'aprobaciones_badge': aprobaciones,
             'servicios_badge': servicios_vencidos,
+            'soporte_badge': soporte_abiertos,
             }
             # L-13: evict expired entries if cache is at capacity
             if len(_badge_cache) >= _BADGE_CACHE_MAX:
@@ -201,7 +208,7 @@ def _register_context_processors(app):
             _badge_cache[org_id] = (time.time() + _BADGE_TTL, payload)
             return payload
         except Exception:
-            return {'nav_badges': {}}
+            return {'nav_badges': {}, 'aprobaciones_badge': 0, 'servicios_badge': 0, 'soporte_badge': 0}
 
     @app.context_processor
     def inject_vapid_key():

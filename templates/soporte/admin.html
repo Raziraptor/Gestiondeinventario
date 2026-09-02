@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes de Soporte{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="ph ph-grid-four me-1" style="font-size:.75rem;" aria-hidden="true"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">Reportes de Soporte</li>
+        </ol>
+    </nav>
+
+    <div class="page-header mb-4">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title">
+                    <i class="ph ph-fill ph-flag text-warning me-2" aria-hidden="true"></i>Reportes de Soporte
+                    {% if pendientes > 0 %}
+                    <span class="badge bg-danger rounded-pill ms-1 fs-6">{{ pendientes }}</span>
+                    {% endif %}
+                </h1>
+                <p class="page-subtitle">Revisa y gestiona los fallos reportados por los usuarios.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="small fw-bold text-muted me-1">Filtrar:</span>
+                <a href="{{ url_for('chatbot.admin_reportes', estado='abierto') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-danger' if estado_filtro == 'abierto' else 'btn-outline-secondary' }}">
+                    <i class="ph ph-circle me-1" aria-hidden="true"></i>Abiertos
+                    {% if pendientes > 0 %}<span class="badge bg-white text-danger ms-1 rounded-pill" style="font-size:.7rem;">{{ pendientes }}</span>{% endif %}
+                </a>
+                <a href="{{ url_for('chatbot.admin_reportes', estado='en_revision') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-warning' if estado_filtro == 'en_revision' else 'btn-outline-secondary' }}">
+                    <i class="ph ph-hourglass me-1" aria-hidden="true"></i>En revisión
+                </a>
+                <a href="{{ url_for('chatbot.admin_reportes', estado='resuelto') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-success' if estado_filtro == 'resuelto' else 'btn-outline-secondary' }}">
+                    <i class="ph ph-check-circle me-1" aria-hidden="true"></i>Resueltos
+                </a>
+                <a href="{{ url_for('chatbot.admin_reportes') }}"
+                   class="btn btn-sm rounded-pill fw-semibold {{ 'btn-primary' if not estado_filtro else 'btn-outline-secondary' }}">
+                    Todos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    {% if reportes.items %}
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="small text-muted text-uppercase border-bottom border-secondary border-opacity-10">
+                            <th class="ps-4 py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">#</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Título</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Usuario</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Fecha</th>
+                            <th class="py-3 fw-bold" style="font-size:.75rem;letter-spacing:.4px;">Estado</th>
+                            <th class="pe-4 py-3 fw-bold text-end" style="font-size:.75rem;letter-spacing:.4px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reporte in reportes.items %}
+                        <tr>
+                            <td class="ps-4 py-3 small text-muted fw-bold">#{{ reporte.id }}</td>
+                            <td class="py-3" style="max-width:300px;">
+                                <div class="fw-semibold text-body" style="font-size:.875rem;">{{ reporte.titulo }}</div>
+                                {% if reporte.nota_admin %}
+                                <div class="small text-muted mt-1 text-truncate" style="max-width:280px;">
+                                    <i class="ph ph-note me-1" aria-hidden="true"></i>{{ reporte.nota_admin }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                                         style="width:28px;height:28px;font-size:.75rem;">
+                                        {{ reporte.usuario.username[0]|upper }}
+                                    </div>
+                                    <span class="small">{{ reporte.usuario.username }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 small text-muted">
+                                {{ reporte.creado_en.strftime('%d/%m/%Y %H:%M') }}
+                            </td>
+                            <td class="py-3">
+                                {% if reporte.estado == 'abierto' %}
+                                <span class="badge bg-danger-subtle text-danger-emphasis rounded-pill" style="font-size:.72rem;">Abierto</span>
+                                {% elif reporte.estado == 'en_revision' %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill" style="font-size:.72rem;">En revisión</span>
+                                {% else %}
+                                <span class="badge bg-success-subtle text-success-emphasis rounded-pill" style="font-size:.72rem;">Resuelto</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 py-3 text-end">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill" style="font-size:.75rem;"
+                                        data-bs-toggle="modal" data-bs-target="#modalDetalle{{ reporte.id }}"
+                                        aria-label="Ver detalle del reporte #{{ reporte.id }}">
+                                    <i class="ph ph-eye me-1" aria-hidden="true"></i>Ver
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if reportes.pages > 1 %}
+    <nav class="mt-4 d-flex justify-content-center" aria-label="Paginación">
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item {% if not reportes.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('chatbot.admin_reportes', page=reportes.prev_num or 1, estado=estado_filtro) }}">‹</a>
+            </li>
+            {% for p in reportes.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+            <li class="page-item {% if p == reportes.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('chatbot.admin_reportes', page=p, estado=estado_filtro) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not reportes.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{{ url_for('chatbot.admin_reportes', page=reportes.next_num or reportes.pages, estado=estado_filtro) }}">›</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="text-center text-muted py-5">
+        <i class="ph ph-check-circle" style="font-size:3rem;opacity:.35;" aria-hidden="true"></i>
+        <div class="mt-2">No hay reportes en esta categoría.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+{% for reporte in reportes.items %}
+<div class="modal fade" id="modalDetalle{{ reporte.id }}" tabindex="-1"
+     aria-labelledby="modalDetalleLabel{{ reporte.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalDetalleLabel{{ reporte.id }}">
+                    #{{ reporte.id }} — {{ reporte.titulo }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <div class="mb-3">
+                    <div class="small text-muted fw-semibold mb-1">Descripción del usuario</div>
+                    <div class="bg-body-tertiary rounded-3 p-3 small" style="white-space:pre-wrap;">{{ reporte.descripcion }}</div>
+                </div>
+                <form method="POST" action="{{ url_for('chatbot.actualizar_estado', reporte_id=reporte.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="estado{{ reporte.id }}">Estado</label>
+                        <select class="form-select form-select-sm" name="estado" id="estado{{ reporte.id }}">
+                            <option value="abierto" {% if reporte.estado == 'abierto' %}selected{% endif %}>Abierto</option>
+                            <option value="en_revision" {% if reporte.estado == 'en_revision' %}selected{% endif %}>En revisión</option>
+                            <option value="resuelto" {% if reporte.estado == 'resuelto' %}selected{% endif %}>Resuelto</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small" for="nota{{ reporte.id }}">Nota interna (opcional)</label>
+                        <textarea class="form-control form-control-sm" name="nota_admin" id="nota{{ reporte.id }}"
+                                  rows="3" placeholder="Explica la resolución o deja una nota para el equipo…">{{ reporte.nota_admin or '' }}</textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

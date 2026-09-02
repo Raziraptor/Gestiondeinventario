@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+
+{% block title %}Chat de Soporte{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}"><i class="ph ph-grid-four me-1" style="font-size:.75rem;" aria-hidden="true"></i>Dashboard</a></li>
+            <li class="breadcrumb-item active">Chat de Soporte</li>
+        </ol>
+    </nav>
+
+    <div class="page-header mb-4">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title">
+                    <i class="ph ph-fill ph-chat-circle-dots text-primary me-2" aria-hidden="true"></i>Chat de Soporte
+                </h1>
+                <p class="page-subtitle">Haz preguntas sobre el sistema o reporta problemas al equipo.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Panel de chat -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 d-flex flex-column" style="min-height:520px;">
+                <!-- Mensajes -->
+                <div class="card-body flex-1 overflow-auto p-3" id="chatMessages" style="max-height:420px;scroll-behavior:smooth;">
+                    <div id="emptyState" class="text-center text-muted py-5">
+                        <i class="ph ph-chat-dots" style="font-size:3rem;opacity:.35;" aria-hidden="true"></i>
+                        <div class="mt-2" style="font-size:.9rem;">Escribe tu pregunta para comenzar.</div>
+                    </div>
+                </div>
+
+                <!-- Input -->
+                <div class="card-footer bg-transparent border-top p-3">
+                    <form id="chatForm" class="d-flex gap-2 align-items-end">
+                        <textarea id="chatInput" class="form-control" rows="1"
+                                  placeholder="Escribe tu mensaje… (Enter para enviar)"
+                                  style="resize:none;max-height:120px;overflow-y:auto;"
+                                  aria-label="Mensaje"></textarea>
+                        <button type="submit" class="btn btn-primary px-3 flex-shrink-0" id="sendBtn" aria-label="Enviar">
+                            <span id="sendLabel"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i></span>
+                            <span id="sendSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aside -->
+        <div class="col-lg-4">
+            <!-- Instrucciones -->
+            <div class="card border-0 shadow-sm rounded-4 mb-3">
+                <div class="card-body p-3">
+                    <h6 class="fw-bold mb-2"><i class="ph ph-info text-primary me-1" aria-hidden="true"></i>¿Cómo funciona?</h6>
+                    <ul class="small text-muted ps-3 mb-0" style="line-height:1.8;">
+                        <li>Haz cualquier pregunta sobre cómo usar el sistema.</li>
+                        <li>Pide ayuda con inventario, OC, finanzas, reportes, etc.</li>
+                        <li>Si encuentras un error, usa <strong>Reportar fallo</strong> para notificar al equipo.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Botón de reporte -->
+            <div class="card border-0 shadow-sm rounded-4 border-start border-4 border-warning">
+                <div class="card-body p-3">
+                    <h6 class="fw-bold mb-1"><i class="ph ph-warning text-warning me-1" aria-hidden="true"></i>¿Encontraste un problema?</h6>
+                    <p class="small text-muted mb-3">Reporta el fallo para que los administradores lo revisen.</p>
+                    <button class="btn btn-outline-warning btn-sm w-100" data-bs-toggle="modal" data-bs-target="#modalReporte"
+                            id="btnReportar">
+                        <i class="ph ph-flag me-1" aria-hidden="true"></i>Reportar fallo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de reporte -->
+<div class="modal fade" id="modalReporte" tabindex="-1" aria-labelledby="modalReporteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalReporteLabel">
+                    <i class="ph ph-flag text-warning me-2" aria-hidden="true"></i>Reportar fallo
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <div class="mb-3">
+                    <label for="reporteTitulo" class="form-label fw-semibold small">Título del problema</label>
+                    <input type="text" class="form-control" id="reporteTitulo" placeholder="Ej: Error al guardar producto" maxlength="300">
+                </div>
+                <div class="mb-3">
+                    <label for="reporteDescripcion" class="form-label fw-semibold small">Descripción</label>
+                    <textarea class="form-control" id="reporteDescripcion" rows="4"
+                              placeholder="Describe qué pasó, qué intentabas hacer y cualquier mensaje de error que viste."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" id="btnEnviarReporte">
+                    <span id="reporteLabel">Enviar reporte</span>
+                    <span id="reporteSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function() {
+    const CSRF = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    let conversacionId = null;
+    try { conversacionId = sessionStorage.getItem('chatbot_conv_id'); } catch(e) {}
+
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput    = document.getElementById('chatInput');
+    const chatForm     = document.getElementById('chatForm');
+    const sendBtn      = document.getElementById('sendBtn');
+    const sendLabel    = document.getElementById('sendLabel');
+    const sendSpinner  = document.getElementById('sendSpinner');
+    const emptyState   = document.getElementById('emptyState');
+
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function formatTime(d) {
+        return d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+    }
+
+    function appendMsg(rol, texto) {
+        if (emptyState) emptyState.style.display = 'none';
+        const isUser = rol === 'user';
+        const now = formatTime(new Date());
+        const div = document.createElement('div');
+        div.className = 'd-flex mb-3 ' + (isUser ? 'justify-content-end' : 'justify-content-start');
+        div.innerHTML = `
+            <div style="max-width:75%;">
+                <div class="rounded-4 px-3 py-2 ${isUser ? 'bg-primary text-white' : 'bg-body-tertiary border'}"
+                     style="font-size:.875rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;">${escHtml(texto)}</div>
+                <div class="text-muted mt-1 ${isUser ? 'text-end' : ''}" style="font-size:.7rem;">${now}</div>
+            </div>`;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function setLoading(on) {
+        sendBtn.disabled = on;
+        sendLabel.classList.toggle('d-none', on);
+        sendSpinner.classList.toggle('d-none', !on);
+    }
+
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatForm.requestSubmit(); }
+    });
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    chatForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const texto = chatInput.value.trim();
+        if (!texto) return;
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+        appendMsg('user', texto);
+        setLoading(true);
+
+        try {
+            const r = await fetch('/api/chat/mensaje', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-CSRFToken': CSRF},
+                body: JSON.stringify({mensaje: texto, conversacion_id: conversacionId ? Number(conversacionId) : null}),
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'Error');
+            conversacionId = String(data.conversacion_id);
+            try { sessionStorage.setItem('chatbot_conv_id', conversacionId); } catch(e) {}
+            appendMsg('assistant', data.respuesta);
+        } catch(err) {
+            appendMsg('assistant', '⚠️ ' + (err.message || 'Error al contactar el servidor.'));
+        } finally {
+            setLoading(false);
+            chatInput.focus();
+        }
+    });
+
+    // Reporte
+    const btnReportar      = document.getElementById('btnReportar');
+    const btnEnviarReporte = document.getElementById('btnEnviarReporte');
+    const reporteTitulo    = document.getElementById('reporteTitulo');
+    const reporteDescripcion = document.getElementById('reporteDescripcion');
+    const reporteLabel     = document.getElementById('reporteLabel');
+    const reporteSpinner   = document.getElementById('reporteSpinner');
+
+    // Pre-llenar descripción con el último mensaje del usuario
+    document.getElementById('modalReporte').addEventListener('show.bs.modal', function() {
+        const msgs = chatMessages.querySelectorAll('.justify-content-end .bg-primary');
+        if (msgs.length) {
+            reporteDescripcion.value = msgs[msgs.length - 1].textContent.trim();
+        }
+    });
+
+    btnEnviarReporte.addEventListener('click', async function() {
+        const titulo = reporteTitulo.value.trim();
+        const desc   = reporteDescripcion.value.trim();
+        if (!titulo || !desc) { alert('Por favor completa el título y la descripción.'); return; }
+
+        btnEnviarReporte.disabled = true;
+        reporteLabel.classList.add('d-none');
+        reporteSpinner.classList.remove('d-none');
+
+        try {
+            const r = await fetch('/api/chat/reporte', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json','X-CSRFToken': CSRF},
+                body: JSON.stringify({titulo, descripcion: desc, conversacion_id: conversacionId ? Number(conversacionId) : null}),
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || 'Error');
+            bootstrap.Modal.getInstance(document.getElementById('modalReporte')).hide();
+            reporteTitulo.value = '';
+            reporteDescripcion.value = '';
+            // Mostrar confirmación en el chat
+            appendMsg('assistant', '✅ Tu reporte fue enviado. El equipo de administración lo revisará pronto.');
+        } catch(err) {
+            alert('Error al enviar el reporte: ' + (err.message || 'intenta de nuevo.'));
+        } finally {
+            btnEnviarReporte.disabled = false;
+            reporteLabel.classList.remove('d-none');
+            reporteSpinner.classList.add('d-none');
+        }
+    });
+})();
+</script>
+{% endblock %}

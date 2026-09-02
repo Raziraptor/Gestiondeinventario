@@ -234,14 +234,26 @@ def api_buscar_productos():
         (Producto.codigo.ilike(f'%{query}%'))
     ).filter_by(organizacion_id=current_user.organizacion_id).limit(10).all()
 
+    org_id = current_user.organizacion_id
     resultados = []
     for p in productos:
+        stocks_data = (
+            db.session.query(Stock, Almacen)
+            .join(Almacen, Stock.almacen_id == Almacen.id)
+            .filter(Stock.producto_id == p.id, Almacen.organizacion_id == org_id)
+            .order_by(Stock.cantidad.desc())
+            .all()
+        )
         resultados.append({
             'id': p.id,
-            'texto_mostrar': f"{p.nombre} (SKU: {p.codigo})",  # Lo que se ve en la lista
+            'texto_mostrar': f"{p.nombre} (SKU: {p.codigo})",
             'nombre': p.nombre,
             'codigo': p.codigo,
-            'precio': p.precio_unitario
+            'precio': p.precio_unitario,
+            'stocks': [
+                {'almacen': alm.nombre, 'cantidad': s.cantidad, 'ubicacion': s.ubicacion or ''}
+                for s, alm in stocks_data
+            ],
         })
 
     return jsonify(resultados)

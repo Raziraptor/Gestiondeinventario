@@ -12,6 +12,7 @@ from .finance import (Gasto, Servicio, PagoServicio, FacturaProveedor,
                       CentroCosto, Presupuesto)
 from .system import AuditLog, PushSubscription, SolicitudAprobacion
 from .incidencias import Incidencia, IncidenciaAvance, IncidenciaAccion, IncidenciaCosto
+from .chatbot import ChatConversacion, ChatMensaje, SoporteReporte
 
 __all__ = [
     'Organizacion', 'User', 'TokenUsado',
@@ -23,4 +24,5 @@ __all__ = [
     'CentroCosto', 'Presupuesto',
     'AuditLog', 'PushSubscription', 'SolicitudAprobacion',
     'Incidencia', 'IncidenciaAvance', 'IncidenciaAccion', 'IncidenciaCosto',
+    'ChatConversacion', 'ChatMensaje', 'SoporteReporte',
 ]

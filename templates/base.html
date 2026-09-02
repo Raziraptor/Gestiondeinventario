@@ -822,6 +822,26 @@
                 </a>
                 {% endif %}
 
+                <!-- Soporte -->
+                {% if current_user.organizacion_id %}
+                <div class="sb-kicker">Soporte</div>
+                <a href="{{ url_for('chatbot.chat_page') }}"
+                   class="sb-item {% if request.endpoint and request.endpoint.startswith('chatbot.') and request.endpoint != 'chatbot.admin_reportes' %}active{% endif %}">
+                    <i class="ph ph-fill ph-chat-circle-dots" aria-hidden="true"></i>
+                    Chat IA
+                </a>
+                {% if current_user.rol in ['admin', 'super_admin'] %}
+                <a href="{{ url_for('chatbot.admin_reportes') }}"
+                   class="sb-item {% if request.endpoint == 'chatbot.admin_reportes' %}active{% endif %}">
+                    <i class="ph ph-fill ph-flag" aria-hidden="true"></i>
+                    Reportes de soporte
+                    {% if soporte_badge > 0 %}
+                    <span class="sb-badge">{{ soporte_badge }}</span>
+                    {% endif %}
+                </a>
+                {% endif %}
+                {% endif %}
+
                 <!-- Sistema -->
                 <div class="sb-kicker">Sistema</div>
 
@@ -1399,14 +1419,27 @@
                 results.innerHTML = '<div class="p-3 text-center text-muted" style="font-size:.875rem;"><i class="bi bi-search me-1"></i>Sin resultados para "' + escHtml(q) + '"</div>';
                 return;
             }
-            results.innerHTML = data.slice(0, 8).map(p => `
-                <a href="/producto/editar/${p.id}" class="cmd-result-item" role="option">
+            results.innerHTML = data.slice(0, 8).map(p => {
+                let stockHtml = '';
+                if (p.stocks && p.stocks.length) {
+                    const pills = p.stocks.map(s => {
+                        const cls = s.cantidad <= 0 ? 'danger' : s.cantidad < 5 ? 'warning' : 'success';
+                        const ub = s.ubicacion ? ' · ' + escHtml(s.ubicacion) : '';
+                        return `<span class="cmd-stock-pill badge bg-${cls}-subtle text-${cls}-emphasis"><i class="ph ph-warehouse" aria-hidden="true"></i> ${escHtml(s.almacen)} <strong>${s.cantidad}</strong>${ub}</span>`;
+                    }).join('');
+                    stockHtml = `<div class="cmd-stock-grid">${pills}</div>`;
+                } else {
+                    stockHtml = '<div class="cmd-stock-none text-muted">Sin stock registrado</div>';
+                }
+                return `<a href="/producto/editar/${p.id}" class="cmd-result-item" role="option">
                     <div class="cmd-result-icon"><i class="bi bi-box-seam text-muted"></i></div>
                     <div class="flex-1">
                         <div class="fw-semibold" style="font-size:.875rem;line-height:1.3;">${escHtml(p.nombre)}</div>
                         <div class="cmd-result-type">Producto · SKU: ${escHtml(p.codigo)}</div>
+                        ${stockHtml}
                     </div>
-                </a>`).join('');
+                </a>`;
+            }).join('');
             results.querySelectorAll('.cmd-result-item').forEach(el => el.addEventListener('click', close));
         }
 
