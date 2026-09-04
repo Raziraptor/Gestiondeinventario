@@ -51,7 +51,7 @@
             <div id="reader-container" class="mb-4 shadow-sm surface-panel rounded-4 p-3" style="display: none;">
                 <div id="reader" style="width: 100%; border-radius: 8px; overflow: hidden;"></div>
                 <div class="text-center mt-3">
-                    <button type="button" class="btn btn-danger btn-sm fw-bold rounded-pill shadow-sm px-4" onclick="detenerEscaner()">
+                    <button type="button" id="btn_detener_cam_salida" class="btn btn-danger btn-sm fw-bold rounded-pill shadow-sm px-4">
                         <i class="bi bi-stop-circle me-1"></i> Detener Cámara
                     </button>
                     <small class="d-block text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Apunta la cámara al código de barras o QR</small>
@@ -68,7 +68,7 @@
                            placeholder="Escribe Nombre, SKU o usa el escáner..." autocomplete="off">
                     
                     <!-- BOTÓN PARA ACTIVAR CÁMARA -->
-                    <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" onclick="iniciarEscaner()" title="Escanear con cámara">
+                    <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" title="Escanear con cámara">
                         <i class="bi bi-qr-code-scan"></i> <span class="d-none d-sm-inline ms-1">Escanear</span>
                     </button>
                 </div>
@@ -370,7 +370,7 @@
             </div>
 
             <div class="col-12 col-md-1 d-flex align-items-end" style="height: 68px;">
-                <button type="button" class="btn btn-outline-danger w-100 rounded-3 shadow-sm h-100" onclick="eliminarLinea(this)" title="Quitar">
+                <button type="button" class="btn btn-outline-danger w-100 rounded-3 shadow-sm h-100 btn-quitar-linea-sal" title="Quitar">
                     <i class="bi bi-trash fs-5"></i>
                 </button>
             </div>
@@ -393,6 +393,13 @@
         const items = document.getElementsByName('producto_id[]');
         contadorItems.innerText = `${items.length} item(s)`;
     }
+
+    document.getElementById('btn_escanear').addEventListener('click', iniciarEscaner);
+    document.getElementById('btn_detener_cam_salida').addEventListener('click', detenerEscaner);
+    container.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-quitar-linea-sal');
+        if (btn) window.eliminarLinea(btn);
+    });
 
     /* Loading state — UI UX Pro Max: "Loading Buttons" High */
     document.getElementById('form_salida').addEventListener('submit', function(e) {

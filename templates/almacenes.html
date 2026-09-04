@@ -86,10 +86,11 @@
                                 <!-- BOTÓN ELIMINAR → abre modal de transferencia -->
                                 {% if current_user.rol in ['super_admin', 'admin'] %}
                                 <button type="button"
-                                        class="btn btn-accion btn-sm btn-outline-danger shadow-sm rounded-pill px-3"
+                                        class="btn btn-accion btn-sm btn-outline-danger shadow-sm rounded-pill px-3 btn-del-almacen"
                                         title="Eliminar Almacén"
                                         aria-label="Eliminar almacén {{ alm.nombre }}"
-                                        onclick="abrirModalEliminarAlmacen({{ alm.id }}, '{{ alm.nombre | replace("'", "\\'") }}')">
+                                        data-alm-id="{{ alm.id }}"
+                                        data-alm-nombre="{{ alm.nombre | e }}">
                                     <i class="bi bi-trash" aria-hidden="true"></i>
                                 </button>
                                 {% endif %}
@@ -164,7 +165,7 @@
             <label class="d-flex align-items-center gap-2 rounded-3 px-3 py-2 w-50"
                    id="lblModoUno"
                    style="border:2px solid var(--accent);background:var(--hover-bg);cursor:pointer;">
-              <input type="radio" name="elmModo" value="uno" checked onchange="elmToggleModo()">
+              <input type="radio" name="elmModo" value="uno" checked>
               <div>
                 <div class="fw-semibold" style="font-size:.84rem;">Un solo almacén</div>
                 <div style="font-size:.74rem;color:var(--muted);">Todo va al mismo destino</div>
@@ -173,7 +174,7 @@
             <label class="d-flex align-items-center gap-2 rounded-3 px-3 py-2 w-50"
                    id="lblModoSep"
                    style="border:1px solid var(--border);cursor:pointer;">
-              <input type="radio" name="elmModo" value="separado" onchange="elmToggleModo()">
+              <input type="radio" name="elmModo" value="separado">
               <div>
                 <div class="fw-semibold" style="font-size:.84rem;">Por producto</div>
                 <div style="font-size:.74rem;color:var(--muted);">Elige destino por ítem</div>
@@ -324,6 +325,16 @@
     document.getElementById('lblModoUno').style.border = esUno ? '2px solid var(--accent)' : '1px solid var(--border)';
     document.getElementById('lblModoSep').style.border = esUno ? '1px solid var(--border)' : '2px solid var(--accent)';
   };
+
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-del-almacen');
+    if (!btn) return;
+    window.abrirModalEliminarAlmacen(parseInt(btn.dataset.almId), btn.dataset.almNombre);
+  });
+
+  document.getElementById('elmRadioWrap').addEventListener('change', function(e) {
+    if (e.target.name === 'elmModo') window.elmToggleModo();
+  });
 
   document.getElementById('formEliminarAlmacen').addEventListener('submit', function (e) {
     /* C-10: bloquear si el fetch de verificación falló */

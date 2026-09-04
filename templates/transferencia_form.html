@@ -32,7 +32,7 @@
                         <label class="form-label fw-bold small text-muted text-uppercase mb-1">
                             <i class="bi bi-box-arrow-right text-danger me-1"></i> Almacén Origen
                         </label>
-                        <select name="almacen_origen_id" id="sel_origen" class="form-select shadow-sm" required onchange="cargarProductos()">
+                        <select name="almacen_origen_id" id="sel_origen" class="form-select shadow-sm" required>
                             <option value="">-- Seleccionar --</option>
                             {% for a in almacenes %}
                             <option value="{{ a.id }}">{{ a.nombre }}</option>
@@ -48,7 +48,7 @@
                         <label class="form-label fw-bold small text-muted text-uppercase mb-1">
                             <i class="bi bi-box-arrow-in-right text-success me-1"></i> Almacén Destino
                         </label>
-                        <select name="almacen_destino_id" id="sel_destino" class="form-select shadow-sm" required onchange="validarFormulario()">
+                        <select name="almacen_destino_id" id="sel_destino" class="form-select shadow-sm" required>
                             <option value="">-- Seleccionar --</option>
                             {% for a in almacenes %}
                             <option value="{{ a.id }}">{{ a.nombre }}</option>
@@ -89,7 +89,7 @@
                         <i class="bi bi-123 text-primary me-1"></i> Cantidad a Transferir
                     </label>
                     <input type="number" name="cantidad" id="input_cantidad" class="form-control form-control-lg shadow-sm text-center fw-bold"
-                           min="1" required placeholder="0" disabled oninput="validarFormulario()">
+                           min="1" required placeholder="0" disabled>
                 </div>
 
                 <!-- MOTIVO -->
@@ -270,6 +270,10 @@ document.addEventListener('DOMContentLoaded', function () {
             inputCant.classList.remove('is-invalid');
         }
     };
+
+    selOrigen.addEventListener('change', window.cargarProductos);
+    selDestino.addEventListener('change', window.validarFormulario);
+    inputCant.addEventListener('input', window.validarFormulario);
 });
 </script>
 {% endblock %}

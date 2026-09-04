@@ -87,7 +87,7 @@
                     <p class="text-muted small mb-3">o haz click para seleccionar</p>
                     <input type="file" name="archivo" id="archivoInput" accept=".xlsx,.csv" class="d-none">
                     <button type="button" class="btn btn-outline-primary rounded-pill px-4 fw-bold"
-                            onclick="document.getElementById('archivoInput').click()">
+                            id="btn_seleccionar_archivo">
                         <i class="bi bi-folder2-open me-1"></i> Seleccionar archivo
                     </button>
                     <p class="text-muted mt-2 mb-0" style="font-size:.8rem;">Formatos: .xlsx, .csv · Máximo 10MB</p>
@@ -182,6 +182,9 @@
             showFile(file);
         }
     });
+
+    const btnSel = document.getElementById('btn_seleccionar_archivo');
+    if (btnSel) btnSel.addEventListener('click', function() { input.click(); });
 
     // Mostrar spinner al enviar
     document.getElementById('importForm').addEventListener('submit', function() {

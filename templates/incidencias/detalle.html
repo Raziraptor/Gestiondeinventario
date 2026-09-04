@@ -43,7 +43,7 @@
       </a>
       {% if es_admin %}
       <form method="post" action="{{ url_for('incidents.eliminar_incidencia', id=inc.id) }}"
-            onsubmit="return confirm('¿Eliminar definitivamente esta incidencia?');" class="d-inline">
+            id="form_eliminar_incidencia" class="d-inline">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-outline-danger btn-sm">
           <i class="ph ph-trash me-1" aria-hidden="true"></i>Eliminar
@@ -421,4 +421,16 @@
   </div><!-- /row -->
 
 </div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function() {
+  const formEliminar = document.getElementById('form_eliminar_incidencia');
+  if (formEliminar) {
+    formEliminar.addEventListener('submit', function(e) {
+      if (!confirm('¿Eliminar definitivamente esta incidencia?')) e.preventDefault();
+    });
+  }
+})();
+</script>
 {% endblock %}

@@ -48,7 +48,7 @@
                             <div id="reader-container" class="mb-3 shadow-sm rounded-4 p-3 surface-panel" style="display: none;">
                                 <div id="reader" style="width: 100%; border-radius: 8px; overflow: hidden;"></div>
                                 <div class="text-center mt-3">
-                                    <button type="button" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="detenerEscaner()">
+                                    <button type="button" id="btn_detener_esc" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 shadow-sm">
                                         <i class="bi bi-stop-circle me-1"></i> Detener Cámara
                                     </button>
                                 </div>
@@ -59,7 +59,7 @@
                                 <span class="input-group-text text-primary"><i class="bi bi-upc-scan"></i></span>
                                 <input type="text" id="buscador" class="form-control fs-6"
                                        placeholder="Escribe Nombre, SKU o escanea..." autocomplete="off">
-                                <button class="btn btn-primary fw-bold px-3" type="button" id="btn_escanear" onclick="iniciarEscaner()" title="Escanear con cámara">
+                                <button class="btn btn-primary fw-bold px-3" type="button" id="btn_escanear" title="Escanear con cámara">
                                     <i class="bi bi-qr-code-scan"></i> <span class="d-none d-sm-inline ms-1">Escanear</span>
                                 </button>
                             </div>
@@ -87,7 +87,7 @@
                                       style="background:var(--hover-bg);color:var(--bs-secondary);border:1px solid var(--border);"
                                       id="lbl_sku_prod">---</span>
                             </div>
-                            <button type="button" class="btn-close" onclick="limpiarSeleccion()" title="Cambiar producto"></button>
+                            <button type="button" class="btn-close" id="btn_limpiar_sel" title="Cambiar producto"></button>
                         </div>
 
                         <!-- 3. FORMULARIO DE ENVÍO -->
@@ -102,7 +102,7 @@
                                     <label class="form-label small fw-bold text-muted">Cajas / Empaques</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="bi bi-box text-secondary"></i></span>
-                                        <input type="number" id="input_cajas" class="form-control text-center fw-bold" placeholder="-" disabled oninput="calcularDesdeCajas()" step="0.01" min="0">
+                                        <input type="number" id="input_cajas" class="form-control text-center fw-bold" placeholder="-" disabled step="0.01" min="0">
                                     </div>
                                     <div class="form-text text-info fw-bold mt-1" style="font-size: 0.75rem;" id="info_conversion">
                                         1 Caja = 1 Pza
@@ -110,7 +110,7 @@
                                 </div>
                                 <div class="col-6">
                                     <label class="form-label small fw-bold text-success">Total Unidades</label>
-                                    <input type="number" name="cantidad" id="input_unidades" class="form-control bg-white border-success text-success text-center fw-bold fs-5 shadow-sm" required oninput="limpiarCajas()" min="0">
+                                    <input type="number" name="cantidad" id="input_unidades" class="form-control bg-white border-success text-success text-center fw-bold fs-5 shadow-sm" required min="0">
                                     <div class="form-text text-muted mt-1" style="font-size: 0.75rem;">Cantidad física inicial.</div>
                                 </div>
                             </div>
@@ -166,9 +166,9 @@
                     <table class="table table-hover align-middle mb-0" id="tabla_inventario">
                         <thead class="table-light text-secondary text-uppercase small">
                             <tr>
-                                <th class="ps-4 border-0" style="cursor: pointer;" onclick="ordenarInventario(0)">Producto <i class="bi bi-arrow-down-up small ms-1 opacity-50"></i></th>
+                                <th class="ps-4 border-0 th-sortable-inv" data-col="0" style="cursor: pointer;">Producto <i class="bi bi-arrow-down-up small ms-1 opacity-50"></i></th>
                                 <th class="border-0">Ubicación</th>
-                                <th class="text-center border-0" style="cursor: pointer;" onclick="ordenarInventario(2, 'num')">Stock <i class="bi bi-arrow-down-up small ms-1 opacity-50"></i></th>
+                                <th class="text-center border-0 th-sortable-inv" data-col="2" data-tipo="num" style="cursor: pointer;">Stock <i class="bi bi-arrow-down-up small ms-1 opacity-50"></i></th>
                                 <th class="text-end pe-4 border-0">Acciones</th>
                             </tr>
                         </thead>
@@ -472,8 +472,15 @@
                 }
             });
         }
+
+    // Listeners para handlers que antes eran inline
+    document.getElementById('btn_escanear').addEventListener('click', window.iniciarEscaner);
+    document.getElementById('btn_detener_esc').addEventListener('click', window.detenerEscaner);
+    document.getElementById('btn_limpiar_sel').addEventListener('click', window.limpiarSeleccion);
+    inputCajas.addEventListener('input', window.calcularDesdeCajas);
+    inputUnidades.addEventListener('input', window.limpiarCajas);
     });
-    
+
     // --- 5. ORDENAMIENTO DE TABLAS ---
     let ordenAsc = true;
     function ordenarInventario(colIndex, tipo = 'str') {
@@ -503,5 +510,11 @@
 
         rowsArray.forEach(row => tbody.appendChild(row));
     }
+
+    document.querySelector('#tabla_inventario thead').addEventListener('click', function(e) {
+        const th = e.target.closest('.th-sortable-inv');
+        if (!th) return;
+        ordenarInventario(parseInt(th.dataset.col), th.dataset.tipo || 'str');
+    });
 </script>
 {% endblock %}

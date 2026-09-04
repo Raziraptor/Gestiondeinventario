@@ -309,7 +309,7 @@
                         <div class="mb-3">
                             <label class="form-label fw-semibold small text-muted mb-1">Subir imagen</label>
                             <input class="form-control form-control-sm" type="file" id="imagen" name="imagen"
-                                   onchange="previsualizarImagen(event)" accept="image/*">
+                                   accept="image/*">
                         </div>
 
                         <!-- Generador IA -->
@@ -322,8 +322,7 @@
                             <div class="input-group input-group-sm mb-2">
                                 <input type="text" id="ai-prompt-input" class="form-control"
                                        placeholder="Ej: Tornillo hexagonal M8" style="font-size:.82rem;">
-                                <button type="button" id="btn-generar-ai" class="btn btn-primary btn-sm fw-bold"
-                                        onclick="generarImagenIA()">
+                                <button type="button" id="btn-generar-ai" class="btn btn-primary btn-sm fw-bold">
                                     <i class="bi bi-magic me-1"></i>Generar
                                 </button>
                             </div>
@@ -333,11 +332,11 @@
                             </div>
                             <div id="ai-result" class="d-none">
                                 <div class="d-flex gap-2">
-                                    <button type="button" onclick="usarImagenIA()"
+                                    <button type="button" id="btn-usar-ai"
                                             class="btn btn-success btn-sm rounded-pill flex-fill fw-bold">
                                         <i class="bi bi-check-lg me-1"></i>Usar esta imagen
                                     </button>
-                                    <button type="button" onclick="generarImagenIA()"
+                                    <button type="button" id="btn-regenerar-ai"
                                             class="btn btn-outline-secondary btn-sm rounded-pill px-2" title="Regenerar">
                                         <i class="bi bi-arrow-clockwise"></i>
                                     </button>
@@ -370,6 +369,14 @@
 </div>
 
 <script nonce="{{ csp_nonce() }}">
+// ── LISTENERS (sustituyen onclick/onchange inline) ──────────
+document.getElementById('imagen').addEventListener('change', function(e) { previsualizarImagen(e); });
+document.getElementById('btn-generar-ai').addEventListener('click', generarImagenIA);
+var btnUsarAi = document.getElementById('btn-usar-ai');
+if (btnUsarAi) btnUsarAi.addEventListener('click', usarImagenIA);
+var btnRegenerarAi = document.getElementById('btn-regenerar-ai');
+if (btnRegenerarAi) btnRegenerarAi.addEventListener('click', generarImagenIA);
+
 // ── PREVISUALIZACIÓN IMAGEN MANUAL ──────────────────────────
 function previsualizarImagen(event) {
     const preview     = document.getElementById('img_preview');

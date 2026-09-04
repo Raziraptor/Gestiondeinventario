@@ -32,7 +32,7 @@
             <form method="GET" class="d-flex flex-wrap gap-3 align-items-end">
                 <div>
                     <label class="form-label fw-bold small text-muted mb-1">Año</label>
-                    <select name="anio" class="form-select form-select-sm rounded-3" onchange="this.form.submit()" style="min-width:90px;">
+                    <select name="anio" id="sel_anio_presupuesto" class="form-select form-select-sm rounded-3" style="min-width:90px;">
                         {% for a in anios_disponibles %}
                         <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
                         {% endfor %}
@@ -40,7 +40,7 @@
                 </div>
                 <div>
                     <label class="form-label fw-bold small text-muted mb-1">Período</label>
-                    <select name="mes" class="form-select form-select-sm rounded-3" onchange="this.form.submit()" style="min-width:140px;">
+                    <select name="mes" id="sel_mes_presupuesto" class="form-select form-select-sm rounded-3" style="min-width:140px;">
                         <option value="0" {% if mes == 0 %}selected{% endif %}>Anual (todo el año)</option>
                         {% for m in range(1,13) %}
                         <option value="{{ m }}" {% if m == mes %}selected{% endif %}>{{ meses_es[m] }}</option>
@@ -309,4 +309,12 @@
 })();
 </script>
 {% endif %}
+<script nonce="{{ csp_nonce() }}">
+(function() {
+    const selAnio = document.getElementById('sel_anio_presupuesto');
+    const selMes  = document.getElementById('sel_mes_presupuesto');
+    if (selAnio) selAnio.addEventListener('change', function() { this.form.submit(); });
+    if (selMes)  selMes.addEventListener('change',  function() { this.form.submit(); });
+})();
+</script>
 {% endblock %}

@@ -12,9 +12,14 @@
         <a href="{{ url_for('main.index') }}" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
             <i class="bi bi-house me-1"></i> Ir al Inicio
         </a>
-        <button onclick="location.reload()" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+        <button id="btn_reintentar" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
             <i class="bi bi-arrow-clockwise me-1"></i> Reintentar
         </button>
     </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+document.getElementById('btn_reintentar').addEventListener('click', function() { location.reload(); });
+</script>
 {% endblock %}

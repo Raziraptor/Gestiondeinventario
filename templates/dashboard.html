@@ -171,7 +171,7 @@
     {% elif almacenes | length > 5 %}
     <div class="input-group shadow-sm" style="max-width:240px;">
       <span class="input-group-text text-primary"><i class="bi bi-shop"></i></span>
-      <select class="form-select fw-semibold" onchange="location.href='?almacen_id='+this.value">
+      <select class="form-select fw-semibold" id="selAlmacenDash">
         {% for alm in almacenes %}
         <option value="{{ alm.id }}" {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}selected{% endif %}>{{ alm.nombre }}</option>
         {% endfor %}
@@ -491,7 +491,7 @@
           Productos con Stock Crítico
           <span id="alertasCount" class="badge bg-danger rounded-pill ms-1" style="font-size:.75rem;"></span>
         </span>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAlertas()">
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnToggleAlertas">
           <i class="bi bi-chevron-down" id="alertasChevron"></i>
         </button>
       </div>
@@ -511,7 +511,7 @@
             <span class="input-group-text"><i class="bi bi-search text-primary"></i></span>
             <input type="text" class="form-control" id="filtro_busqueda"
                    placeholder="Nombre o SKU..." autocomplete="off">
-            <button class="btn btn-outline-secondary" id="btnLimpiarBusqueda" style="display:none;" onclick="limpiarBusqueda()" title="Limpiar">
+            <button class="btn btn-outline-secondary" id="btnLimpiarBusqueda" style="display:none;" title="Limpiar">
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
@@ -546,18 +546,18 @@
   </div>
 
   {# Pills de filtro rápido por estado #}
-  <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <div class="d-flex flex-wrap gap-2 mb-3 align-items-center" id="filtroRapidoContainer">
     <span class="text-muted small">Filtro rápido:</span>
-    <button class="btn btn-sm rounded-pill px-3 btn-primary fw-semibold active-filter" data-filtro-estado="" onclick="filtroRapido('')">
+    <button class="btn btn-sm rounded-pill px-3 btn-primary fw-semibold active-filter" data-filtro-estado="">
       Todos <span class="badge bg-white text-primary ms-1 rounded-pill" style="font-size:.75rem;">{{ n_total }}</span>
     </button>
-    <button class="btn btn-sm rounded-pill px-3 btn-outline-danger fw-semibold active-filter" data-filtro-estado="bajo" onclick="filtroRapido('bajo')">
+    <button class="btn btn-sm rounded-pill px-3 btn-outline-danger fw-semibold active-filter" data-filtro-estado="bajo">
       Stock Bajo <span class="badge bg-danger text-white ms-1 rounded-pill" style="font-size:.75rem;">{{ n_bajo }}</span>
     </button>
-    <button class="btn btn-sm rounded-pill px-3 btn-outline-success fw-semibold active-filter" data-filtro-estado="ok" onclick="filtroRapido('ok')">
+    <button class="btn btn-sm rounded-pill px-3 btn-outline-success fw-semibold active-filter" data-filtro-estado="ok">
       Óptimo <span class="badge bg-success text-white ms-1 rounded-pill" style="font-size:.75rem;">{{ n_ok }}</span>
     </button>
-    <button class="btn btn-sm rounded-pill px-3 btn-outline-info fw-semibold active-filter" data-filtro-estado="exceso" onclick="filtroRapido('exceso')">
+    <button class="btn btn-sm rounded-pill px-3 btn-outline-info fw-semibold active-filter" data-filtro-estado="exceso">
       Exceso <span class="badge bg-info text-white ms-1 rounded-pill" style="font-size:.75rem;">{{ n_exceso }}</span>
     </button>
     <span class="ms-auto badge rounded-pill px-3 py-2 fw-semibold"
@@ -572,17 +572,17 @@
         <thead style="background:var(--surface-raised,#f8fafc);">
           <tr class="text-secondary text-uppercase small">
             <th class="ps-4 border-0" style="width:52px;">Img</th>
-            <th onclick="ordenarTabla(1)" class="th-sortable border-0" style="cursor:pointer;">
+            <th class="th-sortable border-0" data-col="1" style="cursor:pointer;">
               SKU <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
             </th>
-            <th onclick="ordenarTabla(2)" class="th-sortable border-0" style="cursor:pointer;">
+            <th class="th-sortable border-0" data-col="2" style="cursor:pointer;">
               Producto <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
             </th>
-            <th onclick="ordenarTabla(3)" class="th-sortable border-0 d-none d-md-table-cell" style="cursor:pointer;">
+            <th class="th-sortable border-0 d-none d-md-table-cell" data-col="3" style="cursor:pointer;">
               Categoría <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
             </th>
             <th class="border-0 d-none d-lg-table-cell">Proveedor</th>
-            <th onclick="ordenarTabla(5,'num')" class="text-center th-sortable border-0" style="cursor:pointer;">
+            <th class="text-center th-sortable border-0" data-col="5" data-tipo="num" style="cursor:pointer;">
               Stock <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
             </th>
             <th class="text-center border-0 d-none d-md-table-cell">Días est.</th>
@@ -602,13 +602,12 @@
               data-nombre="{{ item.producto.nombre|lower }}"
               data-sku="{{ item.producto.codigo|lower }}"
               data-estado="{{ item.estado_stock }}"
+              data-href="{{ url_for('inventory.historial_producto', id=item.producto.id) }}"
               role="link"
               tabindex="0"
-              style="cursor:pointer;"
-              onclick="window.location='{{ url_for('inventory.historial_producto', id=item.producto.id) }}'"
-              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.location='{{ url_for('inventory.historial_producto', id=item.producto.id) }}';}">
+              style="cursor:pointer;">
 
-            <td class="ps-4" onclick="event.stopPropagation()">
+            <td class="ps-4 td-acciones">
               {% if item.producto.imagen_url %}
               <img src="{{ url_for('static', filename='uploads/' + item.producto.imagen_url) }}"
                    alt="{{ item.producto.nombre }}" loading="lazy"
@@ -686,7 +685,7 @@
               {% endif %}
             </td>
 
-            <td class="text-end pe-3" onclick="event.stopPropagation()">
+            <td class="text-end pe-3 td-acciones">
               <div class="d-flex gap-1 justify-content-end">
                 <a href="{{ url_for('inventory.editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}"
                    class="btn btn-outline-primary btn-sm rounded-2 btn-accion"
@@ -724,7 +723,7 @@
               <i class="bi bi-search fs-1 text-muted opacity-25 d-block mb-3"></i>
               <div class="fw-semibold text-body mb-1">Sin resultados</div>
               <p class="text-muted small mb-3">Ningún producto coincide con los filtros activos</p>
-              <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="limpiarTodosFiltros()">
+              <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnLimpiarTodos">
                 <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Limpiar filtros
               </button>
             </td>
@@ -870,15 +869,15 @@ function renderPaginacion(total) {
   if (totalPags <= 1) { c.innerHTML = ''; return; }
   const p = paginaActual;
   let html = '<nav><ul class="pagination pagination-sm mb-0 flex-wrap gap-1">';
-  html += `<li class="page-item${p===1?' disabled':''}"><button class="page-link rounded-pill px-3" ${p===1?'disabled':''} onclick="irPagina(${p-1})">&#8249;</button></li>`;
+  html += `<li class="page-item${p===1?' disabled':''}"><button class="page-link rounded-pill px-3" data-page="${p-1}" ${p===1?'disabled':''}>&#8249;</button></li>`;
   for (let i = 1; i <= totalPags; i++) {
     if (i===1 || i===totalPags || (i>=p-2 && i<=p+2)) {
-      html += `<li class="page-item${i===p?' active':''}"><button class="page-link" onclick="irPagina(${i})">${i}</button></li>`;
+      html += `<li class="page-item${i===p?' active':''}"><button class="page-link" data-page="${i}">${i}</button></li>`;
     } else if (i===p-3 || i===p+3) {
       html += '<li class="page-item disabled"><span class="page-link">…</span></li>';
     }
   }
-  html += `<li class="page-item${p===totalPags?' disabled':''}"><button class="page-link rounded-pill px-3" ${p===totalPags?'disabled':''} onclick="irPagina(${p+1})">&#8250;</button></li>`;
+  html += `<li class="page-item${p===totalPags?' disabled':''}"><button class="page-link rounded-pill px-3" data-page="${p+1}" ${p===totalPags?'disabled':''}>&#8250;</button></li>`;
   html += `</ul></nav><span class="text-muted ms-3 small align-self-center">Página ${p} de ${totalPags} · ${total} productos</span>`;
   c.innerHTML = `<div class="d-flex align-items-center gap-2 flex-wrap justify-content-center">${html}</div>`;
 }
@@ -1037,6 +1036,52 @@ async function cargarAlertas() {
 }
 
 document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAlertas(); });
+
+// ── EVENT LISTENERS (reemplazan handlers inline eliminados por CSP) ───────
+const selAlmacenDash = document.getElementById('selAlmacenDash');
+if (selAlmacenDash) selAlmacenDash.addEventListener('change', function() { location.href = '?almacen_id=' + this.value; });
+
+if (btnLimpiar) btnLimpiar.addEventListener('click', limpiarBusqueda);
+
+const btnToggleAlertas = document.getElementById('btnToggleAlertas');
+if (btnToggleAlertas) btnToggleAlertas.addEventListener('click', toggleAlertas);
+
+const btnLimpiarTodos = document.getElementById('btnLimpiarTodos');
+if (btnLimpiarTodos) btnLimpiarTodos.addEventListener('click', limpiarTodosFiltros);
+
+const frContainer = document.getElementById('filtroRapidoContainer');
+if (frContainer) frContainer.addEventListener('click', function(e) {
+  const btn = e.target.closest('button.active-filter');
+  if (btn) filtroRapido(btn.dataset.filtroEstado);
+});
+
+const tablaHead = document.querySelector('#tabla_inventario thead');
+if (tablaHead) tablaHead.addEventListener('click', function(e) {
+  const th = e.target.closest('.th-sortable');
+  if (!th) return;
+  ordenarTabla(parseInt(th.dataset.col), th.dataset.tipo || 'str');
+});
+
+const tablaBody = document.getElementById('tabla_productos_cuerpo');
+if (tablaBody) {
+  tablaBody.addEventListener('click', function(e) {
+    if (e.target.closest('.td-acciones')) return;
+    const row = e.target.closest('.fila-producto');
+    if (row && row.dataset.href) window.location = row.dataset.href;
+  });
+  tablaBody.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const row = e.target.closest('.fila-producto');
+    if (!row || !row.dataset.href) return;
+    e.preventDefault();
+    window.location = row.dataset.href;
+  });
+}
+
+document.getElementById('paginacion')?.addEventListener('click', function(e) {
+  const btn = e.target.closest('button[data-page]');
+  if (btn && !btn.disabled) irPagina(parseInt(btn.dataset.page));
+});
 </script>
 {% endblock %}
 

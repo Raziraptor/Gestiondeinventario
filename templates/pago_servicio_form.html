@@ -62,7 +62,7 @@
               <div id="resultIcon" class="fs-2 mb-1"></div>
               <div id="resultMsg" class="fw-semibold" style="font-size:.88rem;"></div>
               <div id="resultSub" class="text-muted" style="font-size:.75rem;"></div>
-              <button type="button" class="btn btn-sm btn-link text-muted p-0 mt-2" onclick="resetDrop()">
+              <button type="button" class="btn btn-sm btn-link text-muted p-0 mt-2" id="btn_reset_drop">
                 <i class="bi bi-arrow-counterclockwise me-1"></i>Subir otro
               </button>
             </div>
@@ -290,5 +290,7 @@ async function procesarArchivo(archivo) {
     console.error('OCR error:', e);
   }
 }
+const btnResetDrop = document.getElementById('btn_reset_drop');
+if (btnResetDrop) btnResetDrop.addEventListener('click', resetDrop);
 </script>
 {% endblock %}

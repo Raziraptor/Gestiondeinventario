@@ -45,7 +45,7 @@
 
                 <div class="mb-3">
                   <label class="form-label fw-semibold">Nombre de la Organización</label>
-                  <input type="text" name="nombre" class="form-control" value="{{ org.nombre }}" required oninput="actualizarPreview()">
+                  <input type="text" name="nombre" class="form-control" value="{{ org.nombre }}" required>
                 </div>
 
                 <div class="row g-3 mb-3">
@@ -54,7 +54,7 @@
                     <input type="text" name="header_titulo" class="form-control"
                            value="{{ org.header_titulo or '' }}"
                            placeholder="Nombre que aparece en el PDF"
-                           oninput="actualizarPreview()">
+                          >
                     <div class="form-text">Si vacío, se usa el nombre de la org.</div>
                   </div>
                   <div class="col-md-6">
@@ -62,7 +62,7 @@
                     <input type="text" name="header_subtitulo" class="form-control"
                            value="{{ org.header_subtitulo or '' }}"
                            placeholder="Ej: Tu proveedor de confianza"
-                           oninput="actualizarPreview()">
+                          >
                   </div>
                 </div>
 
@@ -72,14 +72,14 @@
                     <input type="text" name="rfc" class="form-control"
                            value="{{ org.rfc or '' }}"
                            placeholder="XAXX010101000"
-                           oninput="actualizarPreview()">
+                          >
                   </div>
                   <div class="col-md-6">
                     <label class="form-label fw-semibold">Correo de la empresa</label>
                     <input type="email" name="correo_empresa" class="form-control"
                            value="{{ org.correo_empresa or '' }}"
                            placeholder="contacto@empresa.com"
-                           oninput="actualizarPreview()">
+                          >
                   </div>
                 </div>
 
@@ -89,14 +89,14 @@
                     <input type="text" name="telefono" class="form-control"
                            value="{{ org.telefono or '' }}"
                            placeholder="+52 999 123 4567"
-                           oninput="actualizarPreview()">
+                          >
                   </div>
                   <div class="col-md-6">
                     <label class="form-label fw-semibold">Dirección</label>
                     <input type="text" name="direccion" class="form-control"
                            value="{{ org.direccion or '' }}"
                            placeholder="Calle, Colonia, Ciudad"
-                           oninput="actualizarPreview()">
+                          >
                   </div>
                 </div>
 
@@ -132,8 +132,7 @@
                   </div>
 
                   {% if org.logo_url %}
-                  <button type="button" class="btn btn-outline-danger btn-sm mt-2"
-                          onclick="confirmarEliminarLogo()">
+                  <button type="button" class="btn btn-outline-danger btn-sm mt-2" id="btn_eliminar_logo">
                     <i class="bi bi-trash me-1"></i>Eliminar logo actual
                   </button>
                   {% endif %}
@@ -167,7 +166,7 @@
                       <label class="form-label small text-muted">Color primario (encabezados)</label>
                       <div class="d-flex align-items-center gap-2">
                         <input type="color" name="color_primario" id="inputColorPri" class="form-control form-control-color"
-                               value="{{ org.color_primario or '#333333' }}" oninput="actualizarPreview()">
+                               value="{{ org.color_primario or '#333333' }}">
                         <code id="hexPri" class="small">{{ org.color_primario or '#333333' }}</code>
                       </div>
                     </div>
@@ -175,7 +174,7 @@
                       <label class="form-label small text-muted">Color secundario (filas alternas)</label>
                       <div class="d-flex align-items-center gap-2">
                         <input type="color" name="color_secundario" id="inputColorSec" class="form-control form-control-color"
-                               value="{{ org.color_secundario or '#f1f5f9' }}" oninput="actualizarPreview()">
+                               value="{{ org.color_secundario or '#f1f5f9' }}">
                         <code id="hexSec" class="small">{{ org.color_secundario or '#f1f5f9' }}</code>
                       </div>
                     </div>
@@ -195,7 +194,7 @@
                            style="cursor:pointer;min-width:120px;transition:border-color .2s;">
                       <input type="radio" name="tipo_letra" value="{{ val }}" class="d-none font-radio"
                              {% if org.tipo_letra == val or (not org.tipo_letra and val == 'Helvetica') %}checked{% endif %}
-                             onchange="actualizarPreview()">
+                            >
                       <span style="font-family:{{ 'serif' if 'Times' in val else ('monospace' if 'Courier' in val else 'sans-serif') }};font-size:1.4rem;">{{ sample }}</span>
                       <span class="small text-muted">{{ label }}</span>
                     </label>
@@ -216,7 +215,7 @@
                   <label class="form-label fw-semibold">Pie de página personalizado</label>
                   <textarea name="footer_texto" class="form-control" rows="3"
                             placeholder="Ej: Gracias por su preferencia · Condiciones: 30 días neto · Precios sujetos a cambio sin previo aviso"
-                            oninput="actualizarPreview()">{{ org.footer_texto or '' }}</textarea>
+                           >{{ org.footer_texto or '' }}</textarea>
                   <div class="form-text">Aparece al final de todos los PDFs (OC, Salidas, Proyectos, Valorización).</div>
                 </div>
 
@@ -478,6 +477,17 @@ function actualizarPreview() {
 
 // Init
 actualizarPreview();
+
+// Listeners que reemplazan oninput/onchange inline
+(function() {
+  var form = document.getElementById('formMarca');
+  if (form) {
+    form.addEventListener('input', actualizarPreview);
+    form.addEventListener('change', actualizarPreview);
+  }
+  var btnEliminarLogo = document.getElementById('btn_eliminar_logo');
+  if (btnEliminarLogo) btnEliminarLogo.addEventListener('click', confirmarEliminarLogo);
+})();
 
 // ── ELIMINAR LOGO ────────────────────────────────────────────────────────────
 function confirmarEliminarLogo() {

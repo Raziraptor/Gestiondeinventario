@@ -61,15 +61,15 @@
                             <td class="text-end pe-4">
                                 <div class="btn-group">
                                     <!-- BOTÓN DE RESTABLECER CONTRASEÑA (LA LLAVE) -->
-                                    <button type="button" class="btn btn-accion btn-outline-warning btn-sm"
-                                            onclick="abrirModalPassword('{{ usuario.id }}', '{{ usuario.username | replace("'", "\\'") }}')"
+                                    <button type="button" class="btn btn-accion btn-outline-warning btn-sm btn-modal-password"
+                                            data-user-id="{{ usuario.id }}" data-username="{{ usuario.username | e }}"
                                             title="Restablecer Contraseña"
                                             aria-label="Restablecer contraseña de {{ usuario.username }}">
                                         <i class="bi bi-key-fill text-dark" aria-hidden="true"></i>
                                     </button>
                                     {% if current_user.rol in ['super_admin', 'admin'] and current_user.id != usuario.id %}
-                                    <button type="button" class="btn btn-accion btn-outline-danger btn-sm"
-                                            onclick="abrirModalEliminarUsuario('{{ usuario.id }}', '{{ usuario.username | replace("'", "\\'") }}')"
+                                    <button type="button" class="btn btn-accion btn-outline-danger btn-sm btn-modal-eliminar-usuario"
+                                            data-user-id="{{ usuario.id }}" data-username="{{ usuario.username | e }}"
                                             title="Eliminar Usuario"
                                             aria-label="Eliminar usuario {{ usuario.username }}">
                                         <i class="bi bi-person-x-fill" aria-hidden="true"></i>
@@ -189,5 +189,12 @@ function abrirModalPassword(userId, username) {
         document.getElementById('new_password').focus();
     }, { once: true });
 }
+
+document.addEventListener('click', function(e) {
+    const btnPw = e.target.closest('.btn-modal-password');
+    if (btnPw) { abrirModalPassword(btnPw.dataset.userId, btnPw.dataset.username); return; }
+    const btnDel = e.target.closest('.btn-modal-eliminar-usuario');
+    if (btnDel) abrirModalEliminarUsuario(btnDel.dataset.userId, btnDel.dataset.username);
+});
 </script>
 {% endblock %}

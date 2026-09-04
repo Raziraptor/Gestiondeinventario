@@ -139,7 +139,7 @@
                 <input type="hidden" name="fecha_pago" value="{{ hoy.strftime('%Y-%m-%d') }}">
                 <button type="submit" class="btn btn-sm rounded-pill px-2 fw-semibold"
                         style="font-size:.75rem;background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.25);"
-                        onclick="return confirm('¿Marcar como pagado hoy?')">
+                        class="btn-confirm-pagado">
                   <i class="bi bi-check2 me-1"></i>Pagado
                 </button>
               </form>
@@ -208,6 +208,10 @@ document.querySelectorAll('form[method="POST"]').forEach(function(f) {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Procesando…';
         }
     });
+});
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-confirm-pagado');
+    if (btn && !confirm('¿Marcar como pagado hoy?')) e.preventDefault();
 });
 </script>
 {% endblock %}

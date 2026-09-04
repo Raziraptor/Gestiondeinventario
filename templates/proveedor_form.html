@@ -222,7 +222,7 @@
             {% if formato_oc %}
             <hr class="my-3 border-secondary border-opacity-25">
             <form method="POST" action="{{ url_for('inventory.eliminar_formato_oc', id=proveedor.id) }}"
-                  onsubmit="return confirm('¿Eliminar el formato de OC de este proveedor?')">
+                  id="form_eliminar_formato_oc">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
                     <i class="bi bi-trash me-1"></i>Eliminar formato
@@ -302,6 +302,10 @@ if (btnToggle) {
         }
     });
 }
+const fmtOC = document.getElementById('form_eliminar_formato_oc');
+if (fmtOC) fmtOC.addEventListener('submit', function(e) {
+    if (!confirm('¿Eliminar el formato de OC de este proveedor?')) e.preventDefault();
+});
 </script>
 {% endblock %}
 

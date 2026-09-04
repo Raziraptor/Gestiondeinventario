@@ -91,7 +91,7 @@
                 <div id="reader-container" class="mb-4 shadow-sm border border-secondary border-opacity-25 rounded-4 bg-light p-3" style="display: none;">
                     <div id="reader" style="width: 100%; max-width: 600px; margin: 0 auto; border-radius: 8px; overflow: hidden;"></div>
                     <div class="text-center mt-3">
-                        <button type="button" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 shadow-sm" onclick="detenerEscaner()">
+                        <button type="button" id="btn_detener_escaner" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 shadow-sm">
                             <i class="bi bi-stop-circle me-1"></i> Detener Cámara
                         </button>
                     </div>
@@ -102,7 +102,7 @@
                         <span class="input-group-text text-primary"><i class="bi bi-upc-scan"></i></span>
                         <input type="text" id="buscador" class="form-control fs-6" 
                                placeholder="Nombre, SKU o escanea un código..." autocomplete="off" disabled>
-                        <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" onclick="iniciarEscaner()" disabled>
+                        <button class="btn btn-primary fw-bold px-4" type="button" id="btn_escanear" disabled>
                             <i class="bi bi-qr-code-scan me-1"></i> <span>Escanear</span>
                         </button>
                     </div>
@@ -165,7 +165,7 @@
                             </div>
 
                             <div class="col-12 col-md-2 text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100 btn-quitar-linea">
                                     <i class="bi bi-trash"></i> Quitar
                                 </button>
                             </div>
@@ -362,7 +362,7 @@
                     <small class="text-success subtotal-linea fw-bold d-block mt-1">Sub: $0.00</small>
                 </div>
                 <div class="col-12 col-md-2 text-end">
-                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100" onclick="eliminarLinea(this)">Quitar</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill w-100 btn-quitar-linea">Quitar</button>
                 </div>
                 <div class="col-12 mt-3 pt-2 border-top border-secondary border-opacity-10">
                     <div class="input-group input-group-sm">
@@ -399,6 +399,13 @@
         });
         granTotalSpan.innerText = total.toLocaleString('en-US', {minimumFractionDigits: 2});
     }
+
+    document.getElementById('btn_escanear').addEventListener('click', iniciarEscaner);
+    document.getElementById('btn_detener_escaner').addEventListener('click', detenerEscaner);
+    container.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-quitar-linea');
+        if (btn) window.eliminarLinea(btn);
+    });
 
     /* Loading state — UI UX Pro Max: "Loading Buttons" High */
     document.getElementById('form_orden').addEventListener('submit', function() {

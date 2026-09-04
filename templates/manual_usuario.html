@@ -517,7 +517,7 @@
     <a href="{{ url_for('main.index') }}" class="btn btn-sm btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Inicio
     </a>
-    <button onclick="window.print()" class="btn btn-sm btn-primary" aria-label="Descargar o imprimir manual como PDF">
+    <button id="btn_imprimir" class="btn btn-sm btn-primary" aria-label="Descargar o imprimir manual como PDF">
       <i class="bi bi-file-earmark-arrow-down me-1"></i>Descargar PDF
     </button>
   </div>
@@ -1319,5 +1319,6 @@
 
   sections.forEach(s => observer.observe(s));
 })();
+document.getElementById('btn_imprimir').addEventListener('click', function() { window.print(); });
 </script>
 {% endblock %}

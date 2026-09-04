@@ -194,7 +194,7 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-2 p-1"
                             style="width:30px;height:30px;" title="Eliminar"
-                            onclick="return confirm('¿Eliminar este registro?')">
+                            class="btn-confirm-eliminar">
                       <i class="bi bi-trash" style="font-size:.8rem;"></i>
                     </button>
                   </form>
@@ -234,7 +234,7 @@
       <form action="{{ url_for('finance.eliminar_servicio', id=servicio.id) }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold flex-shrink-0"
-                onclick="return confirm('¿Eliminar \"{{ servicio.nombre }}\" y todo su historial?')">
+                data-confirm="¿Eliminar &quot;{{ servicio.nombre | e }}&quot; y todo su historial?" class="btn-confirm-eliminar">
           <i class="bi bi-trash me-1"></i>Eliminar
         </button>
       </form>
@@ -243,6 +243,17 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-confirm-eliminar');
+    if (!btn) return;
+    const msg = btn.dataset.confirm || '¿Eliminar este registro?';
+    if (!confirm(msg)) e.preventDefault();
+});
+</script>
 {% endblock %}
 
 {% block modals %}

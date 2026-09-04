@@ -1731,11 +1731,11 @@
         <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">
             <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:.5rem;" alt="App icon">
             <div><div style="font-weight:700;">Instalar Gestor de Inventario</div><div style="color:#94a3b8;font-size:.78rem;">Acceso rápido desde tu pantalla de inicio</div></div>
-            <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwaDismissed','1')" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:.25rem;">&#x2715;</button>
+            <button id="btn_pwa_dismiss_x" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:.25rem;">&#x2715;</button>
         </div>
         <div style="display:flex;gap:.5rem;">
             <button id="pwaInstallBtn" style="flex:1;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:.6rem;font-weight:600;cursor:pointer;font-size:.875rem;">Instalar app</button>
-            <button onclick="document.getElementById('pwaInstallBanner').style.display='none';localStorage.setItem('pwaDismissed','1')" style="background:rgba(255,255,255,.08);color:#94a3b8;border:none;border-radius:.5rem;padding:.6rem .9rem;cursor:pointer;font-size:.875rem;">Ahora no</button>
+            <button id="btn_pwa_ahora_no" style="background:rgba(255,255,255,.08);color:#94a3b8;border:none;border-radius:.5rem;padding:.6rem .9rem;cursor:pointer;font-size:.875rem;">Ahora no</button>
         </div>
     </div>
     <script nonce="{{ csp_nonce() }}">
@@ -1747,6 +1747,9 @@
         window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; setTimeout(() => { banner.style.display = 'block'; }, 5000); });
         btn.addEventListener('click', async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; deferredPrompt = null; banner.style.display = 'none'; if (outcome === 'accepted') localStorage.setItem('pwaDismissed', '1'); });
         window.addEventListener('appinstalled', () => { banner.style.display = 'none'; localStorage.setItem('pwaDismissed', '1'); });
+        function dismissPwa() { banner.style.display = 'none'; localStorage.setItem('pwaDismissed', '1'); }
+        document.getElementById('btn_pwa_dismiss_x').addEventListener('click', dismissPwa);
+        document.getElementById('btn_pwa_ahora_no').addEventListener('click', dismissPwa);
     })();
     </script>
 

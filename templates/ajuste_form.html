@@ -32,7 +32,7 @@
                     <label class="form-label fw-bold small text-muted text-uppercase mb-1">
                         <i class="bi bi-shop text-primary me-1"></i> Almacén
                     </label>
-                    <select name="almacen_id" id="sel_almacen" class="form-select shadow-sm" required onchange="cargarProductos()">
+                    <select name="almacen_id" id="sel_almacen" class="form-select shadow-sm" required>
                         <option value="">-- Seleccionar almacén --</option>
                         {% for a in almacenes %}
                         <option value="{{ a.id }}">{{ a.nombre }}</option>
@@ -78,7 +78,7 @@
                         <i class="bi bi-123 text-primary me-1"></i> Cantidad Física Contada
                     </label>
                     <input type="number" name="cantidad_fisica" id="input_conteo" class="form-control form-control-lg shadow-sm text-center fw-bold"
-                           min="0" required placeholder="Escribe el conteo real..." disabled oninput="calcularDiferencia()">
+                           min="0" required placeholder="Escribe el conteo real..." disabled>
                     <div class="form-text text-muted small mt-1">
                         <i class="bi bi-info-circle text-info me-1"></i>
                         Ingresa exactamente cuántas unidades contaste en físico.
@@ -268,6 +268,9 @@ document.addEventListener('DOMContentLoaded', function () {
         panelDif.style.display = 'flex';
         btnSubmit.disabled = (dif === 0);
     };
+
+    selAlmacen.addEventListener('change', cargarProductos);
+    inputConteo.addEventListener('input', calcularDiferencia);
 });
 </script>
 {% endblock %}

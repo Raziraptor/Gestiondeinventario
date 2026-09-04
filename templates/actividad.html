@@ -80,7 +80,7 @@
                 <label class="text-muted small fw-semibold text-nowrap mb-0">
                     <i class="bi bi-funnel me-1"></i>Filtrar por acción:
                 </label>
-                <select name="accion" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                <select name="accion" id="sel_accion_filtro" class="form-select form-select-sm w-auto">
                     <option value="">Todas las acciones</option>
                     {% set accion_labels = {
                         'crear': 'Crear',
@@ -211,4 +211,9 @@
     {% endif %}
 
 </div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+document.getElementById('sel_accion_filtro').addEventListener('change', function() { this.form.submit(); });
+</script>
 {% endblock %}
