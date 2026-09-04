@@ -86,7 +86,16 @@ def chat_mensaje():
         contenidos.append(f'Usuario: {mensaje}')
         prompt_completo = '\n'.join(contenidos)
 
-        _MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        _sdk_ver = getattr(genai, '__version__', 'desconocida')
+        logger.info('google-genai SDK versión: %s', _sdk_ver)
+
+        _MODELS = [
+            'gemini-2.5-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.0-pro',
+        ]
         response = None
         last_exc = None
         for model_id in _MODELS:
@@ -99,6 +108,8 @@ def chat_mensaje():
             except Exception as exc:
                 last_exc = exc
                 status = getattr(exc, 'status_code', None) or getattr(exc, 'code', None)
+                logger.warning('Gemini modelo %s falló — status=%s tipo=%s msg=%s',
+                               model_id, status, type(exc).__name__, str(exc)[:300])
                 if status not in (403, 404, 400):
                     raise
         if response is None:
