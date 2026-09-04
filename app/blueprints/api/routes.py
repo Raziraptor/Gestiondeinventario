@@ -604,10 +604,20 @@ Reglas:
 - especificaciones: máximo 5 líneas, tono técnico, sin saludos ni introducción
 - costo_estimado_mxn: precio unitario promedio de mercado en México, solo el número sin símbolo"""
 
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt
-        )
+        _MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        response = None
+        _last_exc = None
+        for _model_id in _MODELS:
+            try:
+                response = client.models.generate_content(model=_model_id, contents=prompt)
+                break
+            except Exception as _exc:
+                _last_exc = _exc
+                _status = getattr(_exc, 'status_code', None) or getattr(_exc, 'code', None)
+                if _status not in (403, 404, 400):
+                    raise
+        if response is None:
+            raise _last_exc or RuntimeError('Sin respuesta de Gemini')
 
         text = response.text.strip()
         if text.startswith('```'):

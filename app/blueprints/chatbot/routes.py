@@ -86,10 +86,23 @@ def chat_mensaje():
         contenidos.append(f'Usuario: {mensaje}')
         prompt_completo = '\n'.join(contenidos)
 
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt_completo,
-        )
+        _MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+        response = None
+        last_exc = None
+        for model_id in _MODELS:
+            try:
+                response = client.models.generate_content(
+                    model=model_id,
+                    contents=prompt_completo,
+                )
+                break
+            except Exception as exc:
+                last_exc = exc
+                status = getattr(exc, 'status_code', None) or getattr(exc, 'code', None)
+                if status not in (403, 404, 400):
+                    raise
+        if response is None:
+            raise last_exc or RuntimeError('Sin respuesta de Gemini')
         respuesta = response.text.strip()
     except Exception as e:
         logger.exception('Error llamando a Gemini en chatbot')
