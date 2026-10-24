@@ -79,3 +79,26 @@ def test_border_strong_reserved_for_title_rules():
             m = re.search(re.escape(sel) + r'[^{]*\{([^}]*)\}', css)
             assert m, (f, sel)
             assert '--border-strong' not in m.group(1), (f, sel)
+
+
+VIEWPORT = ('<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, '
+            'viewport-fit=cover, interactive-widget=resizes-content">')
+
+def test_viewport_meta(client):
+    assert VIEWPORT in client.get('/login').get_data(as_text=True)
+
+def test_mobile_css_loaded_last(client):
+    html = client.get('/login').get_data(as_text=True)
+    assert html.index('css/compat.css') < html.index('css/mobile.css')
+
+def test_mobile_css_frame_rules():
+    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    for needle in ('overflow-x: clip', 'overscroll-behavior: none', 'touch-action: pan-x pan-y',
+                   '100dvh', 'font-size: 16px', 'env(safe-area-inset-top', 'env(safe-area-inset-bottom',
+                   'overscroll-behavior-x: contain', 'calc(100vw - 2rem)'):
+        assert needle in css, needle
+
+def test_shell_has_no_fixed_px_dialogs():
+    src = (ROOT / 'templates/base.html').read_text(encoding='utf-8')
+    assert 'max-width:370px' not in src and 'max-width:420px' not in src
+    assert 'min-width:310px' not in src and 'min-width:280px' not in src

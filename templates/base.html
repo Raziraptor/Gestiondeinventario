@@ -2,7 +2,7 @@
 <html lang="es" data-bs-theme="dark" data-theme="dark">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}Control de Inventario{% endblock %}</title>
 
@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fusion.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/compat.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
 
     {% block extra_css %}{% endblock %}
 
@@ -360,7 +361,7 @@
                                   class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"
                                   style="font-size:.6rem;min-width:1.1rem;">0</span>
                         </button>
-                        <div class="dropdown-menu dropdown-menu-end p-0 border-0" style="min-width:310px;max-width:340px;" aria-labelledby="alertaBell">
+                        <div class="dropdown-menu dropdown-menu-end p-0 border-0" style="width:min(340px, calc(100vw - 2rem))" aria-labelledby="alertaBell">
                             <div class="d-flex align-items-center justify-content-between px-3 py-2"
                                  style="background:rgba(239,68,68,.07);border-bottom:1px solid var(--border);border-radius:var(--r-card) var(--r-card) 0 0;">
                                 <span class="fw-bold small"><i class="ph ph-fill ph-warning-circle text-danger me-1"></i>Stock Bajo</span>
@@ -479,7 +480,7 @@
          MODAL DE CONFIRMACIÓN GLOBAL
     ===================================================== -->
     <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width:370px;">
+        <div class="modal-dialog modal-dialog-centered modal-sm-fluid" style="--modal-w:370px">
             <div class="modal-content confirm-modal-body border-0">
                 <div class="modal-body text-center p-4 pb-2">
                     <div class="confirm-icon-wrap bg-danger bg-opacity-10" id="confirmIconWrap">
@@ -541,7 +542,7 @@
     <!-- QUICK ADJUST MODAL -->
     {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
     <div class="modal fade" id="quickAdjustModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-dialog modal-dialog-centered modal-sm-fluid" style="--modal-w:420px">
             <div class="modal-content border-0" style="background:var(--surface);border-radius:1.25rem !important;">
                 <div class="modal-body p-4">
                     <div class="d-flex align-items-center gap-2 mb-3">
@@ -1109,8 +1110,8 @@
     </script>
 
     <!-- OFFLINE BANNER -->
-    <div id="offlineBanner" style="display:none;position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:9999;min-width:280px;max-width:90vw;background:#1e293b;color:#f1f5f9;border-radius:9999px;padding:.6rem 1.25rem;font-size:.85rem;font-weight:600;box-shadow:0 4px 24px rgba(0,0,0,.35);align-items:center;gap:.6rem;transition:opacity .3s;">
-        <span id="offlineBannerDot" style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;display:inline-block;"></span>
+    <div id="offlineBanner" class="app-banner" style="display:none">
+        <span id="offlineBannerDot" class="app-banner-dot"></span>
         <span id="offlineBannerText">Sin conexión</span>
     </div>
     <script nonce="{{ csp_nonce() }}">
@@ -1129,15 +1130,15 @@
     </script>
 
     <!-- PWA INSTALL BANNER -->
-    <div id="pwaInstallBanner" style="display:none;position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:9998;width:min(360px,calc(100vw - 2rem));background:#1e293b;color:#f1f5f9;border-radius:1rem;padding:1rem 1.25rem;font-size:.875rem;box-shadow:0 8px 32px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);">
+    <div id="pwaInstallBanner" class="app-banner" style="display:none">
         <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">
             <img src="/static/icons/icon-192.png" style="width:40px;height:40px;border-radius:.5rem;" alt="App icon">
-            <div><div style="font-weight:700;">Instalar Gestor de Inventario</div><div style="color:#94a3b8;font-size:.78rem;">Acceso rápido desde tu pantalla de inicio</div></div>
-            <button id="btn_pwa_dismiss_x" style="margin-left:auto;background:none;border:none;color:#64748b;font-size:1.2rem;cursor:pointer;padding:.25rem;">&#x2715;</button>
+            <div><div style="font-weight:700;">Instalar Gestor de Inventario</div><div class="app-banner-sub">Acceso rápido desde tu pantalla de inicio</div></div>
+            <button id="btn_pwa_dismiss_x" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:.25rem;">&#x2715;</button>
         </div>
         <div style="display:flex;gap:.5rem;">
             <button id="pwaInstallBtn" style="flex:1;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:.6rem;font-weight:600;cursor:pointer;font-size:.875rem;">Instalar app</button>
-            <button id="btn_pwa_ahora_no" style="background:rgba(255,255,255,.08);color:#94a3b8;border:none;border-radius:.5rem;padding:.6rem .9rem;cursor:pointer;font-size:.875rem;">Ahora no</button>
+            <button id="btn_pwa_ahora_no" style="background:var(--card-2);color:var(--muted);border:none;border-radius:.5rem;padding:.6rem .9rem;cursor:pointer;font-size:.875rem;">Ahora no</button>
         </div>
     </div>
     <script nonce="{{ csp_nonce() }}">

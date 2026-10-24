@@ -50,7 +50,7 @@ h1,h2,h3,h4,h5 { font-family: var(--font-heading); margin: 0; }
 .main { flex: 1; padding: 20px 28px 64px; max-width: 1440px; width: 100%; margin: 0 auto; }
 
 /* ---- sidebar ---- */
-.sb { width: var(--sb-w); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; z-index: 40; transition: transform .3s cubic-bezier(.4,0,.2,1); }
+.sb { width: var(--sb-w); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; height: 100dvh; z-index: 40; transition: transform .3s cubic-bezier(.4,0,.2,1); }
 .sb-brand { display: flex; align-items: center; gap: 10px; padding: 18px 16px 14px; }
 .sb-logo { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--on-accent); display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: var(--glow); flex-shrink: 0; }
 .sb-brand-name { font-family: var(--font-heading); font-weight: 700; font-size: .82rem; letter-spacing: .02em; line-height: 1.15; }
@@ -76,7 +76,7 @@ h1,h2,h3,h4,h5 { font-family: var(--font-heading); margin: 0; }
 .icon-btn:hover { background: var(--accent-tint); color: var(--accent-deep); border-color: var(--accent); }
 .icon-btn:active { transform: scale(.94); }
 .notif-dot { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface); }
-.searchbar { flex: 1; max-width: 460px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--card-2); color: var(--muted); cursor: pointer; font-size: .84rem; transition: border-color .15s, box-shadow .2s; }
+.searchbar { flex: 1; min-width: 0; max-width: 460px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--card-2); color: var(--muted); cursor: pointer; font-size: .84rem; transition: border-color .15s, box-shadow .2s; }
 .searchbar:hover { border-color: var(--accent); box-shadow: var(--glow); }
 .searchbar kbd { margin-left: auto; font-family: var(--font-body); font-size: .68rem; border: 1px solid var(--border); border-radius: 6px; padding: 2px 7px; color: var(--faint); }
 
