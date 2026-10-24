@@ -41,7 +41,7 @@ canvas { max-width: 100%; }
   .sb { height: 100dvh; padding-bottom: env(safe-area-inset-bottom); padding-top: env(safe-area-inset-top); }
   .dropdown-menu { max-width: calc(100vw - 2rem); }
   .modal { --bs-modal-margin: .75rem; }
-  .modal-dialog:not([class*="modal-fullscreen"]) { max-width: min(var(--bs-modal-width), calc(100vw - 2rem)); }
+  .modal-dialog:not([class*="modal-fullscreen"]) { max-width: min(var(--bs-modal-width), calc(100vw - 2rem)); margin-inline: auto; }
   .modal-dialog.modal-sm-fluid { max-width: min(var(--modal-w, 420px), calc(100vw - 2rem)); }
   .main { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
   .fab-container { right: calc(1.75rem + env(safe-area-inset-right, 0px)); }

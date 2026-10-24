@@ -117,3 +117,26 @@ def test_mobile_input_16px_scoped_to_mobile():
     block = '\n'.join(inside)
     assert 'font-size: 16px' in block and '.cmd-search-input' in block
     assert 'font-size: 16px' not in outside
+
+
+def _home(client):
+    from tests.conftest import do_login
+    do_login(client, 'admin_alfa')
+    return client.get('/').get_data(as_text=True)
+
+
+def test_topbar_avatar_menu_contains_moved_actions(client, admin_user):
+    html = _home(client)
+    menu = html.split('id="userMenu"')[1].split('</ul>')[0]
+    assert 'data-action="theme"' in menu
+    assert 'data-push-menu' in menu
+    assert 'Cerrar sesión' in menu and 'name="csrf_token"' in menu
+    assert 'Personalizar Marca' in menu and 'Cuenta' in menu
+
+
+def test_desktop_only_topbar_actions_marked(client, admin_user):
+    html = _home(client)
+    for anchor in ('id="theme-toggle"', 'id="offlinePendingWrap"'):
+        tag = re.search(rf'<[^>]*{anchor}[^>]*>', html).group(0)
+        assert 'only-desktop' in tag, anchor
+    assert html.count('id="theme-toggle"') == 1

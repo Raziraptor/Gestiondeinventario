@@ -329,7 +329,7 @@
 
                     <!-- Offline pending badge -->
                     {% if current_user.is_authenticated %}
-                    <div id="offlinePendingWrap" style="display:none;">
+                    <div id="offlinePendingWrap" class="only-desktop" style="display:none;">
                         <button class="icon-btn" title="Operaciones pendientes de sincronizar" style="position:relative;">
                             <i class="ph ph-cloud-arrow-up" style="color:var(--warn);" aria-hidden="true"></i>
                             <span id="offlinePendingBadge"
@@ -341,7 +341,7 @@
 
                     <!-- Push notifications -->
                     {% if current_user.is_authenticated and vapid_public_key %}
-                    <div id="pushNavItem" style="display:none;" class="d-flex align-items-center gap-1">
+                    <div id="pushNavItem" style="display:none;" class="d-flex align-items-center gap-1 only-desktop">
                         <button id="pushToggleBtn" class="icon-btn" title="Activar notificaciones push" aria-label="Notificaciones push">
                             <i id="pushBellIcon" class="ph ph-bell-slash"></i>
                         </button>
@@ -378,13 +378,13 @@
                     {% endif %}
 
                     <!-- Theme toggle -->
-                    <button id="theme-toggle" class="icon-btn" data-action="theme" title="Cambiar tema" aria-label="Cambiar tema">
+                    <button id="theme-toggle" class="icon-btn only-desktop" data-action="theme" title="Cambiar tema" aria-label="Cambiar tema">
                         <i id="theme-icon" class="ph ph-moon" data-theme-icon></i>
                     </button>
 
                     <!-- Logout button -->
                     {% if current_user.is_authenticated %}
-                    <form action="{{ url_for('auth.logout') }}" method="POST" class="d-inline m-0 p-0">
+                    <form action="{{ url_for('auth.logout') }}" method="POST" class="d-inline m-0 p-0 only-desktop">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="icon-btn" title="Cerrar sesión" aria-label="Cerrar sesión" style="border-color:transparent;">
                             <i class="ph ph-sign-out" style="color:var(--danger);" aria-hidden="true"></i>
@@ -395,24 +395,29 @@
                     <!-- User dropdown (topbar) -->
                     {% if current_user.is_authenticated %}
                     <div class="dropdown">
-                        <button class="icon-btn" data-bs-toggle="dropdown" aria-expanded="false" title="{{ current_user.username }}">
-                            <i class="ph ph-dots-three-vertical"></i>
+                        <button class="avatar-btn" id="userMenuBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Menú de {{ current_user.username }}">
+                            <span aria-hidden="true">{{ (current_user.username or '?')[:1]|upper }}</span>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end mt-1" style="min-width:220px;">
+                        <ul class="dropdown-menu dropdown-menu-end mt-1" id="userMenu" style="min-width:220px;">
+                            <li class="px-3 py-2">
+                                <div class="fw-semibold text-truncate">{{ current_user.username }}</div>
+                                <div class="small text-muted">{{ (current_user.rol or '')|replace('_', ' ')|capitalize }}</div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
                             {% if current_user.rol in ['super_admin', 'admin'] %}
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('admin.configurar_plantilla') }}">
-                                    <i class="ph ph-palette me-2" style="color:var(--accent);"></i> Personalizar Marca
+                                    <i class="ph ph-palette me-2" style="color:var(--muted);"></i> Personalizar Marca
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('main.historial_actividad') }}">
-                                    <i class="ph ph-clock-counter-clockwise me-2" style="color:var(--warn);"></i> Historial de Actividad
+                                    <i class="ph ph-clock-counter-clockwise me-2" style="color:var(--muted);"></i> Historial de Actividad
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('admin.manual_usuario') }}">
-                                    <i class="ph ph-file-text me-2" style="color:var(--sage);"></i> Manual de Usuario
+                                    <i class="ph ph-file-text me-2" style="color:var(--muted);"></i> Manual de Usuario
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
@@ -421,6 +426,31 @@
                                 <a class="dropdown-item py-2" href="{{ url_for('auth.account') }}">
                                     <i class="ph ph-gear me-2" style="color:var(--muted);"></i> Cuenta
                                 </a>
+                            </li>
+                            <li class="only-mobile"><hr class="dropdown-divider"></li>
+                            <li class="only-mobile">
+                                <button type="button" class="dropdown-item py-2" data-action="theme">
+                                    <i class="ph ph-moon me-2" style="color:var(--muted);" data-theme-icon aria-hidden="true"></i> Cambiar tema
+                                </button>
+                            </li>
+                            <li class="only-mobile" data-push-menu hidden>
+                                <button type="button" class="dropdown-item py-2" data-push-proxy="toggle">
+                                    <i class="ph ph-bell me-2" style="color:var(--muted);" aria-hidden="true"></i> Notificaciones push
+                                </button>
+                            </li>
+                            <li class="only-mobile" data-push-test hidden>
+                                <button type="button" class="dropdown-item py-2" data-push-proxy="test">
+                                    <i class="ph ph-paper-plane-tilt me-2" style="color:var(--muted);" aria-hidden="true"></i> Enviar prueba
+                                </button>
+                            </li>
+                            <li class="only-mobile"><hr class="dropdown-divider"></li>
+                            <li class="only-mobile">
+                                <form method="POST" action="{{ url_for('auth.logout') }}" class="m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="dropdown-item py-2" style="color:var(--danger);">
+                                        <i class="ph ph-sign-out me-2" aria-hidden="true"></i> Cerrar sesión
+                                    </button>
+                                </form>
                             </li>
                         </ul>
                     </div>
@@ -866,6 +896,15 @@
 
         if (!('serviceWorker' in navigator) || !('PushManager' in window) || !pushBtn) return;
         pushNavItem.style.display = '';
+        document.querySelectorAll('[data-push-menu]').forEach(function(li) { li.hidden = false; });
+        const pushTestLi = document.querySelector('[data-push-test]');
+        const userMenu   = document.getElementById('userMenu');
+        if (userMenu) userMenu.addEventListener('click', function(e) {
+            const proxy = e.target.closest('[data-push-proxy]');
+            if (!proxy) return;
+            const real = proxy.dataset.pushProxy === 'test' ? pushTestBtn : pushBtn;
+            if (real) real.click();
+        });
 
         function urlBase64ToUint8Array(b64) {
             const pad = '='.repeat((4 - b64.length % 4) % 4);
@@ -884,11 +923,13 @@
                 pushBtn.title = 'Desactivar notificaciones push';
                 pushBtn.style.color = 'var(--primary)';
                 if (pushTestBtn) pushTestBtn.style.display = '';
+                if (pushTestLi) pushTestLi.hidden = false;
             } else {
                 pushIcon.className = 'ph ph-bell-slash';
                 pushBtn.title = 'Activar notificaciones push';
                 pushBtn.style.color = '';
                 if (pushTestBtn) pushTestBtn.style.display = 'none';
+                if (pushTestLi) pushTestLi.hidden = true;
             }
         }
 

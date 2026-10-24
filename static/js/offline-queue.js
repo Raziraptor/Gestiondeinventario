@@ -68,6 +68,8 @@ async function oqUpdateBadge() {
     const n     = await oqCount();
     const badge = document.getElementById('offlinePendingBadge');
     const wrap  = document.getElementById('offlinePendingWrap');
+    const avatar = document.getElementById('userMenuBtn');
+    if (avatar) avatar.toggleAttribute('data-pending', n > 0);
     if (!badge || !wrap) return;
     if (n > 0) {
         badge.textContent  = n;

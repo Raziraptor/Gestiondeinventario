@@ -75,6 +75,15 @@ h1,h2,h3,h4,h5 { font-family: var(--font-heading); margin: 0; }
 .icon-btn { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--border); background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; position: relative; transition: background .15s, color .15s, border-color .15s, transform .1s; }
 .icon-btn:hover { background: var(--accent-tint); color: var(--accent-deep); border-color: var(--accent); }
 .icon-btn:active { transform: scale(.94); }
+
+/* avatar (menú de usuario): 36px visibles, zona táctil de 44px */
+.avatar-btn { position: relative; flex-shrink: 0; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; font-size: .9rem; font-weight: 600; line-height: 1; cursor: pointer; transition: opacity .15s, transform .1s; }
+.avatar-btn::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; }
+.avatar-btn:hover { opacity: .9; }
+.avatar-btn:active { transform: scale(.94); }
+.avatar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.avatar-btn[data-pending]::after { content: ""; position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); border: 2px solid var(--bg); box-sizing: content-box; }
+#userMenu .dropdown-item { display: flex; align-items: center; min-height: 44px; }
 .notif-dot { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface); }
 .searchbar { flex: 1; min-width: 0; max-width: 460px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--card-2); color: var(--muted); cursor: pointer; font-size: .84rem; transition: border-color .15s, box-shadow .2s; }
 .searchbar:hover { border-color: var(--accent); box-shadow: var(--glow); }
