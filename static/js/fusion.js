@@ -157,23 +157,30 @@ var FusionChart = {
 
 /* ── THEME TOGGLE + THEMECHANGE EVENT ───────────────────────── */
 window.setFusionTheme = function (t) {
-  var KEY = 'erp_theme';
-  localStorage.setItem(KEY, t);
-  document.documentElement.setAttribute('data-theme', t);
-  document.documentElement.setAttribute('data-bs-theme', t);
+  var html = document.documentElement;
+  t = t === 'light' ? 'light' : 'dark';
+  html.setAttribute('data-theme', t);
+  html.setAttribute('data-bs-theme', t);
+  try { localStorage.setItem('erp_theme', t); localStorage.setItem('app_theme', t); } catch (e) {}
+  var meta = document.getElementById('themeColorMeta');
+  if (meta) meta.setAttribute('content', getComputedStyle(html).getPropertyValue('--bg').trim());
+  document.querySelectorAll('[data-theme-icon]').forEach(function (i) {
+    i.className = t === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
+  });
   window.dispatchEvent(new Event('themechange'));
 };
 
 window.toggleFusionTheme = function () {
-  var KEY = 'erp_theme';
-  var cur = localStorage.getItem(KEY) || 'dark';
-  window.setFusionTheme(cur === 'dark' ? 'light' : 'dark');
+  window.setFusionTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
 };
 
 /* ── DOM READY INIT ─────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function () {
   /* Run counters */
   animateCounters(document);
+
+  /* Sync theme icons / theme-color with the theme set before paint */
+  window.setFusionTheme(document.documentElement.dataset.theme);
 
   /* Theme button wiring (Fusion topbar .icon-btn[data-action=theme]) */
   document.querySelectorAll('[data-action="theme"]').forEach(function (btn) {

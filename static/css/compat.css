@@ -51,8 +51,7 @@
 
 /* ── BODY: override Bootstrap body styles ─────────────────────── */
 body {
-  background: var(--bg-grad) !important;
-  background-attachment: fixed !important;
+  background: var(--bg) !important;
   color: var(--text) !important;
   font-family: var(--font-body) !important;
   font-size: 14px !important;

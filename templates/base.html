@@ -9,7 +9,9 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#15161c" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f6f2ea" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" id="themeColorMeta" content="#15161c">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Inventario">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,7 +26,7 @@
     <link rel="apple-touch-startup-image"
           media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
           href="{{ url_for('static', filename='icons/icon-512.png') }}">
-    <meta name="msapplication-TileColor" content="#4f46e5">
+    <meta name="msapplication-TileColor" content="#15161c">
     <meta name="msapplication-TileImage" content="{{ url_for('static', filename='icons/icon-192.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,6 +48,8 @@
             var t = localStorage.getItem('erp_theme') || localStorage.getItem('app_theme') || 'dark';
             document.documentElement.setAttribute('data-theme', t);
             document.documentElement.setAttribute('data-bs-theme', t);
+            var m = document.getElementById('themeColorMeta');
+            if (m) m.content = t === 'light' ? '#f6f2ea' : '#15161c';
         })();
     </script>
 
@@ -951,8 +955,8 @@
                     {% endif %}
 
                     <!-- Theme toggle -->
-                    <button id="theme-toggle" class="icon-btn" title="Cambiar tema" aria-label="Cambiar tema">
-                        <i id="theme-icon" class="ph ph-moon"></i>
+                    <button id="theme-toggle" class="icon-btn" data-action="theme" title="Cambiar tema" aria-label="Cambiar tema">
+                        <i id="theme-icon" class="ph ph-moon" data-theme-icon></i>
                     </button>
 
                     <!-- Logout button -->
@@ -1173,30 +1177,6 @@
     <script src="{{ url_for('static', filename='js/fusion.js') }}" defer></script>
     {% block chartjs %}{% endblock %}
 
-    <!-- TEMA -->
-    <script nonce="{{ csp_nonce() }}">
-    (function () {
-        const html = document.documentElement;
-        const btn  = document.getElementById('theme-toggle');
-        const icon = document.getElementById('theme-icon');
-
-        function applyTheme(theme) {
-            html.setAttribute('data-theme', theme);
-            html.setAttribute('data-bs-theme', theme);
-            localStorage.setItem('erp_theme', theme);
-            localStorage.setItem('app_theme', theme); // compat alias
-            if (icon) icon.className = theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
-            window.dispatchEvent(new Event('themechange'));
-        }
-
-        const stored = localStorage.getItem('erp_theme') || localStorage.getItem('app_theme') || 'dark';
-        applyTheme(stored);
-        if (btn) btn.addEventListener('click', function () {
-            applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-        });
-    })();
-    </script>
-
     <!-- SIDEBAR — mobile off-canvas -->
     <script nonce="{{ csp_nonce() }}">
     (function () {
@@ -1284,7 +1264,7 @@
             success: { icon: 'bi-check-circle-fill',       color: '#10b981' },
             danger:  { icon: 'bi-exclamation-octagon-fill', color: '#ef4444' },
             warning: { icon: 'bi-exclamation-triangle-fill',color: '#f59e0b' },
-            info:    { icon: 'bi-info-circle-fill',         color: '#4f46e5' },
+            info:    { icon: 'bi-info-circle-fill',         color: '#9184d9' },
         };
 
         window.showToast = function(msg, cat, duration) {
