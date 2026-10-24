@@ -83,7 +83,10 @@ h1,h2,h3,h4,h5 { font-family: var(--font-heading); margin: 0; }
 .avatar-btn:active { transform: scale(.94); }
 .avatar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .avatar-btn[data-pending]::after { content: ""; position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); border: 2px solid var(--bg); box-sizing: content-box; }
-#userMenu .dropdown-item { display: flex; align-items: center; min-height: 44px; }
+#userMenu .dropdown-item { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
+#userMenu .dropdown-item.is-danger, #userMenu .dropdown-item.is-danger:hover, #userMenu .dropdown-item.is-danger:focus { color: var(--danger) !important; }
+#userMenu .dropdown-item.is-danger:hover, #userMenu .dropdown-item.is-danger:focus { background: color-mix(in srgb, var(--danger) 10%, transparent) !important; }
+#userMenu .dropdown-item.is-danger i { color: currentColor; }
 .notif-dot { position: absolute; top: 8px; right: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--surface); }
 .searchbar { flex: 1; min-width: 0; max-width: 460px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--card-2); color: var(--muted); cursor: pointer; font-size: .84rem; transition: border-color .15s, box-shadow .2s; }
 .searchbar:hover { border-color: var(--accent); box-shadow: var(--glow); }

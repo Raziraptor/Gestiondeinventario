@@ -407,48 +407,48 @@
                             {% if current_user.rol in ['super_admin', 'admin'] %}
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('admin.configurar_plantilla') }}">
-                                    <i class="ph ph-palette me-2" style="color:var(--muted);"></i> Personalizar Marca
+                                    <i class="ph ph-palette" style="color:var(--muted);"></i> Personalizar Marca
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('main.historial_actividad') }}">
-                                    <i class="ph ph-clock-counter-clockwise me-2" style="color:var(--muted);"></i> Historial de Actividad
+                                    <i class="ph ph-clock-counter-clockwise" style="color:var(--muted);"></i> Historial de Actividad
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('admin.manual_usuario') }}">
-                                    <i class="ph ph-file-text me-2" style="color:var(--muted);"></i> Manual de Usuario
+                                    <i class="ph ph-file-text" style="color:var(--muted);"></i> Manual de Usuario
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             {% endif %}
                             <li>
                                 <a class="dropdown-item py-2" href="{{ url_for('auth.account') }}">
-                                    <i class="ph ph-gear me-2" style="color:var(--muted);"></i> Cuenta
+                                    <i class="ph ph-gear" style="color:var(--muted);"></i> Cuenta
                                 </a>
                             </li>
                             <li class="only-mobile"><hr class="dropdown-divider"></li>
                             <li class="only-mobile">
                                 <button type="button" class="dropdown-item py-2" data-action="theme">
-                                    <i class="ph ph-moon me-2" style="color:var(--muted);" data-theme-icon aria-hidden="true"></i> Cambiar tema
+                                    <i class="ph ph-moon" style="color:var(--muted);" data-theme-icon aria-hidden="true"></i> Cambiar tema
                                 </button>
                             </li>
                             <li class="only-mobile" data-push-menu hidden>
                                 <button type="button" class="dropdown-item py-2" data-push-proxy="toggle">
-                                    <i class="ph ph-bell me-2" style="color:var(--muted);" aria-hidden="true"></i> Notificaciones push
+                                    <i class="ph ph-bell-slash" style="color:var(--muted);" aria-hidden="true" data-push-proxy-icon></i> <span data-push-proxy-label>Activar notificaciones</span>
                                 </button>
                             </li>
-                            <li class="only-mobile" data-push-test hidden>
+                            <li class="only-mobile" data-push-menu data-push-test hidden>
                                 <button type="button" class="dropdown-item py-2" data-push-proxy="test">
-                                    <i class="ph ph-paper-plane-tilt me-2" style="color:var(--muted);" aria-hidden="true"></i> Enviar prueba
+                                    <i class="ph ph-paper-plane-tilt" style="color:var(--muted);" aria-hidden="true"></i> Enviar prueba
                                 </button>
                             </li>
                             <li class="only-mobile"><hr class="dropdown-divider"></li>
                             <li class="only-mobile">
                                 <form method="POST" action="{{ url_for('auth.logout') }}" class="m-0">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="dropdown-item py-2" style="color:var(--danger);">
-                                        <i class="ph ph-sign-out me-2" aria-hidden="true"></i> Cerrar sesión
+                                    <button type="submit" class="dropdown-item py-2 is-danger">
+                                        <i class="ph ph-sign-out" aria-hidden="true"></i> Cerrar sesión
                                     </button>
                                 </form>
                             </li>
@@ -898,6 +898,8 @@
         pushNavItem.style.display = '';
         document.querySelectorAll('[data-push-menu]').forEach(function(li) { li.hidden = false; });
         const pushTestLi = document.querySelector('[data-push-test]');
+        const proxyIcon  = document.querySelector('[data-push-proxy-icon]');
+        const proxyLabel = document.querySelector('[data-push-proxy-label]');
         const userMenu   = document.getElementById('userMenu');
         if (userMenu) userMenu.addEventListener('click', function(e) {
             const proxy = e.target.closest('[data-push-proxy]');
@@ -924,12 +926,16 @@
                 pushBtn.style.color = 'var(--primary)';
                 if (pushTestBtn) pushTestBtn.style.display = '';
                 if (pushTestLi) pushTestLi.hidden = false;
+                if (proxyIcon) proxyIcon.className = 'ph ph-bell';
+                if (proxyLabel) proxyLabel.textContent = 'Desactivar notificaciones';
             } else {
                 pushIcon.className = 'ph ph-bell-slash';
                 pushBtn.title = 'Activar notificaciones push';
                 pushBtn.style.color = '';
                 if (pushTestBtn) pushTestBtn.style.display = 'none';
                 if (pushTestLi) pushTestLi.hidden = true;
+                if (proxyIcon) proxyIcon.className = 'ph ph-bell-slash';
+                if (proxyLabel) proxyLabel.textContent = 'Activar notificaciones';
             }
         }
 

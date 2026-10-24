@@ -140,3 +140,23 @@ def test_desktop_only_topbar_actions_marked(client, admin_user):
         tag = re.search(rf'<[^>]*{anchor}[^>]*>', html).group(0)
         assert 'only-desktop' in tag, anchor
     assert html.count('id="theme-toggle"') == 1
+
+
+def test_menu_logout_is_post_form_danger_mobile_only(client, admin_user):
+    html = _home(client)
+    menu = html.split('id="userMenu"')[1].split('</ul>')[0]
+    li = re.search(r'<li class="[^"]*only-mobile[^"]*">\s*<form[^>]*>.*?</li>', menu, re.S).group(0)
+    assert re.search(r'<form[^>]*method="POST"', li)
+    assert 'is-danger' in li and 'Cerrar sesión' in li
+
+
+def test_topbar_logout_form_is_desktop_only(client, admin_user):
+    html = _home(client)
+    tag = re.search(r'<form[^>]*auth/logout[^>]*>|<form[^>]*logout[^>]*>', html).group(0)
+    assert 'only-desktop' in tag
+
+
+def test_avatar_button_aria_label(client, admin_user):
+    html = _home(client)
+    tag = re.search(r'<button[^>]*id="userMenuBtn"[^>]*>', html).group(0)
+    assert 'aria-label="Menú de admin_alfa"' in tag

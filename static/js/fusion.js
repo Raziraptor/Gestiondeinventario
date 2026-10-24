@@ -157,7 +157,8 @@ function syncThemeChrome() {
     m.setAttribute('content', bg);
   });
   document.querySelectorAll('[data-theme-icon]').forEach(function (i) {
-    i.className = dark ? 'ph ph-sun' : 'ph ph-moon';
+    i.classList.remove('ph-sun', 'ph-moon');
+    i.classList.add('ph', dark ? 'ph-sun' : 'ph-moon');
   });
 }
 
