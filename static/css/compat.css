@@ -216,8 +216,8 @@ h6 { font-size: .875rem; font-weight: 600; letter-spacing: .01em; }
 .form-control.is-invalid { border-color: var(--danger) !important; }
 .form-control.is-invalid:focus { box-shadow: 0 0 0 3px var(--danger-tint) !important; }
 .form-control:disabled, .form-select:disabled { opacity: .45; cursor: not-allowed; }
-.form-label { color: var(--muted); font-size: .76rem; font-weight: 600; }
-.form-text { color: var(--faint) !important; }
+.form-label { color: var(--text); font-size: .76rem; font-weight: 600; }
+.form-text { color: var(--muted) !important; }
 .form-check-input:checked { background-color: var(--accent); border-color: var(--accent); }
 textarea.form-control { resize: vertical; min-height: 90px; }
 input[type=number]::-webkit-inner-spin-button,
@@ -226,7 +226,7 @@ input[type=number] { -moz-appearance: textfield; }
 .input-group-text {
   background-color: var(--card-2) !important;
   border-color: var(--border) !important;
-  color: var(--muted) !important;
+  color: var(--text) !important;
 }
 
 /* Tables — fusion .table already has these but Bootstrap tables need override */
@@ -244,7 +244,7 @@ input[type=number] { -moz-appearance: textfield; }
 }
 thead th, .table-light th {
   background-color: var(--accent-tint) !important;
-  color: var(--faint) !important;
+  color: var(--muted) !important;
   border-bottom: 1px solid var(--border) !important;
   font-family: var(--font-heading);
   font-size: .75rem;
@@ -463,7 +463,7 @@ thead th, .table-light th {
                    cursor: pointer; font-size: 1rem; flex-shrink: 0; opacity: .6; line-height: 1; transition: opacity .15s; }
 .toast-app-close:hover { opacity: 1; }
 .toast-progress-bar { position: absolute; bottom: 0; left: 0; height: 3px;
-                      border-radius: 0 0 1rem 1rem; animation: toastProgress linear forwards; }
+                      border-radius: 0 0 var(--radius-md) var(--radius-md); animation: toastProgress linear forwards; }
 @keyframes toastProgress { from { width: 100%; } to { width: 0%; } }
 .toast-app.t-success .toast-progress-bar { background: var(--sage); }
 .toast-app.t-danger  .toast-progress-bar { background: var(--danger); }
@@ -592,7 +592,7 @@ thead th, .table-light th {
 .cmd-result-item:last-child { border-bottom: none; }
 .cmd-result-item:hover, .cmd-result-item.focused { background: var(--accent-tint); color: var(--accent-deep); text-decoration: none; }
 .cmd-result-icon {
-  width: 32px; height: 32px; border-radius: 7px; background: var(--accent-tint);
+  width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--accent-tint);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .9rem; margin-top: 1px;
 }
 .cmd-result-type { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }

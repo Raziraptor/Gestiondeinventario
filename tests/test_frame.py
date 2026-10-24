@@ -55,6 +55,10 @@ def test_shell_uses_only_phosphor(client, admin_user):
     src = (ROOT / 'templates/base.html').read_text(encoding='utf-8')
     assert 'bi bi-' not in src and "'bi " not in src and '"bi ' not in src
     assert "'bi-" not in src
+    html = client.get('/').get_data(as_text=True)
+    frame = re.sub(r'<main\b.*?</main>', '', html, flags=re.S)
+    # solo el marco: el contenido de <main> (plantillas hijas) migra en fases posteriores
+    assert re.search(r'class="[^"]*\bbi(-| )', frame) is None
 
 
 def test_no_legacy_indigo_in_shared_css():
@@ -65,9 +69,13 @@ def test_no_legacy_indigo_in_shared_css():
 
 
 def test_border_strong_reserved_for_title_rules():
-    for f in ('compat.css', 'fusion.css'):
+    owners = {
+        'compat.css': ('.form-control, .form-select', '.input-group-text'),
+        'fusion.css': ('.btn-ghost', '.input, select.input'),
+    }
+    for f, sels in owners.items():
         css = (ROOT / 'static/css' / f).read_text(encoding='utf-8')
-        for sel in ('.form-control, .form-select', '.input-group-text', '.btn-ghost', '.input, select.input'):
+        for sel in sels:
             m = re.search(re.escape(sel) + r'[^{]*\{([^}]*)\}', css)
-            if m:
-                assert '--border-strong' not in m.group(1), (f, sel)
+            assert m, (f, sel)
+            assert '--border-strong' not in m.group(1), (f, sel)

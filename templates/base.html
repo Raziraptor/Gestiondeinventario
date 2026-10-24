@@ -517,7 +517,7 @@
             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
             <div class="fab-item" id="fabItemSalida">
                 <span class="fab-item-label">Nueva Salida</span>
-                <a class="fab-item-btn" style="background:var(--danger);color:var(--on-accent);"
+                <a class="fab-item-btn" style="background:var(--accent);color:var(--on-accent);"
                    href="{{ url_for('inventory.registrar_salida') }}" title="Registrar salida">
                     <i class="ph ph-sign-out"></i>
                 </a>
@@ -526,7 +526,7 @@
             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
             <div class="fab-item" id="fabItemOC">
                 <span class="fab-item-label">Nueva OC</span>
-                <a class="fab-item-btn" style="background:var(--sage);color:var(--on-accent);"
+                <a class="fab-item-btn" style="background:var(--accent);color:var(--on-accent);"
                    href="{{ url_for('purchasing.nueva_orden_manual') }}" title="Órdenes de compra">
                     <i class="ph ph-receipt"></i>
                 </a>
