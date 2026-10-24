@@ -31,14 +31,13 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/fusion.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/compat.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
 
     {% block extra_css %}{% endblock %}
 
@@ -60,590 +59,6 @@
         })();
     </script>
 
-    <style>
-        /* ============================================================
-           BASE (tokens vienen de fusion.css + compat.css)
-        ============================================================ */
-        *, *::before, *::after { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-
-        body {
-            font-family: var(--bs-body-font-family);
-            font-size: 1rem;
-            line-height: 1.6;
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            overflow-x: hidden;
-        }
-
-        /* ── ANIMACIONES ─────────────────────────────────────────────── */
-        /* GOTCHA: keyframe `to` solo opacity — sin transform — para no crear
-           stacking context permanente en <main> que bloquearía modales Bootstrap */
-        @keyframes pageIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to   { opacity: 1; }
-        }
-        .erp-main, .main { animation: pageIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) both; padding-bottom: 9rem; }
-
-        @keyframes cardIn {
-            from { opacity: 0; transform: translateY(16px); }
-            to   { opacity: 1; }
-        }
-        .animate-cards > .col,
-        .animate-cards > [class*="col-"] {
-            animation: cardIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
-        }
-        .animate-cards > .col:nth-child(1),  .animate-cards > [class*="col-"]:nth-child(1)  { animation-delay: 0.04s; }
-        .animate-cards > .col:nth-child(2),  .animate-cards > [class*="col-"]:nth-child(2)  { animation-delay: 0.08s; }
-        .animate-cards > .col:nth-child(3),  .animate-cards > [class*="col-"]:nth-child(3)  { animation-delay: 0.12s; }
-        .animate-cards > .col:nth-child(4),  .animate-cards > [class*="col-"]:nth-child(4)  { animation-delay: 0.16s; }
-        .animate-cards > .col:nth-child(5),  .animate-cards > [class*="col-"]:nth-child(5)  { animation-delay: 0.20s; }
-        .animate-cards > .col:nth-child(n+6), .animate-cards > [class*="col-"]:nth-child(n+6) { animation-delay: 0.24s; }
-
-        @keyframes sectionIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to   { opacity: 1; }
-        }
-        .animate-section { animation: sectionIn 0.28s cubic-bezier(0.4, 0, 0.2, 1) both; }
-
-        @keyframes menuIn {
-            from { opacity: 0; transform: scale(0.94) translateY(-6px); }
-            to   { opacity: 1; }
-        }
-        .dropdown-menu.show {
-            animation: menuIn 0.18s cubic-bezier(0.34, 1.2, 0.64, 1) both;
-            transform-origin: top right;
-        }
-
-        .progress-bar { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-
-        /* ============================================================
-           SKIP LINK
-        ============================================================ */
-        .skip-link {
-            position: fixed; top: -60px; left: 1rem;
-            z-index: 100000; background: var(--primary); color: #fff;
-            padding: 0.5rem 1.25rem; border-radius: var(--radius-sm);
-            text-decoration: none; font-weight: 600; font-size: 0.9rem;
-            transition: top 0.2s ease;
-        }
-        .skip-link:focus { top: 1rem; outline: 2px solid #fff; outline-offset: 2px; }
-
-        /* ============================================================
-           FOCUS VISIBLE
-        ============================================================ */
-        :focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
-        }
-        .btn:focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
-            box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.2) !important;
-        }
-        .form-control:focus-visible,
-        .form-select:focus-visible { outline: none; }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 100px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--bs-secondary); }
-
-        /* ============================================================
-           TIPOGRAFÍA
-        ============================================================ */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: var(--font-heading, var(--bs-body-font-family));
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.2;
-            color: var(--text-primary);
-        }
-        h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 800; }
-        h2 { font-size: clamp(1.25rem, 3vw, 1.625rem); }
-        h3 { font-size: clamp(1.05rem, 2.5vw, 1.375rem); }
-        h4 { font-size: 1.125rem; }
-        h5 { font-size: 1rem; }
-        h6 { font-size: 0.875rem; font-weight: 600; letter-spacing: 0.01em; }
-
-        .text-muted { color: var(--text-secondary) !important; }
-        .text-primary { color: var(--primary) !important; }
-        .border-primary { border-color: var(--primary) !important; }
-        .bg-primary { background-color: var(--primary) !important; }
-
-        /* ============================================================
-           CARDS
-        ============================================================ */
-        .card {
-            background-color: var(--surface) !important;
-            border-color: var(--border) !important;
-            border-radius: var(--radius-lg) !important;
-            transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-        }
-        .card-header {
-            background-color: transparent !important;
-            border-bottom-color: var(--border) !important;
-        }
-
-        /* ============================================================
-           FORMS
-        ============================================================ */
-        .form-control,
-        .form-select {
-            background-color: var(--surface-raised) !important;
-            border: 1px solid var(--border) !important;
-            color: var(--bs-body-color) !important;
-            border-radius: var(--radius-sm);
-            font-size: 0.9375rem;
-            transition: border-color 0.18s ease, box-shadow 0.18s ease;
-        }
-        .form-control::placeholder { color: var(--bs-secondary); opacity: 0.65; }
-        .form-control:focus,
-        .form-select:focus {
-            background-color: var(--surface) !important;
-            border-color: var(--primary) !important;
-            color: var(--bs-body-color) !important;
-            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15) !important;
-            outline: none;
-        }
-        .form-control.is-invalid { border-color: #ef4444 !important; }
-        .form-control.is-invalid:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15) !important; }
-        .form-control:disabled, .form-select:disabled { opacity: 0.45; cursor: not-allowed; }
-        .input-group-text {
-            background-color: var(--surface-raised) !important;
-            border-color: var(--border) !important;
-            color: var(--bs-body-color) !important;
-        }
-        .form-label { color: var(--bs-body-color); }
-        .form-text  { color: var(--bs-secondary) !important; }
-        .form-check-input:checked { background-color: var(--primary); border-color: var(--primary); }
-        textarea.form-control { resize: vertical; min-height: 90px; }
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-
-        /* ============================================================
-           TABLES
-        ============================================================ */
-        .table {
-            color: var(--bs-body-color);
-            --bs-table-border-color: var(--border);
-            --bs-table-hover-bg: var(--hover-bg);
-            --bs-table-hover-color: var(--bs-body-color);
-            --bs-table-striped-bg: transparent;
-        }
-        .table > :not(caption) > * > * {
-            background-color: transparent;
-            color: inherit;
-            border-bottom-color: var(--border);
-        }
-        thead th, .table-light th {
-            background-color: var(--hover-bg) !important;
-            color: var(--bs-secondary) !important;
-            border-bottom: 1px solid var(--border) !important;
-            font-weight: 600;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .table-hover tbody tr:hover > * {
-            background-color: var(--hover-bg) !important;
-            color: var(--bs-body-color) !important;
-        }
-        /* Fila clickable con teclado */
-        .fila-producto:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
-
-        /* ============================================================
-           LIST GROUPS
-        ============================================================ */
-        .list-group-item {
-            background-color: var(--surface) !important;
-            border-color: var(--border) !important;
-            color: var(--bs-body-color) !important;
-            transition: background-color 0.15s ease;
-        }
-        .list-group-item-action:hover {
-            background-color: var(--hover-bg) !important;
-            color: var(--primary) !important;
-        }
-
-        /* ============================================================
-           BOTONES
-        ============================================================ */
-        .btn {
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
-                        box-shadow  0.18s ease,
-                        background  0.18s ease,
-                        border-color 0.18s ease,
-                        color 0.18s ease;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-        }
-        .btn:active { transform: scale(0.96); }
-        .btn.rounded-pill { border-radius: 100px !important; }
-
-        .btn-group > .btn                        { border-radius: 0 !important; }
-        .btn-group > .btn:first-child            { border-radius: var(--radius-sm) 0 0 var(--radius-sm) !important; }
-        .btn-group > .btn:last-child             { border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important; }
-        .btn-group > .btn:only-child             { border-radius: var(--radius-sm) !important; }
-
-        .btn-primary {
-            background-color: var(--primary) !important;
-            border-color: var(--primary) !important;
-            color: #fff !important;
-        }
-        .btn-primary:hover {
-            background-color: var(--primary-hover) !important;
-            border-color: var(--primary-hover) !important;
-            box-shadow: 0 0 18px rgba(var(--primary-rgb), .35) !important;
-        }
-        .btn-outline-primary { border-color: var(--primary) !important; color: var(--primary) !important; }
-        .btn-outline-primary:hover {
-            background: var(--primary) !important; color: #fff !important;
-            box-shadow: 0 0 12px rgba(var(--primary-rgb), .3) !important;
-        }
-        .btn-success:hover, .btn-outline-success:hover { box-shadow: 0 0 12px rgba(16,185,129,.3) !important; }
-        .btn-danger:hover,  .btn-outline-danger:hover  { box-shadow: 0 0 12px rgba(239,68,68,.3) !important; }
-
-        /* ── btn-accion (touch target 44px on mobile) ── */
-        .btn-accion { min-width: 36px; min-height: 36px; }
-        @media (pointer: coarse) { .btn-accion { min-width: 44px; min-height: 44px; } }
-
-        /* ============================================================
-           BADGES
-        ============================================================ */
-        .badge.bg-light {
-            background-color: var(--hover-bg) !important;
-            color: var(--bs-body-color) !important;
-            border: 1px solid var(--border) !important;
-        }
-        [data-bs-theme="dark"] .badge.text-dark { color: var(--bs-body-color) !important; }
-
-        /* ── STATUS BADGES — legacy aliases, usar status-pill en templates nuevos ── */
-        .badge-status    { display:inline-flex;align-items:center;gap:.3em;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:.28em .7em;border-radius:50rem;white-space:nowrap; }
-        .badge-borrador  { background: rgba(148,163,184,.12); color: #94a3b8; }
-        .badge-enviada   { background: rgba(14,165,233,.12);  color: #0ea5e9; }
-        .badge-recibida  { background: rgba(16,185,129,.12);  color: #10b981; }
-        .badge-aprobada  { background: rgba(16,185,129,.12);  color: #10b981; }
-        .badge-cancelada { background: rgba(148,163,184,.12); color: #94a3b8; }
-        .badge-activo    { background: rgba(16,185,129,.12);  color: #10b981; }
-        .badge-pendiente { background: rgba(245,158,11,.12);  color: #f59e0b; }
-        .badge-rechazada { background: rgba(239,68,68,.12);   color: #ef4444; }
-
-        /* ============================================================
-           UTILIDADES
-        ============================================================ */
-        .bg-white  { background-color: var(--surface) !important; }
-        .bg-light  { background-color: var(--surface-raised) !important; }
-        .text-dark { color: var(--bs-body-color) !important; }
-        .border, .border-bottom, .border-top { border-color: var(--border) !important; }
-
-        .rounded-apple-sm { border-radius: var(--radius-sm) !important; }
-        .rounded-apple    { border-radius: var(--radius-md) !important; }
-        .rounded-apple-lg { border-radius: var(--radius-lg) !important; }
-
-        .surface-panel {
-            background: var(--surface-raised);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-        }
-
-        /* ============================================================
-           DROPDOWN PREMIUM
-        ============================================================ */
-        .dropdown-menu {
-            background-color: var(--surface);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--shadow-lg);
-            border-radius: var(--radius-lg);
-            padding: 0.4rem;
-            min-width: 14rem;
-        }
-        .dropdown-item {
-            color: var(--bs-body-color);
-            border-radius: var(--radius-sm);
-            padding: 0.5rem 0.875rem;
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: background 0.15s ease, color 0.15s ease;
-        }
-        .dropdown-item:hover { background-color: var(--hover-bg); color: var(--primary); }
-        .dropdown-divider { border-color: var(--border); margin: 0.3rem 0.4rem; }
-        .dropdown-header {
-            font-size: .75rem; font-weight: 800; text-transform: uppercase;
-            letter-spacing: 1px; color: var(--primary); padding: .5rem 1rem .25rem;
-        }
-        @media (max-width: 576px) { .dropdown-menu { min-width: calc(100vw - 2rem); } }
-
-        /* ============================================================
-           ALERTAS FLASH
-        ============================================================ */
-        .alert-premium {
-            background-color: var(--surface);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border);
-            border-left: 5px solid;
-            box-shadow: var(--shadow-md);
-            font-weight: 500;
-        }
-        .alert-success.alert-premium { border-left-color: #10b981; }
-        .alert-danger.alert-premium  { border-left-color: #ef4444; }
-        .alert-warning.alert-premium { border-left-color: #f59e0b; }
-        .alert-info.alert-premium    { border-left-color: var(--primary); }
-
-        .alert-danger-soft  { background: rgba(239,68,68,.09);   border: none; border-left: 4px solid #ef4444 !important; }
-        .alert-warning-soft { background: rgba(245,158,11,.09);  border: none; border-left: 4px solid #f59e0b !important; }
-        .alert-info-soft    { background: rgba(249,115,22,.07);  border: none; border-left: 4px solid var(--primary) !important; }
-        .alert-success-soft { background: rgba(16,185,129,.09);  border: none; border-left: 4px solid #10b981 !important; }
-
-        /* ============================================================
-           KPI STATS
-        ============================================================ */
-        .kpi-stat { display: flex; align-items: center; gap: 0.875rem; }
-        .kpi-stat-icon {
-            width: 44px; height: 44px; border-radius: var(--radius-sm);
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; font-size: 1.25rem;
-        }
-        .kpi-stat-label {
-            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.5px; color: var(--text-secondary); display: block; margin-bottom: 0.1rem;
-        }
-        .kpi-stat-value {
-            font-size: 1.375rem; font-weight: 700; line-height: 1.1;
-            color: var(--text-primary); letter-spacing: -0.02em;
-        }
-
-        /* ============================================================
-           CONTENT CARDS — hover lift
-        ============================================================ */
-        .content-card {
-            transition: transform 0.22s cubic-bezier(0.34, 1.15, 0.64, 1),
-                        box-shadow 0.22s ease, border-color 0.18s ease;
-        }
-        .content-card:hover {
-            transform: translateY(-3px) scale(1.012);
-            box-shadow: var(--shadow-lg) !important;
-            border-color: var(--primary) !important;
-        }
-        @media (hover: none) { .content-card:hover { transform: none !important; } }
-
-        /* ============================================================
-           DASHBOARD CARDS
-        ============================================================ */
-        .dashboard-card {
-            text-decoration: none;
-            background-color: var(--surface);
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
-            border-radius: var(--radius-lg);
-            transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .dashboard-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg) !important;
-            border-color: var(--primary) !important;
-        }
-        .dashboard-card .card-icon {
-            font-size: 2.5rem; margin-bottom: 0.75rem;
-            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .dashboard-card:hover .card-icon { transform: scale(1.12) rotate(-4deg); }
-
-        /* ============================================================
-           PAGE HEADER
-        ============================================================ */
-        .page-header { display: flex; flex-direction: column; gap: .2rem; margin-bottom: 1.5rem; }
-        .page-header-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
-        .page-title { font-size: 1.375rem; font-weight: 700; letter-spacing: -0.03em; margin: 0; color: var(--text-primary); }
-        .page-subtitle { font-size: .875rem; color: var(--text-secondary); margin: .15rem 0 0; }
-
-        /* ============================================================
-           EMPTY STATE
-        ============================================================ */
-        .empty-state { text-align: center; padding: 3.5rem 1.5rem; color: var(--bs-secondary); }
-        .empty-state-icon { font-size: 3rem; margin-bottom: 0.875rem; opacity: 0.4; display: block; }
-        .empty-state h5 { font-weight: 700; color: var(--bs-body-color); margin-bottom: 0.5rem; }
-        .empty-state p  { font-size: 0.9rem; max-width: 300px; margin: 0 auto 1.5rem; }
-
-        /* ============================================================
-           TOTAL PANEL
-        ============================================================ */
-        .total-panel { border-radius: var(--radius-sm); padding: 0.75rem 1rem; text-align: center; }
-        .total-panel-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 0.2rem; }
-        .total-panel-value { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
-
-        /* ============================================================
-           PAGINACIÓN
-        ============================================================ */
-        .page-link {
-            background-color: var(--surface) !important; border-color: var(--border) !important;
-            color: var(--bs-body-color) !important; font-weight: 500; font-size: 0.875rem;
-            transition: background 0.15s, color 0.15s;
-        }
-        .page-link:hover { background-color: var(--hover-bg) !important; color: var(--primary) !important; }
-        .page-item.active .page-link { background-color: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
-        .page-item.disabled .page-link { opacity: 0.4; }
-
-        /* ============================================================
-           BREADCRUMBS
-        ============================================================ */
-        .breadcrumb { --bs-breadcrumb-divider-color: var(--bs-secondary); margin-bottom: 0; font-size: .82rem; }
-        .breadcrumb-item a { color: var(--bs-secondary); text-decoration: none; transition: color .15s; }
-        .breadcrumb-item a:hover { color: var(--primary); }
-        .breadcrumb-item.active { color: var(--bs-body-color); font-weight: 600; }
-
-        /* ============================================================
-           TOAST NOTIFICATIONS
-        ============================================================ */
-        .toast-container-app {
-            position: fixed; bottom: 1.75rem; left: 1.75rem;
-            z-index: 99999; display: flex; flex-direction: column-reverse;
-            gap: 0.65rem; max-width: min(390px, calc(100vw - 3rem));
-            pointer-events: none;
-        }
-        .toast-app {
-            pointer-events: all; position: relative; overflow: hidden;
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
-            padding: 0.9rem 1rem; display: flex; align-items: center;
-            gap: 0.75rem; min-width: 260px;
-            animation: toastSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-        }
-        .toast-app.toast-hiding { animation: toastSlideOut 0.2s ease-in forwards; }
-        @keyframes toastSlideIn {
-            from { opacity: 0; transform: translateX(110%) scale(0.92); }
-            to   { opacity: 1; transform: translateX(0) scale(1); }
-        }
-        @keyframes toastSlideOut {
-            from { opacity: 1; transform: translateX(0) scale(1); max-height: 200px; }
-            to   { opacity: 0; transform: translateX(60%); max-height: 0; padding: 0; margin: 0; }
-        }
-        .toast-app-icon  { font-size: 1.25rem; flex-shrink: 0; line-height: 1; }
-        .toast-app-msg   { font-size: 0.875rem; font-weight: 500; flex: 1; line-height: 1.45; color: var(--bs-body-color); }
-        .toast-app-close { background: none; border: none; padding: 0.1rem 0.2rem; color: var(--bs-secondary);
-                           cursor: pointer; font-size: 1rem; flex-shrink: 0; opacity: 0.6; line-height: 1; transition: opacity 0.15s; }
-        .toast-app-close:hover { opacity: 1; }
-        .toast-progress-bar { position: absolute; bottom: 0; left: 0; height: 3px;
-                              border-radius: 0 0 1rem 1rem; animation: toastProgress linear forwards; }
-        @keyframes toastProgress { from { width: 100% } to { width: 0% } }
-        .toast-app.t-success .toast-progress-bar { background: #10b981; }
-        .toast-app.t-danger  .toast-progress-bar { background: #ef4444; }
-        .toast-app.t-warning .toast-progress-bar { background: #f59e0b; }
-        .toast-app.t-info    .toast-progress-bar { background: var(--primary); }
-
-        /* ============================================================
-           MODAL DE CONFIRMACIÓN
-        ============================================================ */
-        .confirm-modal-body { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg) !important; }
-        .confirm-icon-wrap { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1rem; }
-
-        /* ============================================================
-           THEME BUTTON (topbar)
-        ============================================================ */
-        .theme-btn {
-            width: 36px; height: 36px; border-radius: 50%;
-            border: 1px solid var(--border); background: var(--hover-bg);
-            color: var(--bs-body-color); display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: background 0.15s, transform 0.2s, border-color 0.15s;
-            flex-shrink: 0;
-        }
-        .theme-btn:hover { transform: rotate(15deg) scale(1.1); border-color: var(--primary); }
-        [data-bs-theme="dark"]  .theme-btn i { color: #fbbf24; }
-        [data-bs-theme="light"] .theme-btn i { color: #475569; }
-
-        /* ============================================================
-           FAB
-        ============================================================ */
-        .fab-container {
-            position: fixed; bottom: 1.75rem; right: 1.75rem; z-index: 9000;
-            display: flex; flex-direction: column; align-items: flex-end; gap: 0.55rem;
-            pointer-events: none;
-        }
-        .fab-main {
-            width: 52px; height: 52px; border-radius: 50%;
-            background: var(--primary); color: #fff; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; line-height: 1;
-            box-shadow: 0 4px 20px rgba(var(--primary-rgb), .5);
-            transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
-            position: relative; z-index: 2; flex-shrink: 0;
-            pointer-events: auto;
-        }
-        .fab-main:hover { box-shadow: 0 6px 28px rgba(var(--primary-rgb),.65); }
-        .fab-main.fab-open { transform: rotate(45deg); }
-        .fab-items { display: flex; flex-direction: column-reverse; align-items: flex-end; gap: 0.45rem; }
-        .fab-item {
-            display: flex; align-items: center; gap: 0.55rem;
-            opacity: 0; transform: translateY(12px) scale(.88);
-            transition: opacity .18s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
-            pointer-events: none;
-        }
-        .fab-item.fab-visible { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
-        .fab-item-btn {
-            width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.05rem; line-height: 1; box-shadow: var(--shadow-md);
-            transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .15s;
-        }
-        .fab-item-btn:hover { transform: scale(1.1); }
-        .fab-item-btn:active { transform: scale(.93); }
-        .fab-item-label {
-            background: var(--surface); color: var(--bs-body-color); font-size: .76rem; font-weight: 600;
-            padding: .22rem .6rem; border-radius: 100px; border: 1px solid var(--border);
-            box-shadow: var(--shadow-sm); white-space: nowrap; pointer-events: none;
-        }
-        .fab-backdrop { display: none; position: fixed; inset: 0; z-index: 8999; }
-        .fab-backdrop.active { display: block; }
-
-        /* ============================================================
-           QUICK ADJUST MODAL (FAB)
-        ============================================================ */
-        .qa-search-wrap { position: relative; }
-        .qa-search-list {
-            position: absolute; top: calc(100% + 4px); left: 0; right: 0;
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
-            z-index: 10; max-height: 200px; overflow-y: auto; display: none;
-        }
-        .qa-item { padding: .48rem .875rem; cursor: pointer; border-bottom: 1px solid var(--border); font-size: .875rem; transition: background .12s; }
-        .qa-item:last-child { border-bottom: none; }
-        .qa-item:hover { background: var(--hover-bg); color: var(--primary); }
-        .qa-tipo-btn { flex: 1; padding: .45rem; border: 2px solid var(--border); background: transparent; color: var(--bs-body-color); border-radius: var(--radius-sm); font-weight: 700; font-size: .9rem; transition: all .15s; cursor: pointer; }
-        .qa-tipo-btn.qa-active-entrada { border-color: #10b981; background: rgba(16,185,129,.1); color: #10b981; }
-        .qa-tipo-btn.qa-active-salida  { border-color: #ef4444; background: rgba(239,68,68,.1);  color: #ef4444; }
-        .qa-qty-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--hover-bg); color: var(--bs-body-color); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; font-weight: 700; transition: background .15s, transform .1s; flex-shrink: 0; }
-        .qa-qty-btn:hover { background: var(--primary); color: #fff; }
-
-        /* ============================================================
-           SEARCH DROPDOWN (topbar)
-        ============================================================ */
-        .search-item {
-            display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 1rem;
-            text-decoration: none; color: var(--bs-body-color); border-bottom: 1px solid var(--border);
-            transition: background .12s; font-size: .875rem;
-        }
-        .search-item:last-child { border-bottom: none; }
-        .search-item:hover { background: var(--hover-bg); color: var(--primary); }
-        .search-item-icon {
-            width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--hover-bg);
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .95rem;
-        }
-    </style>
 </head>
 <body>
 
@@ -1045,7 +460,7 @@
     <div class="cmd-palette-overlay" id="cmdPalette" role="dialog" aria-label="Búsqueda global" aria-modal="true">
         <div class="cmd-palette-box">
             <div class="cmd-search-row">
-                <i class="bi bi-search cmd-search-icon" aria-hidden="true"></i>
+                <i class="ph ph-magnifying-glass cmd-search-icon" aria-hidden="true"></i>
                 <input type="text" id="cmdInput" class="cmd-search-input"
                        placeholder="Buscar producto, OC, gasto, proveedor..."
                        autocomplete="off" aria-autocomplete="list" aria-controls="cmdResults">
@@ -1068,7 +483,7 @@
             <div class="modal-content confirm-modal-body border-0">
                 <div class="modal-body text-center p-4 pb-2">
                     <div class="confirm-icon-wrap bg-danger bg-opacity-10" id="confirmIconWrap">
-                        <i class="bi bi-exclamation-triangle-fill text-danger" id="confirmIcon"></i>
+                        <i class="ph-fill ph-warning text-danger" id="confirmIcon"></i>
                     </div>
                     <h6 class="fw-bold mb-2 fs-5" id="confirmTitle">¿Estás seguro?</h6>
                     <p class="text-muted mb-0" style="font-size:0.875rem;" id="confirmBody">Esta acción no se puede deshacer.</p>
@@ -1076,7 +491,7 @@
                 <div class="modal-footer border-0 pb-4 px-4 gap-2 justify-content-center">
                     <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-danger rounded-pill px-4" id="confirmOkBtn">
-                        <i class="bi bi-check2 me-1"></i> Confirmar
+                        <i class="ph ph-check me-1"></i> Confirmar
                     </button>
                 </div>
             </div>
@@ -1093,33 +508,33 @@
             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_edit_management %}
             <div class="fab-item" id="fabItemAjuste">
                 <span class="fab-item-label">Ajuste Rápido</span>
-                <button class="fab-item-btn" style="background:#6366f1;color:#fff;"
+                <button class="fab-item-btn" style="background:var(--accent);color:var(--on-accent);"
                         data-bs-toggle="modal" data-bs-target="#quickAdjustModal" title="Ajuste rápido de stock">
-                    <i class="bi bi-sliders"></i>
+                    <i class="ph ph-sliders-horizontal"></i>
                 </button>
             </div>
             {% endif %}
             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_do_salidas %}
             <div class="fab-item" id="fabItemSalida">
                 <span class="fab-item-label">Nueva Salida</span>
-                <a class="fab-item-btn" style="background:#ef4444;color:#fff;"
+                <a class="fab-item-btn" style="background:var(--danger);color:var(--on-accent);"
                    href="{{ url_for('inventory.registrar_salida') }}" title="Registrar salida">
-                    <i class="bi bi-box-arrow-right"></i>
+                    <i class="ph ph-sign-out"></i>
                 </a>
             </div>
             {% endif %}
             {% if current_user.rol in ['super_admin', 'admin'] or current_user.perm_create_oc_standard %}
             <div class="fab-item" id="fabItemOC">
                 <span class="fab-item-label">Nueva OC</span>
-                <a class="fab-item-btn" style="background:#10b981;color:#fff;"
+                <a class="fab-item-btn" style="background:var(--sage);color:var(--on-accent);"
                    href="{{ url_for('purchasing.nueva_orden_manual') }}" title="Órdenes de compra">
-                    <i class="bi bi-receipt"></i>
+                    <i class="ph ph-receipt"></i>
                 </a>
             </div>
             {% endif %}
         </div>
         <button class="fab-main" id="fabMain" title="Acciones rápidas" aria-label="Acciones rápidas">
-            <i class="bi bi-plus-lg fab-icon"></i>
+            <i class="ph ph-plus fab-icon"></i>
         </button>
     </div>
 
@@ -1131,7 +546,7 @@
                 <div class="modal-body p-4">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <div style="width:36px;height:36px;border-radius:50%;background:var(--primary-tonal);display:flex;align-items:center;justify-content:center;">
-                            <i class="bi bi-sliders text-primary"></i>
+                            <i class="ph ph-sliders-horizontal text-primary"></i>
                         </div>
                         <h6 class="fw-bold mb-0 fs-6">Ajuste Rápido de Stock</h6>
                         <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -1146,8 +561,8 @@
                     <div class="mb-3">
                         <label class="form-label small fw-semibold mb-1">Tipo de ajuste</label>
                         <div class="d-flex gap-2">
-                            <button type="button" id="qaTipoEntrada" class="qa-tipo-btn qa-active-entrada"><i class="bi bi-plus-circle me-1"></i> Entrada</button>
-                            <button type="button" id="qaTipoSalida" class="qa-tipo-btn"><i class="bi bi-dash-circle me-1"></i> Salida</button>
+                            <button type="button" id="qaTipoEntrada" class="qa-tipo-btn qa-active-entrada"><i class="ph ph-plus-circle me-1"></i> Entrada</button>
+                            <button type="button" id="qaTipoSalida" class="qa-tipo-btn"><i class="ph ph-minus-circle me-1"></i> Salida</button>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -1163,7 +578,7 @@
                         <input type="text" id="qaMotivo" class="form-control" placeholder="Ej: Conteo físico, merma, devolución...">
                     </div>
                     <button type="button" id="qaSubmit" class="btn btn-primary rounded-pill w-100 fw-semibold">
-                        <i class="bi bi-check2 me-1"></i> Guardar Ajuste
+                        <i class="ph ph-check me-1"></i> Guardar Ajuste
                     </button>
                 </div>
             </div>
@@ -1227,7 +642,7 @@
                 <div class="min-w-0 flex-grow-1">
                     <div class="fw-semibold text-body text-truncate" style="font-size:.82rem;">${_esc(item.nombre)}</div>
                     <div class="text-muted" style="font-size:.7rem;">
-                        <i class="bi bi-shop me-1"></i>${_esc(item.almacen)} &nbsp;·&nbsp; <span class="font-monospace">${_esc(item.sku || '')}</span>
+                        <i class="ph ph-storefront me-1"></i>${_esc(item.almacen)} &nbsp;·&nbsp; <span class="font-monospace">${_esc(item.sku || '')}</span>
                     </div>
                     <div class="progress mt-1 rounded-pill" style="height:4px;max-width:140px;">
                         <div class="progress-bar bg-danger rounded-pill" style="width:${Math.min(pct,100)}%;"></div>
@@ -1252,7 +667,7 @@
                 } else {
                     badge.classList.add('d-none');
                     label.textContent = '0';
-                    lista.innerHTML   = `<div class="text-center text-muted py-4" style="font-size:.85rem;"><i class="bi bi-check-circle-fill text-success fs-4 d-block mb-2"></i>Todo el stock está en niveles óptimos</div>`;
+                    lista.innerHTML   = `<div class="text-center text-muted py-4" style="font-size:.85rem;"><i class="ph-fill ph-check-circle text-success fs-4 d-block mb-2"></i>Todo el stock está en niveles óptimos</div>`;
                 }
             } catch (e) { /* silencioso */ }
         }
@@ -1268,10 +683,10 @@
     (function() {
         const container = document.getElementById('toastContainer');
         const ICONS = {
-            success: { icon: 'bi-check-circle-fill',       color: '#10b981' },
-            danger:  { icon: 'bi-exclamation-octagon-fill', color: '#ef4444' },
-            warning: { icon: 'bi-exclamation-triangle-fill',color: '#f59e0b' },
-            info:    { icon: 'bi-info-circle-fill',         color: '#9184d9' },
+            success: { icon: 'ph-fill ph-check-circle',       color: 'var(--sage)' },
+            danger:  { icon: 'ph-fill ph-warning-octagon', color: 'var(--danger)' },
+            warning: { icon: 'ph-fill ph-warning',color: 'var(--warn)' },
+            info:    { icon: 'ph-fill ph-info',         color: 'var(--info)' },
         };
 
         window.showToast = function(msg, cat, duration) {
@@ -1281,9 +696,9 @@
             const el  = document.createElement('div');
             el.className = 'toast-app t-' + cat;
             el.innerHTML =
-                '<i class="bi ' + cfg.icon + ' toast-app-icon" style="color:' + cfg.color + '"></i>' +
+                '<i class="' + cfg.icon + ' toast-app-icon" style="color:' + cfg.color + '"></i>' +
                 '<span class="toast-app-msg"></span>' +
-                '<button class="toast-app-close" aria-label="Cerrar"><i class="bi bi-x-lg"></i></button>' +
+                '<button class="toast-app-close" aria-label="Cerrar"><i class="ph ph-x"></i></button>' +
                 '<div class="toast-progress-bar" style="animation-duration:' + duration + 'ms"></div>';
             el.querySelector('.toast-app-msg').textContent = msg;
             container.appendChild(el);
@@ -1321,7 +736,7 @@
             titleEl.textContent = opts.title   || '¿Confirmar acción?';
             bodyEl.textContent  = opts.body    || 'Esta acción no se puede deshacer.';
             okBtn.className     = 'btn rounded-pill px-4 ' + (opts.btnClass || 'btn-danger');
-            okBtn.innerHTML     = '<i class="bi bi-check2 me-1"></i> ' + (opts.btnText || 'Confirmar');
+            okBtn.innerHTML     = '<i class="ph ph-check me-1"></i> ' + (opts.btnText || 'Confirmar');
             cb = opts.onConfirm || null;
             bsModal.show();
         };
@@ -1403,7 +818,7 @@
         function render(data, q) {
             focusedIdx = -1;
             if (!data.length) {
-                results.innerHTML = '<div class="p-3 text-center text-muted" style="font-size:.875rem;"><i class="bi bi-search me-1"></i>Sin resultados para "' + escHtml(q) + '"</div>';
+                results.innerHTML = '<div class="p-3 text-center text-muted" style="font-size:.875rem;"><i class="ph ph-magnifying-glass me-1"></i>Sin resultados para "' + escHtml(q) + '"</div>';
                 return;
             }
             results.innerHTML = data.slice(0, 8).map(p => {
@@ -1419,7 +834,7 @@
                     stockHtml = '<div class="cmd-stock-none text-muted">Sin stock registrado</div>';
                 }
                 return `<a href="/producto/editar/${p.id}" class="cmd-result-item" role="option">
-                    <div class="cmd-result-icon"><i class="bi bi-box-seam text-muted"></i></div>
+                    <div class="cmd-result-icon"><i class="ph ph-package text-muted"></i></div>
                     <div class="flex-1">
                         <div class="fw-semibold" style="font-size:.875rem;line-height:1.3;">${escHtml(p.nombre)}</div>
                         <div class="cmd-result-type">Producto · SKU: ${escHtml(p.codigo)}</div>
@@ -1464,12 +879,12 @@
 
         function setIconState(active) {
             if (active) {
-                pushIcon.className = 'bi bi-bell-fill';
+                pushIcon.className = 'ph-fill ph-bell';
                 pushBtn.title = 'Desactivar notificaciones push';
                 pushBtn.style.color = 'var(--primary)';
                 if (pushTestBtn) pushTestBtn.style.display = '';
             } else {
-                pushIcon.className = 'bi bi-bell-slash';
+                pushIcon.className = 'ph ph-bell-slash';
                 pushBtn.title = 'Activar notificaciones push';
                 pushBtn.style.color = '';
                 if (pushTestBtn) pushTestBtn.style.display = 'none';
@@ -1604,7 +1019,7 @@
             qaSearch.value = ''; qaList.style.display = 'none'; qaSelInfo.style.display = 'none';
             qaStockId.value = ''; qaCantidad.value = '1'; qaMotivo.value = '';
             qaTipoEnt.classList.add('qa-active-entrada'); qaTipoSal.classList.remove('qa-active-salida');
-            qaSubmit.disabled = false; qaSubmit.innerHTML = '<i class="bi bi-check2 me-1"></i> Guardar Ajuste';
+            qaSubmit.disabled = false; qaSubmit.innerHTML = '<i class="ph ph-check me-1"></i> Guardar Ajuste';
         }
         modal.addEventListener('show.bs.modal', resetModal);
 
@@ -1631,7 +1046,7 @@
                             item.append(strong, muted, badge);
                             item.addEventListener('click', function() {
                                 qaStockId.value = this.dataset.id; qaSearch.value = this.dataset.nombre;
-                                qaSelInfo.innerHTML = '<i class="bi bi-shop me-1"></i>' + this.dataset.almacen + '  ·  Stock actual: <strong>' + this.dataset.cantidad + '</strong> uds';
+                                qaSelInfo.innerHTML = '<i class="ph ph-storefront me-1"></i>' + this.dataset.almacen + '  ·  Stock actual: <strong>' + this.dataset.cantidad + '</strong> uds';
                                 qaSelInfo.style.display = 'block'; qaList.style.display = 'none';
                             });
                             qaList.append(item);
@@ -1666,10 +1081,10 @@
             .then(function(data) {
                 bootstrap.Modal.getInstance(modal).hide();
                 if (data.ok) { showToast(data.mensaje || 'Ajuste registrado', 'success'); }
-                else { showToast(data.error || 'Error al registrar', 'danger'); qaSubmit.disabled = false; qaSubmit.innerHTML = '<i class="bi bi-check2 me-1"></i> Guardar Ajuste'; }
+                else { showToast(data.error || 'Error al registrar', 'danger'); qaSubmit.disabled = false; qaSubmit.innerHTML = '<i class="ph ph-check me-1"></i> Guardar Ajuste'; }
             }).catch(function() {
                 showToast('Error de conexión', 'danger'); qaSubmit.disabled = false;
-                qaSubmit.innerHTML = '<i class="bi bi-check2 me-1"></i> Guardar Ajuste';
+                qaSubmit.innerHTML = '<i class="ph ph-check me-1"></i> Guardar Ajuste';
             });
         });
     })();

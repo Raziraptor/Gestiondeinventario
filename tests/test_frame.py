@@ -38,3 +38,36 @@ def test_manifest_colors():
     import json
     m = json.loads((ROOT / 'static/manifest.json').read_text(encoding='utf-8'))
     assert m['theme_color'] == '#15161c' and m['background_color'] == '#15161c'
+
+
+def test_base_has_no_inline_style_block(client):
+    src = (ROOT / 'templates/base.html').read_text(encoding='utf-8')
+    head = src.split('</head>')[0]
+    assert '<style' not in head
+    assert 'design-system.css' not in src
+    assert not (ROOT / 'static/css/design-system.css').exists()
+
+
+def test_shell_uses_only_phosphor(client, admin_user):
+    from tests.conftest import do_login
+    do_login(client, 'admin_alfa')
+    assert client.get('/').status_code == 200
+    src = (ROOT / 'templates/base.html').read_text(encoding='utf-8')
+    assert 'bi bi-' not in src and "'bi " not in src and '"bi ' not in src
+    assert "'bi-" not in src
+
+
+def test_no_legacy_indigo_in_shared_css():
+    for f in ('compat.css', 'fusion.css'):
+        css = (ROOT / 'static/css' / f).read_text(encoding='utf-8').lower()
+        for hexv in ('#4f46e5', '#6366f1', '#10b981', '#ef4444', '#f59e0b'):
+            assert hexv not in css, (f, hexv)
+
+
+def test_border_strong_reserved_for_title_rules():
+    for f in ('compat.css', 'fusion.css'):
+        css = (ROOT / 'static/css' / f).read_text(encoding='utf-8')
+        for sel in ('.form-control, .form-select', '.input-group-text', '.btn-ghost', '.input, select.input'):
+            m = re.search(re.escape(sel) + r'[^{]*\{([^}]*)\}', css)
+            if m:
+                assert '--border-strong' not in m.group(1), (f, sel)
