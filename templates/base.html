@@ -45,11 +45,18 @@
     <!-- Prevenir FOUC al navegar entre páginas -->
     <script nonce="{{ csp_nonce() }}">
         (function() {
-            var t = localStorage.getItem('erp_theme') || localStorage.getItem('app_theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', t);
-            document.documentElement.setAttribute('data-bs-theme', t);
-            var m = document.getElementById('themeColorMeta');
-            if (m) m.content = t === 'light' ? '#f6f2ea' : '#15161c';
+            // Hex values mirror --bg in static/css/fusion.css (dark / light)
+            var t = 'dark';
+            try {
+                t = (localStorage.getItem('erp_theme') || localStorage.getItem('app_theme')) === 'light' ? 'light' : 'dark';
+            } catch (e) {}
+            try {
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.setAttribute('data-bs-theme', t);
+                document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+                    m.content = t === 'light' ? '#f6f2ea' : '#15161c';
+                });
+            } catch (e) {}
         })();
     </script>
 

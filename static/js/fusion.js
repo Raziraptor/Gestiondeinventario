@@ -3,14 +3,6 @@
  * animateCounters, avatarColorClass, theme helpers, chart helpers
  */
 
-/* ── THEME ──────────────────────────────────────────────────── */
-(function () {
-  const KEY = 'erp_theme';
-  const t = localStorage.getItem(KEY) || 'dark';
-  document.documentElement.setAttribute('data-theme', t);
-  document.documentElement.setAttribute('data-bs-theme', t);
-})();
-
 /* ── ANIMATED COUNTERS ──────────────────────────────────────── */
 function animateCounters(root) {
   root = root || document;
@@ -156,18 +148,28 @@ var FusionChart = {
 };
 
 /* ── THEME TOGGLE + THEMECHANGE EVENT ───────────────────────── */
+/* Icons + theme-color metas only (no attribute writes, no event). */
+function syncThemeChrome() {
+  var html = document.documentElement;
+  var dark = html.getAttribute('data-theme') !== 'light';
+  var bg = getComputedStyle(html).getPropertyValue('--bg').trim();
+  if (bg) document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) {
+    m.setAttribute('content', bg);
+  });
+  document.querySelectorAll('[data-theme-icon]').forEach(function (i) {
+    i.className = dark ? 'ph ph-sun' : 'ph ph-moon';
+  });
+}
+
 window.setFusionTheme = function (t) {
   var html = document.documentElement;
   t = t === 'light' ? 'light' : 'dark';
+  var changed = html.getAttribute('data-theme') !== t;
   html.setAttribute('data-theme', t);
   html.setAttribute('data-bs-theme', t);
   try { localStorage.setItem('erp_theme', t); localStorage.setItem('app_theme', t); } catch (e) {}
-  var meta = document.getElementById('themeColorMeta');
-  if (meta) meta.setAttribute('content', getComputedStyle(html).getPropertyValue('--bg').trim());
-  document.querySelectorAll('[data-theme-icon]').forEach(function (i) {
-    i.className = t === 'dark' ? 'ph ph-sun' : 'ph ph-moon';
-  });
-  window.dispatchEvent(new Event('themechange'));
+  syncThemeChrome();
+  if (changed) window.dispatchEvent(new Event('themechange'));
 };
 
 window.toggleFusionTheme = function () {
@@ -180,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
   animateCounters(document);
 
   /* Sync theme icons / theme-color with the theme set before paint */
-  window.setFusionTheme(document.documentElement.dataset.theme);
+  syncThemeChrome();
 
   /* Theme button wiring (Fusion topbar .icon-btn[data-action=theme]) */
   document.querySelectorAll('[data-action="theme"]').forEach(function (btn) {
