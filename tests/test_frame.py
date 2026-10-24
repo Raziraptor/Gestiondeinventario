@@ -102,3 +102,18 @@ def test_shell_has_no_fixed_px_dialogs():
     src = (ROOT / 'templates/base.html').read_text(encoding='utf-8')
     assert 'max-width:370px' not in src and 'max-width:420px' not in src
     assert 'min-width:310px' not in src and 'min-width:280px' not in src
+
+
+def test_mobile_input_16px_scoped_to_mobile():
+    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    inside, outside, i = [], css, 0
+    for m in re.finditer(r'@media \(max-width: 899\.98px\) \{', css):
+        depth, j = 1, m.end()
+        while depth:
+            depth += {'{': 1, '}': -1}.get(css[j], 0)
+            j += 1
+        inside.append(css[m.end():j - 1])
+        outside = outside.replace(css[m.start():j], '')
+    block = '\n'.join(inside)
+    assert 'font-size: 16px' in block and '.cmd-search-input' in block
+    assert 'font-size: 16px' not in outside

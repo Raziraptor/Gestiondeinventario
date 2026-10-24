@@ -2,15 +2,14 @@
 :root { --bnav-h: 64px; --safe-b: env(safe-area-inset-bottom, 0px); }
 
 html, body { overflow-x: clip; }
-html { overscroll-behavior: none; touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+html { overscroll-behavior-y: none; touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
 body { min-height: 100dvh; }
 .shell, .main-wrap, .main, .topbar > * { min-width: 0; }
 .table-responsive { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
-img, video, canvas { max-width: 100%; }
+img, video { max-width: 100%; height: auto; }
+canvas { max-width: 100%; }
 
-.only-mobile { display: none; }
 @media (max-width: 899.98px) {
-  .only-mobile { display: revert; }
   .only-desktop { display: none !important; }
 }
 @media (min-width: 900px) {
@@ -32,16 +31,20 @@ img, video, canvas { max-width: 100%; }
 .app-banner-sub { color: var(--muted); font-size: .78rem; }
 
 @media (max-width: 899.98px) {
-  input, select, textarea, .form-control, .form-select, .input { font-size: 16px; }
+  html { overscroll-behavior: none; }
+  input, select, textarea, .form-control, .form-select, .input, .cmd-search-input { font-size: 16px; }
   .topbar {
     padding-top: calc(8px + env(safe-area-inset-top, 0px));
     padding-left: max(12px, env(safe-area-inset-left));
     padding-right: max(12px, env(safe-area-inset-right));
   }
-  .searchbar kbd { display: none; }
   .sb { height: 100dvh; padding-bottom: env(safe-area-inset-bottom); padding-top: env(safe-area-inset-top); }
   .dropdown-menu { max-width: calc(100vw - 2rem); }
-  .modal-dialog { margin: .75rem auto; max-width: calc(100vw - 2rem); }
+  .modal { --bs-modal-margin: .75rem; }
+  .modal-dialog:not([class*="modal-fullscreen"]) { max-width: min(var(--bs-modal-width), calc(100vw - 2rem)); }
   .modal-dialog.modal-sm-fluid { max-width: min(var(--modal-w, 420px), calc(100vw - 2rem)); }
+  .main { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  .fab-container { right: calc(1.75rem + env(safe-area-inset-right, 0px)); }
+  .toast-container-app { left: calc(1.75rem + env(safe-area-inset-left, 0px)); }
   .app-banner { bottom: calc(var(--bnav-h) + 12px + var(--safe-b)); }
 }
