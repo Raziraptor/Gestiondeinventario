@@ -33,6 +33,7 @@
       {# Imagen o placeholder #}
       {% if producto.imagen_url %}
       <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" data-zoomable
+           alt="{{ producto.nombre }}"
            class="rounded-3 border shadow-sm flex-shrink-0"
            style="width:56px;height:56px;object-fit:cover;">
       {% else %}

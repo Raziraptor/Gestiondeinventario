@@ -300,7 +300,28 @@ def test_image_viewer_loaded_and_dashboard_thumbs_zoomable():
     assert 'onclick' not in js and 'innerHTML' not in js     # CSP + XSS: construir con createElement
     css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
     assert re.search(r'\.iv-overlay\s*\{[^}]*z-index:\s*10050', css)
-    assert 'touch-action: none' in css
+    assert re.search(r'\.iv-overlay\s*\{[^}]*touch-action:\s*none', css)
+    close = re.search(r'\.iv-close\s*\{([^}]*)\}', css).group(1)
+    assert '#fff' not in close and 'rgba(' not in close and 'var(--iv-fg)' in close
+    fus = (ROOT / 'static/css/fusion.css').read_text(encoding='utf-8')
+    assert fus.count('--iv-fg:') == 2 and fus.count('--iv-btn-bg:') == 2
     for name in ('incidencias/detalle.html', 'incidencias/form.html',
                  'productos_sin_almacen.html', 'producto_form.html'):
         assert 'data-zoomable' in (ROOT / 'templates' / name).read_text(encoding='utf-8')
+
+
+def test_every_photo_img_is_zoomable():
+    photo = re.compile(r"imagen_url|foto_path|foto\d_path|filename=ruta")
+    seen = 0
+    for path in (ROOT / 'templates').rglob('*.html'):
+        for tag in re.findall(r'<img\b[^>]*>', path.read_text(encoding='utf-8')):
+            src = re.search(r'src="([^"]*)"', tag)
+            if src and photo.search(src.group(1)):
+                seen += 1
+                assert 'data-zoomable' in tag, f'{path.name}: {tag}'
+    assert seen >= 9
+
+
+def test_incident_photos_have_no_wrapping_link():
+    html = (ROOT / 'templates/incidencias/detalle.html').read_text(encoding='utf-8')
+    assert 'target="_blank"' not in html

@@ -14,7 +14,7 @@
   var pointers = new Map();
   var pinch = null;       // { dist, scale, mid:{x,y}, t:{x,y} }
   var pan = null;         // { x, y }
-  var tapStart = null, lastTap = null;
+  var tapStart = null, lastTap = null, closeOnClick = false;
   var animTimer = 0;
 
   function reducedMotion() {
@@ -56,6 +56,8 @@
     overlay.addEventListener('pointermove', onMove);
     overlay.addEventListener('pointerup', onUp);
     overlay.addEventListener('pointercancel', onUp);
+    overlay.addEventListener('lostpointercapture', onUp);
+    overlay.addEventListener('click', onOverlayClick);
     overlay.addEventListener('wheel', onWheel, { passive: false });
     overlay.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     window.addEventListener('resize', function () { if (isOpen()) { clampT(); apply(); } });
@@ -75,7 +77,7 @@
 
   function reset() {
     s = 1; tx = 0; ty = 0;
-    pointers.clear(); pinch = null; pan = null; tapStart = null; lastTap = null;
+    pointers.clear(); pinch = null; pan = null; tapStart = null; lastTap = null; closeOnClick = false;
     img.style.willChange = '';
     apply();
   }
@@ -104,9 +106,16 @@
     return [it.next().value, it.next().value];
   }
 
+  function startPinch() {
+    var pr = two();
+    var mid = rel((pr[0].x + pr[1].x) / 2, (pr[0].y + pr[1].y) / 2);
+    pinch = { dist: Math.max(1, dist(pr[0], pr[1])), scale: s, mid: mid, t: { x: tx, y: ty } };
+  }
+
   function onDown(e) {
     if (closeBtn.contains(e.target)) return;
     e.preventDefault();
+    closeOnClick = false;
     try { overlay.setPointerCapture(e.pointerId); } catch (err) { /* puntero ya liberado */ }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     img.style.willChange = 'transform';
@@ -115,9 +124,7 @@
       pan = { x: e.clientX, y: e.clientY };
     } else if (pointers.size === 2) {
       tapStart = null; lastTap = null; pan = null;
-      var pr = two();
-      var mid = rel((pr[0].x + pr[1].x) / 2, (pr[0].y + pr[1].y) / 2);
-      pinch = { dist: Math.max(1, dist(pr[0], pr[1])), scale: s, mid: mid, t: { x: tx, y: ty } };
+      startPinch();
     }
   }
 
@@ -151,6 +158,7 @@
     var tap = e.type === 'pointerup' && tapStart && (e.timeStamp - tapStart.t) < TAP_MS ? tapStart : null;
     tapStart = null;
     if (pointers.size < 2) pinch = null;
+    else startPinch();
     if (pointers.size === 1) {
       var rest = pointers.values().next().value;
       pan = { x: rest.x, y: rest.y };
@@ -166,7 +174,8 @@
 
   function handleTap(tap, e) {
     if (!tap.onImg) {
-      if (s === 1) close();
+      // El cierre espera al clic sintético: si se cerrara aquí, ese clic caería en lo que hay debajo.
+      if (s === 1) closeOnClick = true;
       return;
     }
     if (lastTap && (e.timeStamp - lastTap.t) < TAP_MS && Math.hypot(tap.x - lastTap.x, tap.y - lastTap.y) < 30) {
@@ -177,6 +186,12 @@
     }
   }
 
+  function onOverlayClick(e) {
+    var go = closeOnClick;
+    closeOnClick = false;
+    if (go && s === 1 && e.target !== img && !closeBtn.contains(e.target)) close();
+  }
+
   function onWheel(e) {
     e.preventDefault();
     zoomAt(rel(e.clientX, e.clientY), s * (e.deltaY < 0 ? 1.1 : 1 / 1.1), false);
@@ -185,7 +200,7 @@
   function open(src, alt, from) {
     if (!src) return;
     if (!overlay) build();
-    source = from || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    if (!isOpen()) source = from || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     reset();
     img.src = src;
     img.alt = alt || '';
@@ -209,7 +224,7 @@
   }
 
   function openFrom(el) {
-    open(el.getAttribute('data-zoom-src') || el.currentSrc || el.src, el.getAttribute('alt') || '', el);
+    open(el.getAttribute('data-zoom-src') || el.currentSrc || el.getAttribute('src'), el.getAttribute('alt') || '', el);
   }
 
   // Captura: corre antes que los handlers de filas clicables (role="link") o enlaces contenedores.
