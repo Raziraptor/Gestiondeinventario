@@ -4,430 +4,453 @@
 
 {% block extra_css %}
 <style>
-/* Fusion KPI card */
-.dash-kpi {
-  display: flex; align-items: center; gap: 14px;
-  padding: 16px 18px; border-radius: var(--r-card);
-  background: var(--card); border: 1px solid var(--border);
-  transition: transform .18s, box-shadow .18s;
-}
-.dash-kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.kpi-icon {
-  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center; font-size: 20px;
-}
-.kpi-value {
-  font-family: var(--font-heading, 'Archivo', sans-serif);
-  font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-/* card-kick — section label inside cards */
-.card-kick {
-  font-family: var(--font-heading, 'Archivo', sans-serif);
-  font-size: .64rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .14em; color: var(--faint); display: flex;
-  align-items: center; gap: 6px; padding-bottom: 12px;
-  border-bottom: 2px solid var(--border-strong, var(--border));
-  margin-bottom: 14px;
-}
-/* meter — tricolor progress bar */
-.meter {
-  height: 8px; border-radius: 100px; overflow: hidden; background: var(--border);
-  display: flex;
-}
-.meter > div { height: 100%; }
-/* tags */
-.tag { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 600; border-radius: var(--r-pill, 999px); padding: 2px 10px; font-family: var(--font-heading); }
-.tag-ok      { background: var(--sage-tint);   color: var(--sage); }
-.tag-danger  { background: var(--danger-tint); color: var(--danger); }
-.tag-warn    { background: var(--warn-tint);   color: var(--warn); }
-.tag-info    { background: var(--info-tint);   color: var(--info); }
-.tag-accent  { background: var(--accent-tint); color: var(--accent-deep); }
-.tag-neutral { background: var(--border);      color: var(--muted); }
-/* page-head */
+/* ── Encabezado ─────────────────────────────────────────────────────────── */
 .page-head {
   display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
-  gap: 12px; margin-bottom: 22px; padding-bottom: 14px;
-  border-bottom: 2px solid var(--border-strong, var(--border));
+  gap: 12px; margin-bottom: 18px; padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-strong);
+}
+.dash-kicker {
+  font-family: var(--font-heading); font-size: .65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em; color: var(--muted);
 }
 .page-title {
-  font-family: var(--font-heading, 'Archivo', sans-serif);
-  font-size: clamp(1.25rem, 3vw, 1.65rem); font-weight: 800; margin: 2px 0 0; letter-spacing: -.02em;
+  font-family: var(--font-heading); font-size: clamp(1.25rem, 3vw, 1.65rem);
+  font-weight: 700; margin: 2px 0 0; letter-spacing: -.02em;
 }
-.page-sub { color: var(--muted); font-size: .82rem; margin: 2px 0 0; }
-.dash-kicker {
-  font-family: var(--font-heading, 'Archivo', sans-serif);
-  font-size: .63rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--muted);
+.dash-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.dash-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.dash-toolbar .group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dash-toolbar .btn i, .dash-actions .btn i { color: inherit; }
+.btn-on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn-on:hover { background: var(--accent-deep); color: var(--on-accent); }
+
+/* ── Franja de resumen ──────────────────────────────────────────────────── */
+.health-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px;
+  padding: 12px 18px; margin-bottom: 16px; font-size: .84rem; color: var(--muted);
 }
-/* status pill upgrade — keep existing .status-pill classes, add Fusion look */
-.status-pill--ok     { background: var(--sage-tint);   color: var(--sage);   border: none; }
-.status-pill--danger { background: var(--danger-tint); color: var(--danger); border: none; }
-.status-pill--info   { background: var(--info-tint);   color: var(--info);   border: none; }
-.status-pill--warn   { background: var(--warn-tint);   color: var(--warn);   border: none; }
+.health-strip strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.health-strip .hs-meter { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.health-strip .hs-meter .meter { width: 110px; }
+.tone-danger { color: var(--danger); }
+.tone-ok { color: var(--sage); }
+.tone-info { color: var(--info); }
+.tone-warn { color: var(--warn); }
+
+/* ── Medidor tricolor ───────────────────────────────────────────────────── */
+.meter { height: 8px; border-radius: 4px; overflow: hidden; background: var(--border); display: flex; }
+.meter > div { height: 100%; transition: width .6s cubic-bezier(.25,.6,.3,1); }
+.meter .m-danger { background: var(--danger); }
+.meter .m-ok { background: var(--sage); }
+.meter .m-info { background: var(--info); }
+.meter .m-accent { background: var(--accent); border-radius: 4px; }
+.meter-legend { display: flex; justify-content: space-between; margin-top: 8px; font-size: .75rem; color: var(--muted); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+.dot-danger { background: var(--danger); } .dot-ok { background: var(--sage); } .dot-info { background: var(--info); }
+
+/* ── KPIs planos ────────────────────────────────────────────────────────── */
+.dash-kpi {
+  display: flex; align-items: center; gap: 14px; height: 100%;
+  padding: 16px 18px; border-radius: var(--r-card);
+  background: var(--card); border: 1px solid var(--border);
+  transition: border-color .18s, box-shadow .18s;
+}
+@media (hover: hover) { .dash-kpi:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); } }
+.dash-kpi.risk-danger { border-left: 3px solid var(--danger); }
+.dash-kpi.risk-warn { border-left: 3px solid var(--warn); }
+.dash-kpi .kpi-icon {
+  width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 21px;
+  background: var(--card-2); color: var(--muted);
+}
+.dash-kpi .kpi-value { font-size: 1.5rem; }
+.dash-kpi .kpi-unit { font-size: .8rem; font-weight: 500; color: var(--muted); margin-left: 4px; font-family: var(--font-body); }
+.kpi-label { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.kpi-sub { font-size: .75rem; color: var(--muted); }
+.kpi-text { min-width: 0; }
+.salud-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-bottom: 16px; }
+.salud-nums .kpi-value { font-size: 1.6rem; }
+.salud-nums .kpi-sub { display: block; }
+
+/* ── Tarjetas generales ─────────────────────────────────────────────────── */
+.dash-card { padding: 18px 20px; }
+.dash-card .card-kick { margin-bottom: 12px; }
+.dash-card .card-kick .push { margin-left: auto; }
+.top-movers { list-style: none; margin: 0; padding: 0; font-size: .8rem; }
+.top-movers li { padding: 6px 0; border-bottom: 1px solid var(--border); }
+.top-movers li:last-child { border-bottom: 0; }
+.top-movers .tm-name { display: block; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-movers .tm-uds { color: var(--muted); font-size: .75rem; }
+.act-feed { max-height: 270px; overflow-y: auto; }
+.act-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+.act-row:last-child { border-bottom: 0; }
+.act-ico { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; margin-top: 2px; background: var(--card-2); color: var(--muted); }
+.act-ico.t-ok { background: var(--sage-tint); color: var(--sage); }
+.act-ico.t-danger { background: var(--danger-tint); color: var(--danger); }
+.act-ico.t-info { background: var(--info-tint); color: var(--info); }
+.act-ico.t-warn { background: var(--warn-tint); color: var(--warn); }
+.act-ico.t-accent { background: var(--accent-tint); color: var(--accent-deep); }
+.act-body { min-width: 0; flex: 1; }
+.act-title { font-size: .8rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act-meta { font-size: .75rem; color: var(--muted); }
+.act-date { font-size: .75rem; color: var(--muted); white-space: nowrap; padding-top: 2px; }
+.feed-empty { text-align: center; padding: 24px 0; color: var(--muted); font-size: .82rem; }
+.feed-empty i { display: block; font-size: 24px; margin-bottom: 8px; opacity: .6; }
+
+/* ── Sin almacén ────────────────────────────────────────────────────────── */
+.empty-warn { display: flex; align-items: center; gap: 16px; padding: 22px; border-radius: var(--r-card); background: var(--warn-tint); border: 1px solid var(--border); }
+.empty-warn > i { font-size: 32px; color: var(--warn); flex-shrink: 0; }
+.empty-warn h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; }
+.empty-warn p { margin: 0; color: var(--muted); font-size: .85rem; }
+.empty-warn a { color: var(--accent-deep); font-weight: 600; }
+
+/* ── Alertas de stock crítico ───────────────────────────────────────────── */
+.alertas-card { border-left: 3px solid var(--danger); }
+.alertas-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+.alertas-head .t { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--danger); font-size: .9rem; }
+.alerta-row { display: flex; align-items: center; gap: 12px; padding: .65rem 1rem; border-bottom: 1px solid var(--border); }
+.alerta-row:last-child { border-bottom: 0; }
+.alerta-row .a-ico { width: 36px; height: 36px; border-radius: 10px; background: var(--danger-tint); color: var(--danger); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+.alerta-row .a-main { flex: 1; min-width: 0; }
+.alerta-row .a-name { font-size: .85rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alerta-row .a-meta { font-size: .75rem; color: var(--muted); }
+.alerta-row .meter { margin-top: 6px; max-width: 120px; height: 4px; }
+.alerta-row .a-btns { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ── Filtros ────────────────────────────────────────────────────────────── */
+.filters-card { padding: 16px 18px; margin-bottom: 14px; }
+.sug-list { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; z-index: 30; display: none; max-height: 220px; overflow-y: auto; background: var(--card); border: 1px solid var(--border-strong); border-radius: var(--r-input); box-shadow: var(--shadow-md); }
+.sug-item { display: block; padding: 10px 14px; color: var(--text); text-decoration: none; font-size: .85rem; border-bottom: 1px solid var(--border); }
+.sug-item:last-child { border-bottom: 0; }
+.sug-item:hover, .sug-item:focus-visible { background: var(--accent-tint); color: var(--text); }
+.sug-item small { color: var(--muted); margin-left: 8px; }
+.clear-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: 0; background: transparent; color: var(--muted); border-radius: 50%; display: none; align-items: center; justify-content: center; cursor: pointer; }
+.pills-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.fpill { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border-radius: var(--r-pill); border: 1px solid var(--border); background: transparent; color: var(--text); font-family: var(--font-body); font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s, color .15s, border-color .15s; }
+.fpill .fcount { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+@media (hover: hover) { .fpill:hover { border-color: var(--border-strong); } }
+.fpill.is-active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.fpill.is-active .fcount { color: inherit; opacity: .85; }
+.pills-row .count-total { margin-left: auto; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+#ordenMovil { display: block; }
+@media (min-width: 640px) { #ordenMovil, .orden-movil-field { display: none !important; } }
+
+/* ── Tabla de inventario ────────────────────────────────────────────────── */
+.dash-table-wrap { margin-bottom: 24px; overflow: hidden; }
+.th-sortable { cursor: pointer; user-select: none; }
+.th-sortable i { margin-left: 4px; font-size: 11px; opacity: .5; }
+.th-sortable i.on { opacity: 1; color: var(--accent); }
+tr.fila-producto { cursor: pointer; }
+tr.fila-producto:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--accent-tint); }
+.td-img img, .thumb-ph { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); display: block; }
+.thumb-ph { display: flex; align-items: center; justify-content: center; background: var(--card-2); color: var(--faint); font-size: 18px; }
+.td-sku { font-family: var(--font-body); font-variant-numeric: tabular-nums; color: var(--muted); font-size: .78rem; font-weight: 500; letter-spacing: .02em; }
+.td-nombre .nombre { font-weight: 500; font-size: .9rem; }
+.td-nombre .ubic { font-size: .75rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.td-stock { text-align: center; font-variant-numeric: tabular-nums; }
+.stk-n { font-family: var(--font-heading); font-weight: 700; font-size: 1rem; }
+.stk-u, .stk-cajas { font-size: .75rem; color: var(--muted); display: block; }
+.td-dias { text-align: center; font-weight: 600; font-size: .8rem; }
+.td-estado { text-align: center; }
+.td-acc { text-align: right; }
+.td-acc .acc-wrap { display: flex; gap: 4px; justify-content: flex-end; }
+.btn-accion { width: 36px; height: 36px; min-height: 36px; padding: 0; justify-content: center; border-radius: 10px; }
+.btn-accion i { font-size: 16px; }
+@media (pointer: coarse) { .btn-accion { width: 44px; height: 44px; min-height: 44px; } }
+.empty-cell { text-align: center; padding: 40px 16px; }
+.empty-cell > i { font-size: 40px; color: var(--faint); display: block; margin-bottom: 10px; }
+.empty-cell h3 { font-size: 1.05rem; font-weight: 700; margin: 0 0 4px; }
+.empty-cell p { color: var(--muted); font-size: .85rem; margin: 0 0 14px; }
+#paginacion .pagination { display: flex; list-style: none; padding: 0; margin: 0; gap: 4px; }
+#paginacion .page-link { min-width: 36px; min-height: 36px; border-radius: var(--r-pill); border: 1px solid var(--border); background: transparent; color: var(--text); font-size: .8rem; padding: 0 12px; cursor: pointer; }
+#paginacion .page-item.active .page-link { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+#paginacion .page-item.disabled .page-link { opacity: .45; cursor: default; }
+
+/* ── Valorización ───────────────────────────────────────────────────────── */
+.val-name { color: var(--text); font-weight: 500; text-decoration: none; }
+.val-sku { font-size: .75rem; color: var(--muted); }
+.val-pct { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.val-pct .meter { flex: 1; max-width: 80px; height: 6px; }
+.val-pct span { font-size: .75rem; color: var(--muted); min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Tabla → tarjetas (< 640px) ─────────────────────────────────────────── */
+@media (max-width: 639.98px) {
+  .dash-table-wrap .table-responsive { overflow-x: visible; }
+  #tabla_inventario, #tabla_inventario tbody { display: block; width: 100%; }
+  #tabla_inventario thead { display: none; }
+  tr.fila-producto {
+    display: grid; grid-template-columns: 44px 1fr auto;
+    grid-template-areas: "img nombre estado" "img sku stock" "acc acc acc";
+    gap: 2px 12px; padding: 12px 14px; border-bottom: 1px solid var(--border);
+  }
+  #tabla_inventario tr.fila-producto td { padding: 0; border: 0; min-width: 0; }
+  #tabla_inventario #sinResultados td { display: block; }
+  #tabla_inventario #sinResultados[style*="display: none"] { display: none; }
+  .td-img { grid-area: img; align-self: start; }
+  .td-nombre { grid-area: nombre; }
+  .td-nombre .nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .td-estado { grid-area: estado; text-align: right; align-self: center; }
+  .td-sku { grid-area: sku; align-self: center; }
+  .td-stock { grid-area: stock; text-align: right; align-self: center; }
+  .stk-u { display: inline; margin-left: 3px; }
+  .stk-cajas { display: none; }
+  .td-acc { grid-area: acc; justify-self: end; padding-top: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) { .meter > div { transition: none; } }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid px-3 px-md-4 pb-5 anim-up" style="max-width:1400px;">
 
-  {# ── Pre-compute stock counts (used in header and health strip) ─── #}
+  {# ── Conteos (usados en encabezado, franja y salud) ─────────────────── #}
   {% set n_bajo   = items_stock | selectattr('estado_stock','equalto','bajo')   | list | length %}
   {% set n_exceso = items_stock | selectattr('estado_stock','equalto','exceso') | list | length %}
   {% set n_ok     = items_stock | selectattr('estado_stock','equalto','ok')     | list | length %}
   {% set n_total  = items_stock | length %}
 
-  {# ── Fusion page header ──────────────────────────────────────────── #}
+  {# ── Encabezado ─────────────────────────────────────────────────────── #}
   <div class="page-head">
     <div>
-      <div class="dash-kicker">
-        {% if almacen_seleccionado %}{{ almacen_seleccionado.nombre }} · {% endif %}{{ now_mx().strftime('%B %Y') if now_mx is defined else '' }}
-      </div>
-      <h1 class="page-title"><i class="ph ph-fill ph-squares-four me-2" style="color:var(--accent);font-size:1.1rem;" aria-hidden="true"></i>Dashboard de Inventario</h1>
-      {% if almacen_seleccionado %}
-      <p class="page-sub">
-        {{ n_total }} productos
-        {% if n_bajo > 0 %} · <span style="color:var(--danger);font-weight:600;">{{ n_bajo }} con stock bajo</span>{% endif %}
-      </p>
-      {% endif %}
+      <div class="dash-kicker">{% if almacen_seleccionado %}<span>{{ almacen_seleccionado.nombre }}</span> · {% endif %}<span id="dashMes"></span></div>
+      <h1 class="page-title">Dashboard de Inventario</h1>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      {% if almacen_seleccionado %}
-        {% if current_user.rol in ['super_admin','admin'] or current_user.perm_do_salidas %}
-        <a href="{{ url_for('inventory.registrar_salida', almacen_id=almacen_seleccionado.id) }}"
-           class="btn btn-sm rounded-pill px-3 fw-semibold" style="background:var(--danger-tint);color:var(--danger);border:1px solid var(--danger);">
-          <i class="ph ph-arrow-square-out me-1" aria-hidden="true"></i>Nueva Salida
-        </a>
-        {% endif %}
-        {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
-        <a href="{{ url_for('purchasing.nueva_orden_manual') }}"
-           class="btn btn-sm rounded-pill px-3 fw-semibold" style="background:var(--accent);color:#fff;border:none;">
-          <i class="ph ph-shopping-cart me-1" aria-hidden="true"></i>Nueva OC
-        </a>
-        {% endif %}
-      {% endif %}
-    </div>
-  </div>
-
-  {# ── BARRA DE SALUD (resumen de un vistazo) ───────────────────────────── #}
-  {% if almacen_seleccionado %}
-  <div class="health-strip d-flex flex-wrap align-items-center gap-2 gap-md-4 px-3 px-md-4 py-2 mb-4 rounded-3 shadow-sm"
-       style="background:var(--surface-raised,#f8fafc);border:1px solid var(--border,#e2e8f0);">
-    <span class="fw-semibold text-body" style="font-size:.85rem;">
-      <i class="bi bi-shop me-1 text-primary"></i>{{ almacen_seleccionado.nombre }}
-    </span>
-    <div class="vr d-none d-md-block"></div>
-    <span class="text-muted" style="font-size:.82rem;">
-      <i class="bi bi-box-seam me-1"></i><strong class="text-body">{{ n_total }}</strong> productos
-    </span>
-    {% if n_bajo > 0 %}
-    <span class="badge rounded-pill px-3 py-1 fw-semibold" style="background:rgba(239,68,68,.12);color:#ef4444;font-size:.78rem;">
-      <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ n_bajo }} con stock bajo
-    </span>
-    {% endif %}
-    {% if current_user.rol in ['super_admin','admin'] %}
-    <span class="text-muted" style="font-size:.82rem;">
-      <i class="bi bi-cash-coin me-1 text-success"></i>
-      <strong class="text-body">${{ "{:,.0f}".format(valor_almacen) }}</strong> en inventario
-    </span>
-    {% endif %}
-    {% if kpis_rotacion and kpis_rotacion.tasa_diaria > 0 %}
-    <span class="text-muted" style="font-size:.82rem;">
-      <i class="bi bi-arrow-right-circle me-1 text-warning"></i>
-      <strong class="text-body">{{ kpis_rotacion.tasa_diaria }}</strong> uds/día saliendo
-    </span>
-    {% endif %}
-    <div class="ms-auto d-flex align-items-center gap-1" title="Salud del inventario">
-      {% if n_total > 0 %}
-      {% set pct_ok  = (n_ok  / n_total * 100) | round(0) | int %}
-      {% set pct_bajo= (n_bajo/ n_total * 100) | round(0) | int %}
-      <div class="progress rounded-pill" style="width:100px;height:8px;" title="{{ pct_ok }}% en estado óptimo">
-        <div class="progress-bar bg-danger"  style="width:{{ pct_bajo }}%;"></div>
-        <div class="progress-bar bg-success" style="width:{{ pct_ok }}%;"></div>
-        <div class="progress-bar bg-info"    style="width:{{ 100 - pct_ok - pct_bajo }}%;"></div>
-      </div>
-      <span class="small text-muted ms-1" style="font-size:.75rem;">{{ pct_ok }}% óptimo</span>
-      {% endif %}
-    </div>
-  </div>
-  {% endif %}
-
-  {# ── CABECERA + SELECTOR DE ALMACÉN ──────────────────────────────────── #}
-  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-3 gap-3">
-    <div>
-      <h1 class="h4 fw-bold mb-1"><i class="bi bi-grid-fill text-primary me-2"></i>Dashboard de Inventario</h1>
-      <p class="text-muted mb-0 small">Visión general, alertas y gestión rápida del almacén.</p>
-    </div>
-
-    {# Tabs si ≤5 almacenes, dropdown si más #}
-    {% if almacenes | length <= 5 and almacenes | length > 1 %}
-    <div class="d-flex flex-wrap gap-1 align-items-center">
-      {% for alm in almacenes %}
-      <a href="?almacen_id={{ alm.id }}"
-         class="btn btn-sm rounded-pill px-3 fw-semibold {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}btn-primary shadow-sm{% else %}btn-outline-secondary{% endif %}">
-        <i class="bi bi-shop me-1"></i>{{ alm.nombre }}
+    {% if almacen_seleccionado %}
+    <div class="dash-actions">
+      {% if current_user.rol in ['super_admin','admin'] or current_user.perm_do_salidas %}
+      <a href="{{ url_for('inventory.registrar_salida', almacen_id=almacen_seleccionado.id) }}" class="btn btn-danger btn-sm">
+        <i class="ph ph-sign-out" aria-hidden="true"></i>Nueva Salida
       </a>
-      {% endfor %}
+      {% endif %}
+      {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
+      <a href="{{ url_for('purchasing.nueva_orden_manual') }}" class="btn btn-primary btn-sm">
+        <i class="ph ph-shopping-cart" aria-hidden="true"></i>Nueva OC
+      </a>
+      {% endif %}
     </div>
-    {% elif almacenes | length > 5 %}
-    <div class="input-group shadow-sm" style="max-width:240px;">
-      <span class="input-group-text text-primary"><i class="bi bi-shop"></i></span>
-      <select class="form-select fw-semibold" id="selAlmacenDash">
+    {% endif %}
+  </div>
+
+  {# ── Selector de almacén + accesos rápidos ──────────────────────────── #}
+  <div class="dash-toolbar">
+    <div class="group">
+      {# Pills si ≤5 almacenes, selector si más #}
+      {% if almacenes | length <= 5 and almacenes | length > 1 %}
         {% for alm in almacenes %}
-        <option value="{{ alm.id }}" {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}selected{% endif %}>{{ alm.nombre }}</option>
+        <a href="?almacen_id={{ alm.id }}"
+           class="btn btn-sm {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}btn-on{% else %}btn-ghost{% endif %}"
+           {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}aria-current="page"{% endif %}>
+          <i class="ph ph-storefront" aria-hidden="true"></i>{{ alm.nombre }}
+        </a>
         {% endfor %}
-      </select>
+      {% elif almacenes | length > 5 %}
+      <div class="input-wrap" style="min-width:220px;">
+        <i class="ph ph-storefront" aria-hidden="true"></i>
+        <select class="input" id="selAlmacenDash" aria-label="Almacén">
+          {% for alm in almacenes %}
+          <option value="{{ alm.id }}" {% if almacen_seleccionado and almacen_seleccionado.id == alm.id %}selected{% endif %}>{{ alm.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+    {% if almacen_seleccionado %}
+    <div class="group">
+      {% if current_user.rol in ['super_admin','admin'] or current_user.perm_edit_management %}
+      <a href="{{ url_for('inventory.nuevo_producto') }}" class="btn btn-ghost btn-sm">
+        <i class="ph ph-plus" aria-hidden="true"></i>Nuevo Producto
+      </a>
+      {% endif %}
+      <a href="{{ url_for('inventory.historial_salidas') }}" class="btn btn-ghost btn-sm">
+        <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>Historial
+      </a>
+      <a href="{{ url_for('reports.exportar_inventario_excel', almacen_id=almacen_seleccionado.id) }}" class="btn btn-ghost btn-sm">
+        <i class="ph ph-file-xls" aria-hidden="true"></i>Excel
+      </a>
     </div>
     {% endif %}
   </div>
 
-  {# ── ACCIONES RÁPIDAS ─────────────────────────────────────────────────── #}
-  {% if almacen_seleccionado %}
-  <div class="d-flex flex-wrap gap-2 mb-4">
-    {% if current_user.rol in ['super_admin','admin'] or current_user.perm_do_salidas %}
-    <a href="{{ url_for('inventory.registrar_salida', almacen_id=almacen_seleccionado.id) }}"
-       class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold shadow-sm">
-      <i class="bi bi-box-arrow-right me-1"></i>Nueva Salida
-    </a>
-    {% endif %}
-    {% if current_user.rol in ['super_admin','admin'] or current_user.perm_edit_management %}
-    <a href="{{ url_for('inventory.nuevo_producto') }}"
-       class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold shadow-sm">
-      <i class="bi bi-plus-lg me-1"></i>Nuevo Producto
-    </a>
-    {% endif %}
-    {% if current_user.rol in ['super_admin','admin'] or current_user.perm_create_oc_standard %}
-    <a href="{{ url_for('purchasing.nueva_orden_manual') }}"
-       class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold shadow-sm">
-      <i class="bi bi-cart-plus me-1"></i>Nueva OC
-    </a>
-    {% endif %}
-    <a href="{{ url_for('inventory.historial_salidas') }}"
-       class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold shadow-sm">
-      <i class="bi bi-clock-history me-1"></i>Historial
-    </a>
-    <a href="{{ url_for('reports.exportar_inventario_excel', almacen_id=almacen_seleccionado.id) }}"
-       class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold shadow-sm">
-      <i class="bi bi-file-earmark-excel me-1"></i>Excel
-    </a>
-  </div>
-  {% endif %}
-
-  {# ── SIN ALMACÉN ──────────────────────────────────────────────────────── #}
+  {# ── SIN ALMACÉN ───────────────────────────────────────────────────── #}
   {% if not almacen_seleccionado %}
-  <div class="alert alert-warning shadow-sm d-flex align-items-center gap-3 p-4 rounded-4">
-    <i class="bi bi-exclamation-triangle fs-2 text-warning flex-shrink-0"></i>
+  <div class="empty-warn" role="status">
+    <i class="ph ph-warning" aria-hidden="true"></i>
     <div>
-      <h5 class="fw-bold mb-1">No hay almacén seleccionado</h5>
-      <p class="mb-0 small">
+      <h2>No hay almacén seleccionado</h2>
+      <p>
         {% if current_user.rol in ['super_admin','admin'] %}
-        <a href="{{ url_for('inventory.lista_almacenes') }}" class="alert-link">Crea un almacén</a> para empezar a operar.
+        <a href="{{ url_for('inventory.lista_almacenes') }}">Crea un almacén</a> para empezar a operar.
         {% else %}Pide a un administrador que te asigne un almacén.{% endif %}
       </p>
     </div>
   </div>
   {% else %}
 
-  {# ── KPIs — solo admin/super_admin ───────────────────────────────────── #}
+  {# ── Franja de salud (resumen de un vistazo) ───────────────────────── #}
+  <div class="card health-strip">
+    <span><i class="ph ph-package" aria-hidden="true"></i> <strong>{{ n_total }}</strong> productos</span>
+    {% if n_bajo > 0 %}
+    <span class="tone-danger"><i class="ph ph-fill ph-warning" aria-hidden="true"></i> <strong class="tone-danger">{{ n_bajo }}</strong> con stock bajo</span>
+    {% endif %}
+    {% if current_user.rol in ['super_admin','admin'] %}
+    <span><i class="ph ph-coins" aria-hidden="true"></i> <strong>${{ "{:,.0f}".format(valor_almacen) }}</strong> en inventario</span>
+    {% endif %}
+    {% if kpis_rotacion and kpis_rotacion.tasa_diaria > 0 %}
+    <span><i class="ph ph-arrow-circle-right" aria-hidden="true"></i> <strong>{{ kpis_rotacion.tasa_diaria }}</strong> uds/día saliendo</span>
+    {% endif %}
+    {% if n_total > 0 %}
+    {% set pct_ok  = (n_ok  / n_total * 100) | round(0) | int %}
+    {% set pct_bajo= (n_bajo/ n_total * 100) | round(0) | int %}
+    <div class="hs-meter" title="Salud del inventario">
+      <div class="meter" role="img" aria-label="{{ pct_ok }}% en estado óptimo">
+        <div class="m-danger" style="width:{{ pct_bajo }}%;"></div>
+        <div class="m-ok"     style="width:{{ pct_ok }}%;"></div>
+        <div class="m-info"   style="width:{{ 100 - pct_ok - pct_bajo }}%;"></div>
+      </div>
+      <span>{{ pct_ok }}% óptimo</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── KPIs — solo admin/super_admin ─────────────────────────────────── #}
   {% if current_user.rol in ['super_admin','admin'] %}
   <div class="row g-3 mb-4 animate-cards">
 
-    {# Tarjeta de salud del almacén (ancho) #}
+    {# Salud del almacén #}
     <div class="col-12 col-lg-5">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-body p-4">
-          <div class="text-muted small fw-semibold text-uppercase mb-3" style="letter-spacing:.5px;">
-            <i class="bi bi-heart-pulse text-primary me-1"></i>Salud del Almacén
+      <div class="card dash-card h-100">
+        <div class="card-kick"><i class="ph ph-heartbeat" aria-hidden="true"></i>Salud del Almacén</div>
+        <div class="salud-nums">
+          <div>
+            <span class="kpi-value tone-danger" data-count="{{ n_bajo }}">{{ n_bajo }}</span>
+            <span class="kpi-sub">Stock Bajo</span>
           </div>
-          <div class="d-flex justify-content-around text-center mb-3">
-            <div>
-              <div class="fw-bold fs-3 text-danger">{{ n_bajo }}</div>
-              <div class="text-muted" style="font-size:.75rem;">Stock Bajo</div>
-            </div>
-            <div class="vr"></div>
-            <div>
-              <div class="fw-bold fs-3 text-success">{{ n_ok }}</div>
-              <div class="text-muted" style="font-size:.75rem;">Óptimo</div>
-            </div>
-            <div class="vr"></div>
-            <div>
-              <div class="fw-bold fs-3 text-info">{{ n_exceso }}</div>
-              <div class="text-muted" style="font-size:.75rem;">En Exceso</div>
-            </div>
-            <div class="vr"></div>
-            <div>
-              <div class="fw-bold fs-3">{{ n_total }}</div>
-              <div class="text-muted" style="font-size:.75rem;">Total</div>
-            </div>
+          <div>
+            <span class="kpi-value tone-ok" data-count="{{ n_ok }}">{{ n_ok }}</span>
+            <span class="kpi-sub">Óptimo</span>
           </div>
-          {% if n_total > 0 %}
-          <div class="progress rounded-pill mb-1" style="height:10px;">
-            <div class="progress-bar bg-danger"  style="width:{{ (n_bajo/n_total*100)|round(1) }}%;" title="Bajo: {{ n_bajo }}"></div>
-            <div class="progress-bar bg-success" style="width:{{ (n_ok/n_total*100)|round(1) }}%;"   title="Óptimo: {{ n_ok }}"></div>
-            <div class="progress-bar bg-info"    style="width:{{ (n_exceso/n_total*100)|round(1) }}%;" title="Exceso: {{ n_exceso }}"></div>
+          <div>
+            <span class="kpi-value tone-info" data-count="{{ n_exceso }}">{{ n_exceso }}</span>
+            <span class="kpi-sub">En Exceso</span>
           </div>
-          <div class="d-flex justify-content-between" style="font-size:.75rem;color:#94a3b8;">
-            <span><i class="bi bi-circle-fill text-danger" style="font-size:.5rem;vertical-align:middle;"></i> Bajo</span>
-            <span><i class="bi bi-circle-fill text-success" style="font-size:.5rem;vertical-align:middle;"></i> Óptimo</span>
-            <span><i class="bi bi-circle-fill text-info" style="font-size:.5rem;vertical-align:middle;"></i> Exceso</span>
+          <div>
+            <span class="kpi-value" data-count="{{ n_total }}">{{ n_total }}</span>
+            <span class="kpi-sub">Total</span>
           </div>
-          {% endif %}
         </div>
+        {% if n_total > 0 %}
+        <div class="meter" style="height:10px;" role="img" aria-label="Distribución de estados de stock">
+          <div class="m-danger" style="width:{{ (n_bajo/n_total*100)|round(1) }}%;" title="Bajo: {{ n_bajo }}"></div>
+          <div class="m-ok"     style="width:{{ (n_ok/n_total*100)|round(1) }}%;"   title="Óptimo: {{ n_ok }}"></div>
+          <div class="m-info"   style="width:{{ (n_exceso/n_total*100)|round(1) }}%;" title="Exceso: {{ n_exceso }}"></div>
+        </div>
+        <div class="meter-legend">
+          <span><span class="dot dot-danger"></span>Bajo</span>
+          <span><span class="dot dot-ok"></span>Óptimo</span>
+          <span><span class="dot dot-info"></span>Exceso</span>
+        </div>
+        {% endif %}
       </div>
     </div>
 
-    {% if current_user.rol in ['super_admin','admin'] %}
     {# KPI Valor #}
     <div class="col-6 col-lg-4">
-      <div class="card border-0 shadow-sm rounded-4 h-100"
-           style="background:linear-gradient(135deg,rgba(var(--primary-rgb),.07),rgba(var(--primary-rgb),.03));">
-        <div class="card-body p-3 d-flex align-items-center gap-3">
-          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width:48px;height:48px;background:var(--primary-tonal);">
-            <i class="bi bi-cash-coin fs-4 text-primary"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Valor Almacén</div>
-            <div class="fw-bold fs-5 text-primary">${{ "{:,.0f}".format(valor_almacen) }}</div>
-            <div class="text-muted" style="font-size:.75rem;">Org: ${{ "{:,.0f}".format(valor_total_org) }}</div>
-          </div>
+      <div class="dash-kpi">
+        <div class="kpi-icon"><i class="ph ph-coins" aria-hidden="true"></i></div>
+        <div class="kpi-text">
+          <div class="kpi-label">Valor Almacén</div>
+          <div class="kpi-value" data-count="{{ valor_almacen|float }}" data-prefix="$" data-dec="0">${{ "{:,.0f}".format(valor_almacen) }}</div>
+          <div class="kpi-sub">Org: ${{ "{:,.0f}".format(valor_total_org) }}</div>
         </div>
       </div>
     </div>
 
     {# KPI Mayor valor #}
     <div class="col-6 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-body p-3 d-flex align-items-center gap-3">
-          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width:48px;height:48px;background:rgba(139,92,246,.12);">
-            <i class="bi bi-award fs-4" style="color:#8b5cf6;"></i>
-          </div>
-          <div class="min-w-0" style="overflow:hidden;flex:1;">
-            <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Mayor Valor</div>
-            {% if items_por_valor %}
-            {% set top = items_por_valor[0] %}
-            <div class="fw-semibold text-truncate" style="font-size:.83rem;" title="{{ top.producto.nombre }}">{{ top.producto.nombre }}</div>
-            <div class="text-muted" style="font-size:.75rem;">${{ "{:,.0f}".format((top.cantidad or 0)*(top.producto.precio_unitario or 0)) }}</div>
-            {% else %}<div class="text-muted small">—</div>{% endif %}
-          </div>
+      <div class="dash-kpi">
+        <div class="kpi-icon"><i class="ph ph-medal" aria-hidden="true"></i></div>
+        <div class="kpi-text">
+          <div class="kpi-label">Mayor Valor</div>
+          {% if items_por_valor %}
+          {% set top = items_por_valor[0] %}
+          <div style="font-size:.85rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ top.producto.nombre }}">{{ top.producto.nombre }}</div>
+          <div class="kpi-sub">${{ "{:,.0f}".format((top.cantidad or 0)*(top.producto.precio_unitario or 0)) }}</div>
+          {% else %}<div class="kpi-sub">—</div>{% endif %}
         </div>
       </div>
     </div>
-    {% else %}
-    <div class="col-6 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-body p-3 d-flex align-items-center gap-3">
-          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width:48px;height:48px;background:rgba(16,185,129,.12);">
-            <i class="bi bi-check2-circle fs-4 text-success"></i>
-          </div>
-          <div>
-            <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Óptimo</div>
-            <div class="fw-bold fs-4 text-success">{{ n_ok }}</div>
-            <div class="text-muted" style="font-size:.75rem;">de {{ n_total }} productos</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endif %}
 
-    {# KPIs de Rotación (admins) #}
-    {% if kpis_rotacion and current_user.rol in ['super_admin','admin'] %}
+    {# KPIs de rotación #}
+    {% if kpis_rotacion %}
     <div class="col-6 col-sm-3 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-body p-3 d-flex align-items-center gap-3">
-          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width:48px;height:48px;background:rgba(245,158,11,.12);">
-            <i class="bi bi-box-arrow-right fs-4 text-warning"></i>
+      <div class="dash-kpi">
+        <div class="kpi-icon"><i class="ph ph-sign-out" aria-hidden="true"></i></div>
+        <div class="kpi-text">
+          <div class="kpi-label">Salidas 30d</div>
+          <div><span class="kpi-value" data-count="{{ kpis_rotacion.salidas_30d|float }}">{{ kpis_rotacion.salidas_30d }}</span><span class="kpi-unit">uds</span></div>
+          {% if kpis_rotacion.tendencia_pct is not none %}
+          <div class="kpi-sub">
+            {% if kpis_rotacion.tendencia_pct > 0 %}<span class="tone-ok"><i class="ph ph-trend-up" aria-hidden="true"></i> {{ kpis_rotacion.tendencia_pct }}%</span>
+            {% elif kpis_rotacion.tendencia_pct < 0 %}<span class="tone-danger"><i class="ph ph-trend-down" aria-hidden="true"></i> {{ kpis_rotacion.tendencia_pct|abs }}%</span>
+            {% else %}Sin cambio{% endif %}
+            vs mes ant.
           </div>
-          <div>
-            <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Salidas 30d</div>
-            <div class="fw-bold fs-5">{{ kpis_rotacion.salidas_30d }}<span class="text-muted fs-6 ms-1">uds</span></div>
-            {% if kpis_rotacion.tendencia_pct is not none %}
-            <div style="font-size:.75rem;">
-              {% if kpis_rotacion.tendencia_pct > 0 %}<span class="text-success"><i class="bi bi-arrow-up-short"></i>{{ kpis_rotacion.tendencia_pct }}%</span>
-              {% elif kpis_rotacion.tendencia_pct < 0 %}<span class="text-danger"><i class="bi bi-arrow-down-short"></i>{{ kpis_rotacion.tendencia_pct|abs }}%</span>
-              {% else %}<span class="text-muted">Sin cambio</span>{% endif %}
-              <span class="text-muted"> vs mes ant.</span>
-            </div>
-            {% endif %}
-          </div>
+          {% endif %}
         </div>
       </div>
     </div>
 
     <div class="col-6 col-sm-3 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-body p-3 d-flex align-items-center gap-3">
-          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width:48px;height:48px;background:rgba(59,130,246,.12);">
-            <i class="bi bi-speedometer2 fs-4 text-info"></i>
-          </div>
-          <div>
-            <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Tasa Diaria</div>
-            <div class="fw-bold fs-5">{{ kpis_rotacion.tasa_diaria }}<span class="text-muted fs-6 ms-1">uds/día</span></div>
-            <div class="text-muted" style="font-size:.75rem;">promedio 30 días</div>
-          </div>
+      <div class="dash-kpi">
+        <div class="kpi-icon"><i class="ph ph-gauge" aria-hidden="true"></i></div>
+        <div class="kpi-text">
+          <div class="kpi-label">Tasa Diaria</div>
+          <div><span class="kpi-value" data-count="{{ kpis_rotacion.tasa_diaria|float }}" data-dec="1">{{ kpis_rotacion.tasa_diaria }}</span><span class="kpi-unit">uds/día</span></div>
+          <div class="kpi-sub">promedio 30 días</div>
         </div>
       </div>
     </div>
 
     {% set ds = kpis_rotacion.dias_stock %}
     <div class="col-6 col-sm-3 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 h-100
-        {% if ds is not none and ds < 7 %}" style="border-left:3px solid #ef4444!important;"
-        {% elif ds is not none and ds < 30 %}" style="border-left:3px solid #f59e0b!important;"
-        {% else %}"{% endif %}>
-        <div class="card-body p-3 d-flex align-items-center gap-3">
-          <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-               style="width:48px;height:48px;{% if ds is not none and ds < 7 %}background:rgba(239,68,68,.12);{% elif ds is not none and ds < 30 %}background:rgba(245,158,11,.12);{% else %}background:rgba(16,185,129,.12);{% endif %}">
-            <i class="bi bi-hourglass-split fs-4 {% if ds is not none and ds < 7 %}text-danger{% elif ds is not none and ds < 30 %}text-warning{% else %}text-success{% endif %}"></i>
-          </div>
-          <div>
-            <div class="text-muted small fw-semibold text-uppercase" style="font-size:.75rem;letter-spacing:.5px;">Días de Stock</div>
-            {% if ds is not none %}
-            <div class="fw-bold fs-5 {% if ds < 7 %}text-danger{% elif ds < 30 %}text-warning{% else %}text-success{% endif %}">
-              {{ ds }}<span class="text-muted fs-6 ms-1">días</span>
-            </div>
-            {% else %}<div class="fw-bold fs-5 text-muted">∞</div>{% endif %}
-            <div class="text-muted" style="font-size:.75rem;">al ritmo actual</div>
-          </div>
+      <div class="dash-kpi {% if ds is not none and ds < 7 %}risk-danger{% elif ds is not none and ds < 30 %}risk-warn{% endif %}">
+        <div class="kpi-icon"><i class="ph ph-hourglass-medium" aria-hidden="true"></i></div>
+        <div class="kpi-text">
+          <div class="kpi-label">Días de Stock</div>
+          {% if ds is not none %}
+          <div><span class="kpi-value {% if ds < 7 %}tone-danger{% elif ds < 30 %}tone-warn{% else %}tone-ok{% endif %}" data-count="{{ ds }}">{{ ds }}</span><span class="kpi-unit">días</span></div>
+          {% else %}<div class="kpi-value" style="color:var(--muted);">∞</div>{% endif %}
+          <div class="kpi-sub">al ritmo actual</div>
         </div>
       </div>
     </div>
 
     <div class="col-6 col-sm-3 col-lg-3">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-body p-3">
-          <div class="text-muted small fw-semibold text-uppercase mb-2" style="font-size:.75rem;letter-spacing:.5px;">
-            <i class="bi bi-fire text-danger me-1"></i>Más Movidos (30d)
-          </div>
-          {% if kpis_rotacion.top_movers %}
-          <ol class="mb-0 ps-3" style="font-size:.76rem;">
-            {% for m in kpis_rotacion.top_movers[:3] %}
-            <li class="mb-1">
-              <span class="fw-semibold text-truncate d-block" style="max-width:130px;">{{ m.nombre }}</span>
-              <span class="text-muted">{{ m.salidas }} uds</span>
-            </li>
-            {% endfor %}
-          </ol>
-          {% else %}
-          <div class="text-muted small fst-italic">Sin salidas en 30 días</div>
-          {% endif %}
-        </div>
+      <div class="card dash-card h-100" style="padding:14px 16px;">
+        <div class="kpi-label" style="margin-bottom:6px;"><i class="ph ph-fire" aria-hidden="true"></i> Más Movidos (30d)</div>
+        {% if kpis_rotacion.top_movers %}
+        <ol class="top-movers">
+          {% for m in kpis_rotacion.top_movers[:3] %}
+          <li>
+            <span class="tm-name">{{ m.nombre }}</span>
+            <span class="tm-uds">{{ m.salidas }} uds</span>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <div class="kpi-sub" style="font-style:italic;">Sin salidas en 30 días</div>
+        {% endif %}
       </div>
     </div>
     {% endif %}
 
     {# Gráfica de movimientos 6 meses #}
     <div class="col-12">
-      <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
-          <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
-            <i class="bi bi-bar-chart-fill text-primary me-1"></i>Movimientos Últimos 6 Meses
-          </span>
-        </div>
-        <div class="card-body pt-2" style="min-height:200px;">
+      <div class="card dash-card">
+        <div class="card-kick"><i class="ph ph-chart-bar" aria-hidden="true"></i>Movimientos Últimos 6 Meses</div>
+        <div style="min-height:200px;">
           <canvas id="chartMovimientos" style="max-height:185px;"></canvas>
         </div>
       </div>
@@ -435,45 +458,28 @@
 
     {# Top salidas + Dona + Actividad #}
     <div class="col-12 col-md-5">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-header bg-transparent border-0 pt-3 pb-0">
-          <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
-            <i class="bi bi-trophy-fill text-warning me-1"></i>Top Salidas Este Mes
-          </span>
-        </div>
-        <div class="card-body pt-2" style="min-height:190px;">
+      <div class="card dash-card h-100">
+        <div class="card-kick"><i class="ph ph-trophy" aria-hidden="true"></i>Top Salidas Este Mes</div>
+        <div class="chart-body" style="min-height:190px;">
           <canvas id="chartTopProductos" style="max-height:170px;"></canvas>
         </div>
       </div>
     </div>
 
     <div class="col-12 col-md-3">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-header bg-transparent border-0 pt-3 pb-0">
-          <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
-            <i class="bi bi-pie-chart-fill text-primary me-1"></i>Estado Stock
-          </span>
-        </div>
-        <div class="card-body d-flex align-items-center justify-content-center" style="min-height:190px;">
+      <div class="card dash-card h-100">
+        <div class="card-kick"><i class="ph ph-chart-donut" aria-hidden="true"></i>Estado Stock</div>
+        <div class="d-flex align-items-center justify-content-center" style="min-height:190px;">
           <canvas id="chartEstado" style="max-height:170px;"></canvas>
         </div>
       </div>
     </div>
 
     <div class="col-12 col-md-4">
-      <div class="card border-0 shadow-sm rounded-4 h-100">
-        <div class="card-header bg-transparent pt-3 pb-2 d-flex justify-content-between align-items-center"
-             style="border-bottom:1px solid var(--border);">
-          <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
-            <i class="bi bi-activity text-primary me-1"></i>Actividad Reciente
-          </span>
-          <span class="badge rounded-pill px-2 py-1" style="background:var(--hover-bg,#f1f5f9);color:#64748b;border:1px solid var(--border);font-size:.75rem;">Live</span>
-        </div>
-        <div id="actividadFeed" class="card-body p-0" style="max-height:270px;overflow-y:auto;">
-          <div class="text-center py-4 text-muted" style="font-size:.82rem;">
-            <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
-            <div>Cargando...</div>
-          </div>
+      <div class="card dash-card h-100">
+        <div class="card-kick"><i class="ph ph-pulse" aria-hidden="true"></i>Actividad Reciente <span class="tag tag-neutral push">Live</span></div>
+        <div id="actividadFeed" class="act-feed">
+          <div class="feed-empty">Cargando...</div>
         </div>
       </div>
     </div>
@@ -481,60 +487,63 @@
   </div>{# /row KPIs #}
   {% endif %}{# /admin KPIs #}
 
-  {# ── PANEL DE ALERTAS ACCIONABLE ─────────────────────────────────────── #}
+  {# ── PANEL DE ALERTAS ACCIONABLE ───────────────────────────────────── #}
   <div id="panelAlertas" class="mb-4" style="display:none;">
-    <div class="card border-0 shadow-sm rounded-4" style="border-left:4px solid #ef4444!important;">
-      <div class="card-header bg-transparent pt-3 pb-2 d-flex justify-content-between align-items-center"
-           style="border-bottom:1px solid var(--border);">
-        <span class="fw-bold text-danger">
-          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <div class="card alertas-card">
+      <div class="alertas-head">
+        <span class="t">
+          <i class="ph ph-fill ph-warning" aria-hidden="true"></i>
           Productos con Stock Crítico
-          <span id="alertasCount" class="badge bg-danger rounded-pill ms-1" style="font-size:.75rem;"></span>
+          <span id="alertasCount" class="tag tag-danger"></span>
         </span>
-        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnToggleAlertas">
-          <i class="bi bi-chevron-down" id="alertasChevron"></i>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnToggleAlertas" aria-label="Mostrar u ocultar alertas">
+          <i class="ph ph-caret-down" id="alertasChevron" aria-hidden="true"></i>
         </button>
       </div>
-      <div id="alertasBody" class="card-body p-0">
+      <div id="alertasBody">
         <div id="alertasList"></div>
       </div>
     </div>
   </div>
 
-  {# ── BÚSQUEDA, FILTROS Y TABLA ────────────────────────────────────────── #}
-  <div class="card shadow-sm mb-3 border-0 rounded-4">
-    <div class="card-body p-3 p-md-4 rounded-4" style="background:var(--surface-raised,#f8fafc);">
-      <div class="row g-3 align-items-end">
-        <div class="col-12 col-md-5 position-relative">
-          <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Buscar</label>
-          <div class="input-group shadow-sm">
-            <span class="input-group-text"><i class="bi bi-search text-primary"></i></span>
-            <input type="text" class="form-control" id="filtro_busqueda"
-                   placeholder="Nombre o SKU..." autocomplete="off">
-            <button class="btn btn-outline-secondary" id="btnLimpiarBusqueda" style="display:none;" title="Limpiar">
-              <i class="bi bi-x-lg"></i>
+  {# ── BÚSQUEDA Y FILTROS ────────────────────────────────────────────── #}
+  <div class="card filters-card">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-5 position-relative">
+        <div class="field">
+          <label for="filtro_busqueda">Buscar</label>
+          <div class="input-wrap">
+            <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+            <input type="text" class="input" id="filtro_busqueda" placeholder="Nombre o SKU..." autocomplete="off">
+            <button type="button" class="clear-btn" id="btnLimpiarBusqueda" title="Limpiar" aria-label="Limpiar búsqueda">
+              <i class="ph ph-x" aria-hidden="true"></i>
             </button>
           </div>
-          <div id="lista_sugerencias" class="list-group position-absolute w-100 shadow-lg border-0"
-               style="z-index:1050;display:none;max-height:220px;overflow-y:auto;top:100%;margin-top:4px;"></div>
         </div>
-        <div class="col-12 col-md-3">
-          <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Categoría</label>
-          <select class="form-select shadow-sm border-0" id="filtro_categoria">
+        <div id="lista_sugerencias" class="sug-list" style="top:auto;margin-top:0;"></div>
+      </div>
+      <div class="col-12 col-md-3">
+        <div class="field">
+          <label for="filtro_categoria">Categoría</label>
+          <select class="input" id="filtro_categoria">
             <option value="0">Todas</option>
             {% for cat in categorias %}<option value="{{ cat.id }}">{{ cat.nombre }}</option>{% endfor %}
           </select>
         </div>
-        <div class="col-12 col-md-2">
-          <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Proveedor</label>
-          <select class="form-select shadow-sm border-0" id="filtro_proveedor">
+      </div>
+      <div class="col-12 col-md-2">
+        <div class="field">
+          <label for="filtro_proveedor">Proveedor</label>
+          <select class="input" id="filtro_proveedor">
             <option value="0">Todos</option>
             {% for prov in proveedores %}<option value="{{ prov.id }}">{{ prov.nombre }}</option>{% endfor %}
           </select>
         </div>
-        <div class="col-12 col-md-2">
-          <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.4px;">Estado</label>
-          <select class="form-select shadow-sm border-0" id="filtro_estado">
+      </div>
+      <div class="col-12 col-md-2">
+        <div class="field">
+          <label for="filtro_estado">Estado</label>
+          <select class="input" id="filtro_estado">
             <option value="">Todos</option>
             <option value="bajo">Stock Bajo</option>
             <option value="ok">Óptimo</option>
@@ -542,60 +551,49 @@
           </select>
         </div>
       </div>
+      <div class="col-12 orden-movil-field">
+        <div class="field">
+          <label for="ordenMovil">Ordenar por</label>
+          <select class="input only-mobile" id="ordenMovil">
+            <option value="">Orden actual</option>
+            <option value="1|str">SKU (A–Z)</option>
+            <option value="2|str">Producto (A–Z)</option>
+            <option value="3|str">Categoría (A–Z)</option>
+            <option value="5|num">Stock (menor a mayor)</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
 
   {# Pills de filtro rápido por estado #}
-  <div class="d-flex flex-wrap gap-2 mb-3 align-items-center" id="filtroRapidoContainer">
-    <span class="text-muted small">Filtro rápido:</span>
-    <button class="btn btn-sm rounded-pill px-3 btn-primary fw-semibold active-filter" data-filtro-estado="">
-      Todos <span class="badge bg-white text-primary ms-1 rounded-pill" style="font-size:.75rem;">{{ n_total }}</span>
-    </button>
-    <button class="btn btn-sm rounded-pill px-3 btn-outline-danger fw-semibold active-filter" data-filtro-estado="bajo">
-      Stock Bajo <span class="badge bg-danger text-white ms-1 rounded-pill" style="font-size:.75rem;">{{ n_bajo }}</span>
-    </button>
-    <button class="btn btn-sm rounded-pill px-3 btn-outline-success fw-semibold active-filter" data-filtro-estado="ok">
-      Óptimo <span class="badge bg-success text-white ms-1 rounded-pill" style="font-size:.75rem;">{{ n_ok }}</span>
-    </button>
-    <button class="btn btn-sm rounded-pill px-3 btn-outline-info fw-semibold active-filter" data-filtro-estado="exceso">
-      Exceso <span class="badge bg-info text-white ms-1 rounded-pill" style="font-size:.75rem;">{{ n_exceso }}</span>
-    </button>
-    <span class="ms-auto badge rounded-pill px-3 py-2 fw-semibold"
-          style="background:var(--primary-tonal);color:var(--primary);border:1px solid rgba(var(--primary-rgb),.2);"
-          id="contador_registros">{{ n_total }} Productos</span>
+  <div class="pills-row" id="filtroRapidoContainer">
+    <button type="button" class="fpill is-active active-filter" data-filtro-estado="">Todos <span class="fcount">{{ n_total }}</span></button>
+    <button type="button" class="fpill active-filter" data-filtro-estado="bajo">Stock Bajo <span class="fcount">{{ n_bajo }}</span></button>
+    <button type="button" class="fpill active-filter" data-filtro-estado="ok">Óptimo <span class="fcount">{{ n_ok }}</span></button>
+    <button type="button" class="fpill active-filter" data-filtro-estado="exceso">Exceso <span class="fcount">{{ n_exceso }}</span></button>
+    <span class="count-total" id="contador_registros" aria-live="polite">{{ n_total }} Productos</span>
   </div>
 
-  {# ── TABLA DE INVENTARIO ──────────────────────────────────────────────── #}
-  <div class="card shadow-sm border-0 rounded-4 mb-4">
-    <div class="card-body p-0 table-responsive">
-      <table class="table table-hover align-middle mb-0" id="tabla_inventario">
-        <thead style="background:var(--surface-raised,#f8fafc);">
-          <tr class="text-secondary text-uppercase small">
-            <th class="ps-4 border-0" style="width:52px;">Img</th>
-            <th class="th-sortable border-0" data-col="1" style="cursor:pointer;">
-              SKU <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
-            </th>
-            <th class="th-sortable border-0" data-col="2" style="cursor:pointer;">
-              Producto <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
-            </th>
-            <th class="th-sortable border-0 d-none d-md-table-cell" data-col="3" style="cursor:pointer;">
-              Categoría <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
-            </th>
-            <th class="border-0 d-none d-lg-table-cell">Proveedor</th>
-            <th class="text-center th-sortable border-0" data-col="5" data-tipo="num" style="cursor:pointer;">
-              Stock <i class="bi bi-arrow-down-up ms-1 small opacity-50"></i>
-            </th>
-            <th class="text-center border-0 d-none d-md-table-cell">Días est.</th>
-            <th class="text-center border-0">Estado</th>
-            <th class="text-end pe-4 border-0">Acciones</th>
+  {# ── TABLA DE INVENTARIO ───────────────────────────────────────────── #}
+  <div class="card dash-table-wrap">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0" id="tabla_inventario">
+        <thead>
+          <tr>
+            <th style="width:64px;">Img</th>
+            <th class="th-sortable" data-col="1">SKU <i class="ph ph-arrows-down-up" aria-hidden="true"></i></th>
+            <th class="th-sortable" data-col="2">Producto <i class="ph ph-arrows-down-up" aria-hidden="true"></i></th>
+            <th class="th-sortable d-none d-md-table-cell" data-col="3">Categoría <i class="ph ph-arrows-down-up" aria-hidden="true"></i></th>
+            <th class="d-none d-lg-table-cell">Proveedor</th>
+            <th class="text-center th-sortable" data-col="5" data-tipo="num">Stock <i class="ph ph-arrows-down-up" aria-hidden="true"></i></th>
+            <th class="text-center d-none d-md-table-cell">Días est.</th>
+            <th class="text-center">Estado</th>
+            <th class="text-end">Acciones</th>
           </tr>
         </thead>
         <tbody id="tabla_productos_cuerpo">
           {% for item in items_stock %}
-          {% set dias_item = None %}
-          {% if kpis_rotacion and kpis_rotacion.tasa_diaria > 0 %}
-            {# días estimados sólo aplica al total, por producto se aproxima #}
-          {% endif %}
           <tr class="fila-producto"
               data-categoria-id="{{ item.producto.categoria_id or '0' }}"
               data-proveedor-id="{{ item.producto.proveedor_id or '0' }}"
@@ -604,127 +602,106 @@
               data-estado="{{ item.estado_stock }}"
               data-href="{{ url_for('inventory.historial_producto', id=item.producto.id) }}"
               role="link"
-              tabindex="0"
-              style="cursor:pointer;">
+              tabindex="0">
 
-            <td class="ps-4 td-acciones">
+            <td class="td-img td-acciones">
               {% if item.producto.imagen_url %}
               <img src="{{ url_for('static', filename='uploads/' + item.producto.imagen_url) }}" data-zoomable
-                   alt="{{ item.producto.nombre }}" loading="lazy"
-                   class="rounded-2 border shadow-sm" style="width:38px;height:38px;object-fit:cover;">
+                   alt="{{ item.producto.nombre }}" loading="lazy">
               {% else %}
-              <div class="rounded-2 d-flex align-items-center justify-content-center text-muted"
-                   style="width:38px;height:38px;background:var(--hover-bg,#f1f5f9);border:1px solid var(--border,#e2e8f0);">
-                <i class="bi bi-image" style="font-size:.85rem;"></i>
-              </div>
+              <div class="thumb-ph"><i class="ph ph-image" aria-hidden="true"></i></div>
               {% endif %}
             </td>
 
-            <td class="fw-bold text-secondary font-monospace small">{{ item.producto.codigo }}</td>
+            <td class="td-sku">{{ item.producto.codigo }}</td>
 
-            <td>
-              <div class="fw-semibold text-body" style="font-size:.9rem;">{{ item.producto.nombre }}</div>
+            <td class="td-nombre">
+              <div class="nombre">{{ item.producto.nombre }}</div>
               {% if item.ubicacion %}
-              <div class="text-muted" style="font-size:.75rem;"><i class="bi bi-geo-alt me-1"></i>{{ item.ubicacion }}</div>
+              <div class="ubic"><i class="ph ph-map-pin" aria-hidden="true"></i>{{ item.ubicacion }}</div>
               {% endif %}
             </td>
 
-            <td class="d-none d-md-table-cell">
+            <td class="td-cat d-none d-md-table-cell">
               {% if item.producto.categoria %}
-              <span class="badge rounded-pill px-2 py-1"
-                    style="background:var(--hover-bg,#f1f5f9);color:#64748b;border:1px solid var(--border,#e2e8f0);font-size:.75rem;">
-                {{ item.producto.categoria.nombre }}
-              </span>
-              {% else %}<span class="text-muted small">—</span>{% endif %}
+              <span class="tag tag-neutral">{{ item.producto.categoria.nombre }}</span>
+              {% else %}<span style="color:var(--muted);">—</span>{% endif %}
             </td>
 
-            <td class="d-none d-lg-table-cell">
+            <td class="td-prov d-none d-lg-table-cell">
               {% if item.producto.proveedor %}
-              <small class="text-muted">{{ item.producto.proveedor.nombre }}</small>
-              {% else %}<span class="text-muted small">—</span>{% endif %}
+              <small style="color:var(--muted);">{{ item.producto.proveedor.nombre }}</small>
+              {% else %}<span style="color:var(--muted);">—</span>{% endif %}
             </td>
 
-            <td class="text-center">
-              <span class="fw-bold {% if item.cantidad == 0 %}text-danger{% elif item.estado_stock == 'bajo' %}text-warning{% else %}text-success{% endif %}" style="font-size:.95rem;">
-                {{ item.cantidad }}
-              </span>
-              <div class="text-muted" style="font-size:.75rem;">uds</div>
+            <td class="td-stock">
+              <span class="stk-n {% if item.estado_stock == 'bajo' %}tone-danger{% elif item.estado_stock == 'exceso' %}tone-info{% endif %}">{{ item.cantidad }}</span>
+              <span class="stk-u">uds</span>
               {% if item.producto.unidades_por_caja and item.producto.unidades_por_caja > 1 %}
-              <div class="text-muted" style="font-size:.75rem;">
-                {{ (item.cantidad / item.producto.unidades_por_caja)|round(1) }} cajas
-              </div>
+              <span class="stk-cajas">{{ (item.cantidad / item.producto.unidades_por_caja)|round(1) }} cajas</span>
               {% endif %}
             </td>
 
-            <td class="text-center d-none d-md-table-cell"
+            <td class="td-dias d-none d-md-table-cell"
                 data-tasa="{{ kpis_rotacion.tasa_diaria if kpis_rotacion else 0 }}"
                 data-cant="{{ item.cantidad }}">
               {% if kpis_rotacion and kpis_rotacion.tasa_diaria > 0 %}
               {% set dias_e = (item.cantidad / kpis_rotacion.tasa_diaria) | round(0) | int %}
-              <span class="small fw-semibold {% if dias_e < 7 %}text-danger{% elif dias_e < 30 %}text-warning{% else %}text-success{% endif %}">
-                {{ dias_e }}d
-              </span>
+              <span class="{% if dias_e < 7 %}tone-danger{% elif dias_e < 30 %}tone-warn{% else %}tone-ok{% endif %}">{{ dias_e }}d</span>
               {% else %}
-              <span class="text-muted small">—</span>
+              <span style="color:var(--muted);">—</span>
               {% endif %}
             </td>
 
-            <td class="text-center">
+            <td class="td-estado">
               {% if item.estado_stock == 'bajo' %}
-              <span class="status-pill status-pill--danger">
-                <i class="bi bi-exclamation-triangle-fill"></i> Bajo
-              </span>
+              <span class="tag tag-danger"><i class="ph ph-fill ph-warning" aria-hidden="true"></i>Bajo</span>
               {% elif item.estado_stock == 'exceso' %}
-              <span class="status-pill status-pill--info">
-                <i class="bi bi-arrow-up-circle-fill"></i> Exceso
-              </span>
+              <span class="tag tag-info"><i class="ph ph-fill ph-arrow-circle-up" aria-hidden="true"></i>Exceso</span>
               {% else %}
-              <span class="status-pill status-pill--ok">
-                <i class="bi bi-check-circle-fill"></i> Óptimo
-              </span>
+              <span class="tag tag-ok"><i class="ph ph-fill ph-check-circle" aria-hidden="true"></i>Óptimo</span>
               {% endif %}
             </td>
 
-            <td class="text-end pe-3 td-acciones">
-              <div class="d-flex gap-1 justify-content-end">
+            <td class="td-acc td-acciones">
+              <div class="acc-wrap">
                 <a href="{{ url_for('inventory.editar_producto', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}"
-                   class="btn btn-outline-primary btn-sm rounded-2 btn-accion"
+                   class="btn btn-ghost btn-sm btn-accion"
                    title="Editar" aria-label="Editar {{ item.producto.nombre }}">
-                  <i class="bi bi-pencil" style="font-size:.8rem;" aria-hidden="true"></i>
+                  <i class="ph ph-pencil-simple" aria-hidden="true"></i>
                 </a>
                 <a href="{{ url_for('inventory.historial_producto', id=item.producto.id) }}"
-                   class="btn btn-outline-secondary btn-sm rounded-2 btn-accion"
+                   class="btn btn-ghost btn-sm btn-accion"
                    title="Historial" aria-label="Ver historial de {{ item.producto.nombre }}">
-                  <i class="bi bi-clock-history" style="font-size:.8rem;" aria-hidden="true"></i>
+                  <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
                 </a>
                 <a href="{{ url_for('inventory.configurar_etiqueta', id=item.producto.id, almacen_id=almacen_seleccionado.id) }}"
-                   class="btn btn-outline-secondary btn-sm rounded-2 btn-accion"
+                   class="btn btn-ghost btn-sm btn-accion"
                    title="Etiqueta" aria-label="Configurar etiqueta de {{ item.producto.nombre }}">
-                  <i class="bi bi-upc-scan" style="font-size:.8rem;" aria-hidden="true"></i>
+                  <i class="ph ph-barcode" aria-hidden="true"></i>
                 </a>
               </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="9" class="text-center py-5">
-              <i class="bi bi-inbox fs-1 text-muted opacity-25 d-block mb-3"></i>
-              <h5 class="text-body fw-bold">El almacén está vacío</h5>
-              <p class="text-muted small">No hay productos en este almacén.</p>
-              <a href="{{ url_for('inventory.gestionar_inventario_almacen', id=almacen_seleccionado.id) }}"
-                 class="btn btn-primary mt-2 shadow-sm rounded-pill">
-                <i class="bi bi-plus-circle me-1"></i>Gestionar Inventario
+            <td colspan="9" class="empty-cell">
+              <i class="ph ph-tray" aria-hidden="true"></i>
+              <h3>El almacén está vacío</h3>
+              <p>No hay productos en este almacén.</p>
+              <a href="{{ url_for('inventory.gestionar_inventario_almacen', id=almacen_seleccionado.id) }}" class="btn btn-primary">
+                <i class="ph ph-plus-circle" aria-hidden="true"></i>Gestionar Inventario
               </a>
             </td>
           </tr>
           {% endfor %}
           <tr id="sinResultados" style="display:none;" aria-live="polite">
-            <td colspan="9" class="text-center py-5">
-              <i class="bi bi-search fs-1 text-muted opacity-25 d-block mb-3"></i>
-              <div class="fw-semibold text-body mb-1">Sin resultados</div>
-              <p class="text-muted small mb-3">Ningún producto coincide con los filtros activos</p>
-              <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="btnLimpiarTodos">
-                <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Limpiar filtros
+            <td colspan="9" class="empty-cell">
+              <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+              <h3>Sin resultados</h3>
+              <p>Ningún producto coincide con los filtros activos</p>
+              <button type="button" class="btn btn-ghost btn-sm" id="btnLimpiarTodos">
+                <i class="ph ph-x-circle" aria-hidden="true"></i>Limpiar filtros
               </button>
             </td>
           </tr>
@@ -736,89 +713,64 @@
   {# Paginación de la tabla #}
   <div id="paginacion" class="d-flex justify-content-center py-2 mb-2"></div>
 
-  {# ── VALORIZACIÓN TOP 10 ──────────────────────────────────────────────── #}
+  {# ── VALORIZACIÓN TOP 10 ───────────────────────────────────────────── #}
   {% if items_stock and valor_almacen > 0 and current_user.rol in ['super_admin','admin'] %}
-  <div class="card border-0 shadow-sm rounded-4 mb-4">
-    <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <span class="fw-bold small text-muted text-uppercase" style="letter-spacing:.5px;">
-        <i class="bi bi-cash-coin text-primary me-1"></i>Top 10 por Valorización (MXN)
-      </span>
-      <span class="badge rounded-pill px-3 py-2 fw-bold"
-            style="background:var(--primary-tonal);color:var(--primary);font-size:.75rem;">
-        Total: ${{ "{:,.2f}".format(valor_almacen) }}
-      </span>
+  <div class="card dash-card mb-4">
+    <div class="card-kick">
+      <i class="ph ph-coins" aria-hidden="true"></i>Top 10 por Valorización (MXN)
+      <span class="tag tag-accent push">Total: ${{ "{:,.2f}".format(valor_almacen) }}</span>
     </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" style="font-size:.875rem;">
-          <thead style="background:var(--surface-raised,#f8fafc);" class="text-secondary text-uppercase small">
-            <tr>
-              <th class="ps-4 border-0">#</th>
-              <th class="border-0">Producto</th>
-              <th class="text-center border-0">Stock</th>
-              <th class="text-end border-0">Precio Unit.</th>
-              <th class="text-end border-0">Valor Total</th>
-              <th class="text-end pe-4 border-0" style="min-width:120px;">% del total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in items_por_valor %}
-            {% set valor_item = (item.cantidad or 0) * (item.producto.precio_unitario or 0) %}
-            {% set pct = (valor_item / valor_almacen * 100) if valor_almacen > 0 else 0 %}
-            <tr>
-              <td class="ps-4 text-muted fw-bold" style="width:40px;">{{ loop.index }}</td>
-              <td>
-                <a href="{{ url_for('inventory.historial_producto', id=item.producto.id) }}"
-                   class="text-decoration-none fw-semibold text-body">{{ item.producto.nombre }}</a>
-                <div class="text-muted font-monospace" style="font-size:.75rem;">{{ item.producto.codigo }}</div>
-              </td>
-              <td class="text-center">
-                <span class="badge rounded-pill bg-secondary bg-opacity-10 text-body border px-2">{{ item.cantidad }}</span>
-              </td>
-              <td class="text-end text-muted">${{ "{:,.2f}".format(item.producto.precio_unitario or 0) }}</td>
-              <td class="text-end fw-bold">${{ "{:,.2f}".format(valor_item) }}</td>
-              <td class="pe-4">
-                <div class="d-flex align-items-center gap-2 justify-content-end">
-                  <div class="progress flex-grow-1 rounded-pill" style="height:6px;max-width:80px;">
-                    <div class="progress-bar rounded-pill" style="width:{{ pct|round(1) }}%;background:var(--primary);"></div>
-                  </div>
-                  <span class="text-muted" style="font-size:.75rem;min-width:36px;">{{ pct|round(1) }}%</span>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Producto</th>
+            <th class="text-center">Stock</th>
+            <th class="text-end">Precio Unit.</th>
+            <th class="text-end">Valor Total</th>
+            <th class="text-end" style="min-width:120px;">% del total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items_por_valor %}
+          {% set valor_item = (item.cantidad or 0) * (item.producto.precio_unitario or 0) %}
+          {% set pct = (valor_item / valor_almacen * 100) if valor_almacen > 0 else 0 %}
+          <tr>
+            <td style="width:40px;color:var(--muted);" class="num">{{ loop.index }}</td>
+            <td>
+              <a href="{{ url_for('inventory.historial_producto', id=item.producto.id) }}" class="val-name">{{ item.producto.nombre }}</a>
+              <div class="val-sku">{{ item.producto.codigo }}</div>
+            </td>
+            <td class="text-center num">{{ item.cantidad }}</td>
+            <td class="text-end num" style="color:var(--muted);">${{ "{:,.2f}".format(item.producto.precio_unitario or 0) }}</td>
+            <td class="text-end num" style="font-weight:600;">${{ "{:,.2f}".format(valor_item) }}</td>
+            <td>
+              <div class="val-pct">
+                <div class="meter"><div class="m-accent" style="width:{{ pct|round(1) }}%;"></div></div>
+                <span>{{ pct|round(1) }}%</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
   {% endif %}
 
   {% endif %}{# /almacen_seleccionado #}
 </div>
-
-<style>
-.fila-producto:hover { background:var(--hover-bg,#f8fafc); }
-.fila-producto:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: -2px;
-  background: var(--hover-bg);
-}
-.alerta-row { display:flex;align-items:center;gap:12px;padding:.65rem 1rem;border-bottom:1px solid var(--border,#e2e8f0); }
-.alerta-row:last-child { border-bottom:none; }
-/* Touch-friendly action buttons — UI UX Pro Max: 44×44px on touch devices */
-.btn-accion {
-  width:36px;height:36px;padding:0;
-  display:inline-flex;align-items:center;justify-content:center;
-}
-@media (pointer: coarse) {
-  .btn-accion { width:44px;height:44px; }
-}
-</style>
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">
+// ── KICKER: mes y año (cliente, para no depender del locale del servidor) ──
+(function () {
+  const el = document.getElementById('dashMes');
+  if (el) el.textContent = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+})();
+
 // ── FILTROS, BÚSQUEDA Y PAGINACIÓN ───────────────────────────────────────
 const filas = document.querySelectorAll('.fila-producto');
 const inputBusqueda   = document.getElementById('filtro_busqueda');
@@ -834,8 +786,8 @@ let paginaActual = 1;
 
 let datosBuscador = [];
 filas.forEach(f => {
-  const nom = f.querySelector('td:nth-child(3) .fw-semibold');
-  const sku = f.querySelector('td:nth-child(2)');
+  const nom = f.querySelector('.td-nombre .nombre');
+  const sku = f.querySelector('.td-sku');
   if (nom && sku) datosBuscador.push({ nombre: f.dataset.nombre, sku: f.dataset.sku, nombreReal: nom.innerText.trim(), skuReal: sku.innerText.trim() });
 });
 
@@ -854,7 +806,7 @@ function aplicarFiltros() {
     else f.style.display = 'none';
   });
   if (contador) contador.textContent = filtradas.length + ' Productos';
-  if (btnLimpiar) btnLimpiar.style.display = txt ? '' : 'none';
+  if (btnLimpiar) btnLimpiar.style.display = txt ? 'flex' : 'none';
   const sinRes = document.getElementById('sinResultados');
   if (sinRes) sinRes.style.display = (filtradas.length === 0 && filas.length > 0) ? '' : 'none';
   const inicio = (paginaActual - 1) * POR_PAGINA;
@@ -868,8 +820,8 @@ function renderPaginacion(total) {
   const totalPags = Math.ceil(total / POR_PAGINA);
   if (totalPags <= 1) { c.innerHTML = ''; return; }
   const p = paginaActual;
-  let html = '<nav><ul class="pagination pagination-sm mb-0 flex-wrap gap-1">';
-  html += `<li class="page-item${p===1?' disabled':''}"><button class="page-link rounded-pill px-3" data-page="${p-1}" ${p===1?'disabled':''}>&#8249;</button></li>`;
+  let html = '<nav aria-label="Paginación"><ul class="pagination flex-wrap">';
+  html += `<li class="page-item${p===1?' disabled':''}"><button class="page-link" aria-label="Página anterior" data-page="${p-1}" ${p===1?'disabled':''}>&#8249;</button></li>`;
   for (let i = 1; i <= totalPags; i++) {
     if (i===1 || i===totalPags || (i>=p-2 && i<=p+2)) {
       html += `<li class="page-item${i===p?' active':''}"><button class="page-link" data-page="${i}">${i}</button></li>`;
@@ -877,8 +829,8 @@ function renderPaginacion(total) {
       html += '<li class="page-item disabled"><span class="page-link">…</span></li>';
     }
   }
-  html += `<li class="page-item${p===totalPags?' disabled':''}"><button class="page-link rounded-pill px-3" data-page="${p+1}" ${p===totalPags?'disabled':''}>&#8250;</button></li>`;
-  html += `</ul></nav><span class="text-muted ms-3 small align-self-center">Página ${p} de ${totalPags} · ${total} productos</span>`;
+  html += `<li class="page-item${p===totalPags?' disabled':''}"><button class="page-link" aria-label="Página siguiente" data-page="${p+1}" ${p===totalPags?'disabled':''}>&#8250;</button></li>`;
+  html += `</ul></nav><span class="ms-3 small align-self-center" style="color:var(--muted);">Página ${p} de ${totalPags} · ${total} productos</span>`;
   c.innerHTML = `<div class="d-flex align-items-center gap-2 flex-wrap justify-content-center">${html}</div>`;
 }
 
@@ -894,15 +846,7 @@ function filtroRapido(estado) {
   paginaActual = 1;
   aplicarFiltros();
   document.querySelectorAll('.active-filter').forEach(b => {
-    const match = b.dataset.filtroEstado === estado;
-    b.classList.toggle('btn-primary', match && estado === '');
-    b.classList.toggle('btn-danger',  match && estado === 'bajo');
-    b.classList.toggle('btn-success', match && estado === 'ok');
-    b.classList.toggle('btn-info',    match && estado === 'exceso');
-    b.classList.toggle('btn-outline-danger',  !match && b.dataset.filtroEstado === 'bajo');
-    b.classList.toggle('btn-outline-success', !match && b.dataset.filtroEstado === 'ok');
-    b.classList.toggle('btn-outline-info',    !match && b.dataset.filtroEstado === 'exceso');
-    b.classList.toggle('btn-outline-secondary', !match && b.dataset.filtroEstado === '');
+    b.classList.toggle('is-active', b.dataset.filtroEstado === estado);
   });
 }
 
@@ -936,16 +880,14 @@ if (inputBusqueda) {
         listaSug.style.display = 'block';
         sugs.forEach(s => {
           const a = document.createElement('a');
-          a.href = '#'; a.className = 'list-group-item list-group-item-action py-2';
+          a.href = '#'; a.className = 'sug-item';
           const strong = document.createElement('strong');
           strong.textContent = s.nombreReal;
           const small = document.createElement('small');
-          small.className = 'text-muted ms-2';
           small.textContent = s.skuReal;
           a.appendChild(strong);
-          a.appendChild(document.createTextNode(' '));
           a.appendChild(small);
-          a.onclick = e => { e.preventDefault(); inputBusqueda.value = s.nombreReal; paginaActual = 1; aplicarFiltros(); listaSug.style.display = 'none'; };
+          a.addEventListener('click', e => { e.preventDefault(); inputBusqueda.value = s.nombreReal; paginaActual = 1; aplicarFiltros(); listaSug.style.display = 'none'; });
           listaSug.appendChild(a);
         });
       } else listaSug.style.display = 'none';
@@ -955,7 +897,10 @@ if (inputBusqueda) {
 }
 if (selectCategoria) selectCategoria.addEventListener('change', () => { paginaActual = 1; aplicarFiltros(); });
 if (selectProveedor) selectProveedor.addEventListener('change', () => { paginaActual = 1; aplicarFiltros(); });
-if (selectEstado)    selectEstado.addEventListener('change',    () => { paginaActual = 1; aplicarFiltros(); });
+if (selectEstado)    selectEstado.addEventListener('change',    () => {
+  paginaActual = 1; aplicarFiltros();
+  document.querySelectorAll('.active-filter').forEach(b => b.classList.toggle('is-active', b.dataset.filtroEstado === selectEstado.value));
+});
 
 // ── ORDENAMIENTO ──────────────────────────────────────────────────────────
 let dirOrden = 'asc';
@@ -972,19 +917,28 @@ function ordenarTabla(n, tipo='str') {
     return ca > cb ? mult : ca < cb ? -mult : 0;
   });
   arr.forEach(r => tbody.appendChild(r));
-  document.querySelectorAll('#tabla_inventario th i').forEach(i => i.className = 'bi bi-arrow-down-up ms-1 small opacity-50');
+  document.querySelectorAll('#tabla_inventario th i').forEach(i => { i.className = 'ph ph-arrows-down-up'; });
   const th = document.querySelectorAll('#tabla_inventario th')[n];
-  if (th?.querySelector('i')) th.querySelector('i').className = `bi bi-arrow-${dirOrden==='asc'?'up':'down'} ms-1 small text-primary fw-bold`;
+  if (th?.querySelector('i')) th.querySelector('i').className = `ph ph-arrow-${dirOrden==='asc'?'up':'down'} on`;
   paginaActual = 1;
   aplicarFiltros();
 }
+
+// Orden en móvil: el select dispara ordenarTabla siempre en ascendente
+const ordenMovil = document.getElementById('ordenMovil');
+if (ordenMovil) ordenMovil.addEventListener('change', function() {
+  if (!this.value) return;
+  const [col, tipo] = this.value.split('|');
+  dirOrden = 'desc'; // ordenarTabla alterna antes de ordenar → queda asc
+  ordenarTabla(parseInt(col, 10), tipo || 'str');
+});
 
 // ── PANEL DE ALERTAS ──────────────────────────────────────────────────────
 let alertasColapsadas = true;
 function toggleAlertas() {
   alertasColapsadas = !alertasColapsadas;
   document.getElementById('alertasBody').style.display = alertasColapsadas ? 'none' : '';
-  document.getElementById('alertasChevron').className = alertasColapsadas ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+  document.getElementById('alertasChevron').className = alertasColapsadas ? 'ph ph-caret-down' : 'ph ph-caret-up';
 }
 
 async function cargarAlertas() {
@@ -998,7 +952,7 @@ async function cargarAlertas() {
     panel.style.display = '';
     // Iniciar siempre colapsado; el usuario lo abre manualmente
     document.getElementById('alertasBody').style.display = 'none';
-    document.getElementById('alertasChevron').className = 'bi bi-chevron-down';
+    document.getElementById('alertasChevron').className = 'ph ph-caret-down';
     alertasColapsadas = true;
     cnt.textContent = data.count;
     const _escA = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1008,26 +962,21 @@ async function cargarAlertas() {
       const alm = _escA(item.almacen);
       const pid = parseInt(item.producto_id, 10) || 0;
       return `<div class="alerta-row">
-        <div class="flex-shrink-0 rounded-2 d-flex align-items-center justify-content-center"
-             style="width:36px;height:36px;background:rgba(239,68,68,.1);">
-          <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:.85rem;"></i>
-        </div>
-        <div class="flex-grow-1 min-w-0">
-          <div class="fw-semibold text-body text-truncate" style="font-size:.85rem;">${nom}</div>
-          <div class="text-muted" style="font-size:.75rem;">
-            <i class="bi bi-shop me-1"></i>${alm} ·
-            <span class="text-danger fw-bold">${item.cantidad}</span> uds (mín: ${item.minimo})
+        <div class="a-ico"><i class="ph ph-fill ph-warning" aria-hidden="true"></i></div>
+        <div class="a-main">
+          <div class="a-name">${nom}</div>
+          <div class="a-meta">
+            <i class="ph ph-storefront" aria-hidden="true"></i> ${alm} ·
+            <span class="tone-danger" style="font-weight:600;">${item.cantidad}</span> uds (mín: ${item.minimo})
           </div>
-          <div class="progress mt-1 rounded-pill" style="height:4px;max-width:120px;">
-            <div class="progress-bar bg-danger" style="width:${Math.min(pct,100)}%;"></div>
-          </div>
+          <div class="meter"><div class="m-danger" style="width:${Math.min(pct,100)}%;"></div></div>
         </div>
-        <div class="d-flex gap-1 flex-shrink-0">
-          <a href="/orden/nueva/manual?producto_id=${pid}" class="btn btn-sm btn-outline-success rounded-pill px-2 fw-semibold" style="font-size:.75rem;" title="Crear Orden de Compra">
-            <i class="bi bi-cart-plus"></i> OC
+        <div class="a-btns">
+          <a href="/orden/nueva/manual?producto_id=${pid}" class="btn btn-ghost btn-sm" title="Crear Orden de Compra">
+            <i class="ph ph-shopping-cart" aria-hidden="true"></i> OC
           </a>
-          <a href="/producto/${pid}/historial" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:.75rem;" title="Ver historial">
-            <i class="bi bi-clock-history"></i>
+          <a href="/producto/${pid}/historial" class="btn btn-ghost btn-sm btn-accion" title="Ver historial" aria-label="Ver historial de ${nom}">
+            <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
           </a>
         </div>
       </div>`;
@@ -1037,7 +986,7 @@ async function cargarAlertas() {
 
 document.addEventListener('DOMContentLoaded', () => { aplicarFiltros(); cargarAlertas(); });
 
-// ── EVENT LISTENERS (reemplazan handlers inline eliminados por CSP) ───────
+// ── EVENT LISTENERS (sin handlers inline por CSP) ─────────────────────────
 const selAlmacenDash = document.getElementById('selAlmacenDash');
 if (selAlmacenDash) selAlmacenDash.addEventListener('change', function() { location.href = '?almacen_id=' + this.value; });
 
@@ -1087,66 +1036,66 @@ document.getElementById('paginacion')?.addEventListener('click', function(e) {
 
 {% block extra_js %}
 <script nonce="{{ csp_nonce() }}">
-// ── GRÁFICAS CHART.JS (Fusion tokens) ───────────────────────────────────
+// ── GRÁFICAS CHART.JS (tokens de FusionChart) ───────────────────────────
 (function() {
-  const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
-  function tc() {
-    const cs = getComputedStyle(document.documentElement);
-    const v = n => cs.getPropertyValue(n).trim();
-    return {
-      grid:    isDark() ? 'rgba(233,233,237,.06)' : 'rgba(32,30,29,.06)',
-      text:    v('--muted') || (isDark() ? '#8f93a8' : '#6d675e'),
-      sage:    v('--sage')   || '#a3b285',
-      danger:  v('--danger') || '#e0716d',
-      info:    v('--info')   || '#7fb3d9',
-      accent:  v('--accent') || '#9184d9',
-      card:    v('--card')   || '#1b1e2b',
-      border:  v('--border') || 'rgba(233,233,237,.09)',
-    };
-  }
   const FONT = 'Inter';
   let cMov=null, cEst=null, cTop=null;
+  let datos = null; // última respuesta, para redibujar al cambiar de tema
+
+  function destruir() {
+    [cMov, cEst, cTop].forEach(c => { if (c) c.destroy(); });
+    cMov = cEst = cTop = null;
+  }
+  function tooltip(t) {
+    return { backgroundColor:t.card, titleColor:t.text, bodyColor:t.text, borderColor:t.border, borderWidth:1, cornerRadius:8, padding:9 };
+  }
 
   function renderMovimientos(data) {
     const ctx = document.getElementById('chartMovimientos'); if(!ctx) return;
-    const t = tc(); if(cMov) cMov.destroy();
+    const t = FusionChart.tokens();
     cMov = new Chart(ctx, { type:'bar', data:{ labels:data.labels, datasets:[
       { label:'Entradas', data:data.entradas, backgroundColor:t.sage+'bf', borderColor:t.sage, borderWidth:0, borderRadius:5, maxBarThickness:22 },
       { label:'Salidas',  data:data.salidas,  backgroundColor:t.accent+'bf', borderColor:t.accent, borderWidth:0, borderRadius:5, maxBarThickness:22 }
     ]}, options:{ responsive:true, maintainAspectRatio:true,
-      animation:{ duration:900, easing:'easeOutQuart', delay: ctx => ctx.dataIndex*60 },
+      animation:{ duration:900, easing:'easeOutQuart', delay: c => c.dataIndex*60 },
       plugins:{
-        legend:{ labels:{ color:t.text, font:{ family:FONT, size:11 }, boxWidth:9, boxHeight:9, padding:12 } },
-        tooltip:{ backgroundColor:t.card, titleColor:tc().text, bodyColor:tc().text, borderColor:t.border, borderWidth:1, cornerRadius:8, padding:9 }
+        legend:{ labels:{ color:t.muted, font:{ family:FONT, size:11 }, boxWidth:9, boxHeight:9, padding:12 } },
+        tooltip: tooltip(t)
       },
-      scales:{ x:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ display:false } }, y:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ color:t.grid }, beginAtZero:true, border:{display:false} } }
+      scales:{ x:{ ticks:{ color:t.muted, font:{family:FONT,size:10} }, grid:{ display:false } }, y:{ ticks:{ color:t.muted, font:{family:FONT,size:10} }, grid:{ color:t.border }, beginAtZero:true, border:{display:false} } }
     }});
   }
   function renderEstado(data) {
     const ctx = document.getElementById('chartEstado'); if(!ctx) return;
-    const t = tc(); if(cEst) cEst.destroy();
+    const t = FusionChart.tokens();
     cEst = new Chart(ctx, { type:'doughnut', data:{
       labels:['Stock Bajo','Óptimo','Exceso'],
       datasets:[{ data:[data.bajo,data.ok,data.exceso], backgroundColor:[t.danger,t.sage,t.info], borderWidth:0, hoverOffset:6 }]
     }, options:{ responsive:true, maintainAspectRatio:true, cutout:'70%',
       animation:{ animateRotate:true, duration:1100, easing:'easeOutQuart' },
-      plugins:{ legend:{ position:'bottom', labels:{ color:t.text, padding:12, font:{ family:FONT, size:11 }, boxWidth:9, boxHeight:9 } },
-        tooltip:{ backgroundColor:t.card, titleColor:t.text, borderColor:t.border, borderWidth:1, cornerRadius:8, padding:9 } }
+      plugins:{ legend:{ position:'bottom', labels:{ color:t.muted, padding:12, font:{ family:FONT, size:11 }, boxWidth:9, boxHeight:9 } },
+        tooltip: tooltip(t) }
     }});
   }
   function renderTop(data) {
     const ctx = document.getElementById('chartTopProductos'); if(!ctx) return;
-    const t = tc(); if(cTop) cTop.destroy();
+    const t = FusionChart.tokens();
     if(!data.labels||!data.labels.length) {
-      const cb = ctx.closest('.card-body'); if(cb) cb.innerHTML = '<p class="text-muted text-center py-3 mb-0 small"><i class="ph ph-info me-1"></i>Sin salidas este mes.</p>';
+      const cb = ctx.closest('.chart-body');
+      if(cb) cb.innerHTML = '<p class="feed-empty" style="padding:16px 0;margin:0;"><i class="ph ph-info" aria-hidden="true"></i>Sin salidas este mes.</p>';
       return;
     }
     cTop = new Chart(ctx, { type:'bar', data:{ labels:data.labels,
       datasets:[{ label:'Unidades Salidas', data:data.valores, backgroundColor:t.accent+'bf', borderColor:t.accent, borderWidth:0, borderRadius:5 }]
     }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:true,
-      plugins:{ legend:{ display:false }, tooltip:{ backgroundColor:t.card, borderColor:t.border, borderWidth:1, cornerRadius:8, padding:9 } },
-      scales:{ x:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ color:t.grid }, beginAtZero:true }, y:{ ticks:{ color:t.text, font:{family:FONT,size:10} }, grid:{ display:false } } }
+      plugins:{ legend:{ display:false }, tooltip: tooltip(t) },
+      scales:{ x:{ ticks:{ color:t.muted, font:{family:FONT,size:10} }, grid:{ color:t.border }, beginAtZero:true }, y:{ ticks:{ color:t.muted, font:{family:FONT,size:10} }, grid:{ display:false } } }
     }});
+  }
+  function dibujar() {
+    if (!datos) return;
+    destruir();
+    renderMovimientos(datos.mov); renderEstado(datos.est); renderTop(datos.top);
   }
   async function cargarGraficas() {
     try {
@@ -1155,44 +1104,49 @@ document.getElementById('paginacion')?.addEventListener('click', function(e) {
         fetch('{{ url_for("api.api_chart_estado_stock") }}').then(r=>r.json()),
         fetch('{{ url_for("api.api_chart_top_productos") }}').then(r=>r.json()),
       ]);
-      renderMovimientos(r1); renderEstado(r2); renderTop(r3);
+      datos = { mov:r1, est:r2, top:r3 };
+      dibujar();
     } catch(e){ console.warn('Gráficas:',e); }
   }
   document.addEventListener('DOMContentLoaded', cargarGraficas);
-  window.addEventListener('themechange', cargarGraficas);
-  new MutationObserver(cargarGraficas).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme','data-bs-theme'] });
+  // Cambio de tema: destruir y recrear con los tokens nuevos (sin volver a pedir datos)
+  window.addEventListener('themechange', dibujar);
 })();
 
 // ── ACTIVIDAD RECIENTE ────────────────────────────────────────────────────
 (function(){
   const feed = document.getElementById('actividadFeed'); if(!feed) return;
   const _escF = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const _hexRe = /^#[0-9A-Fa-f]{6}$/;
-  const _iconRe = /^[\w-]+$/;
+  // Icono y tono por tipo de movimiento (la API devuelve iconos/colores legacy; se ignoran)
+  const TIPOS = {
+    'entrada':               { icon:'ph-arrow-line-down',  tone:'t-ok' },
+    'entrada-inicial':       { icon:'ph-database',         tone:'t-info' },
+    'salida':                { icon:'ph-sign-out',         tone:'t-danger' },
+    'ajuste-entrada':        { icon:'ph-plus-circle',      tone:'t-accent' },
+    'ajuste-salida':         { icon:'ph-minus-circle',     tone:'t-warn' },
+    'transferencia-entrada': { icon:'ph-arrows-left-right', tone:'' },
+    'transferencia-salida':  { icon:'ph-arrows-left-right', tone:'' }
+  };
   function renderFeed(items) {
-    if(!items.length){ feed.innerHTML='<div class="text-center py-4 text-muted" style="font-size:.82rem;"><i class="bi bi-clock-history d-block mb-2 fs-4 opacity-30"></i>Sin movimientos recientes</div>'; return; }
+    if(!items.length){ feed.innerHTML='<div class="feed-empty"><i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>Sin movimientos recientes</div>'; return; }
     feed.innerHTML = items.map(m => {
-      const color = _hexRe.test(m.color) ? m.color : '#6c757d';
-      const icon  = _iconRe.test(m.icon)  ? m.icon  : 'circle';
-      return `<div class="d-flex align-items-start gap-2 px-3 py-2" style="border-bottom:1px solid var(--border);">
-        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"
-             style="width:28px;height:28px;background:${color}22;">
-          <i class="bi ${icon}" style="color:${color};font-size:.75rem;"></i>
-        </div>
-        <div class="min-w-0 flex-grow-1">
-          <div class="fw-semibold text-body text-truncate" style="font-size:.78rem;line-height:1.3;">${_escF(m.producto)}</div>
-          <div class="text-muted" style="font-size:.75rem;">
-            <span class="fw-bold" style="color:${color};">${m.signo}${m.cantidad} uds</span>
-            &middot; ${_escF(m.label)} &middot; <i class="bi bi-shop"></i> ${_escF(m.almacen)}
+      const meta = TIPOS[m.tipo] || { icon:'ph-arrows-clockwise', tone:'' };
+      return `<div class="act-row">
+        <div class="act-ico ${meta.tone}"><i class="ph ${meta.icon}" aria-hidden="true"></i></div>
+        <div class="act-body">
+          <div class="act-title">${_escF(m.producto)}</div>
+          <div class="act-meta">
+            <strong>${_escF(m.signo)}${_escF(m.cantidad)} uds</strong>
+            &middot; ${_escF(m.label)} &middot; <i class="ph ph-storefront" aria-hidden="true"></i> ${_escF(m.almacen)}
           </div>
         </div>
-        <div class="text-muted flex-shrink-0" style="font-size:.75rem;padding-top:2px;white-space:nowrap;">${_escF(m.fecha)}</div>
+        <div class="act-date">${_escF(m.fecha)}</div>
       </div>`;
     }).join('');
   }
   async function cargar() {
     try { const r = await fetch('/api/dashboard/actividad-reciente'); renderFeed(await r.json()); }
-    catch(e){ feed.innerHTML='<div class="text-center py-3 text-muted" style="font-size:.82rem;">Error al cargar</div>'; }
+    catch(e){ feed.innerHTML='<div class="feed-empty">Error al cargar</div>'; }
   }
   document.addEventListener('DOMContentLoaded', cargar);
   setInterval(cargar, 60000);
