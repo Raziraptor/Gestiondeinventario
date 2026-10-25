@@ -56,7 +56,7 @@
               <td class="ps-4">
                 <div class="d-flex align-items-center gap-2">
                   {% if prod.imagen_url %}
-                  <img src="{{ url_for('static', filename='uploads/' + prod.imagen_url) }}"
+                  <img src="{{ url_for('static', filename='uploads/' + prod.imagen_url) }}" data-zoomable
                        class="rounded-2 flex-shrink-0" style="width:38px;height:38px;object-fit:cover;"
                        alt="{{ prod.nombre }}" loading="lazy">
                   {% else %}

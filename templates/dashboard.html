@@ -609,7 +609,7 @@
 
             <td class="ps-4 td-acciones">
               {% if item.producto.imagen_url %}
-              <img src="{{ url_for('static', filename='uploads/' + item.producto.imagen_url) }}"
+              <img src="{{ url_for('static', filename='uploads/' + item.producto.imagen_url) }}" data-zoomable
                    alt="{{ item.producto.nombre }}" loading="lazy"
                    class="rounded-2 border shadow-sm" style="width:38px;height:38px;object-fit:cover;">
               {% else %}

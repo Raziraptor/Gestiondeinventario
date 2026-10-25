@@ -289,3 +289,18 @@ def test_login_page_has_no_app_chrome(client):
     assert 'id="bottomNav"' not in html
     assert 'id="userMenuBtn"' not in html
     assert 'id="fabMain"' not in html
+
+
+def test_image_viewer_loaded_and_dashboard_thumbs_zoomable():
+    base = (ROOT / 'templates/base.html').read_text(encoding='utf-8')
+    dash = (ROOT / 'templates/dashboard.html').read_text(encoding='utf-8')
+    assert 'js/image-viewer.js' in base
+    assert 'data-zoomable' in dash
+    js = (ROOT / 'static/js/image-viewer.js').read_text(encoding='utf-8')
+    assert 'onclick' not in js and 'innerHTML' not in js     # CSP + XSS: construir con createElement
+    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    assert re.search(r'\.iv-overlay\s*\{[^}]*z-index:\s*10050', css)
+    assert 'touch-action: none' in css
+    for name in ('incidencias/detalle.html', 'incidencias/form.html',
+                 'productos_sin_almacen.html', 'producto_form.html'):
+        assert 'data-zoomable' in (ROOT / 'templates' / name).read_text(encoding='utf-8')

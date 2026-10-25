@@ -76,3 +76,38 @@ canvas { max-width: 100%; }
   .bnav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .app-banner { bottom: calc(var(--bnav-h) + 12px + var(--safe-b)); }
 }
+
+/* ===== Visor de imágenes (.iv-*) ===== */
+.iv-overlay {
+  position: fixed; inset: 0; z-index: 10050;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.92);
+  touch-action: none; overscroll-behavior: contain; overflow: hidden;
+}
+.iv-overlay[hidden] { display: none; }
+.iv-img {
+  max-width: 100vw; max-height: 100dvh; object-fit: contain;
+  user-select: none; -webkit-user-select: none; -webkit-user-drag: none;
+  transform-origin: 50% 50%; touch-action: none; border-radius: 0;
+}
+.iv-img.iv-anim { transition: transform .22s ease-out; }
+.iv-close {
+  position: absolute; z-index: 1;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.6);
+  color: #fff; font-size: 22px; line-height: 1; cursor: pointer;
+}
+.iv-close:hover { background: rgba(0,0,0,.8); }
+.iv-close:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+img[data-zoomable] { cursor: zoom-in; }
+img[data-zoomable]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .iv-overlay:not([hidden]) { animation: iv-in .18s ease-out; }
+}
+@keyframes iv-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .iv-img.iv-anim { transition: none; }
+}

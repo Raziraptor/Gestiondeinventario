@@ -287,7 +287,7 @@
                         <!-- Preview imagen -->
                         <div class="mb-3 text-center">
                             {% if producto and producto.imagen_url %}
-                            <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}"
+                            <img src="{{ url_for('static', filename='uploads/' + producto.imagen_url) }}" data-zoomable
                                  id="img_preview"
                                  class="rounded-4 shadow-sm w-100"
                                  style="max-height:220px;object-fit:cover;"
