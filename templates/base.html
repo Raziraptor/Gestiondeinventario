@@ -480,6 +480,7 @@
             </main>
         </div>{# end main-wrap #}
     </div>{# end shell #}
+    {% include 'partials/bottom_nav.html' %}
 
     <!-- Modales de página — FUERA de <main> para evitar conflictos de stacking context -->
     {% block modals %}{% endblock %}
@@ -637,18 +638,25 @@
         const mToggle  = document.getElementById('sidebarMobileToggle');
         const backdrop = document.getElementById('sbBackdrop');
 
+        const moreBtns = document.querySelectorAll('[data-action="open-sidebar"]');
+
         function openMobile() {
             sidebar && sidebar.classList.add('open');
             backdrop && backdrop.classList.add('show');
             document.body.style.overflow = 'hidden';
+            moreBtns.forEach(function (b) { b.setAttribute('aria-expanded', 'true'); });
+            const first = sidebar && sidebar.querySelector('.sb-item');
+            first && first.focus();
         }
         function closeMobile() {
             sidebar && sidebar.classList.remove('open');
             backdrop && backdrop.classList.remove('show');
             document.body.style.overflow = '';
+            moreBtns.forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
         }
 
         mToggle  && mToggle.addEventListener('click', openMobile);
+        moreBtns.forEach(function (b) { b.addEventListener('click', openMobile); });
         backdrop && backdrop.addEventListener('click', closeMobile);
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMobile(); });
     })();

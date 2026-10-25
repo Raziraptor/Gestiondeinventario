@@ -1,0 +1,43 @@
+{# Barra de navegación inferior (solo móvil). Mismos checks de permiso que el sidebar;
+   Almacenes exige rol admin porque lista_almacenes es @admin_required. #}
+{% if current_user.is_authenticated %}
+{% set _admin = current_user.rol in ['super_admin', 'admin'] %}
+{% set _ep = request.endpoint or '' %}
+{% set _home = _admin or current_user.perm_view_dashboard %}
+{% set _on_home = _ep in ('main.dashboard', 'main.index') %}
+{% set _on_alm = _ep.startswith('inventory.') and 'almacen' in _ep %}
+{% set _on_oc = _ep.startswith('purchasing.') and 'orden' in _ep %}
+<nav class="bnav only-mobile" id="bottomNav" aria-label="Navegación principal">
+    <a class="bnav-item{% if _on_home %} active{% endif %}"
+       href="{{ url_for('main.dashboard' if _home else 'main.index') }}"{% if _on_home %} aria-current="page"{% endif %}>
+        <i class="ph ph-squares-four" aria-hidden="true"></i>
+        <span>{{ 'Panel' if _home else 'Inicio' }}</span>
+    </a>
+    {% if _admin %}
+    <a class="bnav-item{% if _on_alm %} active{% endif %}"
+       href="{{ url_for('inventory.lista_almacenes') }}"{% if _on_alm %} aria-current="page"{% endif %}>
+        <i class="ph ph-buildings" aria-hidden="true"></i>
+        <span>Almacenes</span>
+    </a>
+    {% endif %}
+    {% if _admin or current_user.perm_do_salidas %}
+    <a class="bnav-item{% if _ep == 'inventory.registrar_salida' %} active{% endif %}"
+       href="{{ url_for('inventory.registrar_salida') }}" aria-label="Nueva salida"{% if _ep == 'inventory.registrar_salida' %} aria-current="page"{% endif %}>
+        <i class="ph ph-arrow-square-out" aria-hidden="true"></i>
+        <span>Salida</span>
+    </a>
+    {% endif %}
+    {% if _admin or current_user.perm_create_oc_standard %}
+    <a class="bnav-item{% if _on_oc %} active{% endif %}"
+       href="{{ url_for('purchasing.lista_ordenes') }}"{% if _on_oc %} aria-current="page"{% endif %}>
+        <i class="ph ph-shopping-cart" aria-hidden="true"></i>
+        <span>Órdenes</span>
+    </a>
+    {% endif %}
+    <button type="button" class="bnav-item" data-action="open-sidebar"
+            aria-controls="erpSidebar" aria-expanded="false" aria-label="Más opciones">
+        <i class="ph ph-dots-three-outline" aria-hidden="true"></i>
+        <span>Más</span>
+    </button>
+</nav>
+{% endif %}

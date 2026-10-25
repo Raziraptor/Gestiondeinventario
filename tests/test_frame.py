@@ -152,11 +152,73 @@ def test_menu_logout_is_post_form_danger_mobile_only(client, admin_user):
 
 def test_topbar_logout_form_is_desktop_only(client, admin_user):
     html = _home(client)
-    tag = re.search(r'<form[^>]*auth/logout[^>]*>|<form[^>]*logout[^>]*>', html).group(0)
-    assert 'only-desktop' in tag
+    forms = [m for m in re.finditer(r'<form[^>]*action="[^"]*/logout[^"]*"[^>]*>', html)]
+    assert len(forms) == 2
+    desktop = [m for m in forms if 'only-desktop' in m.group(0)]
+    assert len(desktop) == 1
+    menu_start = html.index('id="userMenu"')
+    menu_end = html.index('</ul>', menu_start)
+    in_menu = [m for m in forms if menu_start < m.start() < menu_end]
+    assert len(in_menu) == 1 and in_menu[0] not in desktop
 
 
 def test_avatar_button_aria_label(client, admin_user):
     html = _home(client)
     tag = re.search(r'<button[^>]*id="userMenuBtn"[^>]*>', html).group(0)
     assert 'aria-label="Menú de admin_alfa"' in tag
+
+
+def _bottom_nav(html):
+    return html.split('id="bottomNav"')[1].split('</nav>')[0]
+
+
+def test_bottom_nav_full_for_admin(client, admin_user, app):
+    html = _home(client)
+    nav = _bottom_nav(html)
+    with app.test_request_context():
+        from flask import url_for
+        for ep in ('main.dashboard', 'inventory.lista_almacenes',
+                   'inventory.registrar_salida', 'purchasing.lista_ordenes'):
+            assert f'href="{url_for(ep)}"' in nav, ep
+    assert 'data-action="open-sidebar"' in nav
+    assert 'aria-label="Nueva salida"' in nav
+    assert nav.count('class="bnav-item') == 5
+
+
+def test_bottom_nav_respects_permissions(client, regular_user, app):
+    from tests.conftest import do_login
+    do_login(client, 'user_alfa')          # solo perm_view_dashboard
+    html = client.get('/').get_data(as_text=True)
+    nav = _bottom_nav(html)
+    with app.test_request_context():
+        from flask import url_for
+        assert f'href="{url_for("main.dashboard")}"' in nav
+        for ep in ('inventory.lista_almacenes', 'inventory.registrar_salida',
+                   'purchasing.lista_ordenes'):
+            assert url_for(ep) not in nav, ep
+    assert nav.count('class="bnav-item') == 2   # Panel + Más
+
+
+def test_bottom_nav_hides_almacenes_without_admin_role(client, regular_user, app):
+    from tests.conftest import do_login
+    from app.extensions import db
+    regular_user.perm_view_management = True
+    db.session.commit()
+    do_login(client, 'user_alfa')
+    nav = _bottom_nav(client.get('/').get_data(as_text=True))
+    with app.test_request_context():
+        from flask import url_for
+        assert url_for('inventory.lista_almacenes') not in nav
+
+
+def test_bottom_nav_active_item_has_aria_current(client, admin_user):
+    html = _home(client)
+    nav = _bottom_nav(html)
+    assert nav.count('aria-current="page"') == 1
+
+
+def test_login_page_has_no_app_chrome(client):
+    html = client.get('/login').get_data(as_text=True)
+    assert 'id="bottomNav"' not in html
+    assert 'id="userMenuBtn"' not in html
+    assert 'id="fabMain"' not in html
