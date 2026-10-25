@@ -344,9 +344,16 @@
   }
 }
 
+@media (max-width: 899.98px) {
+  /* El contenido mixto (texto + <strong>/<em>) no puede ser items flex en una sola fila. */
+  .step-list li { display: block; position: relative; padding-left: 2.2rem; }
+  .step-list li::before { position: absolute; left: 0; top: 0.75rem; }
+}
 @media (max-width: 900px) {
-  .manual-layout { grid-template-columns: 1fr; padding: 0 1rem; }
+  .manual-layout { grid-template-columns: minmax(0, 1fr); padding: 0 1rem; }
+  .manual-content { min-width: 0; }
   .manual-toc { display: none; }
+  .manual-toolbar { flex-wrap: wrap; }
 }
 </style>
 {% endblock %}
@@ -613,6 +620,7 @@
       <div class="subsection" id="acceso-roles">
         <h3>2.2 Roles de Usuario</h3>
         <p>Cada usuario tiene un rol que determina su nivel de acceso al sistema:</p>
+        <div class="table-responsive">
         <table class="table table-bordered table-sm mt-2">
           <thead>
             <tr>
@@ -635,6 +643,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <div class="subsection">
@@ -911,6 +920,7 @@
       <div class="subsection" id="fin-presupuestos">
         <h3>7.5 Presupuestos y Semáforo</h3>
         <p>Define presupuestos por período y centro de costo. El sistema calcula automáticamente el porcentaje ejecutado y muestra un semáforo visual.</p>
+        <div class="table-responsive">
         <table class="table table-bordered table-sm mt-2">
           <thead>
             <tr>
@@ -937,6 +947,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
         <p class="mt-2"><strong>Crear un presupuesto:</strong></p>
         <ol class="step-list">
           <li>Ve a <strong>Finanzas &rsaquo; Presupuestos</strong> y haz clic en <strong>Nuevo Presupuesto</strong>.</li>
@@ -1047,6 +1058,7 @@
       <div class="subsection">
         <h3>10.2 Permisos Granulares</h3>
         <p>Además del rol general, puedes asignar permisos específicos a cada usuario para controlar su acceso a módulos individuales:</p>
+        <div class="table-responsive">
         <table class="table table-bordered table-sm mt-2">
           <thead>
             <tr><th>Permiso</th><th>¿Qué permite?</th></tr>
@@ -1061,6 +1073,7 @@
             <tr><td>Ver Gastos</td><td>Acceso al módulo financiero (gastos, facturas, presupuestos).</td></tr>
           </tbody>
         </table>
+        </div>
         <div class="callout callout-tip mt-2">
           Los usuarios con rol <strong>admin</strong> o <strong>super_admin</strong> tienen todos los permisos habilitados automáticamente, sin necesidad de configuración adicional.
         </div>
@@ -1272,6 +1285,7 @@
 
       <div class="subsection">
         <h3>12.5 Atajos de Teclado</h3>
+        <div class="table-responsive">
         <table class="table table-bordered table-sm mt-2">
           <thead>
             <tr><th>Atajo</th><th>Acción</th></tr>
@@ -1283,6 +1297,7 @@
             <tr><td><kbd>Enter</kbd></td><td>Confirmar formulario o acción activa</td></tr>
           </tbody>
         </table>
+        </div>
       </div>
     </section>
 

@@ -65,7 +65,11 @@
   background: var(--card-2); color: var(--muted);
 }
 .dash-kpi .kpi-value { font-size: 1.5rem; }
-.dash-kpi .kpi-unit { font-size: .8rem; font-weight: 500; color: var(--muted); margin-left: 4px; font-family: var(--font-body); }
+.dash-kpi .kpi-unit { white-space: normal; font-size: .8rem; font-weight: 500; color: var(--muted); margin-left: 4px; font-family: var(--font-body); }
+@media (max-width: 419.98px) {
+  .dash-kpi { padding: 12px 10px; gap: 8px; }
+  .dash-kpi .kpi-icon { width: 32px; height: 32px; font-size: 17px; }
+}
 .kpi-label { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .kpi-sub { font-size: .75rem; color: var(--muted); }
 .kpi-text { min-width: 0; }
@@ -200,7 +204,9 @@ tr.fila-producto:focus-visible { outline: 2px solid var(--accent); outline-offse
 
 /* ── Touch targets 44px (WCAG 2.5.5) ────────────────────────────────────── */
 @media (pointer: coarse) {
-  .fpill, #paginacion .page-link, .page-head .btn, .dash-toolbar .btn, #btnToggleAlertas { min-height: 44px; }
+  .fpill, #paginacion .page-link, .page-head .btn, .dash-toolbar .btn, #btnToggleAlertas,
+  #btnLimpiarTodos, #panelAlertas .a-btns .btn-sm { min-height: 44px; }
+  #filtro_busqueda { padding-right: 44px; }
   #paginacion .page-link { min-width: 44px; }
   .clear-btn { width: 44px; height: 44px; right: 0; }
 }

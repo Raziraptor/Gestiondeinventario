@@ -76,6 +76,11 @@ canvas { max-width: 100%; }
   .bnav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .app-banner { bottom: calc(var(--bnav-h) + 12px + var(--safe-b)); }
 }
+/* 320px: "Almacenes" no cabe en 52px de contenido; márgenes y etiqueta se compactan. */
+@media (max-width: 359.98px) {
+  .bnav-item { margin-inline: 2px; }
+  .bnav-item span { font-size: .625rem; }
+}
 
 /* ===== Visor de imágenes (.iv-*) ===== */
 .iv-overlay {
