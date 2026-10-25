@@ -311,7 +311,7 @@
             <header class="topbar">
 
                 <!-- Mobile hamburger -->
-                <button class="icon-btn menu-btn" id="sidebarMobileToggle" aria-label="Abrir menú">
+                <button class="icon-btn menu-btn" id="sidebarMobileToggle" aria-label="Abrir menú" aria-controls="erpSidebar" aria-expanded="false">
                     <i class="ph ph-list" aria-hidden="true"></i>
                 </button>
 
@@ -635,12 +635,13 @@
     <script nonce="{{ csp_nonce() }}">
     (function () {
         const sidebar  = document.getElementById('erpSidebar');
-        const mToggle  = document.getElementById('sidebarMobileToggle');
         const backdrop = document.getElementById('sbBackdrop');
 
-        const moreBtns = document.querySelectorAll('[data-action="open-sidebar"]');
+        const moreBtns = document.querySelectorAll('[data-action="open-sidebar"], #sidebarMobileToggle');
+        let lastFocus = null;
 
         function openMobile() {
+            lastFocus = document.activeElement;
             sidebar && sidebar.classList.add('open');
             backdrop && backdrop.classList.add('show');
             document.body.style.overflow = 'hidden';
@@ -649,13 +650,15 @@
             first && first.focus();
         }
         function closeMobile() {
+            if (!sidebar || !sidebar.classList.contains('open')) return;
             sidebar && sidebar.classList.remove('open');
             backdrop && backdrop.classList.remove('show');
             document.body.style.overflow = '';
             moreBtns.forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+            if (lastFocus && lastFocus.focus) lastFocus.focus();
+            lastFocus = null;
         }
 
-        mToggle  && mToggle.addEventListener('click', openMobile);
         moreBtns.forEach(function (b) { b.addEventListener('click', openMobile); });
         backdrop && backdrop.addEventListener('click', closeMobile);
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMobile(); });

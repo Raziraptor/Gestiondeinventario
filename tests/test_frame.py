@@ -211,10 +211,77 @@ def test_bottom_nav_hides_almacenes_without_admin_role(client, regular_user, app
         assert url_for('inventory.lista_almacenes') not in nav
 
 
-def test_bottom_nav_active_item_has_aria_current(client, admin_user):
+def test_bottom_nav_active_item_has_aria_current(client, admin_user, app):
     html = _home(client)
     nav = _bottom_nav(html)
     assert nav.count('aria-current="page"') == 1
+    with app.test_request_context():
+        from flask import url_for
+        dash = url_for('main.dashboard')
+    tags = re.findall(r'<a [^>]*>', nav)
+    current = [t for t in tags if 'aria-current="page"' in t]
+    assert len(current) == 1 and f'href="{dash}"' in current[0]
+
+
+def test_bottom_nav_on_404_has_no_active_item(client, admin_user, app):
+    # La app no registra errorhandler: Flask sirve su 404 plano (sin base.html).
+    # Se verifica por separado que 404.html, renderizado con request.endpoint=None, no rompe la barra.
+    from tests.conftest import do_login
+    do_login(client, 'admin_alfa')
+    assert client.get('/no-existe').status_code == 404
+    from flask import render_template
+    from flask_login import login_user
+    with app.test_request_context('/no-existe'):
+        login_user(admin_user)
+        html = render_template('404.html')
+    assert 'id="bottomNav"' in html
+    assert 'aria-current' not in _bottom_nav(html)
+
+
+def test_bottom_nav_home_fallback_without_dashboard_perm(client, regular_user, app):
+    from tests.conftest import do_login
+    from app.extensions import db
+    regular_user.perm_view_dashboard = False
+    db.session.commit()
+    do_login(client, 'user_alfa')
+    nav = _bottom_nav(client.get('/').get_data(as_text=True))
+    with app.test_request_context():
+        from flask import url_for
+        assert f'href="{url_for("main.index")}"' in nav
+        assert url_for('main.dashboard') not in nav
+    assert '<span>Inicio</span>' in nav and 'Panel' not in nav
+
+
+def test_bottom_nav_almacenes_active_is_exact(client, admin_user, app):
+    from tests.conftest import do_login
+    do_login(client, 'admin_alfa')
+    with app.test_request_context():
+        from flask import url_for
+        alm = url_for('inventory.lista_almacenes')
+    nav = _bottom_nav(client.get(alm).get_data(as_text=True))
+    cur = [t for t in re.findall(r'<a [^>]*>', nav) if 'aria-current' in t]
+    assert len(cur) == 1 and f'href="{alm}"' in cur[0]
+    tpl = (ROOT / 'templates/partials/bottom_nav.html').read_text(encoding='utf-8')
+    assert "'almacen' in _ep" not in tpl
+    assert 'inventory.lista_productos_sin_almacen' not in tpl
+
+
+def test_sidebar_stacks_above_bottom_nav():
+    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    assert re.search(r'\.sb\s*\{[^}]*z-index:\s*1045', css)
+    assert re.search(r'\.sb-backdrop\s*\{[^}]*z-index:\s*1040', css)
+    assert re.search(r'\.bnav\s*\{[^}]*z-index:\s*1030', css)
+
+
+def test_offline_banner_has_no_legacy_id_rules():
+    css = (ROOT / 'static/css/compat.css').read_text(encoding='utf-8')
+    assert '#offlineBanner' not in css
+
+
+def test_sidebar_toggle_aria(client, admin_user):
+    html = _home(client)
+    tag = re.search(r'<button[^>]*id="sidebarMobileToggle"[^>]*>', html).group(0)
+    assert 'aria-controls="erpSidebar"' in tag and 'aria-expanded="false"' in tag
 
 
 def test_login_page_has_no_app_chrome(client):
