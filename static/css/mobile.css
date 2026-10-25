@@ -33,6 +33,8 @@ canvas { max-width: 100%; }
 @media (max-width: 899.98px) {
   html { overscroll-behavior: none; }
   input, select, textarea, .form-control, .form-select, .input, .cmd-search-input { font-size: 16px; }
+  /* Bootstrap .font-monospace usa font-size:.875em !important y ganaba al piso de 16px (zoom iOS). */
+  .form-control.font-monospace, .form-select.font-monospace { font-size: 16px !important; }
   .topbar {
     padding-top: calc(8px + env(safe-area-inset-top, 0px));
     padding-left: max(12px, env(safe-area-inset-left));
@@ -76,10 +78,10 @@ canvas { max-width: 100%; }
   .bnav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .app-banner { bottom: calc(var(--bnav-h) + 12px + var(--safe-b)); }
 }
-/* 320px: "Almacenes" no cabe en 52px de contenido; márgenes y etiqueta se compactan. */
+/* Breakpoint extra <360px (320px): "Almacenes" no cabe en 52px de contenido; márgenes y etiqueta se compactan. */
 @media (max-width: 359.98px) {
   .bnav-item { margin-inline: 2px; }
-  .bnav-item span { font-size: .625rem; }
+  .bnav-item span { font-size: .6875rem; letter-spacing: -.01em; } /* piso de la excepción tab-bar */
 }
 
 /* ===== Visor de imágenes (.iv-*) ===== */

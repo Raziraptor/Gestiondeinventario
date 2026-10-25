@@ -59,7 +59,7 @@
     min-height: 44px; outline: none;
     transition: border-color .15s, box-shadow .2s;
 }
-@media (pointer: coarse) { .auth-input { font-size: 16px; } } /* iOS no hace zoom al enfocar */
+@media (max-width: 899.98px) { .auth-input { font-size: 16px; } } /* iOS no hace zoom al enfocar; no depende de pointer:coarse */
 .auth-input:focus {
     border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint);
 }

@@ -348,12 +348,13 @@
   /* El contenido mixto (texto + <strong>/<em>) no puede ser items flex en una sola fila. */
   .step-list li { display: block; position: relative; padding-left: 2.2rem; }
   .step-list li::before { position: absolute; left: 0; top: 0.75rem; }
-}
-@media (max-width: 900px) {
   .manual-layout { grid-template-columns: minmax(0, 1fr); padding: 0 1rem; }
   .manual-content { min-width: 0; }
   .manual-toc { display: none; }
   .manual-toolbar { flex-wrap: wrap; }
+  /* Listas con icono + texto mixto (<strong>): como items flex no envuelven y desbordan a 320px. */
+  .manual-content li.d-flex { display: block !important; }
+  .manual-content li.d-flex > i { margin-right: .5rem; }
 }
 </style>
 {% endblock %}
