@@ -1,6 +1,5 @@
 /* Visor de imágenes a pantalla completa (Pointer Events, sin librerías).
  * Cualquier img[data-zoomable] abre el visor; data-zoom-src opcional.
- * API: window.ImageViewer.open(src, alt) / .close()
  * DOM siempre con createElement/textContent (CSP + XSS). */
 (function () {
   'use strict';
@@ -283,6 +282,4 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
-
-  window.ImageViewer = { open: function (src, alt) { open(src, alt); }, close: close };
 })();

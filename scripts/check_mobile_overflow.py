@@ -184,13 +184,11 @@ def main():
                         elif final.rstrip('/') != path.rstrip('/') and (path, final) not in warns:
                             warns.append((path, final))
                         res = page.evaluate(JS_OVERFLOW)
-                        meas = page.evaluate(JS_MEASURE)
+                        meas = page.evaluate(JS_MEASURE) if want is None else {'sw': 0, 'cw': 0}
                         if w == 375 and theme == 'dark':
                             fi = page.evaluate(JS_INPUT)
                             if fi:
                                 font_sizes.append((path, fi['el'], fi['fs']))
-                        if want is not None:  # pagina de error por defecto de Werkzeug (sin meta viewport): solo estado
-                            meas = {'sw': 0, 'cw': 0}
                         if res['els']:
                             problems.append('elementos fuera del viewport')
                         if meas['sw'] > meas['cw']:

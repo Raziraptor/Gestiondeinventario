@@ -44,9 +44,6 @@ function avatarColorClass(seed) {
   var s = document.createElement('style');
   s.textContent = [
     '.av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-family:var(--font-heading);font-weight:700;font-size:.78rem;line-height:1;flex-shrink:0;user-select:none;}',
-    '.av-32{width:32px;height:32px;font-size:.7rem;}',
-    '.av-40{width:40px;height:40px;}',
-    '.av-48{width:48px;height:48px;font-size:.9rem;}',
     '.av-violet{background:rgba(145,132,217,.18);color:#b3a9e6;}',
     '.av-sage   {background:rgba(163,178,133,.18);color:#a3b285;}',
     '.av-info   {background:rgba(127,179,217,.18);color:#7fb3d9;}',
@@ -78,73 +75,6 @@ var FusionChart = {
       card:    s.getPropertyValue('--card').trim()    || '#1b1e2b',
     };
   },
-
-  baseOptions: function (tk) {
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { labels: { color: tk.muted, font: { size: 11 } } },
-        tooltip: {
-          backgroundColor: tk.card,
-          titleColor: tk.text,
-          bodyColor: tk.muted,
-          borderColor: tk.border,
-          borderWidth: 1,
-          padding: 10,
-          cornerRadius: 8,
-        },
-      },
-      scales: {
-        x: {
-          ticks: { color: tk.faint, font: { size: 10 } },
-          grid:  { color: tk.border },
-        },
-        y: {
-          ticks: { color: tk.faint, font: { size: 10 } },
-          grid:  { color: tk.border },
-        },
-      },
-    };
-  },
-
-  barOptions: function (tk) {
-    var base = this.baseOptions(tk);
-    base.animation = {
-      delay: function (ctx) { return ctx.dataIndex * 80; },
-    };
-    return base;
-  },
-
-  donutOptions: function (tk) {
-    return {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '70%',
-      animation: { animateRotate: true, animateScale: false },
-      plugins: {
-        legend: { position: 'bottom', labels: { color: tk.muted, font: { size: 11 }, padding: 16 } },
-        tooltip: {
-          backgroundColor: tk.card,
-          titleColor: tk.text,
-          bodyColor: tk.muted,
-          borderColor: tk.border,
-          borderWidth: 1,
-          padding: 10,
-          cornerRadius: 8,
-        },
-      },
-    };
-  },
-
-  lineOptions: function (tk) {
-    var base = this.baseOptions(tk);
-    base.elements = {
-      line:  { tension: 0.35, borderWidth: 2 },
-      point: { radius: 3, hoverRadius: 5 },
-    };
-    return base;
-  },
 };
 
 /* ── THEME TOGGLE + THEMECHANGE EVENT ───────────────────────── */
@@ -168,7 +98,7 @@ window.setFusionTheme = function (t) {
   var changed = html.getAttribute('data-theme') !== t;
   html.setAttribute('data-theme', t);
   html.setAttribute('data-bs-theme', t);
-  try { localStorage.setItem('erp_theme', t); localStorage.setItem('app_theme', t); } catch (e) {}
+  try { localStorage.setItem('erp_theme', t); } catch (e) {}
   syncThemeChrome();
   if (changed) window.dispatchEvent(new Event('themechange'));
 };
@@ -199,6 +129,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 /* Expose globally for templates */
-window.animateCounters  = animateCounters;
-window.avatarColorClass = avatarColorClass;
 window.FusionChart      = FusionChart;

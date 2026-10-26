@@ -384,8 +384,7 @@ thead th, .table-light th {
 }
 .dashboard-card .card-icon { font-size: 2.5rem; margin-bottom: .75rem; }
 @media (hover: hover) {
-  .content-card:hover   { box-shadow: var(--shadow-md) !important; border-color: var(--primary) !important; }
-  .dashboard-card:hover { box-shadow: var(--shadow-md) !important; border-color: var(--primary) !important; }
+  .content-card:hover, .dashboard-card:hover { box-shadow: var(--shadow-md) !important; border-color: var(--primary) !important; }
 }
 
 /* ── PAGE HEADER ──────────────────────────────────────────────── */

@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FUSION = (ROOT / 'static/css/fusion.css').read_text(encoding='utf-8')
+MOBILE = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
 
 def _block(selector):
     m = re.search(re.escape(selector) + r'\s*\{([^}]*)\}', FUSION)
@@ -92,7 +93,7 @@ def test_mobile_css_loaded_last(client):
     assert html.index('css/compat.css') < html.index('css/mobile.css')
 
 def test_mobile_css_frame_rules():
-    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    css = MOBILE
     for needle in ('overflow-x: clip', 'overscroll-behavior: none', 'touch-action: pan-x pan-y',
                    '100dvh', 'font-size: 16px', 'env(safe-area-inset-top', 'env(safe-area-inset-bottom',
                    'overscroll-behavior-x: contain', 'calc(100vw - 2rem)'):
@@ -105,7 +106,7 @@ def test_shell_has_no_fixed_px_dialogs():
 
 
 def test_mobile_input_16px_scoped_to_mobile():
-    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    css = MOBILE
     inside, outside, i = [], css, 0
     for m in re.finditer(r'@media \(max-width: 899\.98px\) \{', css):
         depth, j = 1, m.end()
@@ -267,7 +268,7 @@ def test_bottom_nav_almacenes_active_is_exact(client, admin_user, app):
 
 
 def test_sidebar_stacks_above_bottom_nav():
-    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    css = MOBILE
     assert re.search(r'\.sb\s*\{[^}]*z-index:\s*1045', css)
     assert re.search(r'\.sb-backdrop\s*\{[^}]*z-index:\s*1040', css)
     assert re.search(r'\.bnav\s*\{[^}]*z-index:\s*1030', css)
@@ -298,7 +299,7 @@ def test_image_viewer_loaded_and_dashboard_thumbs_zoomable():
     assert 'data-zoomable' in dash
     js = (ROOT / 'static/js/image-viewer.js').read_text(encoding='utf-8')
     assert 'onclick' not in js and 'innerHTML' not in js     # CSP + XSS: construir con createElement
-    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    css = MOBILE
     assert re.search(r'\.iv-overlay\s*\{[^}]*z-index:\s*10050', css)
     assert re.search(r'\.iv-overlay\s*\{[^}]*touch-action:\s*none', css)
     close = re.search(r'\.iv-close\s*\{([^}]*)\}', css).group(1)
@@ -336,7 +337,7 @@ def test_sw_cache_bumped_for_phase1():
 
 
 def test_fab_and_banners_hidden_under_open_sidebar():
-    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    css = MOBILE
     assert re.search(r'body:has\(\.sb\.open\) \.fab-container,\s*body:has\(\.sb\.open\) \.app-banner\s*\{\s*display:\s*none', css)
 
 
@@ -348,11 +349,11 @@ def test_dash_kicker_has_global_rule():
 
 
 def test_small_input_variants_16px_on_mobile():
-    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    css = MOBILE
     assert re.search(r'\.input-group-sm > \.form-control,[^{]*\.form-select-sm\s*\{\s*font-size:\s*16px', css)
 
 
 def test_offline_banner_stacks_above_install_banner():
-    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    css = MOBILE
     assert re.search(r'#offlineBanner\s*\{\s*z-index:\s*10000', css)
     assert 'z-index: 9999' in css and 'z-index: 10050' in css

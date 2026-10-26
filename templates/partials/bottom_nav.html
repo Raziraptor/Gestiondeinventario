@@ -6,6 +6,7 @@
 {% set _home = _admin or current_user.perm_view_dashboard %}
 {% set _on_home = _ep in ('main.dashboard', 'main.index') %}
 {% set _on_alm = _ep in ('inventory.lista_almacenes', 'inventory.nuevo_almacen', 'inventory.editar_almacen', 'inventory.gestionar_inventario_almacen') %}
+{% set _on_sal = _ep == 'inventory.registrar_salida' %}
 {% set _on_oc = _ep.startswith('purchasing.') and 'orden' in _ep %}
 <nav class="bnav only-mobile" id="bottomNav" aria-label="Navegación principal">
     <a class="bnav-item{% if _on_home %} active{% endif %}"
@@ -21,8 +22,8 @@
     </a>
     {% endif %}
     {% if _admin or current_user.perm_do_salidas %}
-    <a class="bnav-item{% if _ep == 'inventory.registrar_salida' %} active{% endif %}"
-       href="{{ url_for('inventory.registrar_salida') }}" aria-label="Nueva salida"{% if _ep == 'inventory.registrar_salida' %} aria-current="page"{% endif %}>
+    <a class="bnav-item{% if _on_sal %} active{% endif %}"
+       href="{{ url_for('inventory.registrar_salida') }}" aria-label="Nueva salida"{% if _on_sal %} aria-current="page"{% endif %}>
         <i class="ph ph-arrow-square-out" aria-hidden="true"></i>
         <span>Salida</span>
     </a>
