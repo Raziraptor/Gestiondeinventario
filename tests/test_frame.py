@@ -325,3 +325,22 @@ def test_every_photo_img_is_zoomable():
 def test_incident_photos_have_no_wrapping_link():
     html = (ROOT / 'templates/incidencias/detalle.html').read_text(encoding='utf-8')
     assert 'target="_blank"' not in html
+
+
+def test_sw_cache_bumped_for_phase1():
+    # Subir CACHE cada vez que cambie css/js estatico; v9 es el cache previo a la fase 1.
+    sw = (ROOT / 'static/sw.js').read_text(encoding='utf-8')
+    m = re.search(r"const CACHE = '([^']+)'", sw)
+    assert m and m.group(1) != 'inventario-v9'
+    assert 'caches.delete' in sw
+
+
+def test_fab_and_banners_hidden_under_open_sidebar():
+    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    assert re.search(r'body:has\(\.sb\.open\) \.fab-container,\s*body:has\(\.sb\.open\) \.app-banner\s*\{\s*display:\s*none', css)
+
+
+def test_offline_banner_stacks_above_install_banner():
+    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    assert re.search(r'#offlineBanner\s*\{\s*z-index:\s*10000', css)
+    assert 'z-index: 9999' in css and 'z-index: 10050' in css

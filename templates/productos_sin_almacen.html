@@ -87,8 +87,7 @@
                       class="d-flex gap-2 align-items-center">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="hidden" name="producto_id" value="{{ prod.id }}">
-                  <select name="almacen_id" class="form-select form-select-sm rounded-3" required
-                          style="font-size:.82rem;">
+                  <select name="almacen_id" class="form-select form-select-sm rounded-3" required>
                     <option value="">Seleccionar almacén…</option>
                     {% for alm in almacenes %}
                     <option value="{{ alm.id }}">{{ alm.nombre }}</option>

@@ -207,4 +207,4 @@ textarea.input { padding: 12px 14px; min-height: 80px; resize: vertical; }
   .searchbar kbd { display: none; }
   .hide-mobile { display: none !important; }
 }
-@media (max-width: 640px) { .hide-sm { display: none !important; } }
+@media (max-width: 639.98px) { .hide-sm { display: none !important; } }

@@ -1,4 +1,4 @@
-const CACHE = 'inventario-v9';
+const CACHE = 'inventario-v10';
 
 // Rutas de la app que se cachean en background (stale-while-revalidate)
 const APP_ROUTES = [

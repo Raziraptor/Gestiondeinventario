@@ -622,10 +622,3 @@ thead th, .table-light th {
 .status-pill--info    { background: var(--info-tint);   color: var(--info); }
 .status-pill--neutral { background: var(--card-2);      color: var(--muted); }
 
-/* DASH-KICKER (alias de .kicker para page headers) */
-.dash-kicker {
-  font-family: var(--font-heading);
-  font-size: .66rem; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
-  color: var(--accent-deep); margin-bottom: 4px;
-}

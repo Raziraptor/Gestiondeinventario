@@ -157,6 +157,9 @@ def main():
                             failures += 1
                             rows.append((path, theme, w, '-', 'FAIL', 'navegacion: ' + str(exc).splitlines()[0][:90]))
                             continue
+                        if resp is not None and resp.status == 429:  # limitador: aviso, no fallo
+                            rows.append((path, theme, w, '-', 'WARN', 'rate limited (429), no medido'))
+                            continue
                         page.wait_for_timeout(250)
                         final = page.url[len(base):].split('?')[0] or '/'
                         problems = []

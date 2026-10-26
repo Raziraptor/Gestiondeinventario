@@ -363,7 +363,7 @@
                         </button>
                         <div class="dropdown-menu dropdown-menu-end p-0 border-0" style="width:min(340px, calc(100vw - 2rem))" aria-labelledby="alertaBell">
                             <div class="d-flex align-items-center justify-content-between px-3 py-2"
-                                 style="background:rgba(239,68,68,.07);border-bottom:1px solid var(--border);border-radius:var(--r-card) var(--r-card) 0 0;">
+                                 style="background:var(--danger-tint);border-bottom:1px solid var(--border);border-radius:var(--r-card) var(--r-card) 0 0;">
                                 <span class="fw-bold small"><i class="ph ph-fill ph-warning-circle text-danger me-1"></i>Stock Bajo</span>
                                 <span id="alerta-count-label" class="badge rounded-pill bg-danger">0</span>
                             </div>
@@ -1179,8 +1179,8 @@
         const dot     = document.getElementById('offlineBannerDot');
         const txt     = document.getElementById('offlineBannerText');
         let hideTimer = null;
-        function showOffline() { clearTimeout(hideTimer); dot.style.background='#ef4444'; txt.textContent='Sin conexión a internet'; banner.style.display='flex'; banner.style.opacity='1'; }
-        function showOnline()  { clearTimeout(hideTimer); dot.style.background='#10b981'; txt.textContent='Conexión restaurada'; banner.style.display='flex'; banner.style.opacity='1';
+        function showOffline() { clearTimeout(hideTimer); dot.style.background='var(--danger)'; txt.textContent='Sin conexión a internet'; banner.style.display='flex'; banner.style.opacity='1'; }
+        function showOnline()  { clearTimeout(hideTimer); dot.style.background='var(--sage)'; txt.textContent='Conexión restaurada'; banner.style.display='flex'; banner.style.opacity='1';
             hideTimer = setTimeout(() => { banner.style.opacity='0'; setTimeout(() => { banner.style.display='none'; }, 300); }, 3000); }
         window.addEventListener('offline', showOffline);
         window.addEventListener('online',  showOnline);
@@ -1196,7 +1196,7 @@
             <button id="btn_pwa_dismiss_x" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:.25rem;">&#x2715;</button>
         </div>
         <div style="display:flex;gap:.5rem;">
-            <button id="pwaInstallBtn" style="flex:1;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:.6rem;font-weight:600;cursor:pointer;font-size:.875rem;">Instalar app</button>
+            <button id="pwaInstallBtn" style="flex:1;background:var(--primary);color:var(--on-accent);border:none;border-radius:var(--radius-sm);padding:.6rem;font-weight:600;cursor:pointer;font-size:.875rem;">Instalar app</button>
             <button id="btn_pwa_ahora_no" style="background:var(--card-2);color:var(--muted);border:none;border-radius:.5rem;padding:.6rem .9rem;cursor:pointer;font-size:.875rem;">Ahora no</button>
         </div>
     </div>
