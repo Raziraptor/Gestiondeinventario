@@ -340,6 +340,18 @@ def test_fab_and_banners_hidden_under_open_sidebar():
     assert re.search(r'body:has\(\.sb\.open\) \.fab-container,\s*body:has\(\.sb\.open\) \.app-banner\s*\{\s*display:\s*none', css)
 
 
+def test_dash_kicker_has_global_rule():
+    # .dash-kicker se usa fuera del dashboard; su estilo no puede vivir solo en dashboard.html
+    css = (ROOT / 'static/css/compat.css').read_text(encoding='utf-8')
+    m = re.search(r'\.dash-kicker\s*\{([^}]*)\}', css)
+    assert m and 'font-size: .75rem' in m.group(1) and 'uppercase' in m.group(1)
+
+
+def test_small_input_variants_16px_on_mobile():
+    css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
+    assert re.search(r'\.input-group-sm > \.form-control,[^{]*\.form-select-sm\s*\{\s*font-size:\s*16px', css)
+
+
 def test_offline_banner_stacks_above_install_banner():
     css = (ROOT / 'static/css/mobile.css').read_text(encoding='utf-8')
     assert re.search(r'#offlineBanner\s*\{\s*z-index:\s*10000', css)

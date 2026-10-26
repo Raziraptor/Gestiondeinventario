@@ -34,6 +34,8 @@ canvas { max-width: 100%; }
 @media (max-width: 899.98px) {
   html { overscroll-behavior: none; }
   input, select, textarea, .form-control, .form-select, .input, .cmd-search-input { font-size: 16px; }
+  /* Variantes -sm de Bootstrap (especificidad 0,2,0) tambien a 16px: evita zoom de iOS al enfocar */
+  .input-group-sm > .form-control, .input-group-sm > .form-select, .form-control-sm, .form-select-sm { font-size: 16px; }
   .topbar {
     padding-top: calc(8px + env(safe-area-inset-top, 0px));
     padding-left: max(12px, env(safe-area-inset-left));

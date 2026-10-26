@@ -12,7 +12,9 @@ Compuerta (sale con 1) si ocurre cualquiera de:
     `clip` y oculta el desbordamiento), scrollWidth > clientWidth;
   - la navegacion falla, devuelve estado >= 400 (404 solo en la ruta de prueba
     404) o una ruta autenticada termina en /login;
-  - el primer input visible de CUALQUIER pagina visitada a 375px no es 16px.
+  - el primer input visible de CUALQUIER pagina visitada a 375px no es 16px;
+  - una ruta responde 429 (rate limit) en TODAS sus combinaciones. Un 429 aislado
+    es solo aviso: esa combinacion no se mide.
 Errores de consola y violaciones de CSP se listan pero no afectan el exit code.
 `--self-test` inyecta un div de 600px en cada pagina: debe terminar con exit 1.
 """
@@ -116,6 +118,7 @@ def main():
             paths = [l.strip() for l in f if l.strip() and not l.strip().startswith('#')]
 
     failures, console, rows, font_sizes, warns = 0, [], [], [], []
+    limited, measured = {}, set()  # ruta -> combinaciones con 429; rutas medidas al menos una vez
     with sync_playwright() as p:
         browser = p.chromium.launch()
         # Un solo login (el login tiene rate limit); el estado se reutiliza.
@@ -159,7 +162,9 @@ def main():
                             continue
                         if resp is not None and resp.status == 429:  # limitador: aviso, no fallo
                             rows.append((path, theme, w, '-', 'WARN', 'rate limited (429), no medido'))
+                            limited[path] = limited.get(path, 0) + 1
                             continue
+                        measured.add(path)
                         page.wait_for_timeout(250)
                         final = page.url[len(base):].split('?')[0] or '/'
                         problems = []
@@ -209,7 +214,12 @@ def main():
         print(f'-- {len(uniq)} errores de consola / CSP distintos (no afectan el codigo de salida)')
         for tag, msg in uniq[:40]:
             print('  ', tag, '|', msg)
-    ok = failures == 0 and bool(font_sizes) and not bad_fonts
+    never = sorted(p for p in limited if p not in measured)
+    if limited:
+        print(f'-- {sum(limited.values())} combinaciones no medidas (429) en {len(limited)} rutas')
+    for path in never:
+        print(f'  FALLO: {path} respondio 429 en todas sus combinaciones (nunca medida)')
+    ok = failures == 0 and bool(font_sizes) and not bad_fonts and not never
     return 0 if ok else 1
 
 
