@@ -1,7 +1,8 @@
 """Verificador de desbordamiento horizontal a 320-430px (tema oscuro y claro).
 
 Uso:
-    python scripts/check_mobile_overflow.py --base-url URL --user U --password P [--paths-file F] [--self-test]
+    CHECK_PASSWORD=P python scripts/check_mobile_overflow.py --base-url URL --user U [--paths-file F] [--self-test]
+    (sin CHECK_PASSWORD ni --password, lo pide por consola)
 
 Imprime `ruta | tema | ancho | scrollWidth/clientWidth | estado | detalle`
 (solo las filas con fallo o con elementos sospechosos).
@@ -19,6 +20,8 @@ Errores de consola y violaciones de CSP se listan pero no afectan el exit code.
 `--self-test` inyecta un div de 600px en cada pagina: debe terminar con exit 1.
 """
 import argparse
+import getpass
+import os
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -107,10 +110,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--base-url', required=True)
     ap.add_argument('--user', required=True)
-    ap.add_argument('--password', required=True)
+    ap.add_argument('--password', help='mejor via CHECK_PASSWORD o prompt: --password queda en el historial')
     ap.add_argument('--paths-file')
     ap.add_argument('--self-test', action='store_true', help='inyecta un div de 600px; debe salir con 1')
     args = ap.parse_args()
+    args.password = args.password or os.environ.get('CHECK_PASSWORD') or getpass.getpass('Password: ')
     base = args.base_url.rstrip('/')
     paths = DEFAULT_PATHS
     if args.paths_file:
