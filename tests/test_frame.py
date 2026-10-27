@@ -92,6 +92,12 @@ def test_mobile_css_loaded_last(client):
     html = client.get('/login').get_data(as_text=True)
     assert html.index('css/compat.css') < html.index('css/mobile.css')
 
+def test_static_urls_are_versioned(app):
+    # Cache-busting: el SW sirve /static/ cache-first; sin ?v= un deploy no llega al navegador.
+    with app.test_request_context():
+        from flask import url_for
+        assert re.search(r'/static/js/fusion\.js\?v=\d+$', url_for('static', filename='js/fusion.js'))
+
 def test_mobile_css_frame_rules():
     css = MOBILE
     for needle in ('overflow-x: clip', 'overscroll-behavior: none', 'touch-action: pan-x pan-y',

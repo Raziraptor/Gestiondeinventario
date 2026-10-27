@@ -89,8 +89,24 @@ def create_app(config_name=None):
 
     _register_security_headers(app)
     _register_context_processors(app)
+    _register_static_cache_busting(app)
 
     return app
+
+
+def _register_static_cache_busting(app):
+    """url_for('static', ...) agrega ?v=<mtime> para que navegador y service
+    worker (cache-first en /static/) descarguen el archivo nuevo tras un deploy."""
+    import os
+
+    @app.url_defaults
+    def _static_version(endpoint, values):
+        if endpoint != 'static' or 'filename' not in values or 'v' in values:
+            return
+        try:
+            values['v'] = int(os.stat(os.path.join(app.static_folder, values['filename'])).st_mtime)
+        except OSError:
+            pass
 
 
 def _register_blueprints(app):
