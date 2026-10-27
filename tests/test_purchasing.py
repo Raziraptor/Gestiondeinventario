@@ -125,3 +125,94 @@ class TestNuevaOrdenManual:
         assert r.status_code == 200
         # check_permission redirige al index con flash de permiso denegado
         assert b'permiso' in r.data or b'funci' in r.data
+
+
+# ── OC de Proyecto: cancelación y filtro de proveedor ─────────────────────────
+
+def _make_proyecto_oc(org_id, creador_id, estado='borrador', proveedores=()):
+    from app.models.purchasing import ProyectoOC, ProyectoOCDetalle
+    poc = ProyectoOC(nombre_proyecto=f'Proy {estado}', estado=estado,
+                     creador_id=creador_id, organizacion_id=org_id)
+    _db.session.add(poc)
+    _db.session.flush()
+    for prov in proveedores:
+        _db.session.add(ProyectoOCDetalle(proyecto_oc_id=poc.id, descripcion_nuevo='Item',
+                                          proveedor_sugerido=prov, cantidad=2,
+                                          cantidad_recibida=1 if estado == 'recibida_parcial' else 0,
+                                          costo_unitario=10))
+    _db.session.commit()
+    return poc
+
+
+class TestCancelarProyectoOC:
+    @pytest.mark.parametrize('estado', ['borrador', 'pendiente_aprobacion', 'aprobada',
+                                        'enviada', 'recibida_parcial'])
+    def test_admin_cancela_en_estados_activos(self, client, org, admin_user, estado):
+        poc = _make_proyecto_oc(org.id, admin_user.id, estado, ['Amazon'])
+        do_login(client, admin_user.username)
+        client.post(f'/proyecto-oc/{poc.id}/cancelar')
+        _db.session.refresh(poc)
+        assert poc.estado == 'cancelada'
+
+    def test_recibida_no_se_cancela(self, client, org, admin_user):
+        poc = _make_proyecto_oc(org.id, admin_user.id, 'recibida', ['Amazon'])
+        do_login(client, admin_user.username)
+        client.post(f'/proyecto-oc/{poc.id}/cancelar')
+        _db.session.refresh(poc)
+        assert poc.estado == 'recibida'
+
+    def test_no_admin_no_puede_cancelar(self, client, org, admin_user, regular_user):
+        regular_user.perm_create_oc_proyecto = True
+        _db.session.commit()
+        poc = _make_proyecto_oc(org.id, admin_user.id, 'enviada', ['Amazon'])
+        do_login(client, regular_user.username)
+        client.post(f'/proyecto-oc/{poc.id}/cancelar')
+        _db.session.refresh(poc)
+        assert poc.estado == 'enviada'
+
+    def test_cancelar_cierra_solicitud_pendiente(self, client, org, admin_user):
+        from app.models.system import SolicitudAprobacion
+        poc = _make_proyecto_oc(org.id, admin_user.id, 'pendiente_aprobacion', ['Amazon'])
+        s = SolicitudAprobacion(entidad_tipo='proyecto_oc', entidad_id=poc.id,
+                                estado='pendiente', organizacion_id=org.id,
+                                solicitante_id=admin_user.id)
+        _db.session.add(s)
+        _db.session.commit()
+        do_login(client, admin_user.username)
+        client.post(f'/proyecto-oc/{poc.id}/cancelar')
+        _db.session.refresh(s)
+        assert s.estado == 'rechazado'
+
+    def test_otra_org_no_puede_cancelar(self, client, org, admin_user, beta_admin):
+        poc = _make_proyecto_oc(org.id, admin_user.id, 'enviada', ['Amazon'])
+        do_login(client, beta_admin.username)
+        r = client.post(f'/proyecto-oc/{poc.id}/cancelar')
+        assert r.status_code == 404
+        _db.session.refresh(poc)
+        assert poc.estado == 'enviada'
+
+
+class TestFiltroProveedorProyectoOC:
+    def test_filtra_sin_distinguir_mayusculas(self, client, org, admin_user):
+        _make_proyecto_oc(org.id, admin_user.id, 'borrador', ['Home Depot', 'Amazon'])
+        _make_proyecto_oc(org.id, admin_user.id, 'enviada', ['Amazon'])
+        do_login(client, admin_user.username)
+        r = client.get('/proyectos-oc?proveedor=home%20depot')
+        html = r.data.decode('utf-8')
+        assert 'Proy borrador' in html
+        assert 'Proy enviada' not in html
+
+    def test_opciones_agrupadas_y_sin_otra_org(self, client, org, org_beta, admin_user, beta_admin):
+        _make_proyecto_oc(org.id, admin_user.id, 'borrador', ['Home Depot', ' home depot '])
+        _make_proyecto_oc(org_beta.id, beta_admin.id, 'borrador', ['ProvSecretoBeta'])
+        do_login(client, admin_user.username)
+        html = client.get('/proyectos-oc').data.decode('utf-8')
+        assert html.lower().count('<option value="home depot"') == 1
+        assert 'ProvSecretoBeta' not in html
+
+    def test_filtros_sin_boton_aplicar(self, client, org, admin_user):
+        do_login(client, admin_user.username)
+        for url in ('/proyectos-oc', '/ordenes'):
+            html = client.get(url).data.decode('utf-8')
+            assert 'data-autofilter' in html
+            assert 'Aplicar' not in html

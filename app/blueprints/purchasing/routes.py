@@ -22,7 +22,7 @@ from flask import (
     make_response, jsonify, current_app,
 )
 from flask_login import login_required, current_user
-from sqlalchemy import extract
+from sqlalchemy import extract, func
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.attributes import flag_modified
 from werkzeug.utils import secure_filename
@@ -1069,21 +1069,30 @@ def lista_proyectos_oc():
     mes           = request.args.get('mes',    type=int)
     ano           = request.args.get('ano',    type=int)
     estado_filtro = request.args.get('estado', '')
+    proveedor     = request.args.get('proveedor', '').strip()
 
     if mes:           query = query.filter(extract('month', ProyectoOC.fecha_creacion) == mes)
     if ano:           query = query.filter(extract('year',  ProyectoOC.fecha_creacion) == ano)
     if estado_filtro: query = query.filter(ProyectoOC.estado == estado_filtro)
+    if proveedor:     query = query.filter(ProyectoOC.filtro_proveedor(proveedor))
 
     proyectos_oc = query.order_by(ProyectoOC.fecha_creacion.desc()).all()
-    proyectos = (
-        ProyectoOC.query.filter_by(organizacion_id=org_id)
-                  .with_entities(ProyectoOC.id, ProyectoOC.nombre_proyecto).distinct().all()
-        if current_user.rol != 'super_admin' else
-        ProyectoOC.query.with_entities(ProyectoOC.id, ProyectoOC.nombre_proyecto).all()
+
+    # Proveedores sugeridos realmente usados (texto libre por artículo),
+    # agrupados sin distinguir mayúsculas/espacios.
+    prov_norm = func.lower(func.trim(ProyectoOCDetalle.proveedor_sugerido))
+    prov_query = (
+        db.session.query(func.min(func.trim(ProyectoOCDetalle.proveedor_sugerido)))
+        .join(ProyectoOC)
+        .filter(ProyectoOCDetalle.proveedor_sugerido.isnot(None), prov_norm != '')
     )
+    if current_user.rol != 'super_admin':
+        prov_query = prov_query.filter(ProyectoOC.organizacion_id == org_id)
+    proveedores_sug = [p for (p,) in prov_query.group_by(prov_norm).order_by(prov_norm).all()]
 
     return render_template('proyecto_oc_lista.html',
-                           proyectos_oc=proyectos_oc, proyectos=proyectos,
+                           proyectos_oc=proyectos_oc,
+                           proveedores_sug=proveedores_sug, proveedor_sel=proveedor,
                            mes_sel=mes, ano_sel=ano, estado_sel=estado_filtro,
                            titulo="OC de Proyectos")
 
@@ -1707,18 +1716,41 @@ def generar_proyecto_oc_pdf(id):
 
 @purchasing_bp.route('/proyecto-oc/<int:id>/cancelar', methods=['POST'])
 @login_required
+@check_org_permission
 @check_permission('perm_create_oc_proyecto')
 def cancelar_proyecto_oc(id):
     proyecto_oc = get_item_or_404(ProyectoOC, id)
 
-    if proyecto_oc.estado in ['recibida', 'recibida_parcial', 'cancelada']:
-        flash('No se puede cancelar una orden ya recibida (parcial o total) o previamente cancelada.', 'danger')
+    if current_user.rol not in ['super_admin', 'admin']:
+        flash('Solo un administrador puede cancelar una OC de Proyecto.', 'danger')
+        return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
+
+    # Se puede cancelar en cualquier estado salvo recibida por completo.
+    if proyecto_oc.estado in ['recibida', 'cancelada']:
+        flash('No se puede cancelar una OC ya recibida por completo o previamente cancelada.', 'danger')
         return redirect(url_for('purchasing.ver_proyecto_oc', id=id))
 
     try:
+        estado_previo = proyecto_oc.estado
+        # Cerrar solicitudes pendientes: si quedaran abiertas, rechazarlas
+        # después devolvería la OC cancelada a borrador.
+        pendientes = SolicitudAprobacion.query.filter_by(
+            entidad_tipo='proyecto_oc',
+            entidad_id=proyecto_oc.id,
+            estado='pendiente',
+            organizacion_id=proyecto_oc.organizacion_id,
+        ).all()
+        for solicitud in pendientes:
+            solicitud.estado       = 'rechazado'
+            solicitud.aprobador_id = current_user.id
+            solicitud.resuelto_en  = now_mx()
+            solicitud.comentario   = 'OC cancelada'
+
         proyecto_oc.estado = 'cancelada'
+        nota = '; lo recibido se conserva en stock' if estado_previo == 'recibida_parcial' else ''
         log_actividad('cancelar', 'proyecto_oc',
-                      f'OC de Proyecto #{proyecto_oc.id} "{proyecto_oc.nombre_proyecto}" cancelada.',
+                      f'OC de Proyecto #{proyecto_oc.id} "{proyecto_oc.nombre_proyecto}" cancelada '
+                      f'(estaba en "{estado_previo}"{nota}).',
                       entidad_id=proyecto_oc.id)
         db.session.commit()
         flash(f'OC de Proyecto #{proyecto_oc.id} cancelada.', 'warning')

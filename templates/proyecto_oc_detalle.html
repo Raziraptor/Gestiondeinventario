@@ -80,13 +80,6 @@
                         </button>
                     </form>
                     {% endif %}
-                    <form action="{{ url_for('purchasing.cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
-                          data-confirm="¿Cancelar esta Orden de Compra de Proyecto?">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm fw-bold">
-                            <i class="bi bi-x-circle me-1"></i> Cancelar OC
-                        </button>
-                    </form>
 
                 {% elif proyecto_oc.estado == 'pendiente_aprobacion' %}
                     {% if es_admin %}
@@ -121,11 +114,15 @@
                         <i class="bi bi-box-seam me-1"></i>
                         {% if proyecto_oc.estado == 'recibida_parcial' %}Continuar Recepción{% else %}Registrar Recepción{% endif %}
                     </a>
+                {% endif %}
+
+                {# Cancelable en cualquier estado salvo recibida por completo (solo admins) #}
+                {% if es_admin and proyecto_oc.estado not in ['recibida', 'cancelada'] %}
                     <form action="{{ url_for('purchasing.cancelar_proyecto_oc', id=proyecto_oc.id) }}" method="POST" class="d-inline"
-                          data-confirm="¿Cancelar esta Orden de Compra de Proyecto?">
+                          data-confirm="{% if proyecto_oc.estado == 'recibida_parcial' %}Lo ya recibido permanece en inventario. {% endif %}¿Cancelar esta Orden de Compra de Proyecto?">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-outline-secondary rounded-pill px-3 shadow-sm fw-bold">
-                            <i class="bi bi-x-circle me-1"></i> Cancelar OC
+                        <button type="submit" class="btn btn-outline-danger rounded-pill px-3 shadow-sm fw-bold">
+                            <i class="bi bi-x-circle me-1" aria-hidden="true"></i> Cancelar OC
                         </button>
                     </form>
                 {% endif %}

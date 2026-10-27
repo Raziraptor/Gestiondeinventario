@@ -45,7 +45,7 @@
     <!-- SECCIÓN DE FILTROS -->
     <div class="card shadow-sm mb-4 border-0 rounded-4 overflow-hidden">
         <div class="card-body p-4" style="background:var(--surface-raised)">
-            <form method="GET" action="{{ url_for('purchasing.lista_ordenes') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ url_for('purchasing.lista_ordenes') }}" class="row g-3 align-items-end" data-autofilter>
                 <div class="col-12 col-md-3">
                     <label for="mes" class="form-label fw-bold small text-muted text-uppercase">Mes de Registro</label>
                     <select id="mes" name="mes" class="form-select border-0 shadow-sm">
@@ -71,11 +71,8 @@
                 </div>
                 
                 <div class="col-12 col-md-4 d-flex gap-2">
-                    <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
-                        <i class="bi bi-filter"></i> Aplicar Filtros
-                    </button>
-                    <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm" title="Limpiar filtros">
-                        <i class="bi bi-x-lg"></i>
+                    <a href="{{ url_for('purchasing.lista_ordenes') }}" class="btn btn-outline-secondary shadow-sm" title="Limpiar filtros" aria-label="Limpiar filtros">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
                     </a>
                     <!-- FILTRO DINÁMICO: OCULTAR CANCELADAS -->
                     <div class="rounded px-3 d-flex align-items-center filter-switch"

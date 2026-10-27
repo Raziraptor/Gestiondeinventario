@@ -34,7 +34,7 @@
                 <p class="page-subtitle">Gestiona las compras asignadas a proyectos específicos.</p>
             </div>
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ url_for('reports.exportar_proyectos_oc_excel', estado=estado_sel or '', mes=mes_sel or '', ano=ano_sel or '') }}"
+                <a href="{{ url_for('reports.exportar_proyectos_oc_excel', estado=estado_sel or '', mes=mes_sel or '', ano=ano_sel or '', proveedor=proveedor_sel or '') }}"
                    class="btn btn-outline-success shadow-sm rounded-pill px-3 fw-bold text-nowrap">
                     <i class="bi bi-file-earmark-excel me-1"></i> Excel
                 </a>
@@ -48,38 +48,48 @@
     <!-- SECCIÓN DE FILTROS -->
     <div class="card shadow-sm border-0 rounded-4 mb-4">
         <div class="card-body p-4 rounded-4" style="background:var(--surface-raised)">
-            <form method="GET" action="{{ url_for('purchasing.lista_proyectos_oc') }}" class="row g-3 align-items-end">
-                <div class="col-12 col-md-2">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Mes</label>
-                    <select name="mes" class="form-select shadow-sm">
+            <form method="GET" action="{{ url_for('purchasing.lista_proyectos_oc') }}" class="row g-3 align-items-end" data-autofilter>
+                <div class="col-6 col-md-4 col-xl-2">
+                    <label for="pocMes" class="form-label fw-bold small text-muted text-uppercase mb-1">Mes</label>
+                    <select id="pocMes" name="mes" class="form-select shadow-sm">
                         <option value="">Todos</option>
                         {% for num, nombre in [(1,'Enero'),(2,'Febrero'),(3,'Marzo'),(4,'Abril'),(5,'Mayo'),(6,'Junio'),(7,'Julio'),(8,'Agosto'),(9,'Septiembre'),(10,'Octubre'),(11,'Noviembre'),(12,'Diciembre')] %}
                         <option value="{{ num }}" {% if mes_sel == num %}selected{% endif %}>{{ nombre }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-12 col-md-2">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Año</label>
-                    <input type="number" name="ano" class="form-control shadow-sm" value="{{ ano_sel or '' }}" min="2020" max="2050" placeholder="Todos">
+                <div class="col-6 col-md-2">
+                    <label for="pocAno" class="form-label fw-bold small text-muted text-uppercase mb-1">Año</label>
+                    <input type="number" id="pocAno" name="ano" class="form-control shadow-sm" value="{{ ano_sel or '' }}" min="2020" max="2050" placeholder="Todos">
                 </div>
-                <div class="col-12 col-md-3">
-                    <label class="form-label fw-bold small text-muted text-uppercase mb-1">Estado</label>
-                    <select name="estado" class="form-select shadow-sm">
+                <div class="col-12 col-md-3 col-xl-2">
+                    <label for="pocEstado" class="form-label fw-bold small text-muted text-uppercase mb-1">Estado</label>
+                    <select id="pocEstado" name="estado" class="form-select shadow-sm">
                         <option value="">Todos los estados</option>
                         <option value="borrador"             {% if estado_sel == 'borrador'             %}selected{% endif %}>Borrador</option>
                         <option value="pendiente_aprobacion" {% if estado_sel == 'pendiente_aprobacion' %}selected{% endif %}>En aprobación</option>
                         <option value="aprobada"             {% if estado_sel == 'aprobada'             %}selected{% endif %}>Aprobada</option>
                         <option value="enviada"              {% if estado_sel == 'enviada'              %}selected{% endif %}>Enviada</option>
+                        <option value="recibida_parcial"     {% if estado_sel == 'recibida_parcial'     %}selected{% endif %}>Recibida parcial</option>
                         <option value="recibida"             {% if estado_sel == 'recibida'             %}selected{% endif %}>Recibida</option>
                         <option value="cancelada"            {% if estado_sel == 'cancelada'            %}selected{% endif %}>Cancelada</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-5 d-flex gap-2 flex-wrap align-items-center">
-                    <button type="submit" class="btn btn-secondary shadow-sm fw-bold flex-grow-1">
-                        <i class="bi bi-filter me-1"></i> Aplicar
-                    </button>
-                    <a href="{{ url_for('purchasing.lista_proyectos_oc') }}" class="btn btn-outline-secondary shadow-sm fw-bold" title="Limpiar filtros">
-                        <i class="bi bi-x-lg"></i>
+                <div class="col-12 col-md-3">
+                    <label for="pocProveedor" class="form-label fw-bold small text-muted text-uppercase mb-1">Proveedor</label>
+                    <select id="pocProveedor" name="proveedor" class="form-select shadow-sm">
+                        <option value="">Todos los proveedores</option>
+                        {% if proveedor_sel and proveedor_sel|lower not in proveedores_sug|map('lower')|list %}
+                        <option value="{{ proveedor_sel }}" selected>{{ proveedor_sel }}</option>
+                        {% endif %}
+                        {% for prov in proveedores_sug %}
+                        <option value="{{ prov }}" {% if proveedor_sel and prov|lower == proveedor_sel|lower %}selected{% endif %}>{{ prov }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-xl-3 d-flex gap-2 flex-wrap align-items-center">
+                    <a href="{{ url_for('purchasing.lista_proyectos_oc') }}" class="btn btn-outline-secondary shadow-sm fw-bold" title="Limpiar filtros" aria-label="Limpiar filtros">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
                     </a>
                     <div class="rounded px-3 d-flex align-items-center" style="background:var(--surface);border:1px solid var(--border);height:38px;">
                         <div class="form-check form-switch m-0">
@@ -223,15 +233,6 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    {% if es_admin %}
-                                    <form action="{{ url_for('purchasing.cancelar_proyecto_oc', id=poc.id) }}" method="POST"
-                                          data-confirm="¿Cancelar esta OC de Proyecto?">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-accion btn-outline-danger btn-sm rounded-3 h-100 px-3" aria-label="Cancelar OC">
-                                            <i class="bi bi-x-lg" aria-hidden="true"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
                                 </div>
                             </div>
                             {% elif poc.estado == 'pendiente_aprobacion' %}
@@ -282,7 +283,7 @@
                             </div>
                             {% endif %}
 
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between align-items-center gap-2">
                                 <a href="{{ url_for('purchasing.ver_proyecto_oc', id=poc.id) }}"
                                    class="btn btn-link text-decoration-none text-secondary fw-bold p-0 small">
                                     <i class="bi bi-eye text-primary me-1"></i> Ver Detalle
@@ -291,6 +292,15 @@
                                    class="btn btn-link text-decoration-none text-danger fw-bold p-0 small" target="_blank">
                                     <i class="bi bi-file-earmark-pdf me-1"></i> PDF
                                 </a>
+                                {% if es_admin and poc.estado not in ['recibida', 'cancelada'] %}
+                                <form action="{{ url_for('purchasing.cancelar_proyecto_oc', id=poc.id) }}" method="POST" class="m-0"
+                                      data-confirm="{% if poc.estado == 'recibida_parcial' %}Lo ya recibido permanece en inventario. {% endif %}¿Cancelar esta OC de Proyecto?">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-accion btn-outline-danger btn-sm rounded-3 px-3 fw-bold">
+                                        <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Cancelar
+                                    </button>
+                                </form>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -317,6 +327,7 @@
 <script nonce="{{ csp_nonce() }}">
 document.querySelectorAll('form[method="POST"]').forEach(function(f) {
     f.addEventListener('submit', function() {
+        if (f.hasAttribute('data-confirm')) return;
         const btn = f.querySelector('[type="submit"]');
         if (btn) {
             btn.disabled = true;

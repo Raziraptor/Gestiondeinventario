@@ -3,6 +3,8 @@
 import os
 import json
 
+from sqlalchemy import func
+
 from app.extensions import db
 from app.helpers import now_mx
 
@@ -156,6 +158,14 @@ class ProyectoOC(db.Model):
     @property
     def totalmente_recibida(self):
         return bool(self.detalles) and all(d.cantidad_pendiente == 0 for d in self.detalles)
+
+    @staticmethod
+    def filtro_proveedor(nombre):
+        """Criterio: algún artículo tiene ese proveedor sugerido (sin distinguir mayúsculas/espacios)."""
+        # Normalizar ambos lados en SQL para que coincida la misma regla de lower() de la BD.
+        return ProyectoOC.detalles.any(
+            func.lower(func.trim(ProyectoOCDetalle.proveedor_sugerido)) == func.lower(func.trim(nombre))
+        )
 
 
 class ProyectoOCDetalle(db.Model):

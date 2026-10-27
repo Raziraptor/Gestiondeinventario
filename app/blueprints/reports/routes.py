@@ -531,6 +531,7 @@ def exportar_proyectos_oc_excel():
     estado_f = request.args.get('estado')
     mes_f    = request.args.get('mes', type=int)
     ano_f    = request.args.get('ano', type=int)
+    prov_f   = request.args.get('proveedor', '').strip()
 
     query = ProyectoOC.query.filter_by(organizacion_id=org_id).options(
         joinedload(ProyectoOC.almacen),
@@ -544,6 +545,8 @@ def exportar_proyectos_oc_excel():
         query = query.filter(extract('month', ProyectoOC.fecha_creacion) == mes_f)
     if ano_f:
         query = query.filter(extract('year', ProyectoOC.fecha_creacion) == ano_f)
+    if prov_f:
+        query = query.filter(ProyectoOC.filtro_proveedor(prov_f))
     proyectos = query.order_by(ProyectoOC.fecha_creacion.desc()).all()
 
     wb = openpyxl.Workbook()

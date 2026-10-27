@@ -120,6 +120,23 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function () { window.toggleFusionTheme(); });
   });
 
+  /* Auto-apply GET filter forms (form[data-autofilter]): selects submit on
+     change; number inputs (año) only when valid (empty or within min/max).
+     Debounced so arrow keys / spinner clicks don't reload on every step.
+     Controls without name (e.g. "Ocultar canceladas" switch) stay client-side. */
+  document.querySelectorAll('form[data-autofilter]').forEach(function (form) {
+    var timer;
+    form.querySelectorAll('select[name], input[type="number"][name]').forEach(function (el) {
+      el.addEventListener('change', function () {
+        clearTimeout(timer);
+        if (!el.checkValidity()) return;
+        timer = setTimeout(function () {
+          if (form.requestSubmit) form.requestSubmit(); else form.submit();
+        }, 600);
+      });
+    });
+  });
+
   /* Build avatar initials for elements with data-initials */
   document.querySelectorAll('[data-initials]').forEach(function (el) {
     var seed = el.getAttribute('data-initials') || '??';
