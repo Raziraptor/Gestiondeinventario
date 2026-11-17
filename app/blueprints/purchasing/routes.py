@@ -501,6 +501,7 @@ def enviar_orden(id):
 
 @purchasing_bp.route('/orden/<int:id>/pdf')
 @login_required
+@check_org_permission
 @check_permission('perm_create_oc_standard')
 def generar_oc_pdf(id):
     orden = (
@@ -513,13 +514,42 @@ def generar_oc_pdf(id):
         )
         .first_or_404()
     )
+    buffer = _construir_pdf_oc(orden)
+    filename = f"OC_{orden.id}_{secure_filename(orden.organizacion.nombre)}.pdf"
+    return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
+
+
+def _consecutivo_oc(orden):
+    """Número de OC de este proveedor dentro de la org hasta esta orden (1, 2, 3…)."""
+    return (
+        OrdenCompra.query
+        .filter(OrdenCompra.organizacion_id == orden.organizacion_id,
+                OrdenCompra.proveedor_id == orden.proveedor_id,
+                OrdenCompra.id <= orden.id)
+        .count()
+    )
+
+
+def _construir_pdf_oc(orden, forzar_encabezado=False):
+    """PDF de una OC estándar. Si el proveedor tiene encabezado activo, lo usa.
+
+    forzar_encabezado=True lo aplica aunque esté inactivo (vista previa de configuración).
+    """
+    from integrations.encabezado_oc import (
+        construir_membrete, CamposFormulario, campos_activos, contexto_orden,
+    )
     org = orden.organizacion
     proveedor = orden.proveedor
+    enc = proveedor.encabezado_oc if proveedor else None
+    if enc is not None and ((not enc.activo and not forzar_encabezado)
+                            or enc.organizacion_id != orden.organizacion_id):
+        enc = None
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=inch, leftMargin=inch,
-                            topMargin=0.5*inch, bottomMargin=inch)
+                            topMargin=0.5*inch, bottomMargin=inch,
+                            title=f"Orden de compra {orden.id}")
     story = []
     styles = getSampleStyleSheet()
     fuente, c_pri, c_sec = _pdf_estilos(org)
@@ -531,29 +561,40 @@ def generar_oc_pdf(id):
     s_totlbl = ParagraphStyle('OCTotL',  fontName=_pdf_bold(fuente), fontSize=11, alignment=TA_RIGHT)
     s_totval = ParagraphStyle('OCTotV',  fontName=_pdf_bold(fuente), fontSize=11, alignment=TA_RIGHT)
 
-    _pdf_header(story, org, styles)
+    if enc:
+        contexto = contexto_orden(orden, _consecutivo_oc(orden))
+        construir_membrete(story, enc, org, current_app.config['UPLOAD_FOLDER'],
+                           fuente, _pdf_bold(fuente), c_pri, doc.width)
+        campos_enc = campos_activos(enc, 'encabezado')
+        if campos_enc:
+            story.append(CamposFormulario(campos_enc, contexto, _pdf_bold(fuente), c_sec, c_pri,
+                                           ancho=6.2*inch))
+            story.append(Spacer(1, 0.25*inch))
+    else:
+        _pdf_header(story, org, styles)
 
-    p_email    = getattr(proveedor, 'contacto_email',    getattr(proveedor, 'correo',   '-'))
-    p_tel      = getattr(proveedor, 'contacto_telefono', getattr(proveedor, 'telefono', '-'))
-    p_contacto = getattr(proveedor, 'nombre_contacto',   getattr(proveedor, 'contacto', '-'))
+        p_email    = getattr(proveedor, 'contacto_email',    getattr(proveedor, 'correo',   '-'))
+        p_tel      = getattr(proveedor, 'contacto_telefono', getattr(proveedor, 'telefono', '-'))
+        p_contacto = getattr(proveedor, 'nombre_contacto',   getattr(proveedor, 'contacto', '-'))
 
-    info_proveedor = [
-        Paragraph("<b>PROVEEDOR:</b>", s_normal),
-        Paragraph(proveedor.nombre, s_bold),
-        Paragraph(f"Contacto: {p_contacto}", s_normal),
-        Paragraph(f"Email: {p_email}", s_normal),
-        Paragraph(f"Tel: {p_tel}", s_normal),
-    ]
-    info_orden = [
-        Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", s_brand),
-        Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%d/%m/%Y')}", s_normal),
-        Paragraph(f"<b>Estado:</b> {orden.estado.upper()}", s_normal),
-        Paragraph(f"<b>Almacén:</b> {orden.almacen.nombre if orden.almacen else 'General'}", s_normal),
-    ]
-    t_info = Table([[info_proveedor, info_orden]], colWidths=[3.5*inch, 2.7*inch])
-    t_info.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 0)]))
-    story.append(t_info)
-    story.append(Spacer(1, 0.2*inch))
+        info_proveedor = [
+            Paragraph("<b>PROVEEDOR:</b>", s_normal),
+            Paragraph(_xml_escape(proveedor.nombre), s_bold),
+            Paragraph(f"Contacto: {_xml_escape(p_contacto or '-')}", s_normal),
+            Paragraph(f"Email: {_xml_escape(p_email or '-')}", s_normal),
+            Paragraph(f"Tel: {_xml_escape(p_tel or '-')}", s_normal),
+        ]
+        almacen_nombre = _xml_escape(orden.almacen.nombre) if orden.almacen else 'General'
+        info_orden = [
+            Paragraph(f"<b>ORDEN DE COMPRA #{orden.id}</b>", s_brand),
+            Paragraph(f"<b>Fecha:</b> {orden.fecha_creacion.strftime('%d/%m/%Y')}", s_normal),
+            Paragraph(f"<b>Estado:</b> {_xml_escape(orden.estado.upper())}", s_normal),
+            Paragraph(f"<b>Almacén:</b> {almacen_nombre}", s_normal),
+        ]
+        t_info = Table([[info_proveedor, info_orden]], colWidths=[3.5*inch, 2.7*inch])
+        t_info.setStyle(TableStyle([('VALIGN', (0,0), (-1,-1), 'TOP'), ('LEFTPADDING', (0,0), (-1,-1), 0)]))
+        story.append(t_info)
+        story.append(Spacer(1, 0.2*inch))
 
     data_table = [[
         Paragraph("Producto / SKU", s_th), Paragraph("Cajas", s_th),
@@ -602,11 +643,17 @@ def generar_oc_pdf(id):
     ] + row_bgs))
     story.append(t_productos)
 
+    if enc:
+        campos_pie = campos_activos(enc, 'pie')
+        if campos_pie:
+            story.append(Spacer(1, 0.25*inch))
+            story.append(CamposFormulario(campos_pie, contexto, _pdf_bold(fuente), c_sec, c_pri,
+                                           columnas=2, ancho=6.2*inch))
+
     _pdf_footer(story, org)
     doc.build(story)
     buffer.seek(0)
-    filename = f"OC_{orden.id}_{secure_filename(org.nombre)}.pdf"
-    return send_file(buffer, as_attachment=False, download_name=filename, mimetype='application/pdf')
+    return buffer
 
 
 @purchasing_bp.route('/orden/nueva/manual', methods=['GET', 'POST'])

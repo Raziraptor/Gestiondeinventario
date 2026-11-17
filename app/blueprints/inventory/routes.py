@@ -8,6 +8,8 @@ Rutas:
   nuevo_producto, editar_producto, generar_etiqueta, historial_producto,
   lista_categorias, nueva_categoria, editar_categoria, eliminar_categoria,
   lista_proveedores, nuevo_proveedor, editar_proveedor, guardar_integracion_hd,
+  guardar_formato_oc, eliminar_formato_oc,
+  guardar_encabezado_oc, eliminar_encabezado_oc, vista_previa_encabezado_oc,
   lista_almacenes, nuevo_almacen, editar_almacen, eliminar_almacen,
   gestionar_inventario_almacen, eliminar_producto_de_almacen,
   lista_productos_sin_almacen, asignar_producto_rapido,
@@ -61,9 +63,13 @@ from app.helpers import (
 from app.models import (
     Producto, Stock, Movimiento, Categoria, Proveedor, Almacen,
     Organizacion, Salida, AuditLog, ProveedorIntegracion, FormatoProveedor,
-    OrdenCompra, ProyectoOC,
+    EncabezadoOCProveedor, OrdenCompra, ProyectoOC,
 )
 from integrations.formato_proveedor import CAMPOS_DISPONIBLES
+from integrations.encabezado_oc import (
+    PLACEHOLDERS, MAX_EXTRAS, MAX_TITULO,
+    campos_por_defecto, normalizar_campos, limpiar_texto_largo,
+)
 
 
 # ==============================================================================
@@ -996,9 +1002,23 @@ def editar_proveedor(id):
     formato_oc = FormatoProveedor.query.filter_by(
         proveedor_id=proveedor.id, organizacion_id=org_id
     ).first()
+    encabezado_oc = EncabezadoOCProveedor.query.filter_by(
+        proveedor_id=proveedor.id, organizacion_id=proveedor.organizacion_id
+    ).first()
+    tiene_ordenes = OrdenCompra.query.filter_by(
+        proveedor_id=proveedor.id, organizacion_id=proveedor.organizacion_id
+    ).first() is not None
     return render_template('proveedor_form.html', titulo="Editar Proveedor",
                            proveedor=proveedor, integracion=integracion,
-                           formato_oc=formato_oc, campos_disponibles=CAMPOS_DISPONIBLES)
+                           formato_oc=formato_oc, campos_disponibles=CAMPOS_DISPONIBLES,
+                           encabezado_oc=encabezado_oc,
+                           encabezado_campos=(encabezado_oc.campos
+                                              if encabezado_oc and encabezado_oc.campos
+                                              else campos_por_defecto()),
+                           encabezado_placeholders=PLACEHOLDERS,
+                           encabezado_max_extras=MAX_EXTRAS,
+                           encabezado_tiene_ordenes=tiene_ordenes,
+                           org_proveedor=db.session.get(Organizacion, proveedor.organizacion_id))
 
 
 @inventory_bp.route('/proveedor/<int:id>/integracion-hd', methods=['POST'])
@@ -1138,6 +1158,158 @@ def eliminar_formato_oc(id):
         flash('No hay formato de OC configurado para este proveedor.', 'warning')
 
     return redirect(url_for('inventory.editar_proveedor', id=id))
+
+
+# ── Encabezado PDF de OC por proveedor ────────────────────────────────────────
+
+_ENCABEZADOS_DIR = 'encabezados'
+
+
+def _borrar_logo_encabezado(rel_path):
+    """Borra un logo de encabezado. Solo actúa dentro de uploads/encabezados/."""
+    if not rel_path or not rel_path.startswith(_ENCABEZADOS_DIR + '/'):
+        return
+    upload = current_app.config['UPLOAD_FOLDER']
+    base = os.path.realpath(os.path.join(upload, _ENCABEZADOS_DIR))
+    path = os.path.realpath(os.path.join(upload, rel_path))
+    if path.startswith(base + os.sep) and os.path.isfile(path):
+        try:
+            os.remove(path)
+        except OSError as e:
+            current_app.logger.warning('No se pudo borrar logo de encabezado %s: %s', path, e)
+
+
+def _encabezado_admin_o_redirect(id):
+    """None si el usuario es admin; si no, el redirect con el flash correspondiente."""
+    if current_user.rol in ('super_admin', 'admin'):
+        return None
+    flash('Solo administradores pueden configurar el encabezado de OC.', 'danger')
+    return redirect(url_for('inventory.editar_proveedor', id=id))
+
+
+@inventory_bp.route('/proveedor/<int:id>/encabezado-oc', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def guardar_encabezado_oc(id):
+    proveedor = get_item_or_404(Proveedor, id)
+    org_id    = proveedor.organizacion_id
+    volver    = url_for('inventory.editar_proveedor', id=id) + '#encabezado-oc'
+
+    denegado = _encabezado_admin_o_redirect(id)
+    if denegado:
+        return denegado
+
+    enc = EncabezadoOCProveedor.query.filter_by(
+        proveedor_id=proveedor.id, organizacion_id=org_id
+    ).first()
+
+    logo_nuevo = None
+    archivo = request.files.get('enc_logo')
+    if archivo and archivo.filename:
+        if not allowed_file(archivo.filename) or not verify_image_bytes(archivo):
+            flash('El logo debe ser una imagen PNG, JPG o GIF válida.', 'warning')
+            return redirect(volver)
+        try:
+            destino = os.path.join(current_app.config['UPLOAD_FOLDER'], _ENCABEZADOS_DIR)
+            os.makedirs(destino, exist_ok=True)
+            logo_nuevo = f'{_ENCABEZADOS_DIR}/' + save_picture(archivo, destino, size=(600, 600))
+        except Exception as e:
+            _flash_err('No se pudo procesar el logo.', e)
+            return redirect(volver)
+
+    logo_anterior = enc.logo_url if enc else None
+    try:
+        if enc is None:
+            enc = EncabezadoOCProveedor(proveedor_id=proveedor.id, organizacion_id=org_id)
+            db.session.add(enc)
+        enc.activo     = request.form.get('enc_activo') == '1'
+        enc.titulo     = (request.form.get('enc_titulo') or '').strip()[:MAX_TITULO] or None
+        enc.subtitulo  = limpiar_texto_largo(request.form.get('enc_subtitulo')) or None
+        enc.facturar_a = limpiar_texto_largo(request.form.get('enc_facturar_a')) or None
+        # Lista nueva (asignación directa) para que SQLAlchemy detecte el cambio en el JSON.
+        enc.campos     = normalizar_campos(request.form, enc.campos)
+        if logo_nuevo:
+            enc.logo_url = logo_nuevo
+        elif request.form.get('enc_quitar_logo') == '1':
+            enc.logo_url = None
+        log_actividad('editar', 'proveedor',
+                      f'Encabezado PDF de OC actualizado: {proveedor.nombre}', proveedor.id)
+        db.session.commit()
+        if logo_anterior and logo_anterior != enc.logo_url:
+            _borrar_logo_encabezado(logo_anterior)
+        flash('Encabezado de OC guardado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        _borrar_logo_encabezado(logo_nuevo)
+        _flash_err('Error al guardar el encabezado de OC.', e)
+
+    return redirect(volver)
+
+
+@inventory_bp.route('/proveedor/<int:id>/encabezado-oc/eliminar', methods=['POST'])
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def eliminar_encabezado_oc(id):
+    proveedor = get_item_or_404(Proveedor, id)
+
+    denegado = _encabezado_admin_o_redirect(id)
+    if denegado:
+        return denegado
+
+    enc = EncabezadoOCProveedor.query.filter_by(
+        proveedor_id=proveedor.id, organizacion_id=proveedor.organizacion_id
+    ).first()
+    if not enc:
+        flash('No hay encabezado de OC configurado para este proveedor.', 'warning')
+        return redirect(url_for('inventory.editar_proveedor', id=id))
+
+    logo = enc.logo_url
+    try:
+        db.session.delete(enc)
+        log_actividad('eliminar', 'proveedor',
+                      f'Encabezado PDF de OC eliminado: {proveedor.nombre}', proveedor.id)
+        db.session.commit()
+        _borrar_logo_encabezado(logo)
+        flash('Encabezado de OC eliminado.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        _flash_err('Error al eliminar el encabezado de OC.', e)
+
+    return redirect(url_for('inventory.editar_proveedor', id=id))
+
+
+@inventory_bp.route('/proveedor/<int:id>/encabezado-oc/vista-previa')
+@login_required
+@check_org_permission
+@check_permission('perm_edit_management')
+def vista_previa_encabezado_oc(id):
+    """PDF de la OC más reciente del proveedor con el encabezado guardado (aunque esté inactivo)."""
+    from app.blueprints.purchasing.routes import _construir_pdf_oc  # lazy: evita import circular
+
+    proveedor = get_item_or_404(Proveedor, id)
+    volver    = url_for('inventory.editar_proveedor', id=id) + '#encabezado-oc'
+
+    denegado = _encabezado_admin_o_redirect(id)
+    if denegado:
+        return denegado
+
+    orden = (OrdenCompra.query
+             .filter_by(proveedor_id=proveedor.id, organizacion_id=proveedor.organizacion_id)
+             .order_by(OrdenCompra.id.desc())
+             .first())
+    if not orden:
+        flash('Este proveedor aún no tiene órdenes de compra para generar la vista previa.', 'warning')
+        return redirect(volver)
+
+    try:
+        buffer = _construir_pdf_oc(orden, forzar_encabezado=True)
+    except Exception as e:
+        _flash_err('No se pudo generar la vista previa del PDF.', e)
+        return redirect(volver)
+    return send_file(buffer, as_attachment=False, mimetype='application/pdf',
+                     download_name=f'Vista_previa_OC_{orden.id}.pdf')
 
 
 # ==============================================================================

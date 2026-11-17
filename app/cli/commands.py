@@ -291,6 +291,38 @@ def register_commands(app):
                 conn.rollback(); print(f'Omitido índice: {e}')
         print('fix-add-formato-proveedor completado.')
 
+    @app.cli.command('add-encabezado-oc-table')
+    @with_appcontext
+    def add_encabezado_oc_table():
+        """Crea tabla encabezado_oc_proveedor (encabezado PDF de OC por proveedor). Idempotente."""
+        from app.extensions import db
+        stmts = [
+            """
+            CREATE TABLE IF NOT EXISTS encabezado_oc_proveedor (
+                id SERIAL PRIMARY KEY,
+                proveedor_id INTEGER NOT NULL REFERENCES proveedor(id) ON DELETE CASCADE,
+                organizacion_id INTEGER NOT NULL REFERENCES organizacion(id) ON DELETE CASCADE,
+                activo BOOLEAN NOT NULL DEFAULT TRUE,
+                logo_url VARCHAR(255),
+                titulo VARCHAR(200),
+                subtitulo TEXT,
+                facturar_a TEXT,
+                campos JSONB NOT NULL DEFAULT '[]',
+                CONSTRAINT uq_encabezado_oc_proveedor_org UNIQUE (proveedor_id, organizacion_id)
+            )
+            """,
+            'CREATE INDEX IF NOT EXISTS ix_encabezado_oc_proveedor_org '
+            'ON encabezado_oc_proveedor(organizacion_id)',
+        ]
+        with db.engine.connect() as conn:
+            for stmt in stmts:
+                try:
+                    conn.execute(text(stmt)); conn.commit()
+                    print(f'OK: {" ".join(stmt.split())[:70]}')
+                except Exception as e:
+                    conn.rollback(); print(f'Omitido: {e}')
+        print('add-encabezado-oc-table completado.')
+
     @app.cli.command('fix-almacen-delete-nullable')
     @with_appcontext
     def fix_almacen_delete_nullable():

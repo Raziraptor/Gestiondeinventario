@@ -69,6 +69,29 @@ class FormatoProveedor(db.Model):
     activo          = db.Column(db.Boolean, default=True, nullable=False)
 
 
+class EncabezadoOCProveedor(db.Model):
+    """Encabezado personalizado (membrete + campos rellenables) del PDF de OC por proveedor."""
+    __tablename__ = 'encabezado_oc_proveedor'
+    __table_args__ = (
+        db.UniqueConstraint('proveedor_id', 'organizacion_id',
+                            name='uq_encabezado_oc_proveedor_org'),
+    )
+    id              = db.Column(db.Integer, primary_key=True)
+    proveedor_id    = db.Column(db.Integer, db.ForeignKey('proveedor.id', ondelete='CASCADE'), nullable=False)
+    proveedor       = db.relationship('Proveedor',
+                                      backref=db.backref('encabezado_oc', uselist=False,
+                                                         cascade='all, delete-orphan'))
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id', ondelete='CASCADE'), nullable=False)
+    activo          = db.Column(db.Boolean, default=True, nullable=False)
+    # Membrete: vacío = usar el de la organización.
+    logo_url        = db.Column(db.String(255), nullable=True)
+    titulo          = db.Column(db.String(200), nullable=True)
+    subtitulo       = db.Column(db.Text, nullable=True)
+    facturar_a      = db.Column(db.Text, nullable=True)
+    # [{"clave", "etiqueta", "valor", "activo", "multilinea", "seccion"}, ...]
+    campos          = db.Column(db.JSON, nullable=False, default=list)
+
+
 class HDSesion(db.Model):
     """Sesión persistente de HD Pro: cookies cifradas, TTL 7 días."""
     __tablename__ = 'hd_sesion'

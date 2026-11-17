@@ -231,6 +231,223 @@
             {% endif %}
         </div>
     </div>
+
+    {# ── Encabezado PDF de OC ─────────────────────────────────────────── #}
+    {% macro fila_campo(c, es_extra) %}
+    <li class="enc-campo{{ '' if c.activo else ' is-off' }}"{% if es_extra %} data-extra{% endif %}>
+        <input type="hidden" name="campo_clave[]" value="{{ c.clave }}">
+        <div class="form-check form-switch enc-campo-switch m-0">
+            <input class="form-check-input" type="checkbox" role="switch" data-campo="activo"
+                   id="activo_{{ c.clave }}" name="activo_{{ c.clave }}" value="1" {{ 'checked' if c.activo }}>
+            <label class="visually-hidden" for="activo_{{ c.clave }}">Imprimir este campo en el PDF</label>
+        </div>
+        <div class="enc-campo-inputs">
+            <div>
+                <label class="visually-hidden" for="etiqueta_{{ c.clave }}">Etiqueta</label>
+                <input type="text" class="form-control form-control-sm fw-semibold" data-campo="etiqueta"
+                       id="etiqueta_{{ c.clave }}" name="etiqueta_{{ c.clave }}" maxlength="60"
+                       value="{{ c.etiqueta }}" placeholder="Nombre del campo"{% if es_extra %} required{% endif %}>
+            </div>
+            <div>
+                <label class="visually-hidden" for="valor_{{ c.clave }}">Valor predeterminado</label>
+                <textarea class="form-control form-control-sm enc-valor" data-campo="valor"
+                          id="valor_{{ c.clave }}" name="valor_{{ c.clave }}" maxlength="500"
+                          rows="{{ 3 if c.multilinea else 1 }}"
+                          placeholder="Vacío: se llena a mano en el PDF">{{ c.valor }}</textarea>
+            </div>
+        </div>
+        <div class="enc-campo-acciones">
+            <div class="form-check m-0 me-1">
+                <input class="form-check-input" type="checkbox" data-campo="multilinea"
+                       id="multilinea_{{ c.clave }}" name="multilinea_{{ c.clave }}" value="1" {{ 'checked' if c.multilinea }}>
+                <label class="form-check-label small text-nowrap" for="multilinea_{{ c.clave }}">Varias líneas</label>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-accion" data-mover="-1" aria-label="Subir campo">
+                <i class="bi bi-arrow-up" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary btn-accion" data-mover="1" aria-label="Bajar campo">
+                <i class="bi bi-arrow-down" aria-hidden="true"></i>
+            </button>
+            {% if es_extra %}
+            <button type="button" class="btn btn-sm btn-outline-danger btn-accion" data-quitar aria-label="Quitar campo">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+        </div>
+    </li>
+    {% endmacro %}
+
+    <style>
+    .enc-seccion { font-size: .9375rem; font-weight: 700; margin: 1.75rem 0 .125rem; }
+    .enc-lista { list-style: none; margin: .75rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+    .enc-campo {
+        display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .5rem .75rem; align-items: start;
+        padding: .625rem .75rem; border: 1px solid var(--border, var(--bs-border-color)); border-radius: .75rem;
+        background: var(--surface, var(--bs-body-bg)); transition: border-color .2s;
+    }
+    .enc-campo:focus-within { border-color: var(--primary, var(--bs-primary)); }
+    .enc-campo-switch { padding-top: .3rem; }
+    .enc-campo-inputs { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: .5rem; }
+    .enc-campo.is-off .enc-campo-inputs { opacity: .5; }
+    .enc-campo-acciones { display: flex; align-items: center; gap: .25rem; }
+    .enc-valor { resize: vertical; }
+    .enc-logo { max-height: 64px; max-width: 100%; object-fit: contain; }
+    @media (max-width: 767.98px) {
+        .enc-campo { grid-template-columns: auto minmax(0, 1fr); }
+        .enc-campo-inputs { grid-template-columns: minmax(0, 1fr); }
+        .enc-campo-acciones { grid-column: 1 / -1; justify-content: flex-end; }
+    }
+    @media (prefers-reduced-motion: reduce) { .enc-campo { transition: none; } }
+    </style>
+
+    <hr class="my-5 border-secondary border-opacity-25">
+
+    {% set org_p = org_proveedor %}
+    {% set org_subtitulo = [org_p.direccion, ('RFC: ' ~ org_p.rfc) if org_p.rfc else None] | select | join(' | ') if org_p else '' %}
+    <div class="card border-0 shadow-sm rounded-4 mt-4" id="encabezado-oc">
+        <div class="card-header bg-transparent pt-4 pb-3 border-bottom border-secondary border-opacity-25 d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                 style="width:40px;height:40px;background:rgba(25,135,84,.12);">
+                <i class="bi bi-layout-text-window-reverse text-success fs-5" aria-hidden="true"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold text-body">Encabezado PDF de OC</h5>
+                <p class="mb-0 text-muted small">Membrete y campos editables que se imprimen arriba de la tabla de productos.</p>
+            </div>
+            {% if encabezado_oc %}
+            <span class="ms-auto badge rounded-pill px-3 py-2 fw-semibold {{ 'bg-success' if encabezado_oc.activo else 'bg-secondary' }}">
+                {{ 'Activo' if encabezado_oc.activo else 'Inactivo' }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="card-body pt-4">
+            <form method="POST" enctype="multipart/form-data" id="form_encabezado_oc"
+                  action="{{ url_for('inventory.guardar_encabezado_oc', id=proveedor.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="enc_activo" name="enc_activo" value="1"
+                           aria-describedby="enc_activo_ayuda"
+                           {{ 'checked' if not encabezado_oc or encabezado_oc.activo }}>
+                    <label class="form-check-label fw-semibold" for="enc_activo">Usar este encabezado en las OC de este proveedor</label>
+                </div>
+                <div class="form-text text-muted" id="enc_activo_ayuda">Si está apagado, el PDF sale con el encabezado normal.</div>
+
+                <h6 class="enc-seccion">Membrete</h6>
+                <p class="small text-muted mb-3">Lo que dejes vacío se toma de los datos de tu organización.</p>
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <label for="enc_logo" class="form-label fw-semibold">Logo</label>
+                        {% if encabezado_oc and encabezado_oc.logo_url %}
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <img src="{{ url_for('static', filename='uploads/' + encabezado_oc.logo_url) }}"
+                                 alt="Logo actual del encabezado" class="enc-logo border rounded-2 p-1 bg-white">
+                            <div class="form-check m-0">
+                                <input class="form-check-input" type="checkbox" id="enc_quitar_logo" name="enc_quitar_logo" value="1">
+                                <label class="form-check-label small" for="enc_quitar_logo">Quitar logo</label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <input type="file" class="form-control form-control-sm" id="enc_logo" name="enc_logo"
+                               accept="image/png,image/jpeg,image/gif" aria-describedby="enc_logo_ayuda">
+                        <div class="form-text text-muted" id="enc_logo_ayuda">
+                            PNG, JPG o GIF.
+                            {% if not (encabezado_oc and encabezado_oc.logo_url) %}
+                            {{ 'Sin logo se usa el de la organización.' if org_p and org_p.logo_url else 'Opcional.' }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-8">
+                        <label for="enc_titulo" class="form-label fw-semibold">Título</label>
+                        <input type="text" class="form-control" id="enc_titulo" name="enc_titulo" maxlength="200"
+                               value="{{ encabezado_oc.titulo or '' if encabezado_oc else '' }}"
+                               placeholder="{{ (org_p.header_titulo or org_p.nombre) if org_p else 'Razón social' }}">
+                        <label for="enc_subtitulo" class="form-label fw-semibold mt-3">Dirección y RFC</label>
+                        <textarea class="form-control" id="enc_subtitulo" name="enc_subtitulo" rows="2" maxlength="500"
+                                  placeholder="{{ org_subtitulo or 'Calle, colonia, ciudad | RFC' }}">{{ encabezado_oc.subtitulo or '' if encabezado_oc else '' }}</textarea>
+                    </div>
+                    <div class="col-12">
+                        <label for="enc_facturar_a" class="form-label fw-semibold">Enviar factura a</label>
+                        <textarea class="form-control" id="enc_facturar_a" name="enc_facturar_a" rows="2" maxlength="500"
+                                  aria-describedby="enc_facturar_ayuda"
+                                  placeholder="{{ (org_p.correo_empresa if org_p else '') or 'facturas@empresa.com' }}">{{ encabezado_oc.facturar_a or '' if encabezado_oc else '' }}</textarea>
+                        <div class="form-text text-muted" id="enc_facturar_ayuda">Un correo por línea.</div>
+                    </div>
+                </div>
+
+                <h6 class="enc-seccion">Campos del encabezado</h6>
+                <p class="small text-muted mb-0">
+                    Enciende los que quieras imprimir. Salen precargados con el valor que pongas aquí
+                    y se pueden editar directamente en el PDF.
+                </p>
+                <ol class="enc-lista" id="enc-lista-encabezado" aria-label="Campos del encabezado">
+                    {% for c in encabezado_campos if c.seccion != 'pie' %}
+                    {{ fila_campo(c, c.clave.startswith('extra_')) }}
+                    {% endfor %}
+                </ol>
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <button type="button" id="enc-agregar" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Agregar campo
+                    </button>
+                    <span class="small text-muted" id="enc-contador" aria-live="polite"></span>
+                </div>
+
+                <h6 class="enc-seccion">Campos al pie</h6>
+                <p class="small text-muted mb-0">Se imprimen debajo del total.</p>
+                <ol class="enc-lista" id="enc-lista-pie" aria-label="Campos al pie">
+                    {% for c in encabezado_campos if c.seccion == 'pie' %}
+                    {{ fila_campo(c, false) }}
+                    {% endfor %}
+                </ol>
+
+                <h6 class="enc-seccion">Datos automáticos</h6>
+                <p class="small text-muted mb-2" id="enc-vars-ayuda">
+                    Coloca el cursor en un valor y elige un dato para insertarlo. Se reemplaza al generar cada OC.
+                </p>
+                <div class="d-flex flex-wrap gap-2" role="group" aria-describedby="enc-vars-ayuda">
+                    {% for token, desc in encabezado_placeholders %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" data-token="{{ token }}"
+                            title="{{ desc }}">
+                        <code class="text-reset">{{ token }}</code><span class="visually-hidden">: {{ desc }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex gap-2 flex-wrap align-items-center mt-4">
+                    <button type="submit" class="btn btn-primary fw-bold shadow-sm rounded-pill px-4">
+                        <i class="bi bi-floppy me-1" aria-hidden="true"></i>
+                        {{ 'Actualizar encabezado' if encabezado_oc else 'Guardar encabezado' }}
+                    </button>
+                    {% if encabezado_oc and encabezado_tiene_ordenes %}
+                    <a class="btn btn-outline-secondary rounded-pill px-4" target="_blank" rel="noopener"
+                       href="{{ url_for('inventory.vista_previa_encabezado_oc', id=proveedor.id) }}">
+                        <i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>Vista previa
+                    </a>
+                    <span class="small text-muted">Usa la OC más reciente y lo último que guardaste.</span>
+                    {% elif encabezado_oc %}
+                    <span class="small text-muted">La vista previa estará disponible cuando este proveedor tenga una OC.</span>
+                    {% else %}
+                    <span class="small text-muted">Guarda el encabezado para ver la vista previa.</span>
+                    {% endif %}
+                </div>
+            </form>
+
+            {% if encabezado_oc %}
+            <hr class="my-3 border-secondary border-opacity-25">
+            <form method="POST" action="{{ url_for('inventory.eliminar_encabezado_oc', id=proveedor.id) }}"
+                  id="form_eliminar_encabezado_oc">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                    <i class="bi bi-trash me-1" aria-hidden="true"></i>Eliminar encabezado
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <template id="tpl-enc-extra">
+        {{ fila_campo({'clave': '__nuevo__', 'etiqueta': '', 'valor': '', 'activo': true, 'multilinea': false}, true) }}
+    </template>
     {% endif %}
 {% endblock %}
 
@@ -305,6 +522,102 @@ if (btnToggle) {
 const fmtOC = document.getElementById('form_eliminar_formato_oc');
 if (fmtOC) fmtOC.addEventListener('submit', function(e) {
     if (!confirm('¿Eliminar el formato de OC de este proveedor?')) e.preventDefault();
+});
+
+// ── Encabezado PDF de OC ──────────────────────────────────────────────
+(function() {
+    var form = document.getElementById('form_encabezado_oc');
+    if (!form) return;
+    var MAX_EXTRAS = {{ encabezado_max_extras | default(8) | int }};
+    var listaEnc   = document.getElementById('enc-lista-encabezado');
+    var btnAgregar = document.getElementById('enc-agregar');
+    var contador   = document.getElementById('enc-contador');
+    var tpl        = document.getElementById('tpl-enc-extra');
+    var seqNuevo   = 0;
+    var ultimoValor = null;
+
+    function esMultilinea(fila) {
+        var chk = fila.querySelector('[data-campo="multilinea"]');
+        return chk && chk.checked;
+    }
+
+    function actualizarContador() {
+        var n = listaEnc.querySelectorAll('.enc-campo[data-extra]').length;
+        contador.textContent = n + ' de ' + MAX_EXTRAS + ' campos propios';
+        btnAgregar.disabled = n >= MAX_EXTRAS;
+    }
+
+    form.addEventListener('change', function(e) {
+        var fila = e.target.closest('.enc-campo');
+        if (!fila) return;
+        var campo = e.target.getAttribute('data-campo');
+        if (campo === 'activo') fila.classList.toggle('is-off', !e.target.checked);
+        if (campo === 'multilinea') fila.querySelector('[data-campo="valor"]').rows = e.target.checked ? 3 : 1;
+    });
+
+    form.addEventListener('click', function(e) {
+        var mover = e.target.closest('[data-mover]');
+        if (mover) {
+            var fila = mover.closest('.enc-campo');
+            if (mover.getAttribute('data-mover') === '-1' && fila.previousElementSibling) {
+                fila.parentNode.insertBefore(fila, fila.previousElementSibling);
+            } else if (mover.getAttribute('data-mover') === '1' && fila.nextElementSibling) {
+                fila.parentNode.insertBefore(fila.nextElementSibling, fila);
+            }
+            mover.focus();
+            return;
+        }
+        var quitar = e.target.closest('[data-quitar]');
+        if (quitar) {
+            quitar.closest('.enc-campo').remove();
+            actualizarContador();
+            btnAgregar.focus();
+            return;
+        }
+        var chip = e.target.closest('[data-token]');
+        if (chip) {
+            var destino = ultimoValor && document.body.contains(ultimoValor) ? ultimoValor : null;
+            if (!destino) return;
+            var token = chip.getAttribute('data-token');
+            var ini = destino.selectionStart, fin = destino.selectionEnd;
+            destino.value = destino.value.slice(0, ini) + token + destino.value.slice(fin);
+            destino.focus();
+            destino.selectionStart = destino.selectionEnd = ini + token.length;
+        }
+    });
+
+    form.addEventListener('focusin', function(e) {
+        if (e.target.getAttribute('data-campo') === 'valor') ultimoValor = e.target;
+    });
+
+    // Campos de una línea: Enter no inserta salto.
+    form.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' || e.target.getAttribute('data-campo') !== 'valor') return;
+        if (!esMultilinea(e.target.closest('.enc-campo'))) e.preventDefault();
+    });
+
+    btnAgregar.addEventListener('click', function() {
+        if (listaEnc.querySelectorAll('.enc-campo[data-extra]').length >= MAX_EXTRAS) return;
+        var clave = 'nuevo_' + (++seqNuevo);
+        var fila = tpl.content.firstElementChild.cloneNode(true);
+        fila.querySelectorAll('[name],[id],[for]').forEach(function(el) {
+            ['name', 'id', 'for'].forEach(function(attr) {
+                var v = el.getAttribute(attr);
+                if (v) el.setAttribute(attr, v.replace('__nuevo__', clave));
+            });
+        });
+        fila.querySelector('input[name="campo_clave[]"]').value = clave;
+        listaEnc.appendChild(fila);
+        actualizarContador();
+        fila.querySelector('[data-campo="etiqueta"]').focus();
+    });
+
+    actualizarContador();
+})();
+
+const delEnc = document.getElementById('form_eliminar_encabezado_oc');
+if (delEnc) delEnc.addEventListener('submit', function(e) {
+    if (!confirm('¿Eliminar el encabezado de OC de este proveedor? Sus PDF volverán al formato normal.')) e.preventDefault();
 });
 </script>
 {% endblock %}

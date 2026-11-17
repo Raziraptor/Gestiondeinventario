@@ -156,6 +156,19 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - Form envía `name="item" value="prod_id:alm_id"` por checkbox (ya no `producto_id` + `almacen_id` oculto).
 - **Correr en servidor**: `flask fix-oc-detalle-almacen && sudo systemctl restart inventario`
 
+## Encabezado PDF de OC por proveedor
+- Modelo `EncabezadoOCProveedor` (tabla `encabezado_oc_proveedor`): unique(proveedor, org), backref `Proveedor.encabezado_oc`.
+  `campos` JSON = `[{clave, etiqueta, valor, activo, multilinea, seccion: 'encabezado'|'pie'}]`.
+- Lógica en `integrations/encabezado_oc.py`: `CAMPOS_PLANTILLA` (plantilla PC Trade), `normalizar_campos(form, actuales)`,
+  placeholders en lista blanca con `str.replace` (`{id} {consecutivo} {fecha} {proveedor} {telefono} {email} {almacen}`),
+  `CamposFormulario` (Flowable con campos AcroForm editables, `relative=True`), `construir_membrete` (respaldo: datos de la org).
+- **GOTCHA AcroForm**: los valores usan Helvetica/WinAnsi. Caracteres fuera de Latin-1 (`—`, `“`) truenan reportlab, así que pasarlos siempre por `_latin1()`.
+- PDF: `_construir_pdf_oc(orden, forzar_encabezado=False)` en purchasing. Sin encabezado activo, el PDF queda idéntico al anterior. Solo aplica a OC estándar (proyecto no).
+- Rutas (admin + `perm_edit_management`): `POST /proveedor/<id>/encabezado-oc`, `POST .../eliminar`, `GET .../vista-previa`.
+  Logos en `UPLOAD_FOLDER/encabezados/`.
+- Form: `campo_clave[]` define el orden; por clave: `etiqueta_<c>`, `valor_<c>`, `activo_<c>`, `multilinea_<c>`. Extras nuevos `nuevo_N` → el servidor asigna `extra_N`.
+- **Correr en servidor**: `flask add-encabezado-oc-table && sudo systemctl restart inventario`
+
 ## Estado actual
 - FIN-01 ✅ — RATE-01 ✅ — AUTH-02 ✅ — Multi-tenant isolation ✅ (commits 0db5e87, 4d63d06)
 - HD Pro Quick Order ✅ Fase 1 (CSV) + Fase 2 (sesión persistente) — commits 49ccf47–89900fa.
