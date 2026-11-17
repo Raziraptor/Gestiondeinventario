@@ -344,16 +344,19 @@
                                  alt="Logo actual del encabezado" class="enc-logo border rounded-2 p-1 bg-white">
                             <div class="form-check m-0">
                                 <input class="form-check-input" type="checkbox" id="enc_quitar_logo" name="enc_quitar_logo" value="1">
-                                <label class="form-check-label small" for="enc_quitar_logo">Quitar logo</label>
+                                <label class="form-check-label small" for="enc_quitar_logo">Quitar y volver al membrete predeterminado</label>
                             </div>
                         </div>
+                        {% else %}
+                        <img src="{{ url_for('static', filename='img/membrete_oc_predeterminado.jpg') }}"
+                             alt="Membrete predeterminado de la plantilla" class="enc-logo border rounded-2 p-1 bg-white mb-2">
                         {% endif %}
                         <input type="file" class="form-control form-control-sm" id="enc_logo" name="enc_logo"
                                accept="image/png,image/jpeg,image/gif" aria-describedby="enc_logo_ayuda">
                         <div class="form-text text-muted" id="enc_logo_ayuda">
                             PNG, JPG o GIF.
                             {% if not (encabezado_oc and encabezado_oc.logo_url) %}
-                            {{ 'Sin logo se usa el de la organización.' if org_p and org_p.logo_url else 'Opcional.' }}
+                            Se usa el membrete de la plantilla; sube una imagen para reemplazarlo.
                             {% endif %}
                         </div>
                     </div>
@@ -364,7 +367,11 @@
                                placeholder="{{ (org_p.header_titulo or org_p.nombre) if org_p else 'Razón social' }}">
                         <label for="enc_subtitulo" class="form-label fw-semibold mt-3">Dirección y RFC</label>
                         <textarea class="form-control" id="enc_subtitulo" name="enc_subtitulo" rows="2" maxlength="500"
+                                  aria-describedby="enc_titulo_ayuda"
                                   placeholder="{{ org_subtitulo or 'Calle, colonia, ciudad | RFC' }}">{{ encabezado_oc.subtitulo or '' if encabezado_oc else '' }}</textarea>
+                        <div class="form-text text-muted" id="enc_titulo_ayuda">
+                            Título y dirección solo se imprimen con un logo propio; el membrete predeterminado ya los incluye.
+                        </div>
                     </div>
                     <div class="col-12">
                         <label for="enc_facturar_a" class="form-label fw-semibold">Enviar factura a</label>

@@ -242,6 +242,18 @@ class TestPdfOC:
         assert b'enc_no_cuenta' in r.data and b'enc_firma' in r.data
         assert b'enc_fecha_entrega' not in r.data
 
+    def test_sin_logo_propio_usa_membrete_de_plantilla(self, client, admin_user, org):
+        import os
+        from integrations.encabezado_oc import MEMBRETE_PREDETERMINADO_PATH
+        assert os.path.isfile(MEMBRETE_PREDETERMINADO_PATH)
+        prv, orden = self._orden(org, admin_user)
+        do_login(client, admin_user.username)
+        # La org de prueba no tiene logo: sin encabezado el PDF no trae imágenes.
+        assert b'/Subtype /Image' not in client.get(f'/orden/{orden.id}/pdf').data
+        _guardar(client, prv.id)
+        assert EncabezadoOCProveedor.query.one().logo_url is None
+        assert b'/Subtype /Image' in client.get(f'/orden/{orden.id}/pdf').data
+
     def test_encabezado_inactivo_no_se_usa_pero_vista_previa_si(self, client, admin_user, org):
         prv, orden = self._orden(org, admin_user)
         do_login(client, admin_user.username)

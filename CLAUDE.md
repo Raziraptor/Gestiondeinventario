@@ -161,7 +161,7 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
   `campos` JSON = `[{clave, etiqueta, valor, activo, multilinea, seccion: 'encabezado'|'pie'}]`.
 - Lógica en `integrations/encabezado_oc.py`: `CAMPOS_PLANTILLA` (plantilla PC Trade), `normalizar_campos(form, actuales)`,
   placeholders en lista blanca con `str.replace` (`{id} {consecutivo} {fecha} {proveedor} {telefono} {email} {almacen}`),
-  `CamposFormulario` (Flowable con campos AcroForm editables, `relative=True`), `construir_membrete` (respaldo: datos de la org).
+  `CamposFormulario` (Flowable con campos AcroForm editables, `relative=True`), `construir_membrete` (sin logo propio usa `static/img/membrete_oc_predeterminado.jpg`, el membrete de la plantilla que ya incluye razón social y dirección/RFC, y omite título/subtítulo; con logo propio usa título/subtítulo con respaldo de la org).
 - **GOTCHA AcroForm**: los valores usan Helvetica/WinAnsi. Caracteres fuera de Latin-1 (`—`, `“`) truenan reportlab, así que pasarlos siempre por `_latin1()`.
 - PDF: `_construir_pdf_oc(orden, forzar_encabezado=False)` en purchasing. Sin encabezado activo, el PDF queda idéntico al anterior. Solo aplica a OC estándar (proyecto no).
 - Rutas (admin + `perm_edit_management`): `POST /proveedor/<id>/encabezado-oc`, `POST .../eliminar`, `GET .../vista-previa`.

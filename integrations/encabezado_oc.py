@@ -3,7 +3,8 @@ Encabezado personalizado del PDF de OC por proveedor.
 
 Cada proveedor puede tener un EncabezadoOCProveedor con:
   - Membrete propio (logo, título, línea de dirección/RFC, correos de factura).
-    Lo que quede vacío se toma de la organización.
+    Sin logo propio se usa el membrete de la plantilla; lo demás vacío se toma
+    de la organización.
   - Campos del formulario de la plantilla (activables, renombrables, con valor
     predeterminado) + campos extra propios.
 
@@ -22,6 +23,12 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import (
     Flowable, Paragraph, Table, TableStyle, Spacer, Image as ReportLabImage,
 )
+
+# Membrete de la plantilla original (logo + razón social + dirección/RFC en una
+# sola imagen). Se imprime cuando el proveedor no tiene logo propio.
+MEMBRETE_PREDETERMINADO = 'img/membrete_oc_predeterminado.jpg'   # relativo a static/
+MEMBRETE_PREDETERMINADO_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', MEMBRETE_PREDETERMINADO)
 
 # ── Catálogo de campos de la plantilla ────────────────────────────────────────
 # seccion 'encabezado' = cuadrícula arriba de la tabla; 'pie' = debajo del total.
@@ -175,6 +182,18 @@ def resolver_valor(texto: str, contexto: dict[str, str]) -> str:
 
 # ── PDF: membrete ─────────────────────────────────────────────────────────────
 
+def _imagen(path: str, max_w: float, max_h: float):
+    """Imagen escalada para caber en max_w × max_h, o None si no se puede leer."""
+    try:
+        img = ReportLabImage(path)
+        escala = min(max_w / img.imageWidth, max_h / img.imageHeight)
+        img.drawWidth, img.drawHeight = img.imageWidth * escala, img.imageHeight * escala
+        return img
+    except Exception as e:                       # imagen corrupta: PDF sin logo
+        _log.warning('No se pudo cargar la imagen %s para el PDF de OC: %s', path, e)
+        return None
+
+
 def _cargar_logo(upload_folder: str, rel_path: str | None, max_h: float):
     if not rel_path:
         return None
@@ -182,17 +201,7 @@ def _cargar_logo(upload_folder: str, rel_path: str | None, max_h: float):
     path = os.path.realpath(os.path.join(base, rel_path))
     if not path.startswith(base + os.sep) or not os.path.exists(path):
         return None
-    try:
-        img = ReportLabImage(path)
-        img.drawHeight = max_h
-        img.drawWidth  = max_h * (img.imageWidth / float(img.imageHeight))
-        if img.drawWidth > 1.6 * inch:            # logos muy anchos
-            img.drawWidth  = 1.6 * inch
-            img.drawHeight = img.drawWidth * (img.imageHeight / float(img.imageWidth))
-        return img
-    except Exception as e:                       # imagen corrupta: PDF sin logo
-        _log.warning('No se pudo cargar el logo %s para el PDF de OC: %s', path, e)
-        return None
+    return _imagen(path, 1.6 * inch, max_h)
 
 
 def _parrafo_multilinea(texto: str, estilo) -> Paragraph:
@@ -200,39 +209,45 @@ def _parrafo_multilinea(texto: str, estilo) -> Paragraph:
 
 
 def construir_membrete(story, enc, org, upload_folder, fuente, fuente_bold, c_pri, ancho):
-    """Membrete: título + subtítulo | logo | ENVIAR FACTURA A. Respaldo: datos de la org."""
-    titulo = enc.titulo or org.header_titulo or org.nombre or ''
-    if enc.subtitulo:
-        subtitulo = enc.subtitulo
-    else:
-        partes = [p for p in (org.direccion, f'RFC: {org.rfc}' if org.rfc else None) if p]
-        subtitulo = ' | '.join(partes)
+    """Membrete: título + subtítulo | logo | ENVIAR FACTURA A. Respaldo: datos de la org.
+
+    Sin logo propio se usa el membrete de la plantilla (MEMBRETE_PREDETERMINADO),
+    que ya trae nombre, dirección y RFC; por eso entonces no se imprimen título
+    ni subtítulo.
+    """
     facturar_a = enc.facturar_a or org.correo_empresa or ''
-
-    s_titulo = ParagraphStyle('_EncTit', fontName=fuente_bold, fontSize=17, leading=20, textColor=c_pri)
-    s_sub    = ParagraphStyle('_EncSub', fontName=fuente, fontSize=7, leading=9,
-                              textColor=colors.HexColor('#5b7a99'))
-    s_flbl   = ParagraphStyle('_EncFL', fontName=fuente_bold, fontSize=7.5, leading=10,
-                              textColor=colors.HexColor('#1f4e5f'), alignment=1)
-    s_fval   = ParagraphStyle('_EncFV', fontName=fuente_bold, fontSize=8, leading=11, alignment=1)
-
-    col_titulo = [Paragraph(_xml_escape(titulo), s_titulo)]
-    if subtitulo:
-        col_titulo += [Spacer(1, 3), _parrafo_multilinea(subtitulo, s_sub)]
-
+    s_flbl = ParagraphStyle('_EncFL', fontName=fuente_bold, fontSize=7.5, leading=10,
+                            textColor=colors.HexColor('#1f4e5f'), alignment=1)
+    s_fval = ParagraphStyle('_EncFV', fontName=fuente_bold, fontSize=8, leading=11, alignment=1)
     col_factura = []
     if facturar_a:
         col_factura = [Paragraph('ENVIAR FACTURA A', s_flbl), Spacer(1, 2),
                        _parrafo_multilinea(facturar_a, s_fval)]
+    w_fac = 2.0 * inch if col_factura else 0
 
-    logo = _cargar_logo(upload_folder, enc.logo_url or org.logo_url, 0.8 * inch)
-    w_fac  = 2.0 * inch if col_factura else 0
-    w_logo = (logo.drawWidth + 0.15 * inch) if logo else 0
-    w_tit  = ancho - w_fac - w_logo
-
-    fila, anchos = [col_titulo], [w_tit]
-    if logo:
-        fila.append(logo); anchos.append(w_logo)
+    logo = _cargar_logo(upload_folder, enc.logo_url, 0.8 * inch)
+    membrete = None if logo else _imagen(MEMBRETE_PREDETERMINADO_PATH, ancho - w_fac - 0.1 * inch,
+                                         1.1 * inch)
+    if membrete:
+        fila, anchos = [membrete], [ancho - w_fac]
+    else:
+        titulo = enc.titulo or org.header_titulo or org.nombre or ''
+        if enc.subtitulo:
+            subtitulo = enc.subtitulo
+        else:
+            partes = [p for p in (org.direccion, f'RFC: {org.rfc}' if org.rfc else None) if p]
+            subtitulo = ' | '.join(partes)
+        s_titulo = ParagraphStyle('_EncTit', fontName=fuente_bold, fontSize=17, leading=20,
+                                  textColor=c_pri)
+        s_sub = ParagraphStyle('_EncSub', fontName=fuente, fontSize=7, leading=9,
+                               textColor=colors.HexColor('#5b7a99'))
+        col_titulo = [Paragraph(_xml_escape(titulo), s_titulo)]
+        if subtitulo:
+            col_titulo += [Spacer(1, 3), _parrafo_multilinea(subtitulo, s_sub)]
+        w_logo = (logo.drawWidth + 0.15 * inch) if logo else 0
+        fila, anchos = [col_titulo], [ancho - w_fac - w_logo]
+        if logo:
+            fila.append(logo); anchos.append(w_logo)
     if col_factura:
         fila.append(col_factura); anchos.append(w_fac)
 
