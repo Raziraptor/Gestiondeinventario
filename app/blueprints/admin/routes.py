@@ -70,6 +70,7 @@ class AdminPermissionForm(FlaskForm):
     perm_create_oc_proyecto  = BooleanField('Crear OC Proyecto')
     perm_do_salidas          = BooleanField('Registrar Salidas')
     perm_view_gastos         = BooleanField('Ver/Crear Gastos')
+    perm_crear_incidencias   = BooleanField('Crear Incidencias')
     submit                   = SubmitField('Guardar Permisos')
 
 
@@ -535,6 +536,7 @@ def admin_panel():
         form.perm_create_oc_proyecto.data = user.perm_create_oc_proyecto
         form.perm_do_salidas.data         = user.perm_do_salidas
         form.perm_view_gastos.data        = user.perm_view_gastos
+        form.perm_crear_incidencias.data  = user.perm_crear_incidencias
         forms[user.id] = form
 
     return render_template(
@@ -570,6 +572,7 @@ def update_user_permissions(user_id):
             user_to_update.perm_create_oc_proyecto = form.perm_create_oc_proyecto.data
             user_to_update.perm_do_salidas         = form.perm_do_salidas.data
             user_to_update.perm_view_gastos        = form.perm_view_gastos.data
+            user_to_update.perm_crear_incidencias  = form.perm_crear_incidencias.data
             log_actividad('editar_permisos', 'usuario',
                 f'Permisos actualizados por admin para: {user_to_update.username}',
                 entidad_id=user_to_update.id)
@@ -803,7 +806,7 @@ def api_toggle_permiso(user_id):
     PERMS_VALIDOS = {
         'perm_view_dashboard', 'perm_view_management', 'perm_edit_management',
         'perm_create_oc_standard', 'perm_create_oc_proyecto',
-        'perm_do_salidas', 'perm_view_gastos',
+        'perm_do_salidas', 'perm_view_gastos', 'perm_crear_incidencias',
     }
 
     # IDOR oracle: buscar por org ANTES del rol-check

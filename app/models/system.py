@@ -46,3 +46,20 @@ class SolicitudAprobacion(db.Model):
 
     solicitante = db.relationship('User', foreign_keys='SolicitudAprobacion.solicitante_id')
     aprobador   = db.relationship('User', foreign_keys='SolicitudAprobacion.aprobador_id')
+
+
+class Notificacion(db.Model):
+    """Notificación in-app por usuario (la campana). Push es un canal extra, no el registro."""
+    __tablename__ = 'notificacion'
+    id              = db.Column(db.Integer,     primary_key=True)
+    organizacion_id = db.Column(db.Integer,     db.ForeignKey('organizacion.id'), nullable=False)
+    user_id         = db.Column(db.Integer,     db.ForeignKey('user.id'),         nullable=False)
+    titulo          = db.Column(db.String(150), nullable=False)
+    cuerpo          = db.Column(db.String(500), nullable=False)
+    url             = db.Column(db.String(300), nullable=True)
+    leida           = db.Column(db.Boolean,     nullable=False, default=False)
+    creada_en       = db.Column(db.DateTime,    nullable=False, default=now_mx)
+
+    __table_args__ = (
+        db.Index('ix_notificacion_user_leida', 'user_id', 'leida'),
+    )

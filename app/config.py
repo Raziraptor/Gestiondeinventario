@@ -45,7 +45,7 @@ class Config:
 
     # ── Archivos ───────────────────────────────────────────────────────────────
     UPLOAD_FOLDER = os.path.join(basedir, 'static', 'uploads')
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
+    MAX_CONTENT_LENGTH = 64 * 1024 * 1024  # 64 MB: una incidencia puede llevar muchas fotos de celular
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
     # ── Cookies de sesión ──────────────────────────────────────────────────────
@@ -61,6 +61,10 @@ class Config:
 
     # ── WTF ───────────────────────────────────────────────────────────────────
     WTF_CSRF_ENABLED = True
+
+    # ── Nombre completo obligatorio en el primer acceso ───────────────────────
+    REQUIRE_NOMBRE_COMPLETO = True
+    PUSH_EN_SEGUNDO_PLANO = True  # notificar() manda el push en un hilo para no frenar la petición
 
     # ── Límite de campos de formulario ────────────────────────────────────────
     # Werkzeug 2.3+ default = 1000. OC Proyecto usa 8 campos × N artículos;
@@ -86,6 +90,8 @@ class TestingConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
+    REQUIRE_NOMBRE_COMPLETO = False  # los tests existentes crean usuarios sin nombre
+    PUSH_EN_SEGUNDO_PLANO = False    # tests deterministas: el push corre en la misma petición
     SESSION_COOKIE_SECURE = False
     REMEMBER_COOKIE_SECURE = False
     # Flask-Login: sin esto TESTING=True desactiva @login_required automáticamente

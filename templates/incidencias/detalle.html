@@ -17,8 +17,11 @@
     <div>
       <div class="d-flex align-items-center gap-2 mb-1">
         <span class="badge bg-secondary font-monospace fs-6">{{ inc.folio }}</span>
-        <span class="badge bg-{{ badge_estado(inc.estado) }}">{{ inc.estado }}</span>
+        <span class="badge bg-{{ badge_estado(inc.estado) }}">{{ etiqueta_estado(inc.estado) }}</span>
         <span class="badge bg-{{ badge_prioridad(inc.prioridad) }}">{{ inc.prioridad }}</span>
+        {% if inc.expira_en and inc.estado in ('Resuelto', 'Cerrado sin resolver') %}
+        <span class="text-danger small"><i class="ph ph-trash" aria-hidden="true"></i> Se eliminará el {{ inc.expira_en.strftime('%d/%m/%Y') }}. Descarga el PDF si lo necesitas.</span>
+        {% endif %}
       </div>
       <h2 class="fw-bold mb-1">{{ inc.titulo }}</h2>
       <p class="text-muted small mb-0">
@@ -85,28 +88,99 @@
             </div>
             {% endif %}
           </div>
+        </div>
+      </div>
 
-          {# Fotos de evidencia #}
-          {% set fotos = [] %}
-          {% if inc.foto1_path %}{% do fotos.append((inc.foto1_path, inc.foto1_desc)) %}{% endif %}
-          {% if inc.foto2_path %}{% do fotos.append((inc.foto2_path, inc.foto2_desc)) %}{% endif %}
-          {% if inc.foto3_path %}{% do fotos.append((inc.foto3_path, inc.foto3_desc)) %}{% endif %}
-          {% if fotos %}
-          <h6 class="fw-semibold text-uppercase text-muted mt-3 mb-2" style="font-size:.75rem;letter-spacing:.05em;">
-            <i class="ph ph-image me-1" aria-hidden="true"></i>Evidencia fotográfica
+      {# Pendientes #}
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
+            <i class="ph ph-list-checks me-1" aria-hidden="true"></i>Pendientes
           </h6>
-          <div class="row g-2">
-            {% for ruta, desc in fotos %}
-            <div class="col-md-4">
-              <img src="{{ url_for('static', filename=ruta) }}" data-zoomable
-                   alt="{{ desc or 'Foto de evidencia' }}"
-                   class="img-fluid rounded" loading="lazy"
-                   style="height:150px; width:100%; object-fit:cover;">
-              {% if desc %}<div class="text-muted small mt-1">{{ desc }}</div>{% endif %}
+          {% for p in pendientes %}
+          <div class="border rounded-3 p-3 mb-3" id="pendiente-{{ p.id }}">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <div class="fw-semibold" style="white-space:pre-wrap;">{{ p.descripcion }}</div>
+              <span class="badge rounded-pill text-bg-light border flex-shrink-0">{{ p.departamento.nombre if p.departamento else 'Sin departamento' }}</span>
             </div>
-            {% endfor %}
+            <div class="progress mb-2" style="height:6px;border-radius:4px;">
+              <div class="progress-bar" role="progressbar" style="width:{{ p.progreso }}%"
+                   aria-valuenow="{{ p.progreso }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            {% if p.fotos %}
+            <div class="row g-2">
+              {% for f in p.fotos %}
+              <div class="col-6 col-md-4">
+                <img src="{{ url_for('static', filename=f.path) }}" alt="{{ f.descripcion or 'Foto del pendiente ' ~ loop.index }}"
+                     loading="lazy" data-zoomable class="img-fluid rounded"
+                     style="height:120px; width:100%; object-fit:cover;">
+                {% if f.descripcion %}<div class="text-muted small mt-1">{{ f.descripcion }}</div>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-muted small">Sin fotos</div>
+            {% endif %}
+            {% if p.avances %}
+            <ul class="list-unstyled small mt-2 mb-0">
+              {% for a in p.avances %}
+              <li><span class="fw-semibold">{{ a.porcentaje }}%</span> — {{ a.texto }}</li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+            {% if puede_avanzar(p) and not cerrada %}
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('incidents.agregar_avance', id=inc.id) }}"
+                  class="mt-3 border-top pt-3">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="pendiente_id" value="{{ p.id }}">
+              <div class="mb-2">
+                <label class="form-label small fw-semibold" for="texto-{{ p.id }}">Avance</label>
+                <textarea id="texto-{{ p.id }}" name="texto_avance" class="form-control" rows="2" required
+                          placeholder="Describe el avance, acción tomada o situación actual…"></textarea>
+              </div>
+              <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                  <label class="form-label small fw-semibold" for="pct-{{ p.id }}">Progreso (%)</label>
+                  <input type="number" id="pct-{{ p.id }}" name="porcentaje" min="0" max="100" value="{{ p.progreso }}"
+                         class="form-control form-control-sm">
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label small fw-semibold" for="foto-{{ p.id }}">Foto de avance (opcional)</label>
+                  <input type="file" id="foto-{{ p.id }}" name="foto_avance" class="form-control form-control-sm"
+                         accept="image/png,image/jpeg,image/gif,image/webp">
+                </div>
+                <div class="col-md-3">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="conc-{{ p.id }}" name="concluido">
+                    <label class="form-check-label small fw-semibold text-success" for="conc-{{ p.id }}">Marcar como concluido</label>
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm mt-2 px-4">
+                <i class="ph ph-paper-plane-tilt me-1" aria-hidden="true"></i>Registrar avance
+              </button>
+            </form>
+            {% endif %}
+            {% if es_editor %}
+            <form method="post" action="{{ url_for('incidents.asignar_departamento_pendiente', id=inc.id, pid=p.id) }}"
+                  class="mt-3 d-flex gap-2 align-items-end">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="flex-grow-1">
+                <label class="form-label small fw-semibold mb-1" for="dep-{{ p.id }}">Departamento</label>
+                <select id="dep-{{ p.id }}" name="departamento_id" class="form-select form-select-sm">
+                  <option value="">Sin departamento</option>
+                  {% for d in departamentos %}
+                  <option value="{{ d.id }}" {% if d.id == p.departamento_id %}selected{% endif %}>{{ d.nombre }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Asignar</button>
+            </form>
+            {% endif %}
           </div>
-          {% endif %}
+          {% else %}
+          <p class="text-muted small mb-0">Esta incidencia no tiene pendientes.</p>
+          {% endfor %}
         </div>
       </div>
 
@@ -151,48 +225,6 @@
           {% endif %}
         </div>
       </div>
-
-      {# Formulario de nuevo avance #}
-      {% if inc.estado not in ('Resuelto', 'Cerrado sin resolver') %}
-      <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-body p-4">
-          <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
-            <i class="ph ph-plus-circle me-1" aria-hidden="true"></i>Registrar avance
-          </h6>
-          <form method="post" action="{{ url_for('incidents.agregar_avance', id=inc.id) }}"
-                enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="mb-3">
-              <textarea name="texto_avance" class="form-control" rows="3" required
-                        placeholder="Describe el avance, acción tomada, o situación actual…"></textarea>
-            </div>
-            <div class="row g-3 mb-3">
-              <div class="col-md-5">
-                <label class="form-label small fw-semibold">Progreso total (%)</label>
-                <input type="number" name="porcentaje" class="form-control form-control-sm"
-                       min="0" max="100" value="{{ inc.progreso }}" placeholder="0–100">
-              </div>
-              <div class="col-md-4">
-                <label class="form-label small fw-semibold">Foto de avance (opcional)</label>
-                <input type="file" name="foto_avance" class="form-control form-control-sm"
-                       accept=".png,.jpg,.jpeg,.gif,.webp">
-              </div>
-              <div class="col-md-3 d-flex align-items-end pb-1">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="concluido" name="concluido">
-                  <label class="form-check-label small fw-semibold text-success" for="concluido">
-                    Marcar como concluida
-                  </label>
-                </div>
-              </div>
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm px-4">
-              <i class="ph ph-paper-plane-tilt me-1" aria-hidden="true"></i>Registrar avance
-            </button>
-          </form>
-        </div>
-      </div>
-      {% endif %}
 
       {# Acciones correctivas #}
       {% if acciones %}
@@ -290,9 +322,10 @@
           <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
             Estado actual
           </h6>
+          {% if es_editor %}
           <div class="mb-3">
             <div class="d-flex justify-content-between mb-1">
-              <span class="small text-muted">Progreso</span>
+              <span class="small text-muted">Progreso global</span>
               <span class="small fw-bold">{{ inc.progreso }}%</span>
             </div>
             <div class="progress" style="height:8px;border-radius:6px;">
@@ -300,18 +333,49 @@
                    style="width:{{ inc.progreso }}%"
                    aria-valuenow="{{ inc.progreso }}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
+            {% for d, prog in por_departamento %}
+            <div class="mt-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="small text-muted">{{ d.nombre }}</span>
+                <span class="small fw-bold">{{ prog }}%</span>
+              </div>
+              <div class="progress" style="height:6px;border-radius:6px;">
+                <div class="progress-bar bg-info" role="progressbar" style="width:{{ prog }}%"
+                     aria-valuenow="{{ prog }}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+            {% endfor %}
           </div>
+          {% else %}
           <div class="mb-3">
-            <span class="badge bg-{{ badge_estado(inc.estado) }} fs-6 px-3 py-2">{{ inc.estado }}</span>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="small text-muted">Avance de tu parte</span>
+              <span class="small fw-bold">{{ progreso_propio }}%</span>
+            </div>
+            <div class="progress" style="height:8px;border-radius:6px;">
+              <div class="progress-bar" role="progressbar"
+                   style="width:{{ progreso_propio }}%"
+                   aria-valuenow="{{ progreso_propio }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
           </div>
+          {% endif %}
+          <div class="mb-3">
+            <span class="badge bg-{{ badge_estado(inc.estado) }} fs-6 px-3 py-2">{{ etiqueta_estado(inc.estado) }}</span>
+          </div>
+          {% if es_editor and inc.estado in ('Resuelto', 'Cerrado sin resolver') %}
+          <button type="button" class="btn btn-outline-success btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#modalReabrir">
+            <i class="ph ph-arrow-counter-clockwise me-1" aria-hidden="true"></i>Reabrir
+          </button>
+          {% endif %}
           {% if es_admin %}
           <form method="post" action="{{ url_for('incidents.cambiar_estado', id=inc.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label class="form-label small fw-semibold">Cambiar estado</label>
             <div class="input-group input-group-sm">
               <select name="nuevo_estado" class="form-select">
-                {% for e in estados %}
-                <option value="{{ e }}" {% if e == inc.estado %}selected{% endif %}>{{ e }}</option>
+                {% if inc.estado not in estados_manuales %}<option value="" selected disabled>{{ etiqueta_estado(inc.estado) }}</option>{% endif %}
+                {% for e in estados_manuales %}
+                <option value="{{ e }}" {% if e == inc.estado %}selected{% endif %}>{{ etiqueta_estado(e) }}</option>
                 {% endfor %}
               </select>
               <button type="submit" class="btn btn-outline-primary">
@@ -360,7 +424,7 @@
       {% endif %}
 
       {# Cierre del reporte #}
-      {% if inc.estado_final or inc.fecha_cierre or inc.comentarios_cierre %}
+      {% if inc.estado_final or inc.fecha_cierre or inc.comentarios_cierre or inc.firma_reporto or inc.firma_responsable or inc.firma_vobo %}
       <div class="card border-0 shadow-sm rounded-4 mb-4 border-success">
         <div class="card-body p-4">
           <h6 class="fw-semibold text-uppercase text-muted mb-3" style="font-size:.75rem;letter-spacing:.05em;">
@@ -417,6 +481,53 @@
   </div><!-- /row -->
 
 </div>
+{% endblock %}
+{% block modals %}
+{% if es_editor and inc.estado in ('Resuelto', 'Cerrado sin resolver') %}
+<div class="modal fade" id="modalReabrir" tabindex="-1" aria-labelledby="modalReabrirTitulo" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{{ url_for('incidents.reabrir', id=inc.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="modalReabrirTitulo">Reabrir {{ inc.folio }}</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          {% if inc.estado == 'Resuelto' %}
+          <fieldset class="mb-3">
+            <legend class="fs-6 fw-semibold">Pendientes que vuelven a 0%</legend>
+            {% for p in pendientes %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="reabrir_pendiente[]" value="{{ p.id }}" id="reab-{{ p.id }}">
+              <label class="form-check-label" for="reab-{{ p.id }}">{{ p.descripcion | truncate(80, True) }}</label>
+            </div>
+            {% endfor %}
+          </fieldset>
+          <div class="mb-3">
+            <label for="nuevo-pend-desc" class="form-label fw-semibold">Agregar un pendiente nuevo (opcional)</label>
+            <textarea id="nuevo-pend-desc" name="nuevo_pendiente_descripcion" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="mb-1">
+            <label for="nuevo-pend-dep" class="form-label fw-semibold">Departamento del pendiente nuevo</label>
+            <select id="nuevo-pend-dep" name="nuevo_pendiente_departamento" class="form-select">
+              <option value="">Sin departamento</option>
+              {% for d in departamentos %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}
+            </select>
+          </div>
+          {% else %}
+          <p class="mb-0">La incidencia volverá a "En proceso" y se cancela su cuenta regresiva de eliminación.</p>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Reabrir</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ csp_nonce() }}">

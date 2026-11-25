@@ -13,15 +13,26 @@ from flask_login import current_user, login_required
 from . import incidents_bp
 from app.extensions import db
 from app.helpers import (
-    _flash_err, admin_required, check_org_permission, log_actividad, now_mx,
+    _flash_err, admin_required, check_org_permission, check_permission, log_actividad, now_mx,
     verify_image_bytes,
 )
 from app.models import AuditLog
 from app.models.auth import User
 from app.models.incidencias import (
     _ESTADOS, _ESTADOS_CIERRE, _PRIORIDADES, _SEVERIDADES, _TIPOS_INCIDENCIA,
-    Incidencia, IncidenciaAccion, IncidenciaAvance, IncidenciaCosto,
+    Departamento, Incidencia, IncidenciaAccion, IncidenciaAvance, IncidenciaCosto,
+    Pendiente, PendienteFoto,
 )
+from app.services.departamentos import departamento_valido
+from app.services.incidencias import (
+    ESTADOS_MANUALES, ESTADOS_SIN_AVANCE, aplicar_estado_manual, progreso_departamento,
+    recalcular_incidencia, reabrir_incidencia, registrar_avance, ruta_absoluta_foto,
+)
+from app.services.incidencias_acceso import (
+    pendientes_visibles, progreso_para, puede_avanzar, puede_crear, puede_editar, puede_ver, query_visibles,
+)
+from app.services.incidencias_retencion import borrar_archivos, rutas_fotos
+from app.services.notifications import notificar_asignacion, notificar_eventos
 
 _EXTENSIONES_FOTO = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 _RE_FOLIO = re.compile(r'[^\w\-]')
@@ -41,7 +52,7 @@ def _guardar_foto_incidencia(file_storage, org_id: int):
         return None
     ext = file_storage.filename.rsplit('.', 1)[1].lower()
     nombre = f'{uuid.uuid4().hex}.{ext}'
-    folder = os.path.join(current_app.root_path, '..', 'static', 'uploads', 'incidencias', str(org_id))
+    folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'incidencias', str(org_id))
     os.makedirs(folder, exist_ok=True)
     file_storage.save(os.path.join(folder, nombre))
     return f'uploads/incidencias/{org_id}/{nombre}'
@@ -79,14 +90,122 @@ def _badge_estado(e: str) -> str:
     }.get(e, 'secondary')
 
 
+_RE_UID = re.compile(r'[np]\d{1,9}')
+_MSG_RECHAZADAS = '{n} archivo(s) no se guardaron: solo se aceptan imágenes PNG, JPG, GIF o WEBP.'
+
+
+def _departamentos_org(org_id):
+    return Departamento.query.filter_by(organizacion_id=org_id, activo=True).order_by(Departamento.nombre).all()
+
+
+def _render_form(inc=None):
+    """Un solo render del formulario para alta, edición y caminos de error."""
+    return render_template(
+        'incidencias/form.html',
+        inc=inc,
+        acciones=inc.acciones.all() if inc else [],
+        costos=inc.costos.all() if inc else [],
+        pendientes=list(inc.pendientes) if inc else [],
+        departamentos=_departamentos_org(current_user.organizacion_id),
+        tipos=_TIPOS_INCIDENCIA,
+        prioridades=_PRIORIDADES,
+        severidades=_SEVERIDADES,
+        estados_cierre=_ESTADOS_CIERRE,
+        es_admin=current_user.rol in ('admin', 'super_admin'),
+        titulo_pagina=f'Editar — {inc.folio}' if inc else 'Nueva Incidencia',
+    )
+
+
+def _leer_pendientes_form(org_id):
+    """Filas del formulario en orden: [{'uid', 'descripcion', 'departamento_id'}] y errores."""
+    uids = request.form.getlist('pendiente_uid[]')
+    descs = request.form.getlist('pendiente_descripcion[]')
+    deps = request.form.getlist('pendiente_departamento[]')
+    filas, errores = [], []
+    for i, uid in enumerate(uids):
+        uid = uid.strip()
+        desc = (descs[i] if i < len(descs) else '').strip()
+        dep = (deps[i] if i < len(deps) else '').strip()
+        if not _RE_UID.fullmatch(uid):
+            errores.append('Fila de pendiente inválida.')
+            continue
+        if not desc:
+            continue
+        depto = departamento_valido(dep, org_id) if dep else None
+        if dep and depto is None:
+            errores.append('Departamento no válido.')
+            continue
+        filas.append({'uid': uid, 'descripcion': desc, 'departamento_id': depto.id if depto else None})
+    return filas, errores
+
+
+def _pendientes_a_quitar(inc):
+    """Pendientes de ESTA incidencia marcados con 'pendiente_eliminar[]' (los ids ajenos se ignoran)."""
+    ids = set()
+    for valor in request.form.getlist('pendiente_eliminar[]'):
+        m = re.fullmatch(r'p(\d{1,9})', valor.strip())
+        if m:
+            ids.add(int(m.group(1)))
+    return [p for p in inc.pendientes if p.id in ids]
+
+
+def _guardar_fotos_pendiente(pendiente, uid, org_id):
+    """Guarda cada 'foto_<uid>[]' con su 'foto_desc_<uid>[]'. Devuelve cuántas se rechazaron."""
+    archivos = request.files.getlist(f'foto_{uid}[]')
+    descs = request.form.getlist(f'foto_desc_{uid}[]')
+    rechazadas = 0
+    for i, archivo in enumerate(archivos):
+        if not archivo or not archivo.filename:
+            continue
+        ruta = _guardar_foto_incidencia(archivo, org_id)
+        if not ruta:
+            rechazadas += 1
+            continue
+        desc = (descs[i] if i < len(descs) else '').strip()[:300] or None
+        pendiente.fotos.append(PendienteFoto(path=ruta, descripcion=desc))
+    return rechazadas
+
+
+def _aplicar_pendientes(inc, filas, org_id):
+    """Crea o actualiza pendientes. Devuelve (pendientes recién asignados a un depto, fotos rechazadas)."""
+    existentes = {f'p{p.id}': p for p in inc.pendientes}
+    asignados, rechazadas = [], 0
+    for orden, fila in enumerate(filas):
+        p = existentes.get(fila['uid'])
+        if p is None:
+            if fila['uid'].startswith('p'):
+                continue  # id ajeno a esta incidencia: se ignora
+            p = Pendiente(descripcion=fila['descripcion'], orden=orden, progreso=0,
+                          departamento_id=fila['departamento_id'])
+            inc.pendientes.append(p)
+            if p.departamento_id:
+                asignados.append(p)
+        else:
+            if fila['departamento_id'] and fila['departamento_id'] != p.departamento_id:
+                asignados.append(p)
+            p.descripcion, p.orden, p.departamento_id = fila['descripcion'], orden, fila['departamento_id']
+        rechazadas += _guardar_fotos_pendiente(p, fila['uid'], org_id)
+    return asignados, rechazadas
+
+
+def _incidencia_visible_or_404(id):
+    inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
+    if not puede_ver(inc, current_user):
+        abort(404)
+    return inc
+
+
+def _etiqueta_estado(e: str) -> str:
+    return 'Completado' if e == 'Resuelto' else e
+
+
 # ── Lista ──────────────────────────────────────────────────────────────────────
 
 @incidents_bp.route('/incidencias/')
 @login_required
 @check_org_permission
 def lista_incidencias():
-    org_id = current_user.organizacion_id
-    q = Incidencia.query.filter_by(organizacion_id=org_id)
+    q = query_visibles(current_user)
 
     estado    = request.args.get('estado', '')
     prioridad = request.args.get('prioridad', '')
@@ -124,6 +243,9 @@ def lista_incidencias():
         filtro_buscar=buscar,
         badge_prioridad=_badge_prioridad,
         badge_estado=_badge_estado,
+        progreso_de=lambda i: progreso_para(i, current_user),
+        puede_crear=puede_crear(current_user),
+        etiqueta_estado=_etiqueta_estado,
     )
 
 
@@ -132,20 +254,11 @@ def lista_incidencias():
 @incidents_bp.route('/incidencias/nueva', methods=['GET', 'POST'])
 @login_required
 @check_org_permission
+@check_permission('perm_crear_incidencias')
 def nueva_incidencia():
     org_id = current_user.organizacion_id
     if request.method == 'GET':
-        usuarios_org = User.query.filter_by(organizacion_id=org_id, is_active=True).order_by(User.username).all()
-        return render_template(
-            'incidencias/form.html',
-            inc=None,
-            tipos=_TIPOS_INCIDENCIA,
-            prioridades=_PRIORIDADES,
-            severidades=_SEVERIDADES,
-            titulo_pagina='Nueva Incidencia',
-            es_admin=current_user.rol in ('admin', 'super_admin'),
-            usuarios_org=usuarios_org,
-        )
+        return _render_form()
 
     # Campos obligatorios
     titulo       = request.form.get('titulo', '').strip()
@@ -176,36 +289,18 @@ def nueva_incidencia():
     if fecha_str and not fecha:
         errores.append('Formato de fecha inválido.')
 
+    filas, errores_p = _leer_pendientes_form(org_id)
+    errores += errores_p
+    if not filas:
+        errores.append('Agrega al menos un pendiente con descripción.')
+
     if errores:
         for e in errores:
             flash(e, 'danger')
-        usuarios_org = User.query.filter_by(organizacion_id=org_id, is_active=True).order_by(User.username).all()
-        return render_template(
-            'incidencias/form.html',
-            inc=None,
-            tipos=_TIPOS_INCIDENCIA,
-            prioridades=_PRIORIDADES,
-            severidades=_SEVERIDADES,
-            titulo_pagina='Nueva Incidencia',
-            es_admin=current_user.rol in ('admin', 'super_admin'),
-            usuarios_org=usuarios_org,
-        )
+        return _render_form()
 
     try:
         folio = _generar_folio(org_id)
-
-        # Asignación: usuario del sistema o manual
-        asignado_user_id = None
-        responsable_nombre = None
-        contacto_responsable = None
-        tipo_asignacion = request.form.get('tipo_asignacion', 'manual')
-        if tipo_asignacion == 'usuario':
-            uid = request.form.get('asignado_user_id', '').strip()
-            if uid:
-                asignado_user_id = int(uid)
-        else:
-            responsable_nombre   = request.form.get('responsable_nombre', '').strip() or None
-            contacto_responsable = request.form.get('contacto_responsable', '').strip() or None
 
         inc = Incidencia(
             folio=folio,
@@ -223,28 +318,14 @@ def nueva_incidencia():
             lesionados=lesionados,
             descripcion_lesionados=desc_lesionados,
             descripcion=descripcion,
-            responsable_nombre=responsable_nombre,
-            responsable_puesto=request.form.get('responsable_puesto', '').strip() or None,
-            asignado_por=current_user.username,
-            fecha_asignacion=_parse_date(request.form.get('fecha_asignacion', '')),
-            fecha_compromiso=_parse_date(request.form.get('fecha_compromiso', '')),
-            contacto_responsable=contacto_responsable,
-            asignado_user_id=asignado_user_id,
             mostrar_costos='mostrar_costos' in request.form,
             organizacion_id=org_id,
             creador_id=current_user.id,
         )
-
-        # Fotos de evidencia
-        for i in (1, 2, 3):
-            foto = request.files.get(f'foto{i}')
-            desc = request.form.get(f'foto{i}_desc', '').strip() or None
-            ruta = _guardar_foto_incidencia(foto, org_id) if foto else None
-            setattr(inc, f'foto{i}_path', ruta)
-            setattr(inc, f'foto{i}_desc', desc)
-
         db.session.add(inc)
         db.session.flush()  # obtener inc.id antes de commit
+
+        asignados, rechazadas = _aplicar_pendientes(inc, filas, org_id)
 
         # Acciones correctivas
         acciones  = request.form.getlist('accion[]')
@@ -280,22 +361,19 @@ def nueva_incidencia():
                 monto=monto,
             ))
 
+        recalcular_incidencia(inc)
         log_actividad('crear', 'incidencia', f'Incidencia {folio}: {titulo}', entidad_id=inc.id)
         db.session.commit()
-        flash(f'Incidencia {folio} creada correctamente.', 'success')
-        return redirect(url_for('incidents.ver_incidencia', id=inc.id))
-
     except Exception as exc:
         db.session.rollback()
         _flash_err('Error al crear la incidencia.', exc)
-        return render_template(
-            'incidencias/form.html',
-            inc=None,
-            tipos=_TIPOS_INCIDENCIA,
-            prioridades=_PRIORIDADES,
-            severidades=_SEVERIDADES,
-            titulo_pagina='Nueva Incidencia',
-        )
+        return _render_form()
+
+    if rechazadas:
+        flash(_MSG_RECHAZADAS.format(n=rechazadas), 'warning')
+    notificar_asignacion(inc, asignados, current_user.id)
+    flash(f'Incidencia {folio} creada correctamente.', 'success')
+    return redirect(url_for('incidents.ver_incidencia', id=inc.id))
 
 
 # ── Detalle / ticket ───────────────────────────────────────────────────────────
@@ -304,32 +382,51 @@ def nueva_incidencia():
 @login_required
 @check_org_permission
 def ver_incidencia(id):
-    inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
-    avances  = inc.avances.all()
-    acciones = inc.acciones.all()
-    costos   = inc.costos.all()
-    historial = (
-        AuditLog.query
-        .filter_by(entidad='incidencia', entidad_id=id, organizacion_id=current_user.organizacion_id)
-        .order_by(AuditLog.fecha.desc())
-        .limit(15)
-        .all()
-    )
+    inc = _incidencia_visible_or_404(id)
     es_admin = current_user.rol in ('admin', 'super_admin')
-    es_editor = es_admin or inc.creador_id == current_user.id
+    es_editor = puede_editar(inc, current_user)
+    pendientes = pendientes_visibles(inc, current_user)
+    if es_editor:
+        avances = inc.avances.all()
+        acciones = inc.acciones.all()
+        costos = inc.costos.all()
+        historial = (
+            AuditLog.query
+            .filter_by(entidad='incidencia', entidad_id=id, organizacion_id=current_user.organizacion_id)
+            .order_by(AuditLog.fecha.desc())
+            .limit(15)
+            .all()
+        )
+        vistos = {}
+        for p in pendientes:
+            if p.departamento_id and p.departamento_id not in vistos:
+                vistos[p.departamento_id] = (p.departamento, progreso_departamento(inc, p.departamento_id))
+        por_departamento = list(vistos.values())
+    else:
+        ids = {p.id for p in pendientes}
+        avances = [a for a in inc.avances if a.pendiente_id in ids]
+        acciones, costos, historial, por_departamento = [], [], [], []
     return render_template(
         'incidencias/detalle.html',
         inc=inc,
+        pendientes=pendientes,
         avances=avances,
         acciones=acciones,
         costos=costos,
         historial=historial,
+        por_departamento=por_departamento,
+        progreso_propio=progreso_para(inc, current_user),
+        puede_avanzar=lambda p: puede_avanzar(p, current_user),
+        cerrada=inc.estado in ESTADOS_SIN_AVANCE,
+        departamentos=_departamentos_org(inc.organizacion_id) if es_editor else [],
         estados=_ESTADOS,
+        estados_manuales=ESTADOS_MANUALES,
         estados_cierre=_ESTADOS_CIERRE,
         es_admin=es_admin,
         es_editor=es_editor,
         badge_prioridad=_badge_prioridad,
         badge_estado=_badge_estado,
+        etiqueta_estado=_etiqueta_estado,
     )
 
 
@@ -339,29 +436,12 @@ def ver_incidencia(id):
 @login_required
 @check_org_permission
 def editar_incidencia(id):
-    inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
-    if current_user.rol not in ('admin', 'super_admin') and inc.creador_id != current_user.id:
+    inc = _incidencia_visible_or_404(id)
+    if not puede_editar(inc, current_user):
         abort(403)
 
     if request.method == 'GET':
-        acciones = inc.acciones.all()
-        costos   = inc.costos.all()
-        usuarios_org = User.query.filter_by(
-            organizacion_id=current_user.organizacion_id, is_active=True,
-        ).order_by(User.username).all()
-        return render_template(
-            'incidencias/form.html',
-            inc=inc,
-            acciones=acciones,
-            costos=costos,
-            tipos=_TIPOS_INCIDENCIA,
-            prioridades=_PRIORIDADES,
-            severidades=_SEVERIDADES,
-            estados_cierre=_ESTADOS_CIERRE,
-            es_admin=current_user.rol in ('admin', 'super_admin'),
-            titulo_pagina=f'Editar — {inc.folio}',
-            usuarios_org=usuarios_org,
-        )
+        return _render_form(inc)
 
     # POST — actualizar
     titulo       = request.form.get('titulo', '').strip()
@@ -387,11 +467,23 @@ def editar_incidencia(id):
     if fecha_str and not fecha:
         errores.append('Fecha inválida.')
 
+    cerrada = inc.estado in ESTADOS_SIN_AVANCE
+    org_id = inc.organizacion_id
+    filas, quitar = [], []
+    if not cerrada:
+        filas, errores_p = _leer_pendientes_form(org_id)
+        errores += errores_p
+        quitar = _pendientes_a_quitar(inc)
+        quedan = [p for p in inc.pendientes if p not in quitar or p.avances]
+        if not quedan and not any(f['uid'].startswith('n') for f in filas):
+            errores.append('La incidencia debe conservar al menos un pendiente.')
+
     if errores:
         for e in errores:
             flash(e, 'danger')
         return redirect(url_for('incidents.editar_incidencia', id=id))
 
+    asignados, rechazadas, rutas_quitadas = [], 0, []
     try:
         inc.titulo        = titulo
         if fecha: inc.fecha = fecha
@@ -408,50 +500,29 @@ def editar_incidencia(id):
         inc.descripcion_lesionados = desc_les_e
         inc.descripcion   = descripcion
 
-        # Asignación — solo admin modifica
-        if current_user.rol in ('admin', 'super_admin'):
-            tipo_asig = request.form.get('tipo_asignacion', 'manual')
-            if tipo_asig == 'usuario':
-                uid = request.form.get('asignado_user_id', '').strip()
-                inc.asignado_user_id     = int(uid) if uid else None
-                inc.responsable_nombre   = None
-                inc.contacto_responsable = None
-            else:
-                inc.asignado_user_id     = None
-                inc.responsable_nombre   = request.form.get('responsable_nombre', '').strip() or None
-                inc.contacto_responsable = request.form.get('contacto_responsable', '').strip() or None
-            inc.responsable_puesto = request.form.get('responsable_puesto', '').strip() or None
-            inc.asignado_por       = current_user.username
-            inc.fecha_asignacion   = _parse_date(request.form.get('fecha_asignacion', ''))
-            inc.fecha_compromiso   = _parse_date(request.form.get('fecha_compromiso', ''))
-
         inc.causa_raiz     = request.form.get('causa_raiz', '').strip() or None
         inc.impacto        = request.form.get('impacto', '').strip() or None
         inc.mostrar_costos = 'mostrar_costos' in request.form
 
-        # Sección cierre — solo admin
-        if current_user.rol in ('admin', 'super_admin'):
-            estado_final = request.form.get('estado_final', '').strip()
-            if estado_final in _ESTADOS_CIERRE:
-                inc.estado_final       = estado_final
-                inc.estado             = estado_final
-                inc.fecha_cierre       = _parse_date(request.form.get('fecha_cierre', ''))
-                inc.comentarios_cierre = request.form.get('comentarios_cierre', '').strip() or None
-                inc.firma_reporto      = request.form.get('firma_reporto', '').strip() or None
-                inc.firma_responsable  = request.form.get('firma_responsable', '').strip() or None
-                inc.firma_vobo         = request.form.get('firma_vobo', '').strip() or None
+        # Cierre opcional: no cambia el estado (el cierre es automático)
+        inc.comentarios_cierre = request.form.get('comentarios_cierre', '').strip() or None
+        inc.firma_reporto      = request.form.get('firma_reporto', '').strip() or None
+        inc.firma_responsable  = request.form.get('firma_responsable', '').strip() or None
+        inc.firma_vobo         = request.form.get('firma_vobo', '').strip() or None
 
-        # Fotos nuevas (solo reemplaza si se sube algo)
-        org_id = inc.organizacion_id
-        for i in (1, 2, 3):
-            foto = request.files.get(f'foto{i}')
-            if foto and foto.filename:
-                ruta = _guardar_foto_incidencia(foto, org_id)
-                if ruta:
-                    setattr(inc, f'foto{i}_path', ruta)
-            desc = request.form.get(f'foto{i}_desc', '').strip()
-            if desc:
-                setattr(inc, f'foto{i}_desc', desc)
+        # Pendientes (alta, edición y baja); con la incidencia cerrada no se tocan
+        if cerrada:
+            if request.form.getlist('pendiente_uid[]') or request.form.getlist('pendiente_eliminar[]'):
+                flash('Para cambiar pendientes, reabre la incidencia.', 'info')
+        else:
+            for p in quitar:
+                if p.avances:
+                    flash(f'El pendiente {p.orden + 1} tiene avances y no se puede quitar.', 'warning')
+                else:
+                    rutas_quitadas += [f.path for f in p.fotos]
+                    inc.pendientes.remove(p)
+            asignados, rechazadas = _aplicar_pendientes(inc, filas, org_id)
+            recalcular_incidencia(inc)
 
         # Reemplazar acciones
         inc.acciones.delete()
@@ -493,11 +564,16 @@ def editar_incidencia(id):
 
         log_actividad('editar', 'incidencia', f'Incidencia {inc.folio} actualizada', entidad_id=inc.id)
         db.session.commit()
-        flash('Incidencia actualizada correctamente.', 'success')
     except Exception as exc:
         db.session.rollback()
         _flash_err('Error al actualizar la incidencia.', exc)
+        return redirect(url_for('incidents.ver_incidencia', id=id))
 
+    borrar_archivos(rutas_quitadas)  # ya sin filas: las fotos del pendiente quitado no quedan huérfanas
+    if rechazadas:
+        flash(_MSG_RECHAZADAS.format(n=rechazadas), 'warning')
+    notificar_asignacion(inc, asignados, current_user.id)
+    flash('Incidencia actualizada correctamente.', 'success')
     return redirect(url_for('incidents.ver_incidencia', id=id))
 
 
@@ -507,51 +583,77 @@ def editar_incidencia(id):
 @login_required
 @check_org_permission
 def agregar_avance(id):
-    inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
-
+    inc = _incidencia_visible_or_404(id)
+    volver = redirect(url_for('incidents.ver_incidencia', id=id))
+    pid = request.form.get('pendiente_id', '').strip()
+    if pid:
+        if not pid.isdigit():
+            abort(404)
+        pendiente = Pendiente.query.filter_by(id=int(pid), incidencia_id=inc.id).first_or_404()
+    elif len(inc.pendientes) == 1:
+        pendiente = inc.pendientes[0]
+    else:
+        flash('Elige el pendiente al que corresponde el avance.', 'danger')
+        return volver
+    if not puede_avanzar(pendiente, current_user):
+        abort(403)
+    if inc.estado in ESTADOS_SIN_AVANCE:
+        flash('La incidencia está cerrada: reábrela para registrar avances.', 'warning')
+        return volver
     texto = request.form.get('texto_avance', '').strip()
     if not texto:
         flash('El texto del avance no puede estar vacío.', 'danger')
-        return redirect(url_for('incidents.ver_incidencia', id=id))
-
+        return volver
+    archivo = request.files.get('foto_avance')
+    foto_path = _guardar_foto_incidencia(archivo, inc.organizacion_id) if archivo and archivo.filename else None
+    if archivo and archivo.filename and not foto_path:
+        flash(_MSG_RECHAZADAS.format(n=1), 'warning')
     try:
-        porcentaje = int(request.form.get('porcentaje', 0))
-        porcentaje = max(0, min(100, porcentaje))
-    except (ValueError, TypeError):
-        porcentaje = inc.progreso
-
-    concluido = 'concluido' in request.form
-
-    try:
-        foto_path = _guardar_foto_incidencia(request.files.get('foto_avance'), inc.organizacion_id)
-        avance = IncidenciaAvance(
-            incidencia_id=inc.id,
-            texto=texto,
-            porcentaje=porcentaje,
-            concluido=concluido,
-            foto_path=foto_path,
-            autor_id=current_user.id,
-        )
-        db.session.add(avance)
-
-        inc.progreso = porcentaje
-        if concluido and inc.estado not in ('Resuelto', 'Cerrado sin resolver', 'Escalado'):
-            inc.estado = 'Resuelto'
-        elif inc.estado == 'Abierto':
-            inc.estado = 'En proceso'
-
-        log_actividad(
-            'avance', 'incidencia',
-            f'{inc.folio}: avance {porcentaje}% — {"Concluido" if concluido else "En proceso"}',
-            entidad_id=inc.id,
-        )
+        _, eventos = registrar_avance(pendiente, current_user.id, texto,
+                                      request.form.get('porcentaje', 0), 'concluido' in request.form, foto_path)
+        log_actividad('avance', 'incidencia',
+                      f'{inc.folio}: avance {pendiente.progreso}% en pendiente {pendiente.orden + 1}', entidad_id=inc.id)
         db.session.commit()
         flash('Avance registrado correctamente.', 'success')
     except Exception as exc:
         db.session.rollback()
         _flash_err('Error al registrar el avance.', exc)
+        return volver
+    notificar_eventos(inc, eventos, current_user.id)
+    return volver
 
-    return redirect(url_for('incidents.ver_incidencia', id=id))
+
+@incidents_bp.route('/incidencias/<int:id>/pendientes/<int:pid>/departamento', methods=['POST'])
+@login_required
+@check_org_permission
+def asignar_departamento_pendiente(id, pid):
+    inc = _incidencia_visible_or_404(id)
+    if not puede_editar(inc, current_user):
+        abort(403)
+    pendiente = Pendiente.query.filter_by(id=pid, incidencia_id=inc.id).first_or_404()
+    volver = redirect(url_for('incidents.ver_incidencia', id=id))
+    raw = request.form.get('departamento_id', '').strip()
+    depto = departamento_valido(raw, inc.organizacion_id) if raw else None
+    if raw and depto is None:
+        flash('Departamento no válido.', 'danger')
+        return volver
+    nuevo_id = depto.id if depto else None
+    if nuevo_id == pendiente.departamento_id:
+        return volver
+    try:
+        pendiente.departamento_id = nuevo_id
+        log_actividad('editar', 'incidencia',
+                      f'{inc.folio}: pendiente {pendiente.orden + 1} → {depto.nombre if depto else "sin departamento"}',
+                      entidad_id=inc.id)
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        _flash_err('Error al asignar el departamento.', exc)
+        return volver
+    if depto:
+        notificar_asignacion(inc, [pendiente], current_user.id)
+    flash('Departamento actualizado.', 'success')
+    return volver
 
 
 # ── Cambiar estado ─────────────────────────────────────────────────────────────
@@ -563,23 +665,55 @@ def cambiar_estado(id):
     if current_user.rol not in ('admin', 'super_admin'):
         abort(403)
     inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
-    nuevo_estado = request.form.get('nuevo_estado', '').strip()
-    if nuevo_estado not in _ESTADOS:
-        flash('Estado no válido.', 'danger')
+    try:
+        aplicar_estado_manual(inc, request.form.get('nuevo_estado', '').strip())
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
         return redirect(url_for('incidents.ver_incidencia', id=id))
     try:
-        inc.estado = nuevo_estado
-        if nuevo_estado in _ESTADOS_CIERRE:
-            inc.estado_final = nuevo_estado
-            if not inc.fecha_cierre:
-                inc.fecha_cierre = now_mx().date()
-        log_actividad('cambiar_estado', 'incidencia', f'{inc.folio}: estado → {nuevo_estado}', entidad_id=inc.id)
+        log_actividad('cambiar_estado', 'incidencia', f'{inc.folio}: estado → {inc.estado}', entidad_id=inc.id)
         db.session.commit()
-        flash(f'Estado actualizado a "{nuevo_estado}".', 'success')
+        flash(f'Estado actualizado a "{_etiqueta_estado(inc.estado)}".', 'success')
     except Exception as exc:
         db.session.rollback()
         _flash_err('Error al cambiar el estado.', exc)
     return redirect(url_for('incidents.ver_incidencia', id=id))
+
+
+@incidents_bp.route('/incidencias/<int:id>/reabrir', methods=['POST'])
+@login_required
+@check_org_permission
+def reabrir(id):
+    inc = _incidencia_visible_or_404(id)
+    if not puede_editar(inc, current_user):
+        abort(403)
+    volver = redirect(url_for('incidents.ver_incidencia', id=id))
+    raw = request.form.get('nuevo_pendiente_departamento', '').strip()
+    depto = departamento_valido(raw, inc.organizacion_id) if raw else None
+    if raw and depto is None:
+        flash('Departamento no válido.', 'danger')
+        return volver
+    propios = {p.id for p in inc.pendientes}
+    ids = [int(x) for x in request.form.getlist('reabrir_pendiente[]') if x.isdigit() and int(x) in propios]
+    try:
+        nuevo = reabrir_incidencia(inc, ids, request.form.get('nuevo_pendiente_descripcion'),
+                                   depto.id if depto else None)
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+        return volver
+    try:
+        log_actividad('reabrir', 'incidencia', f'Incidencia {inc.folio} reabierta', entidad_id=inc.id)
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        _flash_err('Error al reabrir la incidencia.', exc)
+        return volver
+    if nuevo is not None and nuevo.departamento_id:
+        notificar_asignacion(inc, [nuevo], current_user.id)
+    flash('Incidencia reabierta.', 'success')
+    return volver
 
 
 # ── Eliminar ───────────────────────────────────────────────────────────────────
@@ -592,9 +726,11 @@ def eliminar_incidencia(id):
     inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
     try:
         folio = inc.folio
+        rutas = rutas_fotos(inc)
         log_actividad('eliminar', 'incidencia', f'Incidencia {folio} eliminada', entidad_id=inc.id)
         db.session.delete(inc)
         db.session.commit()
+        borrar_archivos(rutas)
         flash(f'Incidencia {folio} eliminada.', 'success')
     except Exception as exc:
         db.session.rollback()
@@ -619,10 +755,11 @@ def exportar_pdf(id):
     from reportlab.platypus import (HRFlowable, Image as RLImage, Paragraph,
                                     SimpleDocTemplate, Spacer, Table, TableStyle)
 
-    inc = Incidencia.query.filter_by(id=id, organizacion_id=current_user.organizacion_id).first_or_404()
-    avances  = inc.avances.all()
-    acciones = inc.acciones.all()
-    costos   = inc.costos.all()
+    inc = _incidencia_visible_or_404(id)
+    pendientes = pendientes_visibles(inc, current_user)
+    es_editor = puede_editar(inc, current_user)
+    acciones = inc.acciones.all() if es_editor else []
+    costos   = inc.costos.all() if es_editor else []
 
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=letter,
@@ -666,6 +803,37 @@ def exportar_pdf(id):
         ]))
         return [t]
 
+    def tabla_fotos(fotos):
+        """fotos = [(ruta_relativa, descripcion)]; rejilla de 3 columnas, tantas filas como haga falta."""
+        MAX_W = (doc.width - 0.6*cm) / 3
+        MAX_H = 5 * cm
+        celdas = []
+        for p, d in fotos:
+            full = ruta_absoluta_foto(p)
+            if os.path.isfile(full):
+                try:
+                    ir = ImageReader(full)
+                    iw, ih = ir.getSize()
+                    ratio = min(MAX_W / iw, MAX_H / ih)
+                    celdas.append([RLImage(full, width=iw * ratio, height=ih * ratio), Paragraph(_xe(d or ''), s_lbl)])
+                except Exception:
+                    celdas.append([Paragraph('(imagen no disponible)', s_lbl), Paragraph('', s_lbl)])
+            else:
+                celdas.append([Paragraph('(archivo no encontrado)', s_lbl), Paragraph('', s_lbl)])
+        filas = []
+        for i in range(0, len(celdas), 3):
+            grupo = celdas[i:i + 3] + [[Paragraph('', s_normal), Paragraph('', s_normal)]] * (3 - len(celdas[i:i + 3]))
+            filas.append([c[0] for c in grupo])
+            filas.append([c[1] for c in grupo])
+        t = Table(filas, colWidths=[doc.width / 3] * 3)
+        t.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        return t
+
     story = []
 
     # ── Encabezado
@@ -705,74 +873,41 @@ def exportar_pdf(id):
     story.append(Paragraph('03 · Descripción del problema', s_h2))
     story.append(Paragraph(_xe(inc.descripcion), s_val))
 
-    # ── 04 Evidencia fotográfica (imágenes embebidas)
-    fotos = [(inc.foto1_path, inc.foto1_desc), (inc.foto2_path, inc.foto2_desc), (inc.foto3_path, inc.foto3_desc)]
-    fotos = [(p, d) for p, d in fotos if p]
-    if fotos:
-        story.append(hr())
-        story.append(Paragraph('04 · Evidencia fotográfica', s_h2))
-        MAX_W = (doc.width - 0.6*cm) / 3   # ancho máximo por columna
-        MAX_H = 5 * cm
-        img_cells  = []
-        cap_cells  = []
-        for p, d in fotos:
-            full = os.path.join(current_app.root_path, '..', 'static', p)
-            if os.path.isfile(full):
-                try:
-                    ir = ImageReader(full)
-                    iw, ih = ir.getSize()
-                    ratio = min(MAX_W / iw, MAX_H / ih)
-                    img_cells.append(RLImage(full, width=iw * ratio, height=ih * ratio))
-                    cap_cells.append(Paragraph(_xe(d or ''), s_lbl))
-                except Exception:
-                    img_cells.append(Paragraph('(imagen no disponible)', s_lbl))
-                    cap_cells.append(Paragraph('', s_lbl))
-            else:
-                img_cells.append(Paragraph('(archivo no encontrado)', s_lbl))
-                cap_cells.append(Paragraph('', s_lbl))
-        # Rellenar hasta 3 columnas
-        while len(img_cells) < 3:
-            img_cells.append(Paragraph('', s_normal))
-            cap_cells.append(Paragraph('', s_normal))
-        col_w = doc.width / 3
-        t = Table(
-            [img_cells, cap_cells],
-            colWidths=[col_w, col_w, col_w],
-        )
-        t.setStyle(TableStyle([
-            ('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING',   (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING',(0, 0), (-1, -1), 4),
-        ]))
-        story.append(t)
-
-    # ── 05 Asignación
+    # ── 04 Pendientes (con sus fotos y avances)
     story.append(hr())
-    story.append(Paragraph('05 · Asignación de seguimiento', s_h2))
-    story += kv_table([
-        ('Responsable asignado', inc.responsable_nombre),
-        ('Puesto / Área', inc.responsable_puesto),
-        ('Asignado por', inc.asignado_por),
-        ('Fecha de asignación', inc.fecha_asignacion.strftime('%d/%m/%Y') if inc.fecha_asignacion else ''),
-        ('Fecha compromiso', inc.fecha_compromiso.strftime('%d/%m/%Y') if inc.fecha_compromiso else ''),
-        ('Contacto responsable', inc.contacto_responsable),
-    ])
-
-    # ── 06 Bitácora de seguimiento
-    if avances:
-        story.append(hr())
-        story.append(Paragraph('06 · Bitácora de seguimiento', s_h2))
-        for a in avances:
-            estado_av = f'{"Concluido" if a.concluido else "En proceso"} · {a.porcentaje}%'
+    story.append(Paragraph('04 · Pendientes', s_h2))
+    for n, p in enumerate(pendientes, 1):
+        depto = p.departamento.nombre if p.departamento else 'Sin departamento'
+        story.append(Paragraph(f'<b>Pendiente {n}</b> · {_xe(depto)} · {p.progreso}%', s_sm))
+        story.append(Paragraph(_xe(p.descripcion), s_val))
+        if p.fotos:
+            story.append(tabla_fotos([(f.path, f.descripcion) for f in p.fotos]))
+        for a in p.avances:
+            autor = a.autor.nombre_mostrado if a.autor else '—'
             story.append(Paragraph(
-                f'<b>{_xe(a.autor.username if a.autor else "—")}</b> · '
-                f'{a.creado_en.strftime("%d/%m/%Y %H:%M")} · '
-                f'<i>{_xe(estado_av)}</i>',
+                f'<i>{_xe(autor)} · {a.creado_en.strftime("%d/%m/%Y %H:%M")} · {a.porcentaje}%</i> — {_xe(a.texto)}',
                 s_sm,
             ))
-            story.append(Paragraph(_xe(a.texto), s_val))
-            story.append(Spacer(1, 0.2*cm))
+        story.append(Spacer(1, 0.3*cm))
+    if not inc.pendientes:  # dato previo a la migración: fotos legadas
+        legadas = [(inc.foto1_path, inc.foto1_desc), (inc.foto2_path, inc.foto2_desc), (inc.foto3_path, inc.foto3_desc)]
+        legadas = [(p, d) for p, d in legadas if p]
+        if legadas:
+            story.append(tabla_fotos(legadas))
+
+    # ── 05 Asignación (solo datos de la versión anterior)
+    if any((inc.responsable_nombre, inc.responsable_puesto, inc.asignado_por, inc.fecha_asignacion,
+            inc.fecha_compromiso, inc.contacto_responsable)):
+        story.append(hr())
+        story.append(Paragraph('05 · Asignación de seguimiento', s_h2))
+        story += kv_table([
+            ('Responsable asignado', inc.responsable_nombre),
+            ('Puesto / Área', inc.responsable_puesto),
+            ('Asignado por', inc.asignado_por),
+            ('Fecha de asignación', inc.fecha_asignacion.strftime('%d/%m/%Y') if inc.fecha_asignacion else ''),
+            ('Fecha compromiso', inc.fecha_compromiso.strftime('%d/%m/%Y') if inc.fecha_compromiso else ''),
+            ('Contacto responsable', inc.contacto_responsable),
+        ])
 
     # ── 07 Causa raíz
     if inc.causa_raiz or acciones:

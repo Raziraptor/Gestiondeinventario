@@ -89,9 +89,13 @@
                             <i class="bi bi-box-arrow-right fs-5 text-danger d-block"></i>
                             <span style="font-size:.6rem;">Salidas</span>
                         </th>
-                        <th class="text-center py-3 perm-col pe-4" title="Gastos">
+                        <th class="text-center py-3 perm-col" title="Gastos">
                             <i class="bi bi-cash-coin fs-5 d-block" style="color:#f59e0b;"></i>
                             <span style="font-size:.6rem;">Gastos</span>
+                        </th>
+                        <th class="text-center py-3 perm-col pe-4" title="Crear Incidencias">
+                            <i class="ph ph-warning-circle fs-5 d-block" style="color:#ef4444;" aria-hidden="true"></i>
+                            <span style="font-size:.6rem;">Incidencias</span>
                         </th>
                     </tr>
                 </thead>
@@ -107,6 +111,7 @@
                                      loading="lazy" alt="{{ user.username }}">
                                 <div>
                                     <div class="fw-bold text-body">{{ user.username }}</div>
+                                    {% if user.nombre_completo %}<small class="text-muted d-block">{{ user.nombre_completo }}</small>{% endif %}
                                     <small class="text-muted">{{ user.email }}</small>
                                 </div>
                             </div>
@@ -125,6 +130,7 @@
                             ('perm_create_oc_proyecto', user.perm_create_oc_proyecto),
                             ('perm_do_salidas',         user.perm_do_salidas),
                             ('perm_view_gastos',        user.perm_view_gastos),
+                            ('perm_crear_incidencias',  user.perm_crear_incidencias),
                         ] %}
 
                         {% for perm_name, perm_val in perms %}

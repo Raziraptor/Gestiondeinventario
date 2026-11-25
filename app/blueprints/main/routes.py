@@ -11,7 +11,7 @@ from sqlalchemy.orm import joinedload, contains_eager
 
 from app.extensions import db
 from app.models import (Almacen, Producto, Stock, Movimiento, Categoria,
-                        Proveedor, OrdenCompra, OrdenCompraDetalle, User, AuditLog)
+                        Proveedor, OrdenCompra, OrdenCompraDetalle, User, AuditLog, Notificacion)
 from app.helpers import now_mx, check_org_permission, check_permission
 
 from . import main_bp
@@ -233,3 +233,50 @@ def historial_actividad():
     return render_template('actividad.html', titulo='Historial de Actividad',
                            pagination=pagination, entradas=pagination.items,
                            acciones=acciones, accion_filtro=accion_filtro)
+
+
+@main_bp.app_context_processor
+def inject_notificaciones():
+    """Contador de la campana: por usuario y sin caché (la de inject_nav_badges es por org)."""
+    if not current_user.is_authenticated:
+        return {'notif_no_leidas': 0}
+    try:
+        return {'notif_no_leidas': Notificacion.query.filter_by(user_id=current_user.id, leida=False).count()}
+    except Exception:
+        return {'notif_no_leidas': 0}
+
+
+def _url_local(url):
+    if url and url.startswith('/') and not url.startswith('//') and not url.startswith('/\\'):
+        return url
+    return None
+
+
+@main_bp.route('/notificaciones')
+@login_required
+@check_org_permission
+def notificaciones():
+    page = request.args.get('page', 1, type=int)
+    pagina = (Notificacion.query.filter_by(user_id=current_user.id)
+              .order_by(Notificacion.creada_en.desc(), Notificacion.id.desc())
+              .paginate(page=page, per_page=30, error_out=False))
+    return render_template('notificaciones.html', titulo='Notificaciones', notificaciones=pagina)
+
+
+@main_bp.route('/notificaciones/<int:id>/leer', methods=['POST'])
+@login_required
+@check_org_permission
+def leer_notificacion(id):
+    n = Notificacion.query.filter_by(id=id, user_id=current_user.id).first_or_404()
+    n.leida = True
+    db.session.commit()
+    return redirect(_url_local(n.url) or url_for('main.notificaciones'))
+
+
+@main_bp.route('/notificaciones/leer-todas', methods=['POST'])
+@login_required
+@check_org_permission
+def leer_todas_notificaciones():
+    Notificacion.query.filter_by(user_id=current_user.id, leida=False).update({'leida': True})
+    db.session.commit()
+    return redirect(url_for('main.notificaciones'))

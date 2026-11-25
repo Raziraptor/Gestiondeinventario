@@ -318,7 +318,8 @@ def test_image_viewer_loaded_and_dashboard_thumbs_zoomable():
 
 
 def test_every_photo_img_is_zoomable():
-    photo = re.compile(r"imagen_url|foto_path|foto\d_path|filename=ruta")
+    # filename=f.path: fotos de pendientes (incidencias v3), que reemplazan las 3 columnas foto1..3_path
+    photo = re.compile(r"imagen_url|foto_path|foto\d_path|filename=ruta|filename=f\.path")
     seen = 0
     for path in (ROOT / 'templates').rglob('*.html'):
         for tag in re.findall(r'<img\b[^>]*>', path.read_text(encoding='utf-8')):
@@ -326,7 +327,7 @@ def test_every_photo_img_is_zoomable():
             if src and photo.search(src.group(1)):
                 seen += 1
                 assert 'data-zoomable' in tag, f'{path.name}: {tag}'
-    assert seen >= 9
+    assert seen >= 5  # era 9 con las 6 fotos legadas de incidencias (3 en form, 3 en detalle)
 
 
 def test_incident_photos_have_no_wrapping_link():

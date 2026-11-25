@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Departamentos{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+    <div class="page-header mb-4">
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title"><i class="ph ph-users-three" aria-hidden="true"></i> Departamentos</h1>
+                <p class="page-subtitle">Cada departamento tiene un encargado y auxiliares. Ellos reciben los avisos de los pendientes que se les asignan.</p>
+            </div>
+            <button type="button" class="btn btn-primary btn-accion" data-bs-toggle="modal" data-bs-target="#modalNuevoDepto">
+                <i class="ph ph-plus" aria-hidden="true"></i> Nuevo departamento
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Departamento</th>
+                        <th>Estado</th>
+                        <th>Encargado</th>
+                        <th>Auxiliares</th>
+                        <th class="text-end pe-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in departamentos %}
+                    {% set miembros = d.miembros.all() %}
+                    <tr>
+                        <td class="ps-4 fw-semibold">{{ d.nombre }}</td>
+                        <td>
+                            {% if d.activo %}<span class="badge text-bg-success">Activo</span>
+                            {% else %}<span class="badge text-bg-secondary">Inactivo</span>{% endif %}
+                        </td>
+                        <td>
+                            {% for m in miembros if m.rol == 'encargado' %}{{ m.user.nombre_mostrado }}{% else %}<span class="text-muted">Sin encargado</span>{% endfor %}
+                        </td>
+                        <td>
+                            {% for m in miembros if m.rol == 'auxiliar' %}
+                            <div>{{ m.user.nombre_mostrado }}</div>
+                            {% else %}<span class="text-muted">—</span>{% endfor %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-accion" data-bs-toggle="modal"
+                                    data-bs-target="#modalDepto{{ d.id }}" aria-label="Editar {{ d.nombre }}">
+                                <i class="ph ph-pencil-simple" aria-hidden="true"></i> Editar
+                            </button>
+                            <form method="post" action="{{ url_for('admin.cambiar_estado_departamento', id=d.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary btn-accion">{{ 'Desactivar' if d.activo else 'Activar' }}</button>
+                            </form>
+                            <form method="post" action="{{ url_for('admin.eliminar_departamento', id=d.id) }}" class="d-inline"
+                                  data-confirm="¿Eliminar el departamento {{ d.nombre }}?">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger btn-accion" aria-label="Eliminar {{ d.nombre }}">
+                                    <i class="ph ph-trash" aria-hidden="true"></i> Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-5">Aún no hay departamentos. Crea el primero.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% macro formulario(accion, nombre, encargado_id, auxiliares_ids, usuarios, sufijo) %}
+<form method="post" action="{{ accion }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="modal-body">
+        <div class="mb-3">
+            <label for="nombre-{{ sufijo }}" class="form-label">Nombre</label>
+            <input id="nombre-{{ sufijo }}" name="nombre" class="form-control" maxlength="120" required value="{{ nombre }}">
+        </div>
+        <div class="mb-3">
+            <label for="encargado-{{ sufijo }}" class="form-label">Encargado</label>
+            <select id="encargado-{{ sufijo }}" name="encargado_id" class="form-select">
+                <option value="">Sin encargado</option>
+                {% for u in usuarios %}
+                <option value="{{ u.id }}" {% if u.id == encargado_id %}selected{% endif %}>{{ u.nombre_mostrado }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <fieldset>
+            <legend class="form-label fs-6">Auxiliares</legend>
+            <div style="max-height:220px;overflow:auto;">
+                {% for u in usuarios %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="auxiliar_ids" value="{{ u.id }}"
+                           id="aux-{{ sufijo }}-{{ u.id }}" {% if u.id in auxiliares_ids %}checked{% endif %}>
+                    <label class="form-check-label" for="aux-{{ sufijo }}-{{ u.id }}">{{ u.nombre_mostrado }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </div>
+</form>
+{% endmacro %}
+
+{% block modals %}
+<div class="modal fade" id="modalNuevoDepto" tabindex="-1" aria-labelledby="tituloNuevoDepto" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title fs-5" id="tituloNuevoDepto">Nuevo departamento</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        {{ formulario(url_for('admin.crear_departamento'), '', none, [], usuarios, 'nuevo') }}
+    </div></div>
+</div>
+
+{% for d in departamentos %}
+{% set miembros = d.miembros.all() %}
+{% set enc = (miembros | selectattr('rol', 'equalto', 'encargado') | list) %}
+{% set aux_ids = (miembros | selectattr('rol', 'equalto', 'auxiliar') | map(attribute='user_id') | list) %}
+<div class="modal fade" id="modalDepto{{ d.id }}" tabindex="-1" aria-labelledby="tituloDepto{{ d.id }}" aria-hidden="true">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title fs-5" id="tituloDepto{{ d.id }}">Editar {{ d.nombre }}</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        {{ formulario(url_for('admin.editar_departamento', id=d.id), d.nombre, (enc[0].user_id if enc else none), aux_ids, usuarios, d.id) }}
+    </div></div>
+</div>
+{% endfor %}
+{% endblock %}

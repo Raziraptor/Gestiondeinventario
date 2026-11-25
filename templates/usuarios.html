@@ -44,6 +44,7 @@
                                     <div class="av av-violet me-3" data-initials="{{ usuario.username[0]|upper }}" style="width:40px;height:40px;font-size:.9rem;" aria-hidden="true"></div>
                                     <div>
                                         <span class="fw-bold text-body d-block">{{ usuario.username }}</span>
+                                        {% if usuario.nombre_completo %}<small class="text-muted d-block">{{ usuario.nombre_completo }}</small>{% endif %}
                                         <small class="text-muted" style="font-size:.75rem;">ID: {{ usuario.id }}</small>
                                     </div>
                                 </div>

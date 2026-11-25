@@ -30,7 +30,7 @@ from wtforms.validators import (
 from . import auth_bp
 from app.extensions import db, limiter
 from app.models import User, Organizacion, TokenUsado
-from app.helpers import now_mx, _flash_err, save_picture, allowed_file
+from app.helpers import now_mx, _flash_err, save_picture, allowed_file, log_actividad
 
 
 # ── WTForms ───────────────────────────────────────────────────────────────────
@@ -264,12 +264,9 @@ def login():
             login_user(user)
             next_page = request.args.get('next')
             flash('Inicio de sesión exitoso.', 'success')
-            if (next_page
-                    and next_page.startswith('/')
-                    and not next_page.startswith('//')
-                    and not next_page.startswith('/\\')
-                    and urlparse(next_page).netloc == ''):
-                return redirect(next_page)
+            seguro = _next_seguro(next_page)
+            if seguro:
+                return redirect(seguro)
             return redirect(url_for('main.index'))
         else:
             flash('Inicio de sesión fallido. Verifica tu usuario y contraseña.', 'danger')
@@ -434,3 +431,60 @@ def delete_picture():
             _flash_err('Error al eliminar la foto.', e)
 
     return redirect(url_for('auth.account'))
+
+
+# ── Nombre completo obligatorio en el primer acceso ────────────────────────────
+
+_EXENTOS_NOMBRE = {
+    'static', 'auth.login', 'auth.logout', 'auth.register', 'auth.forgot_password',
+    'auth.reset_password', 'auth.perfil_nombre',
+    'main.health', 'main.service_worker', 'main.offline_page', 'main.assetlinks',
+    'api.api_vapid_key', 'api.api_push_subscribe', 'api.api_push_unsubscribe',
+}
+
+
+def _next_seguro(next_page):
+    """Misma regla anti open-redirect que /login: solo rutas locales."""
+    if (next_page
+            and next_page.startswith('/')
+            and not next_page.startswith('//')
+            and not next_page.startswith('/\\')
+            and urlparse(next_page).netloc == ''):
+        return next_page
+    return None
+
+
+@auth_bp.before_app_request
+def exigir_nombre_completo():
+    if not current_app.config.get('REQUIRE_NOMBRE_COMPLETO', True):
+        return None
+    if not current_user.is_authenticated or request.endpoint is None or request.endpoint in _EXENTOS_NOMBRE:
+        return None
+    if (current_user.nombre_completo or '').strip():
+        return None
+    destino = request.full_path.rstrip('?') if request.method == 'GET' else None
+    return redirect(url_for('auth.perfil_nombre', next=destino))
+
+
+@auth_bp.route('/perfil/nombre', methods=['GET', 'POST'])
+@login_required
+def perfil_nombre():
+    error = None
+    valor = current_user.nombre_completo or ''
+    siguiente = _next_seguro(request.args.get('next'))
+    if request.method == 'POST':
+        valor = ' '.join(request.form.get('nombre_completo', '').split())
+        if not 3 <= len(valor) <= 120:
+            error = 'Escribe tu nombre y apellidos (entre 3 y 120 caracteres).'
+        else:
+            try:
+                current_user.nombre_completo = valor
+                log_actividad('editar', 'usuario', 'Nombre completo actualizado', entidad_id=current_user.id)
+                db.session.commit()
+                flash('Nombre guardado.', 'success')
+                return redirect(siguiente or url_for('main.index'))
+            except Exception as exc:
+                db.session.rollback()
+                _flash_err('No se pudo guardar el nombre.', exc)
+    return render_template('perfil_nombre.html', titulo='Tu nombre', valor=valor,
+                           error=error, siguiente=siguiente)

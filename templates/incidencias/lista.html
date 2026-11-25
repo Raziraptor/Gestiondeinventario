@@ -21,9 +21,11 @@
         </h1>
         <p class="page-subtitle">Registro, seguimiento y cierre de incidencias operativas.</p>
       </div>
+      {% if puede_crear %}
       <a href="{{ url_for('incidents.nueva_incidencia') }}" class="btn btn-primary rounded-pill px-4 fw-semibold shadow-sm">
         <i class="ph ph-plus me-1" aria-hidden="true"></i>Nueva Incidencia
       </a>
+      {% endif %}
     </div>
   </div>
 
@@ -102,15 +104,19 @@
               <span class="badge bg-{{ badge_prioridad(inc.prioridad) }}">{{ inc.prioridad }}</span>
             </td>
             <td>
-              <span class="badge bg-{{ badge_estado(inc.estado) }}">{{ inc.estado }}</span>
+              <span class="badge bg-{{ badge_estado(inc.estado) }}">{{ etiqueta_estado(inc.estado) }}</span>
+              {% if inc.expira_en and inc.estado in ('Resuelto', 'Cerrado sin resolver') %}
+              <div><span class="text-danger small"><i class="ph ph-trash" aria-hidden="true"></i> Se eliminará el {{ inc.expira_en.strftime('%d/%m/%Y') }}</span></div>
+              {% endif %}
             </td>
             <td style="min-width:90px;">
+              {% set prog = progreso_de(inc) %}
               <div class="progress" style="height:6px;border-radius:4px;">
                 <div class="progress-bar" role="progressbar"
-                     style="width:{{ inc.progreso }}%"
-                     aria-valuenow="{{ inc.progreso }}" aria-valuemin="0" aria-valuemax="100"></div>
+                     style="width:{{ prog }}%"
+                     aria-valuenow="{{ prog }}" aria-valuemin="0" aria-valuemax="100"></div>
               </div>
-              <div class="text-muted" style="font-size:.7rem;margin-top:2px;">{{ inc.progreso }}%</div>
+              <div class="text-muted" style="font-size:.7rem;margin-top:2px;">{{ prog }}%</div>
             </td>
             <td class="text-muted small">{{ inc.fecha.strftime('%d/%m/%Y') if inc.fecha else '—' }}</td>
             <td class="text-muted small">{{ inc.reportado_por | truncate(25, True) }}</td>
@@ -179,7 +185,7 @@
     <a href="{{ url_for('incidents.lista_incidencias') }}" class="btn btn-outline-secondary btn-sm">
       Limpiar filtros
     </a>
-    {% else %}
+    {% elif puede_crear %}
     <a href="{{ url_for('incidents.nueva_incidencia') }}" class="btn btn-primary btn-sm">
       Registrar primera incidencia
     </a>

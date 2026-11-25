@@ -11,8 +11,9 @@ from .purchasing import (Proveedor, ProveedorIntegracion, HDSesion, FormatoProve
                          ProyectoOC, ProyectoOCDetalle)
 from .finance import (Gasto, Servicio, PagoServicio, FacturaProveedor,
                       CentroCosto, Presupuesto)
-from .system import AuditLog, PushSubscription, SolicitudAprobacion
-from .incidencias import Incidencia, IncidenciaAvance, IncidenciaAccion, IncidenciaCosto
+from .system import AuditLog, PushSubscription, SolicitudAprobacion, Notificacion
+from .incidencias import (Incidencia, IncidenciaAvance, IncidenciaAccion, IncidenciaCosto,
+                          Departamento, DepartamentoMiembro, Pendiente, PendienteFoto)
 from .chatbot import ChatConversacion, ChatMensaje, SoporteReporte
 
 __all__ = [
@@ -24,7 +25,8 @@ __all__ = [
     'ProyectoOC', 'ProyectoOCDetalle',
     'Gasto', 'Servicio', 'PagoServicio', 'FacturaProveedor',
     'CentroCosto', 'Presupuesto',
-    'AuditLog', 'PushSubscription', 'SolicitudAprobacion',
+    'AuditLog', 'PushSubscription', 'SolicitudAprobacion', 'Notificacion',
     'Incidencia', 'IncidenciaAvance', 'IncidenciaAccion', 'IncidenciaCosto',
+    'Departamento', 'DepartamentoMiembro', 'Pendiente', 'PendienteFoto',
     'ChatConversacion', 'ChatMensaje', 'SoporteReporte',
 ]

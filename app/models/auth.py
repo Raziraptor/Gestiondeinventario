@@ -73,6 +73,9 @@ class User(db.Model, UserMixin):
     perm_create_oc_proyecto= db.Column(db.Boolean, nullable=False, default=False)
     perm_do_salidas        = db.Column(db.Boolean, nullable=False, default=False)
     perm_view_gastos       = db.Column(db.Boolean, nullable=False, default=False)
+    perm_crear_incidencias = db.Column(db.Boolean, nullable=False, default=False)
+
+    nombre_completo = db.Column(db.String(120), nullable=True)
 
     ordenes_creadas    = db.relationship('OrdenCompra', foreign_keys='OrdenCompra.creador_id',
                                          backref='creador', lazy=True)
@@ -84,6 +87,12 @@ class User(db.Model, UserMixin):
                                          backref='cancelado_por', lazy=True)
     proyectos_oc_creados = db.relationship('ProyectoOC', foreign_keys='ProyectoOC.creador_id',
                                            backref='creador', lazy=True)
+
+    @property
+    def nombre_mostrado(self):
+        """'Nombre Apellidos (username)'; solo el username si no hay nombre capturado."""
+        nombre = (self.nombre_completo or '').strip()
+        return f'{nombre} ({self.username})' if nombre else self.username
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

@@ -170,6 +170,7 @@ DM Sans (Google Fonts) + Bootstrap Icons 1.11.3 + Chart.js + PWA (manifest + SW)
 - **Correr en servidor**: `flask add-encabezado-oc-table && sudo systemctl restart inventario`
 
 ## Estado actual
+- Incidencias v3 (pendientes + departamentos) ✅ — runbook en docs/runbook-incidencias-v3.md; correr en servidor: flask fix-incidencias-v3 && sudo systemctl restart inventario
 - FIN-01 ✅ — RATE-01 ✅ — AUTH-02 ✅ — Multi-tenant isolation ✅ (commits 0db5e87, 4d63d06)
 - HD Pro Quick Order ✅ Fase 1 (CSV) + Fase 2 (sesión persistente) — commits 49ccf47–89900fa.
 - Dashboard KPIs restringidos a `super_admin` y `admin` (commit db05095).

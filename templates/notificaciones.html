@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 mb-5">
+  <div class="page-header mb-4">
+    <div class="page-header-row">
+      <div>
+        <h1 class="page-title"><i class="ph ph-bell-ringing" aria-hidden="true"></i> Notificaciones</h1>
+      </div>
+      <form method="post" action="{{ url_for('main.leer_todas_notificaciones') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-secondary btn-accion">Marcar todas como leídas</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 rounded-4">
+    <div class="list-group list-group-flush rounded-4">
+      {% for n in notificaciones.items %}
+      <form method="post" action="{{ url_for('main.leer_notificacion', id=n.id) }}" class="m-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="list-group-item list-group-item-action text-start border-0 py-3 {% if not n.leida %}fw-semibold{% endif %}"
+                {% if not n.leida %}style="background:var(--hover-bg);"{% endif %}>
+          <div class="d-flex justify-content-between gap-3">
+            <span>{{ n.titulo }}</span>
+            <small class="text-muted flex-shrink-0">{{ n.creada_en.strftime('%d/%m/%Y %H:%M') }}</small>
+          </div>
+          <div class="small text-muted fw-normal">{{ n.cuerpo }}</div>
+        </button>
+      </form>
+      {% else %}
+      <div class="text-center text-muted py-5">No tienes notificaciones.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if notificaciones.pages > 1 %}
+  <nav aria-label="Paginación de notificaciones" class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center gap-1">
+      <li class="page-item {% if not notificaciones.has_prev %}disabled{% endif %}">
+        <a class="page-link rounded-3" href="{{ url_for('main.notificaciones', page=notificaciones.prev_num or 1) }}" aria-label="Anterior">
+          <i class="ph ph-caret-left" aria-hidden="true"></i>
+        </a>
+      </li>
+      {% for p in notificaciones.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <li class="page-item {% if p == notificaciones.page %}active{% endif %}">
+          <a class="page-link rounded-3" href="{{ url_for('main.notificaciones', page=p) }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not notificaciones.has_next %}disabled{% endif %}">
+        <a class="page-link rounded-3" href="{{ url_for('main.notificaciones', page=notificaciones.next_num or notificaciones.pages) }}" aria-label="Siguiente">
+          <i class="ph ph-caret-right" aria-hidden="true"></i>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

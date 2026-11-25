@@ -11,6 +11,10 @@ _PRIORIDADES     = ['Baja', 'Media', 'Alta', 'Urgente']
 _SEVERIDADES     = ['Menor', 'Moderada', 'Grave', 'Crítica']
 _ESTADOS         = ['Abierto', 'En proceso', 'Resuelto', 'Cerrado sin resolver', 'Escalado']
 _ESTADOS_CIERRE  = ['Resuelto', 'Cerrado sin resolver', 'Escalado']
+_ROLES_MIEMBRO     = ['encargado', 'auxiliar']
+_ESTADOS_RETENCION = ['Resuelto', 'Cerrado sin resolver']   # estados que arrancan el reloj de 30 días
+DIAS_RETENCION     = 30
+DIAS_AVISO         = 5
 
 
 class Incidencia(db.Model):
@@ -58,7 +62,10 @@ class Incidencia(db.Model):
 
     # Estado y progreso
     estado   = db.Column(db.String(30),  nullable=False, default='Abierto')
-    progreso = db.Column(db.Integer,     nullable=False, default=0)
+    progreso = db.Column(db.Integer,     nullable=False, default=0)  # caché: solo la escribe app/services/incidencias.py
+    # Retención: 30 días tras el cierre (ver app/services/incidencias_retencion.py)
+    expira_en                = db.Column(db.DateTime, nullable=True, index=True)
+    aviso_expiracion_enviado = db.Column(db.Boolean,  nullable=False, default=False)
 
     # 07 Causa raíz e impacto
     causa_raiz = db.Column(db.Text, nullable=True)
@@ -97,6 +104,10 @@ class Incidencia(db.Model):
         'IncidenciaCosto', backref='incidencia', lazy='dynamic',
         cascade='all, delete-orphan',
     )
+    pendientes = db.relationship(
+        'Pendiente', backref='incidencia', lazy=True,
+        cascade='all, delete-orphan', order_by='Pendiente.orden',
+    )
 
     __table_args__ = (
         db.UniqueConstraint('folio', 'organizacion_id', name='_uc_incidencia_folio_org'),
@@ -119,6 +130,7 @@ class IncidenciaAvance(db.Model):
     porcentaje    = db.Column(db.Integer, nullable=False, default=0)
     concluido     = db.Column(db.Boolean, nullable=False, default=False)
     foto_path     = db.Column(db.String(300), nullable=True)
+    pendiente_id  = db.Column(db.Integer, db.ForeignKey('pendiente.id'), nullable=True, index=True)
     autor_id      = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     creado_en     = db.Column(db.DateTime, nullable=False, default=now_mx)
 
@@ -143,3 +155,70 @@ class IncidenciaCosto(db.Model):
     concepto      = db.Column(db.String(200),    nullable=False)
     descripcion   = db.Column(db.String(500),    nullable=True)
     monto         = db.Column(db.Numeric(10, 2), nullable=False, default=0)
+
+
+class Departamento(db.Model):
+    __tablename__ = 'departamento'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    organizacion_id = db.Column(db.Integer, db.ForeignKey('organizacion.id'), nullable=False, index=True)
+    nombre          = db.Column(db.String(120), nullable=False)
+    activo          = db.Column(db.Boolean, nullable=False, default=True)
+    creado_en       = db.Column(db.DateTime, nullable=False, default=now_mx)
+
+    miembros = db.relationship(
+        'DepartamentoMiembro', backref='departamento', lazy='dynamic',
+        cascade='all, delete-orphan',
+    )
+
+    __table_args__ = (
+        db.UniqueConstraint('organizacion_id', 'nombre', name='_uc_departamento_org_nombre'),
+    )
+
+
+class DepartamentoMiembro(db.Model):
+    __tablename__ = 'departamento_miembro'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    departamento_id = db.Column(db.Integer, db.ForeignKey('departamento.id'), nullable=False, index=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    rol             = db.Column(db.String(20), nullable=False)  # uno de _ROLES_MIEMBRO
+
+    user = db.relationship('User', foreign_keys=[user_id], lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('departamento_id', 'user_id', name='_uc_departamento_miembro'),
+    )
+
+
+class Pendiente(db.Model):
+    __tablename__ = 'pendiente'
+
+    id              = db.Column(db.Integer, primary_key=True)
+    incidencia_id   = db.Column(db.Integer, db.ForeignKey('incidencia.id'), nullable=False, index=True)
+    orden           = db.Column(db.Integer, nullable=False, default=0)
+    descripcion     = db.Column(db.Text, nullable=False)
+    departamento_id = db.Column(db.Integer, db.ForeignKey('departamento.id'), nullable=True, index=True)
+    progreso        = db.Column(db.Integer, nullable=False, default=0)
+    completado_en   = db.Column(db.DateTime, nullable=True)
+    creado_en       = db.Column(db.DateTime, nullable=False, default=now_mx)
+
+    departamento = db.relationship('Departamento', foreign_keys=[departamento_id], lazy=True)
+    fotos = db.relationship(
+        'PendienteFoto', backref='pendiente', lazy=True,
+        cascade='all, delete-orphan', order_by='PendienteFoto.id',
+    )
+    avances = db.relationship(
+        'IncidenciaAvance', backref='pendiente', lazy=True,
+        order_by='IncidenciaAvance.creado_en',
+    )
+
+
+class PendienteFoto(db.Model):
+    __tablename__ = 'pendiente_foto'
+
+    id           = db.Column(db.Integer, primary_key=True)
+    pendiente_id = db.Column(db.Integer, db.ForeignKey('pendiente.id'), nullable=False, index=True)
+    path         = db.Column(db.String(300), nullable=False)
+    descripcion  = db.Column(db.String(300), nullable=True)
+    creado_en    = db.Column(db.DateTime, nullable=False, default=now_mx)

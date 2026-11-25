@@ -492,3 +492,52 @@ def register_commands(app):
             conn.commit()
             print('OK: soporte_reporte')
         print('fix-add-chatbot completado.')
+
+    @app.cli.command('fix-incidencias-v3')
+    @with_appcontext
+    def fix_incidencias_v3():
+        """Incidencias v3: tablas nuevas, columnas nuevas y backfill de pendientes. Idempotente."""
+        from app.extensions import db
+        from app.models import (Departamento, DepartamentoMiembro, Notificacion,
+                                Pendiente, PendienteFoto)
+        from app.services.incidencias_migracion import backfill_pendientes, conceder_permiso_crear_a_creadores
+
+        db.metadata.create_all(db.engine, checkfirst=True, tables=[
+            Departamento.__table__, DepartamentoMiembro.__table__, Pendiente.__table__,
+            PendienteFoto.__table__, Notificacion.__table__,
+        ])
+        print('OK: tablas departamento, departamento_miembro, pendiente, pendiente_foto, notificacion')
+        permiso_nuevo = 'perm_crear_incidencias' not in {c['name'] for c in inspect(db.engine).get_columns('user')}
+        if db.engine.dialect.name == 'postgresql':
+            stmts = [
+                'ALTER TABLE incidencia ADD COLUMN IF NOT EXISTS expira_en TIMESTAMP',
+                'CREATE INDEX IF NOT EXISTS ix_incidencia_expira_en ON incidencia(expira_en)',
+                'ALTER TABLE incidencia ADD COLUMN IF NOT EXISTS aviso_expiracion_enviado BOOLEAN NOT NULL DEFAULT FALSE',
+                'ALTER TABLE incidencia_avance ADD COLUMN IF NOT EXISTS pendiente_id INTEGER REFERENCES pendiente(id) ON DELETE SET NULL',
+                'CREATE INDEX IF NOT EXISTS ix_incidencia_avance_pendiente_id ON incidencia_avance(pendiente_id)',
+                'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS nombre_completo VARCHAR(120)',
+                'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS perm_crear_incidencias BOOLEAN NOT NULL DEFAULT FALSE',
+            ]
+            with db.engine.connect() as conn:
+                for stmt in stmts:
+                    conn.execute(text(stmt)); conn.commit(); print(f'OK: {stmt[:70]}')
+        else:
+            print(f'DDL de columnas omitido ({db.engine.dialect.name}): create_all ya las creó.')
+        if permiso_nuevo:
+            print(f'permiso perm_crear_incidencias concedido a {conceder_permiso_crear_a_creadores()} usuario(s) que ya habían creado incidencias')
+        c = backfill_pendientes()
+        print(f"fix-incidencias-v3: pendientes creados={c['pendientes']} fotos={c['fotos']} "
+              f"avances={c['avances']} gracia={c['gracia']}")
+
+    @app.cli.command('limpiar-incidencias-cerradas')
+    @click.option('--dry-run', is_flag=True, help='Solo muestra qué se avisaría y qué se borraría.')
+    @with_appcontext
+    def limpiar_incidencias_cerradas(dry_run):
+        """Avisa a 5 días y borra incidencias cerradas vencidas (cron diario). Idempotente."""
+        from app.services.incidencias_retencion import ejecutar_retencion
+        r = ejecutar_retencion(dry_run=dry_run)
+        prefijo = 'limpiar-incidencias-cerradas (dry-run)' if dry_run else 'limpiar-incidencias-cerradas'
+        print(f"{prefijo}: por_avisar={r['por_avisar']} avisadas={r['avisadas']} "
+              f"por_eliminar={r['por_eliminar']} eliminadas={r['eliminadas']} "
+              f"archivos_borrados={r['archivos_borrados']} archivos_rechazados={r['archivos_rechazados']} "
+              f"errores={r['errores']}")

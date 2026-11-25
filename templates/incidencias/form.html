@@ -1,4 +1,69 @@
 {% extends 'base.html' %}
+
+{% macro fila_pendiente(uid, p, departamentos) %}
+<div class="border rounded-3 p-3 mb-3 fila-pendiente" data-uid="{{ uid }}">
+  <input type="hidden" name="pendiente_uid[]" value="{{ uid }}">
+  <div class="row g-3">
+    <div class="col-md-8">
+      <div class="fw-semibold mb-1"><label for="pdesc-{{ uid }}">Descripción del pendiente</label></div>
+      <textarea id="pdesc-{{ uid }}" name="pendiente_descripcion[]" class="form-control" rows="2" required>{{ p.descripcion if p else '' }}</textarea>
+    </div>
+    <div class="col-md-4">
+      <div class="fw-semibold mb-1"><label for="pdep-{{ uid }}">Departamento</label></div>
+      <select id="pdep-{{ uid }}" name="pendiente_departamento[]" class="form-select">
+        <option value="">Sin departamento</option>
+        {% for d in departamentos %}
+        <option value="{{ d.id }}" {% if p and p.departamento_id == d.id %}selected{% endif %}>{{ d.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  {% if p and p.fotos %}
+  <div class="d-flex flex-wrap gap-2 mt-3">
+    {% for f in p.fotos %}
+    <figure class="m-0" style="width:110px;">
+      <img src="{{ url_for('static', filename=f.path) }}" data-zoomable
+           alt="{{ f.descripcion or 'Foto del pendiente' }}" class="img-fluid rounded"
+           style="height:80px;width:100%;object-fit:cover;">
+      {% if f.descripcion %}<figcaption class="small text-muted text-truncate">{{ f.descripcion }}</figcaption>{% endif %}
+    </figure>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="mt-3" data-fotos>
+    <div class="row g-2 mb-2 align-items-center fila-foto">
+      <div class="col-md-5">
+        <input type="file" name="foto_{{ uid }}[]" class="form-control form-control-sm"
+               accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Foto del pendiente">
+      </div>
+      <div class="col-md-7">
+        <input type="text" name="foto_desc_{{ uid }}[]" class="form-control form-control-sm" maxlength="300"
+               aria-label="Descripción de la foto" placeholder="Descripción breve de la foto">
+      </div>
+    </div>
+  </div>
+  <div class="d-flex justify-content-between align-items-center mt-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary btn-accion" data-agregar-foto>
+      <i class="ph ph-camera-plus" aria-hidden="true"></i> Agregar foto
+    </button>
+    {% if p %}
+    <div class="form-check m-0">
+      <input class="form-check-input" type="checkbox" name="pendiente_eliminar[]" value="p{{ p.id }}"
+             id="pdel-{{ uid }}" {% if p.avances %}disabled{% endif %}>
+      <label class="form-check-label small" for="pdel-{{ uid }}">
+        Quitar este pendiente{% if p.avances %} (tiene avances){% endif %}
+      </label>
+    </div>
+    {% else %}
+    <button type="button" class="btn btn-sm btn-outline-danger btn-accion" data-quitar-pendiente aria-label="Quitar pendiente">
+      <i class="ph ph-trash" aria-hidden="true"></i>
+    </button>
+    {% endif %}
+  </div>
+</div>
+{% endmacro %}
 {% block title %}{{ titulo_pagina }}{% endblock %}
 
 {% block content %}
@@ -145,168 +210,61 @@
       </div>
     </div>
 
-    {# ── 03 EVIDENCIA FOTOGRÁFICA ─────────────────────────────────────────── #}
+    {# ── 03 PENDIENTES ────────────────────────────────────────────────────── #}
+    {% set cerrada = inc and inc.estado in ('Resuelto', 'Cerrado sin resolver') %}
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
-        <h5 class="fw-semibold mb-3">
-          <span class="badge bg-primary me-2">03</span>Evidencia fotográfica
-          <small class="text-muted fw-normal">(hasta 3 fotos — PNG, JPG, WEBP)</small>
-        </h5>
-        <div class="row g-3">
-          {# Foto 1 #}
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Foto 1</label>
-            {% if inc and inc.foto1_path %}
-            <div class="mb-2">
-              <img src="{{ url_for('static', filename=inc.foto1_path) }}" data-zoomable
-                   alt="Foto de evidencia 1" class="img-fluid rounded" style="max-height:120px; object-fit:cover; width:100%;">
-              <div class="text-muted small mt-1">Foto actual. Sube otra para reemplazarla.</div>
-            </div>
-            {% endif %}
-            <input type="file" name="foto1" class="form-control form-control-sm mb-2"
-                   accept=".png,.jpg,.jpeg,.gif,.webp">
-            <input type="text" name="foto1_desc" class="form-control form-control-sm"
-                   placeholder="Descripción breve de la foto 1"
-                   value="{{ inc.foto1_desc if inc and inc.foto1_desc else '' }}">
+        <section aria-labelledby="titulo-pendientes">
+          <h5 id="titulo-pendientes" class="fw-semibold mb-1">
+            <span class="badge bg-primary me-2">03</span>Pendientes
+          </h5>
+          <p class="text-muted small mb-3">Cada pendiente lleva su descripción, su departamento y las fotos que necesites (PNG, JPG, GIF o WEBP).</p>
+
+          {% if cerrada %}
+          <p class="text-muted small">Para cambiar pendientes, reabre la incidencia.</p>
+          {% for p in pendientes %}
+          <div class="border rounded-3 p-3 mb-2">
+            <div class="fw-semibold">{{ p.descripcion }}</div>
+            <div class="small text-muted">{{ p.departamento.nombre if p.departamento else 'Sin departamento' }} · {{ p.progreso }}%</div>
           </div>
-          {# Foto 2 #}
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Foto 2</label>
-            {% if inc and inc.foto2_path %}
-            <div class="mb-2">
-              <img src="{{ url_for('static', filename=inc.foto2_path) }}" data-zoomable
-                   alt="Foto de evidencia 2" class="img-fluid rounded" style="max-height:120px; object-fit:cover; width:100%;">
-              <div class="text-muted small mt-1">Foto actual. Sube otra para reemplazarla.</div>
-            </div>
-            {% endif %}
-            <input type="file" name="foto2" class="form-control form-control-sm mb-2"
-                   accept=".png,.jpg,.jpeg,.gif,.webp">
-            <input type="text" name="foto2_desc" class="form-control form-control-sm"
-                   placeholder="Descripción breve de la foto 2"
-                   value="{{ inc.foto2_desc if inc and inc.foto2_desc else '' }}">
+          {% endfor %}
+          {% else %}
+          <div id="lista-pendientes">
+            {% for p in pendientes %}
+            {{ fila_pendiente('p' ~ p.id, p, departamentos) }}
+            {% else %}
+            {{ fila_pendiente('n1', none, departamentos) }}
+            {% endfor %}
           </div>
-          {# Foto 3 #}
-          <div class="col-md-4">
-            <label class="form-label fw-semibold">Foto 3</label>
-            {% if inc and inc.foto3_path %}
-            <div class="mb-2">
-              <img src="{{ url_for('static', filename=inc.foto3_path) }}" data-zoomable
-                   alt="Foto de evidencia 3" class="img-fluid rounded" style="max-height:120px; object-fit:cover; width:100%;">
-              <div class="text-muted small mt-1">Foto actual. Sube otra para reemplazarla.</div>
-            </div>
-            {% endif %}
-            <input type="file" name="foto3" class="form-control form-control-sm mb-2"
-                   accept=".png,.jpg,.jpeg,.gif,.webp">
-            <input type="text" name="foto3_desc" class="form-control form-control-sm"
-                   placeholder="Descripción breve de la foto 3"
-                   value="{{ inc.foto3_desc if inc and inc.foto3_desc else '' }}">
-          </div>
-        </div>
+          <button type="button" id="btn-agregar-pendiente" class="btn btn-outline-primary btn-accion">
+            <i class="ph ph-plus" aria-hidden="true"></i> Agregar pendiente
+          </button>
+          <template id="tpl-pendiente">
+            {{ fila_pendiente('__UID__', none, departamentos) }}
+          </template>
+          {% endif %}
+        </section>
       </div>
     </div>
 
-    {# ── 04 ASIGNACIÓN — solo administradores ────────────────────────────── #}
-    {% if es_admin %}
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-      <div class="card-body p-4">
-        <h5 class="fw-semibold mb-1">
-          <span class="badge bg-primary me-2">04</span>Asignación de seguimiento
-        </h5>
-        <p class="text-muted small mb-3">Solo administradores pueden asignar responsables.</p>
-
-        {# Toggle: usuario del sistema vs manual #}
-        {% set tiene_user = inc and inc.asignado_user_id %}
-        <div class="d-flex gap-3 mb-3">
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="tipo_asignacion"
-                   id="asig_usuario" value="usuario"
-                   {% if tiene_user %}checked{% endif %}>
-            <label class="form-check-label fw-semibold" for="asig_usuario">
-              <i class="ph ph-user-circle me-1" aria-hidden="true"></i>Usuario del sistema
-            </label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="radio" name="tipo_asignacion"
-                   id="asig_manual" value="manual"
-                   {% if not tiene_user %}checked{% endif %}>
-            <label class="form-check-label fw-semibold" for="asig_manual">
-              <i class="ph ph-pencil-line me-1" aria-hidden="true"></i>Nombre manual
-            </label>
-          </div>
-        </div>
-
-        <div class="row g-3">
-          {# Selector de usuario del sistema #}
-          <div class="col-md-6" id="bloqueUsuario"
-               style="display:{% if tiene_user %}block{% else %}none{% endif %};">
-            <label for="asignado_user_id" class="form-label fw-semibold">Usuario responsable</label>
-            <select id="asignado_user_id" name="asignado_user_id" class="form-select">
-              <option value="">Sin asignar</option>
-              {% for u in usuarios_org %}
-              <option value="{{ u.id }}"
-                      {% if inc and inc.asignado_user_id == u.id %}selected{% endif %}>
-                {{ u.username }}{% if u.rol in ('admin', 'super_admin') %} (admin){% endif %}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-
-          {# Asignación manual #}
-          <div class="col-md-4" id="bloqueManualNombre"
-               style="display:{% if not tiene_user %}block{% else %}none{% endif %};">
-            <label for="responsable_nombre" class="form-label fw-semibold">Nombre del responsable</label>
-            <input type="text" id="responsable_nombre" name="responsable_nombre" class="form-control"
-                   value="{{ inc.responsable_nombre if inc else '' }}"
-                   placeholder="Nombre completo">
-          </div>
-          <div class="col-md-4" id="bloqueManualTel"
-               style="display:{% if not tiene_user %}block{% else %}none{% endif %};">
-            <label for="contacto_responsable" class="form-label fw-semibold">Teléfono</label>
-            <input type="text" id="contacto_responsable" name="contacto_responsable" class="form-control"
-                   value="{{ inc.contacto_responsable if inc else '' }}"
-                   placeholder="Ej. 55 1234 5678">
-          </div>
-
-          {# Campos comunes #}
-          <div class="col-md-4">
-            <label for="responsable_puesto" class="form-label fw-semibold">Responsabilidad / Área</label>
-            <input type="text" id="responsable_puesto" name="responsable_puesto" class="form-control"
-                   value="{{ inc.responsable_puesto if inc else '' }}"
-                   placeholder="Ej. Mantenimiento / Seguridad">
-          </div>
-          <div class="col-md-4">
-            <label for="fecha_asignacion" class="form-label fw-semibold">Fecha asignación</label>
-            <input type="date" id="fecha_asignacion" name="fecha_asignacion" class="form-control"
-                   value="{{ inc.fecha_asignacion.strftime('%Y-%m-%d') if inc and inc.fecha_asignacion else '' }}">
-          </div>
-          <div class="col-md-4">
-            <label for="fecha_compromiso" class="form-label fw-semibold">Fecha compromiso</label>
-            <input type="date" id="fecha_compromiso" name="fecha_compromiso" class="form-control"
-                   value="{{ inc.fecha_compromiso.strftime('%Y-%m-%d') if inc and inc.fecha_compromiso else '' }}">
-          </div>
-        </div>
-      </div>
-    </div>
-    {% else %}
-    {# No admin: mostrar asignación en lectura si existe #}
+    {# ── 04 ASIGNACIÓN LEGADA — solo lectura ─────────────────────────────── #}
     {% if inc and (inc.responsable_nombre or inc.asignado_user_id) %}
     <div class="card border-0 shadow-sm rounded-4 mb-4 bg-body-secondary">
       <div class="card-body p-4">
         <h5 class="fw-semibold mb-2">
-          <span class="badge bg-secondary me-2">04</span>Asignación de seguimiento
+          <span class="badge bg-secondary me-2">04</span>Asignación anterior
         </h5>
         <p class="mb-0 text-muted small">
           Responsable:
           <strong>
-            {% if inc.asignado_user_id and inc.asignado_a %}{{ inc.asignado_a.username }}
+            {% if inc.asignado_user_id and inc.asignado_a %}{{ inc.asignado_a.nombre_mostrado }}
             {% elif inc.responsable_nombre %}{{ inc.responsable_nombre }}
             {% else %}Sin asignar{% endif %}
           </strong>
-          — solo un administrador puede modificar la asignación.
+          — dato de la versión anterior; ahora los pendientes se asignan a departamentos.
         </p>
       </div>
     </div>
-    {% endif %}
     {% endif %}
 
     {# ── 05 CAUSA RAÍZ ────────────────────────────────────────────────────── #}
@@ -438,29 +396,15 @@
       </div>
     </div>
 
-    {# ── 08 CIERRE — solo admin editando ──────────────────────────────────── #}
-    {% if inc and es_admin is defined and es_admin %}
+    {# ── 08 CIERRE — opcional ─────────────────────────────────────────────── #}
+    {% if inc %}
     <div class="card border-0 shadow-sm rounded-4 mb-4">
       <div class="card-body p-4">
-        <h5 class="fw-semibold mb-3">
+        <h5 class="fw-semibold mb-1">
           <span class="badge bg-secondary me-2">08</span>Cierre del reporte
-          <small class="text-muted fw-normal">(solo administradores)</small>
         </h5>
+        <p class="text-muted small mb-3">Opcional. No cambia el estado de la incidencia.</p>
         <div class="row g-3">
-          <div class="col-md-4">
-            <label for="estado_final" class="form-label fw-semibold">Estado de cierre</label>
-            <select id="estado_final" name="estado_final" class="form-select">
-              <option value="">Sin cambio de estado</option>
-              {% for ec in estados_cierre %}
-              <option value="{{ ec }}" {% if inc.estado_final == ec %}selected{% endif %}>{{ ec }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label for="fecha_cierre" class="form-label fw-semibold">Fecha de cierre</label>
-            <input type="date" id="fecha_cierre" name="fecha_cierre" class="form-control"
-                   value="{{ inc.fecha_cierre.strftime('%Y-%m-%d') if inc.fecha_cierre else '' }}">
-          </div>
           <div class="col-12">
             <label for="comentarios_cierre" class="form-label fw-semibold">Comentarios de cierre</label>
             <textarea id="comentarios_cierre" name="comentarios_cierre" class="form-control" rows="2">{{ inc.comentarios_cierre or '' }}</textarea>
@@ -512,13 +456,6 @@ function toggleLesionados() {
   const ta    = document.getElementById('descripcion_lesionados');
   campo.style.display = cb.checked ? 'block' : 'none';
   ta.required = cb.checked;
-}
-
-function toggleAsignacion() {
-  const esUsuario = document.getElementById('asig_usuario').checked;
-  document.getElementById('bloqueUsuario').style.display      = esUsuario ? 'block' : 'none';
-  document.getElementById('bloqueManualNombre').style.display = esUsuario ? 'none'  : 'block';
-  document.getElementById('bloqueManualTel').style.display    = esUsuario ? 'none'  : 'block';
 }
 
 function eliminarFila(btn) {
@@ -573,8 +510,6 @@ function agregarCosto() {
 
 document.getElementById('tipo').addEventListener('change', toggleTipoOtro);
 document.getElementById('lesionados').addEventListener('change', toggleLesionados);
-document.getElementById('asig_usuario').addEventListener('change', toggleAsignacion);
-document.getElementById('asig_manual').addEventListener('change', toggleAsignacion);
 document.getElementById('btn_agregar_accion').addEventListener('click', agregarAccion);
 document.getElementById('btn_agregar_costo').addEventListener('click', agregarCosto);
 document.getElementById('tablaAcciones').addEventListener('click', function(e) {
@@ -585,5 +520,32 @@ document.getElementById('tablaCostos').addEventListener('click', function(e) {
   const btn = e.target.closest('.btn-eliminar-fila');
   if (btn) eliminarFila(btn);
 });
+</script>
+
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  const lista = document.getElementById('lista-pendientes');
+  const tpl = document.getElementById('tpl-pendiente');
+  const btnAgregar = document.getElementById('btn-agregar-pendiente');
+  if (!lista || !tpl || !btnAgregar) return;
+  let contador = lista.querySelectorAll('.fila-pendiente').length;
+  btnAgregar.addEventListener('click', function () {
+    contador += 1;
+    lista.insertAdjacentHTML('beforeend', tpl.innerHTML.split('__UID__').join('n' + contador));
+  });
+  lista.addEventListener('click', function (e) {
+    const agregar = e.target.closest('[data-agregar-foto]');
+    if (agregar) {
+      const filas = agregar.closest('.fila-pendiente').querySelectorAll('.fila-foto');
+      const ultima = filas[filas.length - 1];
+      const nueva = ultima.cloneNode(true);
+      nueva.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+      ultima.after(nueva);
+      return;
+    }
+    const quitar = e.target.closest('[data-quitar-pendiente]');
+    if (quitar) quitar.closest('.fila-pendiente').remove();
+  });
+})();
 </script>
 {% endblock %}
