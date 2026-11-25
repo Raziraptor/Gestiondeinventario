@@ -1,6 +1,6 @@
 """Administración de departamentos (admin/super_admin con organización)."""
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from . import admin_bp
@@ -27,10 +27,24 @@ def lista_departamentos():
     _exigir_admin_org()
     org_id = current_user.organizacion_id
     departamentos = Departamento.query.filter_by(organizacion_id=org_id).order_by(Departamento.nombre).all()
-    usuarios = (User.query.filter_by(organizacion_id=org_id, is_active=True)
-                .order_by(User.nombre_completo, User.username).all())
-    return render_template('admin_departamentos.html', titulo='Departamentos',
-                           departamentos=departamentos, usuarios=usuarios)
+    return render_template('admin_departamentos.html', titulo='Departamentos', departamentos=departamentos)
+
+
+@admin_bp.route('/admin/departamentos/buscar-usuarios')
+@login_required
+@check_org_permission
+def buscar_usuarios_departamento():
+    """Búsqueda para el selector de encargado/auxiliares: por nombre o usuario, solo de la org, máx. 15."""
+    _exigir_admin_org()
+    q = request.args.get('q', '').strip().lower()[:60]
+    if not q:
+        return jsonify([])
+    usuarios = (User.query
+                .filter(User.organizacion_id == current_user.organizacion_id, User.is_active.is_(True),
+                        db.or_(db.func.lower(db.func.coalesce(User.nombre_completo, '')).contains(q, autoescape=True),
+                               db.func.lower(User.username).contains(q, autoescape=True)))
+                .order_by(User.nombre_completo, User.username).limit(15).all())
+    return jsonify([{'id': u.id, 'texto': u.nombre_mostrado} for u in usuarios])
 
 
 def _guardar(depto=None):

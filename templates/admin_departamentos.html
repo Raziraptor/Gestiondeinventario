@@ -73,35 +73,36 @@
 </div>
 {% endblock %}
 
-{% macro formulario(accion, nombre, encargado_id, auxiliares_ids, usuarios, sufijo) %}
+{# Buscador de personas: no se lista a todos los usuarios, se busca por nombre o usuario (ver script abajo). #}
+{% macro buscador(titulo, campo, modo, seleccion, sufijo) %}
+<div class="mb-3 buscador-usuarios" data-modo="{{ modo }}" data-campo="{{ campo }}"
+     data-url="{{ url_for('admin.buscar_usuarios_departamento') }}">
+    <label for="buscar-{{ campo }}-{{ sufijo }}" class="form-label fw-semibold">{{ titulo }}</label>
+    <div class="seleccion d-flex flex-wrap gap-2 mb-2">
+        {% for m in seleccion %}
+        <span class="badge text-bg-primary d-inline-flex align-items-center gap-2">
+            <span>{{ m.user.nombre_mostrado }}</span>
+            <button type="button" class="btn-close btn-close-white" style="font-size:.6rem;" aria-label="Quitar {{ m.user.nombre_mostrado }}"></button>
+            <input type="hidden" name="{{ campo }}" value="{{ m.user_id }}">
+        </span>
+        {% endfor %}
+    </div>
+    <input id="buscar-{{ campo }}-{{ sufijo }}" type="search" class="form-control" autocomplete="off"
+           placeholder="Escribe un nombre o usuario para buscar…">
+    <div class="list-group mt-1 resultados" aria-live="polite" style="max-height:200px;overflow:auto;"></div>
+</div>
+{% endmacro %}
+
+{% macro formulario(accion, nombre, encargado, auxiliares, sufijo) %}
 <form method="post" action="{{ accion }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="modal-body">
         <div class="mb-3">
-            <label for="nombre-{{ sufijo }}" class="form-label">Nombre</label>
+            <label for="nombre-{{ sufijo }}" class="form-label fw-semibold">Nombre</label>
             <input id="nombre-{{ sufijo }}" name="nombre" class="form-control" maxlength="120" required value="{{ nombre }}">
         </div>
-        <div class="mb-3">
-            <label for="encargado-{{ sufijo }}" class="form-label">Encargado</label>
-            <select id="encargado-{{ sufijo }}" name="encargado_id" class="form-select">
-                <option value="">Sin encargado</option>
-                {% for u in usuarios %}
-                <option value="{{ u.id }}" {% if u.id == encargado_id %}selected{% endif %}>{{ u.nombre_mostrado }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <fieldset>
-            <legend class="form-label fs-6">Auxiliares</legend>
-            <div style="max-height:220px;overflow:auto;">
-                {% for u in usuarios %}
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="auxiliar_ids" value="{{ u.id }}"
-                           id="aux-{{ sufijo }}-{{ u.id }}" {% if u.id in auxiliares_ids %}checked{% endif %}>
-                    <label class="form-check-label" for="aux-{{ sufijo }}-{{ u.id }}">{{ u.nombre_mostrado }}</label>
-                </div>
-                {% endfor %}
-            </div>
-        </fieldset>
+        {{ buscador('Encargado', 'encargado_id', 'uno', encargado, sufijo) }}
+        {{ buscador('Auxiliares', 'auxiliar_ids', 'varios', auxiliares, sufijo) }}
     </div>
     <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -117,22 +118,113 @@
             <h2 class="modal-title fs-5" id="tituloNuevoDepto">Nuevo departamento</h2>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-        {{ formulario(url_for('admin.crear_departamento'), '', none, [], usuarios, 'nuevo') }}
+        {{ formulario(url_for('admin.crear_departamento'), '', [], [], 'nuevo') }}
     </div></div>
 </div>
 
 {% for d in departamentos %}
 {% set miembros = d.miembros.all() %}
 {% set enc = (miembros | selectattr('rol', 'equalto', 'encargado') | list) %}
-{% set aux_ids = (miembros | selectattr('rol', 'equalto', 'auxiliar') | map(attribute='user_id') | list) %}
+{% set aux = (miembros | selectattr('rol', 'equalto', 'auxiliar') | list) %}
 <div class="modal fade" id="modalDepto{{ d.id }}" tabindex="-1" aria-labelledby="tituloDepto{{ d.id }}" aria-hidden="true">
     <div class="modal-dialog"><div class="modal-content">
         <div class="modal-header">
             <h2 class="modal-title fs-5" id="tituloDepto{{ d.id }}">Editar {{ d.nombre }}</h2>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-        {{ formulario(url_for('admin.editar_departamento', id=d.id), d.nombre, (enc[0].user_id if enc else none), aux_ids, usuarios, d.id) }}
+        {{ formulario(url_for('admin.editar_departamento', id=d.id), d.nombre, enc, aux, d.id) }}
     </div></div>
 </div>
 {% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce() }}">
+(function () {
+  function crearChip(campo, id, texto) {
+    const chip = document.createElement('span');
+    chip.className = 'badge text-bg-primary d-inline-flex align-items-center gap-2';
+    const t = document.createElement('span');
+    t.textContent = texto;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn-close btn-close-white';
+    b.style.fontSize = '.6rem';
+    b.setAttribute('aria-label', 'Quitar ' + texto);
+    const h = document.createElement('input');
+    h.type = 'hidden';
+    h.name = campo;
+    h.value = id;
+    chip.append(t, b, h);
+    return chip;
+  }
+
+  document.querySelectorAll('.buscador-usuarios').forEach(function (caja) {
+    const modo = caja.dataset.modo, campo = caja.dataset.campo, url = caja.dataset.url;
+    const seleccion = caja.querySelector('.seleccion');
+    const entrada = caja.querySelector('input[type=search]');
+    const resultados = caja.querySelector('.resultados');
+    let temporizador = null, ultima = 0;
+
+    function elegidos() {
+      return Array.from(seleccion.querySelectorAll('input[type=hidden]')).map(function (i) { return i.value; });
+    }
+    function limpiar() { resultados.textContent = ''; }
+    function elegir(u) {
+      if (modo === 'uno') seleccion.textContent = '';
+      if (!elegidos().includes(String(u.id))) seleccion.appendChild(crearChip(campo, u.id, u.texto));
+      entrada.value = '';
+      limpiar();
+      entrada.focus();
+    }
+    function mostrar(lista) {
+      limpiar();
+      const ya = elegidos();
+      const libres = lista.filter(function (u) { return !ya.includes(String(u.id)); });
+      if (!libres.length) {
+        const vacio = document.createElement('div');
+        vacio.className = 'list-group-item text-muted small';
+        vacio.textContent = 'Sin resultados.';
+        resultados.appendChild(vacio);
+        return;
+      }
+      libres.forEach(function (u) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'list-group-item list-group-item-action';
+        b.textContent = u.texto;
+        b.addEventListener('click', function () { elegir(u); });
+        resultados.appendChild(b);
+      });
+    }
+    function buscar() {
+      const q = entrada.value.trim();
+      if (!q) { limpiar(); return; }
+      const mia = ++ultima;
+      fetch(url + '?q=' + encodeURIComponent(q), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (lista) { if (mia === ultima) mostrar(lista); })
+        .catch(function () { if (mia === ultima) limpiar(); });
+    }
+
+    entrada.addEventListener('input', function () {
+      clearTimeout(temporizador);
+      temporizador = setTimeout(buscar, 250);
+    });
+    entrada.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {            // Enter elige el primer resultado y nunca envía el formulario
+        e.preventDefault();
+        const primero = resultados.querySelector('button');
+        if (primero) primero.click();
+      } else if (e.key === 'Escape') {
+        limpiar();
+      }
+    });
+    seleccion.addEventListener('click', function (e) {
+      const quitar = e.target.closest('.btn-close');
+      if (quitar) quitar.closest('.badge').remove();
+    });
+  });
+})();
+</script>
 {% endblock %}

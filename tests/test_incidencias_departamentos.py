@@ -91,3 +91,38 @@ def test_lista_muestra_nombres(client, mundo):
     entrar(client, mundo.admin)
     html = client.get('/admin/departamentos').get_data(as_text=True)
     assert 'Elena Encargada (inc_enc_a)' in html
+
+
+def test_buscar_usuarios_por_nombre_y_por_usuario(client, mundo):
+    entrar(client, mundo.admin)
+    r = client.get('/admin/departamentos/buscar-usuarios?q=elena')
+    assert r.status_code == 200
+    assert [u['texto'] for u in r.get_json()] == ['Elena Encargada (inc_enc_a)']
+    por_usuario = client.get('/admin/departamentos/buscar-usuarios?q=INC_AUX').get_json()
+    assert [u['id'] for u in por_usuario] == [mundo.aux_a.id]
+    assert client.get('/admin/departamentos/buscar-usuarios?q=').get_json() == []
+
+
+def test_busqueda_solo_de_la_org_y_activos_y_sin_comodines(client, mundo):
+    from app.models import User
+    entrar(client, mundo.admin)
+    assert client.get('/admin/departamentos/buscar-usuarios?q=berta').get_json() == []  # otra organización
+    mundo.ajeno.is_active = False
+    db.session.commit()
+    assert client.get('/admin/departamentos/buscar-usuarios?q=pedro').get_json() == []
+    assert client.get('/admin/departamentos/buscar-usuarios?q=%25').get_json() == []     # '%' no es comodín
+    assert len(client.get('/admin/departamentos/buscar-usuarios?q=inc_').get_json()) <= 15
+    assert db.session.get(User, mundo.ajeno.id) is not None
+
+
+def test_busqueda_solo_para_admins(client, mundo):
+    entrar(client, mundo.aux_a)
+    assert client.get('/admin/departamentos/buscar-usuarios?q=elena').status_code == 403
+
+
+def test_la_pagina_no_lista_a_todos_los_usuarios(client, mundo):
+    entrar(client, mundo.admin)
+    html = client.get('/admin/departamentos').get_data(as_text=True)
+    assert 'Pedro Ajeno' not in html                      # no pertenece a ningún departamento
+    assert 'buscar-usuarios' in html and 'type="search"' in html
+    assert 'Elena Encargada (inc_enc_a)' in html          # el encargado actual sí aparece como chip
